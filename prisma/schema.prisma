@@ -1,74 +1,127 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
-    provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-    provider = "mysql"
-    // NOTE: When using mysql or sqlserver, uncomment the @db.Text annotations in model Account below
-    // Further reading:
-    // https://next-auth.js.org/adapters/prisma#create-the-prisma-schema
-    // https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference#string
-    url      = env("DATABASE_URL")
+  provider = "mysql"
+  url      = env("DATABASE_URL")
 }
 
-model Post {
-    id        Int      @id @default(autoincrement())
-    name      String
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-
-    createdBy   User   @relation(fields: [createdById], references: [id])
-    createdById String
-
-    @@index([name])
-}
-
-// Necessary for Next auth
 model Account {
-    id                       String  @id @default(cuid())
-    userId                   String
-    type                     String
-    provider                 String
-    providerAccountId        String
-    refresh_token            String? @db.Text
-    access_token             String? // @db.Text
-    expires_at               Int?
-    token_type               String?
-    scope                    String?
-    id_token                 String? // @db.Text
-    session_state            String?
-    user                     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-    refresh_token_expires_in Int?
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-    @@unique([provider, providerAccountId])
+  @@unique([provider, providerAccountId])
+  @@index([userId], map: "Account_userId_fkey")
 }
 
 model Session {
-    id           String   @id @default(cuid())
-    sessionToken String   @unique
-    userId       String
-    expires      DateTime
-    user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "Session_userId_fkey")
 }
 
 model User {
-    id            String    @id @default(cuid())
-    name          String?
-    email         String?   @unique
-    emailVerified DateTime?
-    image         String?
-    accounts      Account[]
-    sessions      Session[]
-    posts         Post[]
+  id            String        @id @unique(map: "user_Id") @default(cuid())
+  name          String?
+  email         String?       @unique
+  emailVerified DateTime?
+  password      String?       @db.VarChar(999)
+  image         String?
+  last_online   DateTime      @default(now()) @db.Timestamp(0)
+  last_action   String?
+  accounts      Account[]
+  inventory     Inventory?
+  sessions      Session[]
+  user_skills   user_skills[]
 }
 
 model VerificationToken {
-    identifier String
-    token      String   @unique
-    expires    DateTime
+  identifier String
+  token      String   @unique
+  expires    DateTime
 
-    @@unique([identifier, token])
+  @@unique([identifier, token])
+}
+
+model Base_Items {
+  id          Int    @id @default(autoincrement())
+  name        String @db.Text
+  description String @db.Text
+}
+
+model Base_Items_M {
+  id           Int     @id @default(autoincrement())
+  name         String? @db.VarChar(255)
+  min_ad       Float?  @db.Float
+  max_ad       Float?  @db.Float
+  attack_speed Float?  @db.Float
+  armor        Float?  @db.Float
+  sprite       String? @db.Text
+}
+
+model Example {
+  id        String   @id
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+}
+
+model Item {
+  id     Int    @id @default(autoincrement())
+  sprite String?
+  name   String
+  stat1  String
+  stat2  String?
+  price  Float
+}
+
+model Inventory {
+  id       Int     @id @default(autoincrement())
+  userId   String  @unique
+  slots    Json    @default("[]")
+  maxSlots Int     @default(20)
+  User     User    @relation(fields: [userId], references: [id])
+}
+
+model Modifiers {
+  id        Int    @id @default(autoincrement())
+  name      String @db.VarChar(255)
+  code      String @db.VarChar(255)
+  mod_range String @db.VarChar(255)
+}
+
+model skills {
+  skill_id    Int           @id @default(autoincrement())
+  skill_name  String        @unique(map: "skill_name")
+  description String?       @db.Text
+  user_skills user_skills[]
+}
+
+model user_skills {
+  user_skill_id Int      @id @default(autoincrement())
+  user_id       String
+  skill_id      Int
+  level         Int      @default(1)
+  current_xp    Int      @default(0)
+  updated_at    DateTime @default(now()) @db.Timestamp(0)
+  skills        skills   @relation(fields: [skill_id], references: [skill_id], onUpdate: Restrict, map: "user_skills_ibfk_1")
+  User          User     @relation(fields: [user_id], references: [id], onUpdate: Restrict, map: "user_skills_ibfk_2")
+
+  @@unique([user_id, skill_id], map: "user_id")
+  @@index([skill_id], map: "skill_id")
 }

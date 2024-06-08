@@ -1,50 +1,80 @@
-import { PrismaAdapter } from "@auth/prisma-adapter";
-import {
-  getServerSession,
-  type DefaultSession,
-  type NextAuthOptions,
-} from "next-auth";
-import { type Adapter } from "next-auth/adapters";
-import DiscordProvider from "next-auth/providers/discord";
+// src/server/auth.ts
 
-import { env } from "~/env";
-import { db } from "~/server/db";
+import { PrismaAdapter } from '@auth/prisma-adapter';
+import { getServerSession, type DefaultSession, type NextAuthOptions } from 'next-auth';
+import { type Adapter } from 'next-auth/adapters';
+import DiscordProvider from 'next-auth/providers/discord';
+import CredentialsProvider from 'next-auth/providers/credentials';
+import { prisma } from '~/lib/prisma';
+import { env } from '~/env';
+import { db } from '~/server/db';
+import { compare } from 'bcryptjs';
 
-/**
- * Module augmentation for `next-auth` types. Allows us to add custom properties to the `session`
- * object and keep type safety.
- *
- * @see https://next-auth.js.org/getting-started/typescript#module-augmentation
- */
-declare module "next-auth" {
+declare module 'next-auth' {
   interface Session extends DefaultSession {
     user: {
       id: string;
-      // ...other properties
-      // role: UserRole;
-    } & DefaultSession["user"];
+      user_skills: any;
+      inventory: any;
+    } & DefaultSession['user'];
   }
-
-  // interface User {
-  //   // ...other properties
-  //   // role: UserRole;
-  // }
 }
 
-/**
- * Options for NextAuth.js used to configure adapters, providers, callbacks, etc.
- *
- * @see https://next-auth.js.org/configuration/options
- */
 export const authOptions: NextAuthOptions = {
+  session: {
+    strategy: 'jwt',
+  },
   callbacks: {
-    session: ({ session, user }) => ({
-      ...session,
-      user: {
-        ...session.user,
-        id: user.id,
-      },
-    }),
+    session: async ({ session, token }) => {
+      if (token) {
+        let user = await prisma.user.findUnique({
+          where: {
+            id: token.id as string,
+          },
+          include: {
+            user_skills: true,
+            inventory: true,
+          },
+        });
+
+        if (user && !user.inventory) {
+          const slots = Array.from({ length: 20 }, (_, index) => ({
+            slotIndex: index,
+            item: null,
+          }));
+          const inventory = await prisma.inventory.create({
+            data: {
+              userId: user.id,
+              slots: JSON.stringify(slots),
+              maxSlots: 20,
+            },
+          });
+          user = { ...user, inventory: inventory }; // Reassign user with updated inventory
+        }
+
+        session.user = {
+          ...session.user,
+          id: token.id,
+          user_skills: user?.user_skills || [],
+        };
+      }
+      return session;
+    },
+    jwt: async ({ token, user }) => {
+      if (user) {
+        token.id = user.id;
+      }
+      return token;
+    },
+    async redirect({ url, baseUrl }) {
+      // Redirect to /character after successful login
+      if (url.startsWith(baseUrl)) {
+        return `${baseUrl}/character`;
+      } else if (url.startsWith('/')) {
+        return `${baseUrl}${url}`;
+      }
+      return baseUrl;
+    },
   },
   adapter: PrismaAdapter(db) as Adapter,
   providers: [
@@ -52,21 +82,40 @@ export const authOptions: NextAuthOptions = {
       clientId: env.DISCORD_CLIENT_ID,
       clientSecret: env.DISCORD_CLIENT_SECRET,
     }),
-    /**
-     * ...add more providers here.
-     *
-     * Most other providers require a bit more work than the Discord provider. For example, the
-     * GitHub provider requires you to add the `refresh_token_expires_in` field to the Account
-     * model. Refer to the NextAuth.js docs for the provider you want to use. Example:
-     *
-     * @see https://next-auth.js.org/providers/github
-     */
+    CredentialsProvider({
+      name: 'Credentials',
+      credentials: {
+        email: { label: 'Email', type: 'text' },
+        password: { label: 'Password', type: 'password' },
+      },
+      async authorize(credentials, req) {
+        if (!credentials) {
+          throw new Error('No credentials provided');
+        }
+        const { email, password } = credentials;
+
+        const user = await prisma.user.findUnique({
+          where: { email },
+        });
+
+        if (!user || !user.password) {
+          throw new Error('No user found with this email');
+        }
+
+        const isValidPassword = await compare(password, user.password);
+
+        if (!isValidPassword) {
+          throw new Error('Password does not match the given email');
+        }
+
+        return { id: user.id, name: user.name, email: user.email };
+      },
+    }),
   ],
+  pages: {
+    signIn: '/signin',  // Redirects to /signin if not authenticated
+    newUser: '/character',  // Redirects to /character after successful registration
+  },
 };
 
-/**
- * Wrapper for `getServerSession` so that you don't need to import the `authOptions` in every file.
- *
- * @see https://next-auth.js.org/configuration/nextjs
- */
 export const getServerAuthSession = () => getServerSession(authOptions);
