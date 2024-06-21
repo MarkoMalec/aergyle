@@ -28,7 +28,7 @@ const GameLayout = async ({ children }: { children: React.ReactNode }) => {
   });
 
   return (
-    <html lang="en" className={`${GeistSans.variable}`}>
+    <html lang="en" className={`${GeistSans.variable}`} suppressHydrationWarning>
       <body>
         <UserContextProvider initialUser={user ?? undefined}>
           <Providers>
@@ -38,7 +38,7 @@ const GameLayout = async ({ children }: { children: React.ReactNode }) => {
                 <SidebarLeft />
               </div>
               <div className="h-[calc(100vh-66px)] w-full overflow-y-scroll pt-10">
-                <div className="container">{children}</div>
+                <div className="container pb-10">{children}</div>
               </div>
             </div>
           </Providers>

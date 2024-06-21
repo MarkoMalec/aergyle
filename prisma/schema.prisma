@@ -46,6 +46,7 @@ model User {
   last_online   DateTime      @default(now()) @db.Timestamp(0)
   last_action   String?
   accounts      Account[]
+  equipment     Equipment?
   inventory     Inventory?
   sessions      Session[]
   user_skills   user_skills[]
@@ -82,20 +83,41 @@ model Example {
 }
 
 model Item {
-  id     Int    @id @default(autoincrement())
-  sprite String?
-  name   String
-  stat1  String
-  stat2  String?
-  price  Float
+  id      Int     @id @default(autoincrement())
+  name    String
+  stat1   String
+  stat2   String
+  price   Float
+  sprite  String
+  equipTo String?
 }
 
 model Inventory {
-  id       Int     @id @default(autoincrement())
-  userId   String  @unique
-  slots    Json    @default("[]")
-  maxSlots Int     @default(20)
-  User     User    @relation(fields: [userId], references: [id])
+  id       Int    @id @default(autoincrement())
+  maxSlots Int    @default(20)
+  userId   String @unique
+  slots    Json
+  User     User   @relation(fields: [userId], references: [id])
+}
+
+model Equipment {
+  id        Int    @id @default(autoincrement())
+  userId    String @unique
+  head      Int?
+  chest     Int?
+  belt      Int?
+  legs      Int?
+  boots     Int?
+  necklace  Int?
+  ring1     Int?
+  ring2     Int?
+  amulet    Int?
+  shoulders Int?
+  arms      Int?
+  gloves    Int?
+  backpack  Int?
+  weapon    Int?
+  User      User   @relation(fields: [userId], references: [id])
 }
 
 model Modifiers {

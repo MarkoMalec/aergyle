@@ -38,14 +38,24 @@ export const authOptions: NextAuthOptions = {
         });
 
         if (user && !user.inventory) {
-          const slots = Array.from({ length: 20 }, (_, index) => ({
-            slotIndex: index,
-            item: null,
-          }));
+          const slots = Array.from({ length: 50 }, (_, index) => {
+            if (index < 10) {
+              return {
+                slotIndex: index,
+                item: { id: index + 1 },
+              }
+            }
+            else {
+              return {
+                slotIndex: index,
+                item: null,
+              }
+            }
+          });
           const inventory = await prisma.inventory.create({
             data: {
               userId: user.id,
-              slots: JSON.stringify(slots),
+              slots: slots,
               maxSlots: 20,
             },
           });

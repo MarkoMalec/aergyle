@@ -7,8 +7,8 @@ const Portrait = () => {
       className="shadow-lg rounded"
       alt="portrait"
       src="/assets/character/character-warrior.jpg"
-      width={480}
-      height={480}
+      width={400}
+      height={400}
     />
   );
 };

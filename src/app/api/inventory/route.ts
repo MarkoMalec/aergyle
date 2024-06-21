@@ -32,6 +32,7 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   try {
     const userId = req.nextUrl.searchParams.get("userId");
+    console.log(userId, "USER ID?")
     if (!userId) {
       return NextResponse.json({
         status: 400,
@@ -43,9 +44,6 @@ export async function GET(req: NextRequest) {
       where: {
         userId: userId,
       },
-      include: {
-        User: true,
-      },
     });
 
     if (!userInventory || !userInventory.slots) {
@@ -55,13 +53,10 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Cast slots to JsonArray
     const slots = userInventory.slots as Prisma.JsonArray;
 
-    const slotsWithItems = [];
-
-    for (const slot of slots) {
-      try {
+    const slotsWithItems = await Promise.all(
+      slots.map(async (slot, index) => {
         if (typeof slot === "object" && slot !== null && "item" in slot) {
           const slotObj = slot as Prisma.JsonObject;
           const slotItem = slotObj.item as Prisma.JsonObject;
@@ -76,33 +71,23 @@ export async function GET(req: NextRequest) {
                 stat1: true,
                 stat2: true,
                 price: true,
+                equipTo: true,
               },
             });
-
-            if (item) {
-              slotsWithItems.push({ ...slot, item });
-            } else {
-              console.warn(`Item with ID ${slotItem.id} not found`);
-              slotsWithItems.push(slot);
-            }
-          } else {
-            slotsWithItems.push(slot);
+            return { slotIndex: index, item: item };
           }
-        } else {
-          slotsWithItems.push(slot);
         }
-      } catch (error) {
-        console.error(`Error fetching item for slot:`, error);
-        slotsWithItems.push(slot);
-      }
-    }
+        return { slotIndex: index, item: null };
+      }),
+    );
 
     return NextResponse.json({
       status: 200,
-      inventory: { ...userInventory, slots: slotsWithItems },
+      slots: slotsWithItems,
     });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ status: 500, error: "Internal Server Error" });
   }
 }
+

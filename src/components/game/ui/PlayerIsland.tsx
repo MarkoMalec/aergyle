@@ -17,7 +17,7 @@ const PlayerIsland = () => {
   return (
     <Popover>
       <PopoverTrigger>
-        <Avatar>
+        <Avatar className="w-8 h-8">
           <AvatarImage src="/" />
           <AvatarFallback>{user?.name?.slice(0, 1)}</AvatarFallback>
         </Avatar>
