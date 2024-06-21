@@ -384,6 +384,7 @@ interface DndContextProps {
   equipment: EquipmentSlots;
   setInventory: React.Dispatch<React.SetStateAction<InventorySlot[]>>;
   setEquipment: React.Dispatch<React.SetStateAction<EquipmentSlots>>;
+  mutating: boolean;
 }
 
 const DndContext = createContext<DndContextProps | undefined>(undefined);
@@ -401,6 +402,8 @@ export const DndProvider: React.FC<DndProviderProps> = ({
 }) => {
   const { user } = useUserContext();
   const queryClient = useQueryClient();
+
+  const [mutating, setMutating] = React.useState(false);
 
   const fetchInventory = async () => {
     const response = await fetch(`/api/inventory?userId=${user?.id}`);
@@ -455,6 +458,8 @@ export const DndProvider: React.FC<DndProviderProps> = ({
     },
   });
 
+  let loading = false;
+
   const updateEquipmentOrder = useMutation({
     mutationFn: async (newSlots: EquipmentSlots) => {
       const equipmentData = Object.keys(newSlots).reduce(
@@ -476,8 +481,12 @@ export const DndProvider: React.FC<DndProviderProps> = ({
       }
       return response.json();
     },
+    onMutate: () => {
+      setMutating(true);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries(["equipment", user?.id]);
+      setMutating(false);
     },
   });
 
@@ -667,6 +676,7 @@ export const DndProvider: React.FC<DndProviderProps> = ({
         equipment: equipment ?? {},
         setInventory: updateInventoryOrder.mutate,
         setEquipment: updateEquipmentOrder.mutate,
+        mutating: mutating,
       }}
     >
       <DndKitContext

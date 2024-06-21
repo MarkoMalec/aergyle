@@ -3,9 +3,16 @@
 import React from "react";
 import { DroppableSlot } from "../../../dnd/DroppableSlot";
 import { useDndContext } from "~/components/dnd/DnDContext";
+import EquipmentSkeleton from "./EquipmentSkeleton";
 
 const Equipment = () => {
-  const { equipment } = useDndContext();
+  const { equipment, mutating } = useDndContext();
+
+  console.log(mutating);
+
+  if (mutating === true) {
+    return <EquipmentSkeleton />
+  }
 
   return (
     <div className="ml-16 flex w-full gap-10">
