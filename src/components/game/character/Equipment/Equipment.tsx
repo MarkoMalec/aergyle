@@ -6,17 +6,15 @@ import { useDndContext } from "~/components/dnd/DnDContext";
 import EquipmentSkeleton from "./EquipmentSkeleton";
 
 const Equipment = () => {
-  const { equipment, mutating } = useDndContext();
+  const { equipment, isLoading } = useDndContext();
 
-  console.log(mutating);
-
-  if (mutating === true) {
-    return <EquipmentSkeleton />
+  if (isLoading) {
+    return <EquipmentSkeleton />;
   }
 
   return (
     <div className="ml-16 flex w-full gap-10">
-      <div className="space-y-2 flex flex-col justify-end">
+      <div className="flex flex-col justify-end space-y-2">
         <DroppableSlot
           id={`equipment-main-weapon`}
           index={113}
@@ -41,7 +39,7 @@ const Equipment = () => {
               index={102}
               slot={{ slotIndex: 102, item: equipment.shoulders }}
               container="equipment"
-              equipmentSlotType="shoulder"
+              equipmentSlotType="shoulders"
             />
             <DroppableSlot
               id={`equipment-necklace`}
@@ -55,7 +53,7 @@ const Equipment = () => {
               index={102}
               slot={{ slotIndex: 102, item: equipment.shoulders }}
               container="equipment"
-              equipmentSlotType="shoulder"
+              equipmentSlotType="shoulders"
             />
           </div>
         </div>

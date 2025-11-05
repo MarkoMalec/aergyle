@@ -1,93 +1,99 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "~/lib/prisma";
 import { Prisma } from "@prisma/client";
+import { fetchItemsByIds } from "~/utils/inventory";
 
 export async function POST(req: NextRequest) {
-  const { userId, inventory } = await req.json();
-
-  console.log(inventory);
-
   try {
+    const { userId, inventory } = await req.json();
+
+    if (!userId || !inventory || !Array.isArray(inventory)) {
+      return NextResponse.json(
+        { error: "Invalid request: userId and inventory array required" },
+        { status: 400 },
+      );
+    }
+
     const userInventory = await prisma.inventory.update({
-      where: {
-        userId: userId,
-      },
-      data: {
-        slots: inventory,
-      },
+      where: { userId },
+      data: { slots: inventory },
     });
 
-    return NextResponse.json({
-      status: 201,
-      json: {
-        message: `User's inventory updated ${userInventory}`,
+    return NextResponse.json(
+      {
+        message: "Inventory updated successfully",
+        inventory: userInventory,
       },
-    });
+      { status: 200 },
+    );
   } catch (error) {
-    console.error(error);
-    return NextResponse.json({ status: 500, error: "Internal Server Error" });
+    console.error("Error updating inventory:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }
 
 export async function GET(req: NextRequest) {
   try {
     const userId = req.nextUrl.searchParams.get("userId");
-    console.log(userId, "USER ID?")
+
     if (!userId) {
-      return NextResponse.json({
-        status: 400,
-        error: "Bad Request: Missing userId",
-      });
+      return NextResponse.json(
+        { error: "Bad Request: Missing userId" },
+        { status: 400 },
+      );
     }
 
     const userInventory = await prisma.inventory.findUnique({
-      where: {
-        userId: userId,
-      },
+      where: { userId },
     });
 
     if (!userInventory || !userInventory.slots) {
-      return NextResponse.json({
-        status: 404,
-        error: "Inventory not found or empty",
-      });
+      return NextResponse.json(
+        { error: "Inventory not found or empty" },
+        { status: 404 },
+      );
     }
 
     const slots = userInventory.slots as Prisma.JsonArray;
 
-    const slotsWithItems = await Promise.all(
-      slots.map(async (slot, index) => {
-        if (typeof slot === "object" && slot !== null && "item" in slot) {
-          const slotObj = slot as Prisma.JsonObject;
-          const slotItem = slotObj.item as Prisma.JsonObject;
+    const itemIds: number[] = [];
+    const slotStructure: { index: number; itemId: number | null }[] = [];
 
-          if (slotItem && "id" in slotItem) {
-            const item = await prisma.item.findUnique({
-              where: { id: slotItem.id as number },
-              select: {
-                id: true,
-                name: true,
-                sprite: true,
-                stat1: true,
-                stat2: true,
-                price: true,
-                equipTo: true,
-              },
-            });
-            return { slotIndex: index, item: item };
-          }
+    slots.forEach((slot, index) => {
+      if (typeof slot === "object" && slot !== null && "item" in slot) {
+        const slotObj = slot as Prisma.JsonObject;
+        const slotItem = slotObj.item as Prisma.JsonObject;
+        if (slotItem && "id" in slotItem) {
+          const itemId = slotItem.id as number;
+          itemIds.push(itemId);
+          slotStructure.push({ index, itemId });
+        } else {
+          slotStructure.push({ index, itemId: null });
         }
-        return { slotIndex: index, item: null };
-      }),
-    );
-
-    return NextResponse.json({
-      status: 200,
-      slots: slotsWithItems,
+      } else {
+        slotStructure.push({ index, itemId: null });
+      }
     });
+
+    const items = await fetchItemsByIds(itemIds);
+    const itemMap = new Map(items.map((item) => [item.id, item]));
+
+    const slotsWithItems = slotStructure.map(({ index, itemId }) => ({
+      slotIndex: index,
+      item: itemId ? itemMap.get(itemId) || null : null,
+    }));
+
+    console.log("user inventory: ", slotsWithItems[0]);
+
+    return NextResponse.json({ slots: slotsWithItems }, { status: 200 });
   } catch (error) {
-    console.error(error);
-    return NextResponse.json({ status: 500, error: "Internal Server Error" });
+    console.error("Error fetching inventory:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }
-

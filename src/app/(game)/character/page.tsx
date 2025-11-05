@@ -10,97 +10,110 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "~/lib/prisma";
 import Inventory from "~/components/game/character/Inventory/Inventory";
 import Equipment from "~/components/game/character/Equipment/Equipment";
-import { InventorySlot } from "~/components/dnd/DnDContext";
+import { InventorySlotWithItem } from "~/types/inventory";
+import { fetchItemsByIds } from "~/utils/inventory";
 
 const CharacterPage = async () => {
   const session = await getServerSession(authOptions);
 
-  const userInventory = await prisma.inventory.findUnique({
-    where: {
-      userId: session?.user.id,
-    },
-    include: {
-      User: true,
-    },
+  if (!session?.user?.id) {
+    throw new Error("User not authenticated");
+  }
+
+  const [userInventory, userEquipment] = await Promise.all([
+    prisma.inventory.findUnique({
+      where: { userId: session.user.id },
+    }),
+    prisma.equipment.findUnique({
+      where: { userId: session.user.id },
+    }),
+  ]);
+
+  const slots = (userInventory?.slots as Prisma.JsonArray) || [];
+
+  const inventoryItemIds: number[] = [];
+  const slotStructure: { index: number; itemId: number | null }[] = [];
+
+  slots.forEach((slot, index) => {
+    if (typeof slot === "object" && slot !== null && "item" in slot) {
+      const slotObj = slot as Prisma.JsonObject;
+      const slotItem = slotObj.item as Prisma.JsonObject;
+      if (slotItem && "id" in slotItem) {
+        const itemId = slotItem.id as number;
+        inventoryItemIds.push(itemId);
+        slotStructure.push({ index, itemId });
+      } else {
+        slotStructure.push({ index, itemId: null });
+      }
+    } else {
+      slotStructure.push({ index, itemId: null });
+    }
   });
 
-  const slots = userInventory?.slots as Prisma.JsonArray;
+  const equipmentItemIds = Object.values({
+    head: userEquipment?.head,
+    necklace: userEquipment?.necklace,
+    chest: userEquipment?.chest,
+    shoulders: userEquipment?.shoulders,
+    arms: userEquipment?.arms,
+    gloves: userEquipment?.gloves,
+    belt: userEquipment?.belt,
+    legs: userEquipment?.legs,
+    boots: userEquipment?.boots,
+    ring1: userEquipment?.ring1,
+    ring2: userEquipment?.ring2,
+    amulet: userEquipment?.amulet,
+    backpack: userEquipment?.backpack,
+    weapon: userEquipment?.weapon,
+  }).filter((id): id is number => id !== null);
 
-  const slotsWithItems: InventorySlot[] = await Promise.all(
-    slots.map(async (slot, index) => {
-      if (typeof slot === "object" && slot !== null && "item" in slot) {
-        const slotObj = slot as Prisma.JsonObject;
-        const slotItem = slotObj.item as Prisma.JsonObject;
+  const allItemIds = [...inventoryItemIds, ...equipmentItemIds];
+  const items = await fetchItemsByIds(allItemIds);
+  const itemMap = new Map(items.map((item) => [item.id, item]));
 
-        if (slotItem && "id" in slotItem) {
-          const item = await prisma.item.findUnique({
-            where: { id: slotItem.id as number },
-            select: {
-              id: true,
-              name: true,
-              sprite: true,
-              stat1: true,
-              stat2: true,
-              price: true,
-              equipTo: true,
-            },
-          });
-          return { slotIndex: index, item: item };
-        }
-      }
-      return { slotIndex: index, item: null };
+  const slotsWithItems: InventorySlotWithItem[] = slotStructure.map(
+    ({ index, itemId }) => ({
+      slotIndex: index,
+      item: itemId ? itemMap.get(itemId) || null : null,
     }),
   );
 
-  const userEquipment = await prisma.equipment.findUnique({
-    where: {
-      userId: session?.user.id,
-    },
-  });
-
   const equipmentWithItems = {
-    head: userEquipment?.head ? await fetchItem(userEquipment.head) : null,
+    head: userEquipment?.head ? itemMap.get(userEquipment.head) || null : null,
     necklace: userEquipment?.necklace
-      ? await fetchItem(userEquipment.necklace)
+      ? itemMap.get(userEquipment.necklace) || null
       : null,
-    chest: userEquipment?.chest ? await fetchItem(userEquipment.chest) : null,
+    chest: userEquipment?.chest
+      ? itemMap.get(userEquipment.chest) || null
+      : null,
     shoulders: userEquipment?.shoulders
-      ? await fetchItem(userEquipment.shoulders)
+      ? itemMap.get(userEquipment.shoulders) || null
       : null,
-    arms: userEquipment?.arms ? await fetchItem(userEquipment.arms) : null,
+    arms: userEquipment?.arms ? itemMap.get(userEquipment.arms) || null : null,
     gloves: userEquipment?.gloves
-      ? await fetchItem(userEquipment.gloves)
+      ? itemMap.get(userEquipment.gloves) || null
       : null,
-    belt: userEquipment?.belt ? await fetchItem(userEquipment.belt) : null,
-    legs: userEquipment?.legs ? await fetchItem(userEquipment.legs) : null,
-    boots: userEquipment?.boots ? await fetchItem(userEquipment.boots) : null,
-    ring1: userEquipment?.ring1 ? await fetchItem(userEquipment.ring1) : null,
-    ring2: userEquipment?.ring2 ? await fetchItem(userEquipment.ring2) : null,
+    belt: userEquipment?.belt ? itemMap.get(userEquipment.belt) || null : null,
+    legs: userEquipment?.legs ? itemMap.get(userEquipment.legs) || null : null,
+    boots: userEquipment?.boots
+      ? itemMap.get(userEquipment.boots) || null
+      : null,
+    ring1: userEquipment?.ring1
+      ? itemMap.get(userEquipment.ring1) || null
+      : null,
+    ring2: userEquipment?.ring2
+      ? itemMap.get(userEquipment.ring2) || null
+      : null,
     backpack: userEquipment?.backpack
-      ? await fetchItem(userEquipment.backpack)
+      ? itemMap.get(userEquipment.backpack) || null
       : null,
     amulet: userEquipment?.amulet
-      ? await fetchItem(userEquipment.amulet)
+      ? itemMap.get(userEquipment.amulet) || null
       : null,
     weapon: userEquipment?.weapon
-      ? await fetchItem(userEquipment.weapon)
+      ? itemMap.get(userEquipment.weapon) || null
       : null,
   };
-
-  async function fetchItem(itemId: number) {
-    return await prisma.item.findUnique({
-      where: { id: itemId },
-      select: {
-        id: true,
-        name: true,
-        sprite: true,
-        stat1: true,
-        stat2: true,
-        price: true,
-        equipTo: true,
-      },
-    });
-  }
 
   return (
     <main>
