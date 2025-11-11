@@ -11,23 +11,46 @@ import { prisma } from "~/lib/prisma";
 import Inventory from "~/components/game/character/Inventory/Inventory";
 import Equipment from "~/components/game/character/Equipment/Equipment";
 import { InventorySlotWithItem } from "~/types/inventory";
-import { fetchItemsByIds } from "~/utils/inventory";
+import { fetchUserItemsByIds } from "~/utils/userItemInventory";
+import { CharacterStats } from "~/components/game/character/CharacterStats";
+import { AddItemTestForm } from "~/components/forms/AddItemTestForm";
+import { redirect } from "next/navigation";
 
 const CharacterPage = async () => {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {
-    throw new Error("User not authenticated");
+    redirect("/signin");
   }
 
   const [userInventory, userEquipment] = await Promise.all([
     prisma.inventory.findUnique({
       where: { userId: session.user.id },
     }),
-    prisma.equipment.findUnique({
+    prisma.equipment.upsert({
       where: { userId: session.user.id },
+      create: {
+        userId: session.user.id,
+      },
+      update: {},
     }),
   ]);
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { level: true },
+  });
+
+  // Fetch character base stats
+  const baseStatsFromDb = await prisma.characterBaseStat.findMany({
+    where: { userId: session.user.id },
+  });
+
+  // Convert to array format for CharacterStats component
+  const baseStats = baseStatsFromDb.map((stat) => ({
+    statType: stat.statType,
+    value: stat.value,
+  }));
 
   const slots = (userInventory?.slots as Prisma.JsonArray) || [];
 
@@ -51,25 +74,39 @@ const CharacterPage = async () => {
   });
 
   const equipmentItemIds = Object.values({
-    head: userEquipment?.head,
-    necklace: userEquipment?.necklace,
-    chest: userEquipment?.chest,
-    shoulders: userEquipment?.shoulders,
-    arms: userEquipment?.arms,
-    gloves: userEquipment?.gloves,
-    belt: userEquipment?.belt,
-    legs: userEquipment?.legs,
-    boots: userEquipment?.boots,
-    ring1: userEquipment?.ring1,
-    ring2: userEquipment?.ring2,
-    amulet: userEquipment?.amulet,
-    backpack: userEquipment?.backpack,
-    weapon: userEquipment?.weapon,
+    head: userEquipment?.headItemId,
+    necklace: userEquipment?.necklaceItemId,
+    chest: userEquipment?.chestItemId,
+    shoulders: userEquipment?.shouldersItemId,
+    arms: userEquipment?.armsItemId,
+    gloves: userEquipment?.glovesItemId,
+    belt: userEquipment?.beltItemId,
+    legs: userEquipment?.legsItemId,
+    boots: userEquipment?.bootsItemId,
+    ring1: userEquipment?.ring1ItemId,
+    ring2: userEquipment?.ring2ItemId,
+    amulet: userEquipment?.amuletItemId,
+    backpack: userEquipment?.backpackItemId,
+    weapon: userEquipment?.weaponItemId,
   }).filter((id): id is number => id !== null);
 
   const allItemIds = [...inventoryItemIds, ...equipmentItemIds];
-  const items = await fetchItemsByIds(allItemIds);
-  const itemMap = new Map(items.map((item) => [item.id, item]));
+  
+  // Fetch UserItems (with rarity and stats)
+  const userItems = await fetchUserItemsByIds(allItemIds);
+  const itemMap = new Map(userItems.map((item) => [item.id, item]));
+
+  // Get all items for test form
+  const allItems = await prisma.item.findMany({
+    select: {
+      id: true,
+      name: true,
+      equipTo: true,
+    },
+    orderBy: {
+      name: "asc",
+    },
+  });
 
   const slotsWithItems: InventorySlotWithItem[] = slotStructure.map(
     ({ index, itemId }) => ({
@@ -79,39 +116,39 @@ const CharacterPage = async () => {
   );
 
   const equipmentWithItems = {
-    head: userEquipment?.head ? itemMap.get(userEquipment.head) || null : null,
-    necklace: userEquipment?.necklace
-      ? itemMap.get(userEquipment.necklace) || null
+    head: userEquipment?.headItemId ? itemMap.get(userEquipment.headItemId) || null : null,
+    necklace: userEquipment?.necklaceItemId
+      ? itemMap.get(userEquipment.necklaceItemId) || null
       : null,
-    chest: userEquipment?.chest
-      ? itemMap.get(userEquipment.chest) || null
+    chest: userEquipment?.chestItemId
+      ? itemMap.get(userEquipment.chestItemId) || null
       : null,
-    shoulders: userEquipment?.shoulders
-      ? itemMap.get(userEquipment.shoulders) || null
+    shoulders: userEquipment?.shouldersItemId
+      ? itemMap.get(userEquipment.shouldersItemId) || null
       : null,
-    arms: userEquipment?.arms ? itemMap.get(userEquipment.arms) || null : null,
-    gloves: userEquipment?.gloves
-      ? itemMap.get(userEquipment.gloves) || null
+    arms: userEquipment?.armsItemId ? itemMap.get(userEquipment.armsItemId) || null : null,
+    gloves: userEquipment?.glovesItemId
+      ? itemMap.get(userEquipment.glovesItemId) || null
       : null,
-    belt: userEquipment?.belt ? itemMap.get(userEquipment.belt) || null : null,
-    legs: userEquipment?.legs ? itemMap.get(userEquipment.legs) || null : null,
-    boots: userEquipment?.boots
-      ? itemMap.get(userEquipment.boots) || null
+    belt: userEquipment?.beltItemId ? itemMap.get(userEquipment.beltItemId) || null : null,
+    legs: userEquipment?.legsItemId ? itemMap.get(userEquipment.legsItemId) || null : null,
+    boots: userEquipment?.bootsItemId
+      ? itemMap.get(userEquipment.bootsItemId) || null
       : null,
-    ring1: userEquipment?.ring1
-      ? itemMap.get(userEquipment.ring1) || null
+    ring1: userEquipment?.ring1ItemId
+      ? itemMap.get(userEquipment.ring1ItemId) || null
       : null,
-    ring2: userEquipment?.ring2
-      ? itemMap.get(userEquipment.ring2) || null
+    ring2: userEquipment?.ring2ItemId
+      ? itemMap.get(userEquipment.ring2ItemId) || null
       : null,
-    backpack: userEquipment?.backpack
-      ? itemMap.get(userEquipment.backpack) || null
+    backpack: userEquipment?.backpackItemId
+      ? itemMap.get(userEquipment.backpackItemId) || null
       : null,
-    amulet: userEquipment?.amulet
-      ? itemMap.get(userEquipment.amulet) || null
+    amulet: userEquipment?.amuletItemId
+      ? itemMap.get(userEquipment.amuletItemId) || null
       : null,
-    weapon: userEquipment?.weapon
-      ? itemMap.get(userEquipment.weapon) || null
+    weapon: userEquipment?.weaponItemId
+      ? itemMap.get(userEquipment.weaponItemId) || null
       : null,
   };
 
@@ -120,60 +157,32 @@ const CharacterPage = async () => {
       <h1 className="mb-12 text-center text-5xl font-bold text-black text-white">
         Character
       </h1>
+      
+      {/* Test Form */}
+      <div className="mb-8 flex gap-4">
+        <AddItemTestForm userId={session.user.id} items={allItems} />
+        
+        {/* Migration Button */}
+        <form action="/api/migrate/equipment" method="POST">
+          <button
+            type="submit"
+            className="rounded bg-purple-600 px-4 py-2 text-white hover:bg-purple-700"
+          >
+            Migrate Equipment to UserItems
+          </button>
+        </form>
+      </div>
+      
       <DndProvider
         initialEquipment={equipmentWithItems}
         initialInventory={slotsWithItems}
       >
+        <CharacterStats baseStats={baseStats} />
         <div className="mb-10 flex gap-10">
           <Portrait />
-          <Card className="w-full border-none bg-white/5">
-            <CardHeader>
-              <CardTitle>Stats</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex gap-5">
-                <ul className="w-full max-w-[250px] space-y-5 text-white">
-                  <ul>
-                    <li className="flex items-center justify-between">
-                      Minimum hit <small>[0]</small>
-                    </li>
-                    <li className="flex items-center justify-between">
-                      Maximum hit <small>[0]</small>
-                    </li>
-                    <li className="flex items-center justify-between">
-                      Chance to Hit <small>[0]</small>
-                    </li>
-                    <li className="flex items-center justify-between">
-                      Accuracy <small>[0]</small>
-                    </li>
-                    <li className="flex items-center justify-between">
-                      Damage Reduction <small>[0]</small>
-                    </li>
-                  </ul>
-                  <ul>
-                    <li className="flex items-center justify-between">
-                      Evasion (Melee) <small>[0]</small>
-                    </li>
-                    <li className="flex items-center justify-between">
-                      Evasion (Ranged) <small>[0]</small>
-                    </li>
-                    <li className="flex items-center justify-between">
-                      Evasion (Magic) <small>[0]</small>
-                    </li>
-                  </ul>
-                  <ul>
-                    <li className="flex items-center justify-between">
-                      Prayer Points <small>[0]</small>
-                    </li>
-                    <li className="flex items-center justify-between">
-                      Active Prayers <small>[0]</small>
-                    </li>
-                  </ul>
-                </ul>
-                <Equipment />
-              </div>
-            </CardContent>
-          </Card>
+          <div className="flex w-full gap-5">
+            <Equipment />
+          </div>
         </div>
         <Inventory />
       </DndProvider>

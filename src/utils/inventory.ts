@@ -1,25 +1,27 @@
 import { prisma } from "~/lib/prisma";
 import { Item } from "@prisma/client";
 import { EquipmentSlotsWithItems, ValidEquipSlot } from "~/types/inventory";
+import { ItemWithStats } from "~/types/stats";
+import { fetchUserItemsByIds } from "~/utils/userItemInventory";
 
 /**
- * Fetch multiple items by IDs
+ * Fetch multiple items by IDs in a single query
+ * More efficient than individual queries
  */
-export async function fetchItemsByIds(itemIds: number[]): Promise<Item[]> {
-  if (itemIds.length === 0) return [];
+export async function fetchItemsByIds(itemIds: number[]): Promise<ItemWithStats[]> {
+  // Filter out undefined, null, and invalid values
+  const validItemIds = itemIds.filter((id): id is number => 
+    id !== undefined && id !== null && typeof id === 'number'
+  );
+
+  if (validItemIds.length === 0) return [];
 
   return await prisma.item.findMany({
     where: {
-      id: { in: itemIds },
+      id: { in: validItemIds },
     },
-    select: {
-      id: true,
-      name: true,
-      sprite: true,
-      stat1: true,
-      stat2: true,
-      price: true,
-      equipTo: true,
+    include: {
+      stats: true, // Include all detailed stats
     },
   });
 }
@@ -27,17 +29,11 @@ export async function fetchItemsByIds(itemIds: number[]): Promise<Item[]> {
 /**
  * Fetch a single item by ID
  */
-export async function fetchItemById(itemId: number): Promise<Item | null> {
+export async function fetchItemById(itemId: number): Promise<ItemWithStats | null> {
   return await prisma.item.findUnique({
     where: { id: itemId },
-    select: {
-      id: true,
-      name: true,
-      sprite: true,
-      stat1: true,
-      stat2: true,
-      price: true,
-      equipTo: true,
+    include: {
+      stats: true,
     },
   });
 }
@@ -46,7 +42,7 @@ export async function fetchItemById(itemId: number): Promise<Item | null> {
  * Check if an item can be equipped to a specific slot
  * Handles special cases like rings
  */
-export function canEquipToSlot(item: Item, slotType: string): boolean {
+export function canEquipToSlot(item: ItemWithStats, slotType: string): boolean {
   if (!item.equipTo) return false;
 
   if (slotType === "ring1" || slotType === "ring2") {
@@ -92,11 +88,15 @@ export async function populateEquipmentSlots(
     (id): id is number => id !== null,
   );
 
-  const items = await fetchItemsByIds(itemIds);
+  console.log("populateEquipmentSlots - Item IDs to fetch:", itemIds);
+
+  const items = await fetchUserItemsByIds(itemIds);
+
+  console.log("populateEquipmentSlots - Fetched items:", items.map(i => ({ id: i.id, name: i.name })));
 
   const itemMap = new Map(items.map((item) => [item.id, item]));
 
-  const result: Record<string, Item | null> = {};
+  const result: Record<string, ItemWithStats | null> = {};
   for (const [slot, itemId] of Object.entries(equipmentIds)) {
     result[slot] = itemId ? itemMap.get(itemId) || null : null;
   }

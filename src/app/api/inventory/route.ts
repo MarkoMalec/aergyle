@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "~/lib/prisma";
 import { Prisma } from "@prisma/client";
-import { fetchItemsByIds } from "~/utils/inventory";
+import { fetchUserItemsByIds } from "~/utils/userItemInventory";
+import { getInventoryCapacity } from "~/utils/inventoryCapacity";
 
 export async function POST(req: NextRequest) {
   try {
@@ -78,8 +79,10 @@ export async function GET(req: NextRequest) {
       }
     });
 
-    const items = await fetchItemsByIds(itemIds);
-    const itemMap = new Map(items.map((item) => [item.id, item]));
+    // Fetch UserItems (with rarity and stats)
+    const userItems = await fetchUserItemsByIds(itemIds);
+    console.log("Fetched UserItems:", userItems.map(i => ({ id: i.id, name: i.name })));
+    const itemMap = new Map(userItems.map((item) => [item.id, item]));
 
     const slotsWithItems = slotStructure.map(({ index, itemId }) => ({
       slotIndex: index,
@@ -88,7 +91,111 @@ export async function GET(req: NextRequest) {
 
     console.log("user inventory: ", slotsWithItems[0]);
 
-    return NextResponse.json({ slots: slotsWithItems }, { status: 200 });
+    // Get inventory capacity info
+    const capacity = await getInventoryCapacity(userId);
+
+    console.log(`[Inventory API] Capacity for user ${userId}:`, capacity);
+
+    // Ensure we have exactly capacity.max slots
+    // If current slots > capacity.max, we need to preserve items from bonus slots
+    // If current slots < capacity.max, expand with empty slots
+    let expandedSlots = [...slotsWithItems];
+    let needsUpdate = false;
+    
+    if (expandedSlots.length > capacity.max) {
+      console.log(`[Inventory API] Capacity decreased from ${expandedSlots.length} to ${capacity.max}`);
+      
+      // Find items in bonus slots (slots >= capacity.max)
+      const itemsInBonusSlots = expandedSlots
+        .slice(capacity.max)
+        .filter(slot => slot.item !== null);
+      
+      if (itemsInBonusSlots.length > 0) {
+        console.log(`[Inventory API] Found ${itemsInBonusSlots.length} items in bonus slots that need to be moved`);
+        
+        // Find empty slots in base capacity
+        const emptySlotIndices: number[] = [];
+        for (let i = 0; i < capacity.max; i++) {
+          if (expandedSlots[i]?.item === null) {
+            emptySlotIndices.push(i);
+          }
+        }
+        
+        console.log(`[Inventory API] Found ${emptySlotIndices.length} empty base slots available`);
+        
+        // Move items from bonus slots to empty base slots
+        let movedCount = 0;
+        for (const bonusSlot of itemsInBonusSlots) {
+          if (emptySlotIndices.length > 0) {
+            const targetIndex = emptySlotIndices.shift()!;
+            expandedSlots[targetIndex] = {
+              slotIndex: targetIndex,
+              item: bonusSlot.item,
+            };
+            movedCount++;
+            console.log(`[Inventory API] Moved item "${bonusSlot.item?.name}" from bonus slot to slot ${targetIndex}`);
+          } else {
+            // No empty slots
+            console.warn(`[Inventory API] WARNING: No empty slot for item "${bonusSlot.item?.name}" - item will be lost!`);
+          }
+        }
+        
+        console.log(`[Inventory API] Moved ${movedCount} items from bonus slots to base slots`);
+        needsUpdate = true;
+      }
+      
+      // Now truncate to capacity.max
+      expandedSlots = expandedSlots.slice(0, capacity.max);
+      console.log(`[Inventory API] Truncated slots to ${capacity.max}`);
+    } else if (expandedSlots.length < capacity.max) {
+      // Expand to max capacity
+      while (expandedSlots.length < capacity.max) {
+        expandedSlots.push({
+          slotIndex: expandedSlots.length,
+          item: null,
+        });
+      }
+    }
+
+    // Update database if we moved items
+    if (needsUpdate) {
+      const slotsToSave = expandedSlots.map(slot => ({
+        slotIndex: slot.slotIndex,
+        item: slot.item ? { id: slot.item.id } : null,
+      }));
+      
+      await prisma.inventory.update({
+        where: { userId },
+        data: { slots: slotsToSave },
+      });
+      
+      console.log(`[Inventory API] Updated database with reorganized inventory`);
+    }
+
+    console.log(`[Inventory API] Returning ${expandedSlots.length} slots (capacity.max: ${capacity.max})`);
+
+    // Fetch delete slot item if it exists
+    let deleteSlotItem = null;
+    if (userInventory.deleteSlotId) {
+      const deleteSlotItems = await fetchUserItemsByIds([userInventory.deleteSlotId]);
+      deleteSlotItem = deleteSlotItems[0] || null;
+    }
+
+    const deleteSlot = {
+      slotIndex: 999,
+      item: deleteSlotItem,
+    };
+
+    return NextResponse.json({ 
+      slots: expandedSlots, 
+      deleteSlot,
+      capacity: {
+        current: capacity.current,
+        max: capacity.max,
+        base: capacity.base,
+        bonus: capacity.bonus,
+      },
+    }, { status: 200 });
   } catch (error) {
     console.error("Error fetching inventory:", error);
     return NextResponse.json(

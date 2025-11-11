@@ -1,20 +1,15 @@
 "use client";
 
-import { Item } from "@prisma/client";
 import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from "~/components/ui/popover";
+import { PopoverTrigger } from "~/components/ui/popover";
 import Image from "next/image";
 import { Skeleton } from "~/components/ui/skeleton";
 import { useDndContext } from "./DnDContext";
-import {
-  EQUIPMENT_SLOT_TO_INDEX,
-} from "~/types/inventory";
-import { useState } from "react";
+import { EQUIPMENT_SLOT_TO_INDEX } from "~/types/inventory";
+import { ItemWithStats } from "~/types/stats";
+import toast from "react-hot-toast";
+import SingleItemTemplate from "~/components/game/items/single-item-template";
 
 export const DraggableItem = ({
   id,
@@ -25,7 +20,7 @@ export const DraggableItem = ({
 }: {
   id: string;
   index: number;
-  item: Item;
+  item: ItemWithStats;
   sprite: string;
   container: string;
 }) => {
@@ -40,7 +35,6 @@ export const DraggableItem = ({
     });
 
   const { inventory, equipment } = useDndContext();
-  const [open, setOpen] = useState(false);
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -69,7 +63,6 @@ export const DraggableItem = ({
             },
           });
           window.dispatchEvent(event);
-          setOpen(false);
         } else if (!equipment.ring2) {
           // Equip to ring2
           const event = new CustomEvent("quickEquip", {
@@ -81,9 +74,8 @@ export const DraggableItem = ({
             },
           });
           window.dispatchEvent(event);
-          setOpen(false);
         } else {
-          alert("All ring slots are occupied");
+          toast.error("All ring slots are occupied");
         }
       } else if (
         targetSlot &&
@@ -99,7 +91,6 @@ export const DraggableItem = ({
           },
         });
         window.dispatchEvent(event);
-        setOpen(false);
       }
     }
   };
@@ -110,7 +101,7 @@ export const DraggableItem = ({
       const emptySlotIndex = inventory.findIndex((slot) => !slot.item);
 
       if (emptySlotIndex === -1) {
-        alert("Inventory is full");
+        toast.error("Inventory is full");
         return;
       }
 
@@ -123,12 +114,21 @@ export const DraggableItem = ({
         },
       });
       window.dispatchEvent(event);
-      setOpen(false);
     }
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <SingleItemTemplate
+      item={item}
+      sprite={sprite}
+      container={container}
+      index={index}
+      onEquip={handleEquip}
+      onUnequip={handleUnequip}
+      showEquipButton={container === "inventory" && !!item.equipTo}
+      showUnequipButton={container === "equipment"}
+      showListButton={container === "inventory"}
+    >
       <div
         ref={setNodeRef}
         style={style}
@@ -148,31 +148,6 @@ export const DraggableItem = ({
           </button>
         </PopoverTrigger>
       </div>
-      <PopoverContent>
-        <h3 className="bold mb-3 text-xl">{item.name}</h3>
-        <ul className="space-y-2">
-          <li>{item.stat1}</li>
-          <li>{item.stat2}</li>
-        </ul>
-        <div className="mt-4 border-t pt-3">
-          {container === "inventory" && item.equipTo && (
-            <button
-              onClick={handleEquip}
-              className="w-full rounded bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700"
-            >
-              Equip
-            </button>
-          )}
-          {container === "equipment" && (
-            <button
-              onClick={handleUnequip}
-              className="w-full rounded bg-red-600 px-3 py-2 text-sm text-white hover:bg-red-700"
-            >
-              Unequip
-            </button>
-          )}
-        </div>
-      </PopoverContent>
-    </Popover>
+    </SingleItemTemplate>
   );
 };

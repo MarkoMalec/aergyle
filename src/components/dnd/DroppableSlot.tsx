@@ -39,22 +39,34 @@ export const DroppableSlot = ({
 
   const style = {
     borderColor:
-      (isOver && container === "inventory") || highlight
-        ? "lightblue"
+      (isOver && container === "inventory") || 
+      (isOver && container === "delete") ||
+      highlight
+        ? container === "delete" ? "red" : "lightblue"
         : undefined,
     borderWidth:
-      (isOver && container === "inventory") || highlight ? "1px" : undefined,
+      (isOver && container === "inventory") || 
+      (isOver && container === "delete") ||
+      highlight 
+        ? "2px" 
+        : undefined,
     boxShadow:
       (isOver && container === "inventory") || highlight
         ? "inset 2px 2px 10px black"
+        : (isOver && container === "delete")
+        ? "inset 2px 2px 10px rgba(255, 0, 0, 0.5)"
         : undefined,
   };
+
+  const containerClass = container === "delete" 
+    ? "flex h-[62px] w-[62px] items-center justify-center rounded bg-red-900/20 shadow-lg border-2 border-red-500/30"
+    : "flex h-[62px] w-[62px] items-center justify-center rounded bg-white/5 shadow-lg";
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className="flex h-[62px] w-[62px] items-center justify-center rounded bg-white/5 shadow-lg"
+      className={containerClass}
     >
       {slot.item ? (
         <DraggableItem

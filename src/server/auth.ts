@@ -9,6 +9,9 @@ import { prisma } from '~/lib/prisma';
 import { env } from '~/env';
 import { db } from '~/server/db';
 import { compare } from 'bcryptjs';
+import { ItemRarity } from '@prisma/client';
+import { getStatsForRarity } from '~/utils/statProgressions';
+import { createUserItem } from '~/utils/userItems';
 
 declare module 'next-auth' {
   interface Session extends DefaultSession {
@@ -18,6 +21,54 @@ declare module 'next-auth' {
       inventory: any;
     } & DefaultSession['user'];
   }
+}
+
+/**
+ * Create starter items for new users
+ * Returns UserItem IDs to add to inventory
+ */
+async function createStarterItems(userId: string): Promise<number[]> {
+  // Find item templates by name
+  const [woodenSwordTemplate, goldRingTemplate, goldGlovesTemplate] = await Promise.all([
+    prisma.item.findFirst({ where: { name: 'Wooden Sword' } }),
+    prisma.item.findFirst({ where: { name: 'Gold Ring' } }),
+    prisma.item.findFirst({ where: { name: 'Gold Gloves' } }),
+  ]);
+
+  if (!woodenSwordTemplate || !goldRingTemplate || !goldGlovesTemplate) {
+    console.error('Starter item templates not found in database');
+    return [];
+  }
+
+  // Create UserItems with specified rarities
+  const starterItems = [
+    {
+      userId,
+      itemId: woodenSwordTemplate.id,
+      rarity: ItemRarity.COMMON,
+    },
+    {
+      userId,
+      itemId: goldRingTemplate.id,
+      rarity: ItemRarity.BROKEN,
+    },
+    {
+      userId,
+      itemId: goldGlovesTemplate.id,
+      rarity: ItemRarity.COMMON,
+    },
+  ];
+
+  await Promise.all(
+    starterItems.map(async (item) => {
+      const userItemId = await createUserItem(item.userId, item.itemId, item.rarity, "IN_INVENTORY");
+      item['itemId'] = userItemId; // Add generated ID to item object
+    })
+  )
+
+  console.log(`✅ Created ${starterItems.length} starter items for user ${userId}`);
+  
+  return starterItems.map(item => item.itemId);
 }
 
 export const authOptions: NextAuthOptions = {
@@ -38,28 +89,76 @@ export const authOptions: NextAuthOptions = {
         });
 
         if (user && !user.inventory) {
-          const slots = Array.from({ length: 50 }, (_, index) => {
-            if (index < 10) {
-              return {
-                slotIndex: index,
-                item: { id: index + 1 },
-              }
-            }
-            else {
-              return {
-                slotIndex: index,
-                item: null,
-              }
-            }
+          // Initialize empty inventory with base capacity (25 slots)
+          const BASE_CAPACITY = 25;
+          
+          // Check if equipment already exists (race condition check)
+          const existingEquipment = await prisma.equipment.findUnique({
+            where: { userId: user.id },
           });
-          const inventory = await prisma.inventory.create({
-            data: {
-              userId: user.id,
-              slots: slots,
-              maxSlots: 20,
-            },
-          });
-          user = { ...user, inventory: inventory }; // Reassign user with updated inventory
+
+          // Only create starter items and inventory if equipment doesn't exist
+          // This prevents duplicate creation in race conditions
+          if (!existingEquipment) {
+            // Give new user starting gold (100 gold)
+            await prisma.user.update({
+              where: { id: user.id },
+              data: { gold: 100 },
+            });
+
+            // Create starter items for new user
+            const starterItemIds = await createStarterItems(user.id);
+
+            // Create slots with starter items in first slots
+            const emptySlots: Array<{ slotIndex: number; item: { id: number } | null }> = Array.from(
+              { length: BASE_CAPACITY }, 
+              (_, index) => {
+                const itemId = starterItemIds[index];
+                if (itemId !== undefined) {
+                  return {
+                    slotIndex: index,
+                    item: { id: itemId },
+                  };
+                }
+                return {
+                  slotIndex: index,
+                  item: null,
+                };
+              }
+            );
+
+            // Create inventory and equipment using upsert to handle race conditions
+            const [inventory, equipment] = await Promise.all([
+              prisma.inventory.upsert({
+                where: { userId: user.id },
+                create: {
+                  userId: user.id,
+                  slots: emptySlots,
+                  maxSlots: BASE_CAPACITY,
+                  deleteSlotId: null,
+                },
+                update: {},
+              }),
+              prisma.equipment.upsert({
+                where: { userId: user.id },
+                create: {
+                  userId: user.id,
+                  // All equipment slots start empty (null)
+                },
+                update: {},
+              }),
+            ]);
+
+            user = { ...user, inventory: inventory };
+          } else {
+            // Equipment exists, just fetch the inventory
+            const inventory = await prisma.inventory.findUnique({
+              where: { userId: user.id },
+            });
+            if (inventory) {
+              user = { ...user, inventory: inventory };
+            }
+          }
         }
 
         session.user = {

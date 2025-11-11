@@ -1,4 +1,5 @@
 import { Item } from "@prisma/client";
+import { ItemWithStats } from "./stats";
 
 export type InventorySlot = {
   slotIndex: number;
@@ -8,7 +9,7 @@ export type InventorySlot = {
 // Inventory slot with populated item data (for display)
 export type InventorySlotWithItem = {
   slotIndex: number;
-  item: Item | null;
+  item: ItemWithStats | null;
 };
 
 export type EquipmentSlotType =
@@ -31,7 +32,7 @@ export type EquipmentSlotType =
 export type EquipmentSlots = Record<EquipmentSlotType, number | null>;
 
 // Equipment with populated item data (for display)
-export type EquipmentSlotsWithItems = Record<EquipmentSlotType, Item | null>;
+export type EquipmentSlotsWithItems = Record<EquipmentSlotType, ItemWithStats | null>;
 
 // Equipment slot index mapping for DnD
 export const EQUIPMENT_INDEX_MAP: Record<number, EquipmentSlotType> = {

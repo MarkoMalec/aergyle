@@ -1,7 +1,5 @@
 import React from "react";
 import { prisma } from "~/lib/prisma";
-import { authOptions } from "~/server/auth";
-import { getServerSession } from "next-auth";
 
 import { notFound } from 'next/navigation';
 
@@ -11,7 +9,6 @@ export async function generateStaticParams() {
     name: skill.skill_name,
   }));
 }
-
 
 const SkillPage = async ({ params }: { params: { name: string } }) => {
 

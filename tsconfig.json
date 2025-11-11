@@ -28,7 +28,8 @@
     /* Path Aliases */
     "baseUrl": ".",
     "paths": {
-      "~/*": ["./src/*"]
+      "~/*": ["./src/*"],
+      "assets/*": ["./public/assets/*"]
     }
   },
   "include": [
