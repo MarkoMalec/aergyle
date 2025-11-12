@@ -17,6 +17,7 @@ export interface ItemWithStats {
   maxMagicDamage: number | null;
   armor: number | null;
   requiredLevel: number | null;
+  quantity?: number; // For stackable items
   stats: ItemStat[];
 }
 

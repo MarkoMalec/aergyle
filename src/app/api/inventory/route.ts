@@ -81,7 +81,6 @@ export async function GET(req: NextRequest) {
 
     // Fetch UserItems (with rarity and stats)
     const userItems = await fetchUserItemsByIds(itemIds);
-    console.log("Fetched UserItems:", userItems.map(i => ({ id: i.id, name: i.name })));
     const itemMap = new Map(userItems.map((item) => [item.id, item]));
 
     const slotsWithItems = slotStructure.map(({ index, itemId }) => ({
@@ -89,12 +88,9 @@ export async function GET(req: NextRequest) {
       item: itemId ? itemMap.get(itemId) || null : null,
     }));
 
-    console.log("user inventory: ", slotsWithItems[0]);
 
     // Get inventory capacity info
     const capacity = await getInventoryCapacity(userId);
-
-    console.log(`[Inventory API] Capacity for user ${userId}:`, capacity);
 
     // Ensure we have exactly capacity.max slots
     // If current slots > capacity.max, we need to preserve items from bonus slots
@@ -103,7 +99,7 @@ export async function GET(req: NextRequest) {
     let needsUpdate = false;
     
     if (expandedSlots.length > capacity.max) {
-      console.log(`[Inventory API] Capacity decreased from ${expandedSlots.length} to ${capacity.max}`);
+      (`[Inventory API] Capacity decreased from ${expandedSlots.length} to ${capacity.max}`);
       
       // Find items in bonus slots (slots >= capacity.max)
       const itemsInBonusSlots = expandedSlots
@@ -111,7 +107,7 @@ export async function GET(req: NextRequest) {
         .filter(slot => slot.item !== null);
       
       if (itemsInBonusSlots.length > 0) {
-        console.log(`[Inventory API] Found ${itemsInBonusSlots.length} items in bonus slots that need to be moved`);
+        (`[Inventory API] Found ${itemsInBonusSlots.length} items in bonus slots that need to be moved`);
         
         // Find empty slots in base capacity
         const emptySlotIndices: number[] = [];
@@ -121,7 +117,7 @@ export async function GET(req: NextRequest) {
           }
         }
         
-        console.log(`[Inventory API] Found ${emptySlotIndices.length} empty base slots available`);
+        (`[Inventory API] Found ${emptySlotIndices.length} empty base slots available`);
         
         // Move items from bonus slots to empty base slots
         let movedCount = 0;
@@ -133,20 +129,20 @@ export async function GET(req: NextRequest) {
               item: bonusSlot.item,
             };
             movedCount++;
-            console.log(`[Inventory API] Moved item "${bonusSlot.item?.name}" from bonus slot to slot ${targetIndex}`);
+            (`[Inventory API] Moved item "${bonusSlot.item?.name}" from bonus slot to slot ${targetIndex}`);
           } else {
             // No empty slots
             console.warn(`[Inventory API] WARNING: No empty slot for item "${bonusSlot.item?.name}" - item will be lost!`);
           }
         }
         
-        console.log(`[Inventory API] Moved ${movedCount} items from bonus slots to base slots`);
+        (`[Inventory API] Moved ${movedCount} items from bonus slots to base slots`);
         needsUpdate = true;
       }
       
       // Now truncate to capacity.max
       expandedSlots = expandedSlots.slice(0, capacity.max);
-      console.log(`[Inventory API] Truncated slots to ${capacity.max}`);
+      (`[Inventory API] Truncated slots to ${capacity.max}`);
     } else if (expandedSlots.length < capacity.max) {
       // Expand to max capacity
       while (expandedSlots.length < capacity.max) {
@@ -169,10 +165,10 @@ export async function GET(req: NextRequest) {
         data: { slots: slotsToSave },
       });
       
-      console.log(`[Inventory API] Updated database with reorganized inventory`);
+      (`[Inventory API] Updated database with reorganized inventory`);
     }
 
-    console.log(`[Inventory API] Returning ${expandedSlots.length} slots (capacity.max: ${capacity.max})`);
+    (`[Inventory API] Returning ${expandedSlots.length} slots (capacity.max: ${capacity.max})`);
 
     // Fetch delete slot item if it exists
     let deleteSlotItem = null;

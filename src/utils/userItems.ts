@@ -323,12 +323,227 @@ export async function upgradeUserItemRarity(
 }
 
 /**
- * Add UserItem to player's inventory
+ * Add item to player's inventory with stacking support
+ * For stackable items: finds existing stacks and adds to them, creates new stacks if needed
+ * For non-stackable items: creates separate UserItem for each instance
  */
 export async function addUserItemToInventory(
   userId: string,
-  userItemId: number
-): Promise<{ success: boolean; message: string; slotIndex?: number }> {
+  itemId: number,
+  rarity: ItemRarity = ItemRarity.COMMON,
+  quantity: number = 1
+): Promise<{ success: boolean; message: string; userItemIds: number[] }> {
+  if (quantity <= 0) {
+    return { success: false, message: "Invalid quantity", userItemIds: [] };
+  }
+
+  // Get item template to check if stackable
+  const itemTemplate = await prisma.item.findUnique({
+    where: { id: itemId },
+  });
+
+  if (!itemTemplate) {
+    return { success: false, message: "Item template not found", userItemIds: [] };
+  }
+
+  // Get user's inventory
+  const inventory = await prisma.inventory.findUnique({
+    where: { userId },
+  });
+
+  if (!inventory) {
+    return { success: false, message: "Inventory not found", userItemIds: [] };
+  }
+
+  const slots = (inventory.slots as any[]) || [];
+  const affectedUserItemIds: number[] = [];
+  let remainingQuantity = quantity;
+
+  // Handle stackable items
+  if (itemTemplate.stackable) {
+    // Step 1: Find existing stacks with same itemId + rarity
+    for (let i = 0; i < slots.length && remainingQuantity > 0; i++) {
+      const slot = slots[i];
+      if (slot && slot.item) {
+        const userItem = await prisma.userItem.findUnique({
+          where: { id: slot.item.id },
+        });
+
+        if (!userItem) continue;
+
+        // Check if it's the same item, same rarity, and has space
+        if (
+          userItem.itemId === itemId &&
+          userItem.rarity === rarity &&
+          userItem.status === "IN_INVENTORY" &&
+          userItem.quantity < itemTemplate.maxStackSize
+        ) {
+          const availableSpace = itemTemplate.maxStackSize - userItem.quantity;
+          const amountToAdd = Math.min(availableSpace, remainingQuantity);
+
+          // Update the existing stack
+          await prisma.userItem.update({
+            where: { id: userItem.id },
+            data: { quantity: userItem.quantity + amountToAdd },
+          });
+
+          affectedUserItemIds.push(userItem.id);
+          remainingQuantity -= amountToAdd;
+        }
+      }
+    }
+
+    // Step 2: Create new stacks for remaining quantity
+    while (remainingQuantity > 0) {
+      // Find empty slot
+      let emptySlotIndex = -1;
+      for (let i = 0; i < inventory.maxSlots; i++) {
+        const slot = slots.find((s: any) => s.slotIndex === i);
+        if (!slot || !slot.item) {
+          emptySlotIndex = i;
+          break;
+        }
+      }
+
+      if (emptySlotIndex === -1) {
+        return {
+          success: false,
+          message: `Inventory is full. Added ${quantity - remainingQuantity} items.`,
+          userItemIds: affectedUserItemIds,
+        };
+      }
+
+      const stackSize = Math.min(remainingQuantity, itemTemplate.maxStackSize);
+
+      // Create new UserItem with quantity
+      const newUserItem = await prisma.userItem.create({
+        data: {
+          userId,
+          itemId,
+          rarity,
+          quantity: stackSize,
+          status: "IN_INVENTORY",
+          isTradeable: true,
+        },
+      });
+
+      affectedUserItemIds.push(newUserItem.id);
+
+      // Add to the empty slot
+      const existingSlotIndex = slots.findIndex((s: any) => s.slotIndex === emptySlotIndex);
+      if (existingSlotIndex >= 0) {
+        slots[existingSlotIndex]!.item = { id: newUserItem.id };
+      } else {
+        slots.push({
+          slotIndex: emptySlotIndex,
+          item: { id: newUserItem.id },
+        });
+      }
+
+      remainingQuantity -= stackSize;
+    }
+
+    // Update inventory
+    await prisma.inventory.update({
+      where: { userId },
+      data: { slots },
+    });
+
+    return {
+      success: true,
+      message: `Added ${quantity} ${itemTemplate.name}(s) to inventory`,
+      userItemIds: affectedUserItemIds,
+    };
+  } else {
+    // Handle non-stackable items (equipment) - create separate UserItem for each
+    for (let i = 0; i < quantity; i++) {
+      // Find empty slot
+      let emptySlotIndex = -1;
+      for (let j = 0; j < inventory.maxSlots; j++) {
+        const slot = slots.find((s: any) => s.slotIndex === j);
+        if (!slot || !slot.item) {
+          emptySlotIndex = j;
+          break;
+        }
+      }
+
+      if (emptySlotIndex === -1) {
+        return {
+          success: false,
+          message: `Inventory is full. Added ${i} of ${quantity} items.`,
+          userItemIds: affectedUserItemIds,
+        };
+      }
+
+      // Create UserItem with stats using existing function
+      const userItemId = await createUserItem(userId, itemId, rarity, "IN_INVENTORY");
+      affectedUserItemIds.push(userItemId);
+
+      // Add to the empty slot
+      const existingSlotIndex = slots.findIndex((s: any) => s.slotIndex === emptySlotIndex);
+      if (existingSlotIndex >= 0) {
+        slots[existingSlotIndex]!.item = { id: userItemId };
+      } else {
+        slots.push({
+          slotIndex: emptySlotIndex,
+          item: { id: userItemId },
+        });
+      }
+    }
+
+    // Update inventory
+    await prisma.inventory.update({
+      where: { userId },
+      data: { slots },
+    });
+
+    return {
+      success: true,
+      message: `Added ${quantity} ${itemTemplate.name}(s) to inventory`,
+      userItemIds: affectedUserItemIds,
+    };
+  }
+}
+
+/**
+ * Split a stack into two separate UserItems
+ * Original stack keeps (quantity - splitQuantity), new stack gets splitQuantity
+ */
+export async function splitStack(
+  userId: string,
+  userItemId: number,
+  splitQuantity: number
+): Promise<{ success: boolean; message: string; newUserItemId?: number }> {
+  if (splitQuantity <= 0) {
+    return { success: false, message: "Invalid split quantity" };
+  }
+
+  // Get the UserItem to split
+  const userItem = await prisma.userItem.findUnique({
+    where: { id: userItemId },
+    include: { itemTemplate: true },
+  });
+
+  if (!userItem) {
+    return { success: false, message: "Item not found" };
+  }
+
+  if (userItem.userId !== userId) {
+    return { success: false, message: "You don't own this item" };
+  }
+
+  if (!userItem.itemTemplate.stackable) {
+    return { success: false, message: "This item cannot be stacked" };
+  }
+
+  if (userItem.quantity <= 1) {
+    return { success: false, message: "Cannot split a stack of 1" };
+  }
+
+  if (splitQuantity >= userItem.quantity) {
+    return { success: false, message: "Split quantity must be less than current quantity" };
+  }
+
   // Get user's inventory
   const inventory = await prisma.inventory.findUnique({
     where: { userId },
@@ -338,10 +553,9 @@ export async function addUserItemToInventory(
     return { success: false, message: "Inventory not found" };
   }
 
-  // Parse slots from JSON
   const slots = (inventory.slots as any[]) || [];
 
-  // Find first empty slot
+  // Find an empty slot for the new stack
   let emptySlotIndex = -1;
   for (let i = 0; i < inventory.maxSlots; i++) {
     const slot = slots.find((s: any) => s.slotIndex === i);
@@ -352,36 +566,53 @@ export async function addUserItemToInventory(
   }
 
   if (emptySlotIndex === -1) {
-    return { success: false, message: "Inventory is full" };
+    return { success: false, message: "Inventory is full, cannot split stack" };
   }
 
-  // Check if slot exists in array
-  const existingSlotIndex = slots.findIndex((s: any) => s.slotIndex === emptySlotIndex);
-
-  if (existingSlotIndex >= 0) {
-    // Update existing slot
-    slots[existingSlotIndex] = {
-      slotIndex: emptySlotIndex,
-      item: { id: userItemId },
-    };
-  } else {
-    // Add new slot
-    slots.push({
-      slotIndex: emptySlotIndex,
-      item: { id: userItemId },
+  // Use transaction to ensure atomicity
+  const result = await prisma.$transaction(async (tx) => {
+    // Update original stack
+    await tx.userItem.update({
+      where: { id: userItemId },
+      data: { quantity: userItem.quantity - splitQuantity },
     });
-  }
 
-  // Update inventory with modified slots
-  await prisma.inventory.update({
-    where: { userId },
-    data: { slots },
+    // Create new stack
+    const newItem = await tx.userItem.create({
+      data: {
+        userId,
+        itemId: userItem.itemId,
+        rarity: userItem.rarity,
+        quantity: splitQuantity,
+        status: "IN_INVENTORY",
+        isTradeable: userItem.isTradeable,
+      },
+    });
+
+    // Add new stack to empty slot
+    const existingSlotIndex = slots.findIndex((s: any) => s.slotIndex === emptySlotIndex);
+    if (existingSlotIndex >= 0) {
+      slots[existingSlotIndex]!.item = { id: newItem.id };
+    } else {
+      slots.push({
+        slotIndex: emptySlotIndex,
+        item: { id: newItem.id },
+      });
+    }
+
+    // Update inventory
+    await tx.inventory.update({
+      where: { userId },
+      data: { slots },
+    });
+
+    return newItem;
   });
 
   return {
     success: true,
-    message: "Item added to inventory",
-    slotIndex: emptySlotIndex,
+    message: `Split ${splitQuantity} from stack`,
+    newUserItemId: result.id,
   };
 }
 

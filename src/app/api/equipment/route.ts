@@ -8,8 +8,6 @@ export async function POST(req: NextRequest) {
   try {
     const { userId, equipment } = await req.json();
 
-    console.log("Equipment POST received:", { userId, equipment });
-
     if (!userId || !equipment || typeof equipment !== "object") {
       return NextResponse.json(
         { error: "Invalid request: userId and equipment object required" },
@@ -61,14 +59,8 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    console.log("Equipment saved:", userEquipment);
-
     // Recalculate inventory capacity (in case backpack or CARRYING_CAPACITY items changed)
     const newCapacity = await updateInventoryCapacity(userId);
-    console.log("Inventory capacity updated after equipment change:", {
-      newCapacity,
-      backpackItemId: equipment.backpack,
-    });
 
     return NextResponse.json(
       {
@@ -120,23 +112,6 @@ export async function GET(req: NextRequest) {
       update: {}, // Don't update anything, just return existing
     });
 
-    console.log("Equipment from DB (new columns):", {
-      headItemId: userEquipment.headItemId,
-      necklaceItemId: userEquipment.necklaceItemId,
-      chestItemId: userEquipment.chestItemId,
-      shouldersItemId: userEquipment.shouldersItemId,
-      armsItemId: userEquipment.armsItemId,
-      glovesItemId: userEquipment.glovesItemId,
-      beltItemId: userEquipment.beltItemId,
-      legsItemId: userEquipment.legsItemId,
-      bootsItemId: userEquipment.bootsItemId,
-      ring1ItemId: userEquipment.ring1ItemId,
-      ring2ItemId: userEquipment.ring2ItemId,
-      backpackItemId: userEquipment.backpackItemId,
-      amuletItemId: userEquipment.amuletItemId,
-      weaponItemId: userEquipment.weaponItemId,
-    });
-
     const equipmentWithItems = await populateEquipmentSlots({
       head: userEquipment.headItemId,
       necklace: userEquipment.necklaceItemId,
@@ -153,8 +128,6 @@ export async function GET(req: NextRequest) {
       amulet: userEquipment.amuletItemId,
       weapon: userEquipment.weaponItemId,
     });
-
-    console.log("Fetched equipment with items: ", equipmentWithItems);
 
     return NextResponse.json(equipmentWithItems, { status: 200 });
   } catch (error) {

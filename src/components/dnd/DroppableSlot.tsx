@@ -4,6 +4,7 @@ import { useDroppable } from "@dnd-kit/core";
 import { DraggableItem } from "./DraggableItem";
 import { InventorySlot } from "./DnDContext";
 import { useState, useEffect } from "react";
+import { SplitStackDialog } from "../game/items/SplitStackDialog";
 
 export const DroppableSlot = ({
   id,
@@ -27,6 +28,7 @@ export const DroppableSlot = ({
   });
 
   const [highlight, setHighlight] = useState(false);
+  const [showSplitDialog, setShowSplitDialog] = useState(false);
 
   useEffect(() => {
     if (active && active.data.current) {
@@ -62,23 +64,44 @@ export const DroppableSlot = ({
     ? "flex h-[62px] w-[62px] items-center justify-center rounded bg-red-900/20 shadow-lg border-2 border-red-500/30"
     : "flex h-[62px] w-[62px] items-center justify-center rounded bg-white/5 shadow-lg";
 
+  const handleRightClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    // Only show split dialog for inventory items (not equipment or delete slot)
+    if (container === "inventory" && slot.item && slot.item.quantity && slot.item.quantity > 1) {
+      setShowSplitDialog(true);
+    }
+  };
+
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={containerClass}
-    >
-      {slot.item ? (
-        <DraggableItem
-          id={`draggable-${index}`}
-          index={index}
+    <>
+      <div
+        ref={setNodeRef}
+        style={style}
+        className={`${containerClass} relative`}
+        onContextMenu={handleRightClick}
+      >
+        {slot.item ? (
+          <>
+            <DraggableItem
+              id={`draggable-${index}`}
+              index={index}
+              item={slot.item}
+              sprite={slot.item.sprite}
+              container={container}
+            />
+          </>
+        ) : (
+          <small>{equipmentSlotType && equipmentSlotType}</small>
+        )}
+      </div>
+
+      {/* Split stack dialog */}
+      {showSplitDialog && slot.item && (
+        <SplitStackDialog
           item={slot.item}
-          sprite={slot.item.sprite}
-          container={container}
+          onClose={() => setShowSplitDialog(false)}
         />
-      ) : (
-        <small>{equipmentSlotType && equipmentSlotType}</small>
       )}
-    </div>
+    </>
   );
 };

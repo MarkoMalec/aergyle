@@ -158,26 +158,10 @@ const CharacterPage = async () => {
         Character
       </h1>
       
-      {/* Test Form */}
-      <div className="mb-8 flex gap-4">
-        <AddItemTestForm userId={session.user.id} items={allItems} />
-        
-        {/* Migration Button */}
-        <form action="/api/migrate/equipment" method="POST">
-          <button
-            type="submit"
-            className="rounded bg-purple-600 px-4 py-2 text-white hover:bg-purple-700"
-          >
-            Migrate Equipment to UserItems
-          </button>
-        </form>
-      </div>
-      
       <DndProvider
         initialEquipment={equipmentWithItems}
         initialInventory={slotsWithItems}
       >
-        <CharacterStats baseStats={baseStats} />
         <div className="mb-10 flex gap-10">
           <Portrait />
           <div className="flex w-full gap-5">
@@ -185,7 +169,13 @@ const CharacterPage = async () => {
           </div>
         </div>
         <Inventory />
+        <CharacterStats baseStats={baseStats} />
       </DndProvider>
+      
+      {/* Test Form */}
+      <div className="my-8 flex gap-4">
+        <AddItemTestForm userId={session.user.id} items={allItems} />
+      </div>
     </main>
   );
 };

@@ -21,10 +21,8 @@ interface CharacterStatsProps {
 }
 
 export const CharacterStats = ({ baseStats }: CharacterStatsProps) => {
-  // Get real-time equipment from global Equipment context
   const { equipment } = useEquipmentContext();
 
-  // Convert array format to Record format
   const baseStatsRecord = useMemo(() => {
     const record: Partial<Record<StatType, number>> = {};
     baseStats.forEach((stat) => {
@@ -33,7 +31,6 @@ export const CharacterStats = ({ baseStats }: CharacterStatsProps) => {
     return record as Record<StatType, number>;
   }, [baseStats]);
 
-  // Calculate equipment bonuses from current equipment (updates in real-time)
   const equipmentStatsRecord = useMemo(() => {
     const bonuses = calculateEquipmentBonuses(equipment);
     return bonuses;
@@ -44,7 +41,6 @@ export const CharacterStats = ({ baseStats }: CharacterStatsProps) => {
     [baseStatsRecord, equipmentStatsRecord],
   );
 
-  // Map ComputedStats camelCase keys to StatType enum values
   const statKeyToEnumMap: Record<keyof ComputedStats, StatType> = {
     minPhysicalDamage: StatType.PHYSICAL_DAMAGE_MIN,
     maxPhysicalDamage: StatType.PHYSICAL_DAMAGE_MAX,
@@ -77,7 +73,6 @@ export const CharacterStats = ({ baseStats }: CharacterStatsProps) => {
     thorns: StatType.THORNS,
   };
 
-  // Group stats by category
   const statsByCategory = useMemo(() => {
     const categories = new Map<StatCategory, Array<[StatType, number]>>();
 
@@ -121,9 +116,6 @@ export const CharacterStats = ({ baseStats }: CharacterStatsProps) => {
             const metadata = STAT_METADATA[statType];
             if (!metadata) return null;
 
-            // Don't display stats with 0 value (unless it's a base stat)
-            // if (value === 0 && !isBaseStat(statType)) return null;
-
             return (
               <div
                 key={statType}
@@ -148,7 +140,7 @@ export const CharacterStats = ({ baseStats }: CharacterStatsProps) => {
   };
 
   return (
-    <Card className="mb-6 w-full border border-white/10 bg-white/5 p-2">
+    <Card className="my-8 w-full border border-white/10 bg-white/5 p-2">
       <CardContent className="p-2">
         <CardTitle className="mb-4 text-lg font-bold">
           Character Stats

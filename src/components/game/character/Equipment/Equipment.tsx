@@ -22,6 +22,13 @@ const Equipment = () => {
           container="equipment"
           equipmentSlotType="weapon"
         />
+        {/* <DroppableSlot
+          id={`equipment-offhand-weapon`}
+          index={114}
+          slot={{ slotIndex: 114, item: equipment.offhandWeapon }}
+          container="equipment"
+          equipmentSlotType="offhandWeapon"
+        /> */}
       </div>
       <div className="w-full max-w-[280px] space-y-2">
         <div className="flex flex-col items-center justify-center space-y-2">

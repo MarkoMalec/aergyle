@@ -212,7 +212,82 @@ export const DndProvider: React.FC<DndProviderProps> = ({
 
         if (!activeSlot || !overSlot) return;
 
-        // Swap items
+        // Check if both slots have items and they can stack together
+        if (
+          activeSlot.item &&
+          overSlot.item &&
+          activeSlot.item.id !== overSlot.item.id && // Different UserItems
+          activeSlot.item.name === overSlot.item.name && // Same item name (better proxy for same template)
+          activeSlot.item.rarity === overSlot.item.rarity && // Same rarity
+          activeSlot.item.quantity && // Has quantity (stackable)
+          overSlot.item.quantity // Has quantity (stackable)
+        ) {
+          // Store IDs before modifying
+          const sourceItemId = activeSlot.item.id;
+          const targetItemId = overSlot.item.id;
+          
+          // Calculate merge result optimistically
+          const sourceQty = activeSlot.item.quantity;
+          const targetQty = overSlot.item.quantity;
+          const totalQty = sourceQty + targetQty;
+          
+          // Assume max stack size of 99 (or get from item if available)
+          const maxStackSize = 99;
+          
+          // Optimistic update: Apply changes immediately to UI
+          if (totalQty <= maxStackSize) {
+            // Full merge - update target, clear source
+            overSlot.item = {
+              ...overSlot.item,
+              quantity: totalQty,
+            };
+            activeSlot.item = null;
+          } else {
+            // Partial merge - fill target to max, keep remainder in source
+            overSlot.item = {
+              ...overSlot.item,
+              quantity: maxStackSize,
+            };
+            activeSlot.item = {
+              ...activeSlot.item,
+              quantity: totalQty - maxStackSize,
+            };
+          }
+          
+          // Apply optimistic update immediately for instant UI feedback
+          queryClient.setQueryData(["inventory", user?.id], {
+            slots: updatedInventory,
+            deleteSlot,
+          });
+
+          // Send to server in background
+          fetch("/api/inventory/merge-stacks", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              sourceUserItemId: sourceItemId,
+              targetUserItemId: targetItemId,
+            }),
+          })
+            .then(async (response) => {
+              if (response.ok) {
+                // Sync with server to correct any discrepancies (e.g., different maxStackSize)
+                await queryClient.invalidateQueries({ queryKey: ["inventory", user?.id] });
+              } else {
+                // Revert on error
+                await queryClient.invalidateQueries({ queryKey: ["inventory", user?.id] });
+              }
+            })
+            .catch((error) => {
+              console.error("Failed to merge stacks:", error);
+              // Revert on error
+              queryClient.invalidateQueries({ queryKey: ["inventory", user?.id] });
+            });
+          
+          return; // Exit early, changes already applied optimistically
+        }
+
+        // Swap items (default behavior)
         [activeSlot.item, overSlot.item] = [overSlot.item, activeSlot.item];
 
         updateInventoryOrder.mutate(updatedInventory);

@@ -38,10 +38,10 @@ export async function calculateInventoryCapacity(userId: string): Promise<number
     equipment.weaponItemId,
   ].filter((id): id is number => id !== null);
 
-  console.log(`[Capacity] User ${userId} has ${equippedItemIds.length} equipped items:`, {
-    backpackItemId: equipment.backpackItemId,
-    allEquippedIds: equippedItemIds,
-  });
+  // console.log(`[Capacity] User ${userId} has ${equippedItemIds.length} equipped items:`, {
+  //   backpackItemId: equipment.backpackItemId,
+  //   allEquippedIds: equippedItemIds,
+  // });
 
   if (equippedItemIds.length === 0) {
     console.log(`[Capacity] No items equipped, returning base: ${BASE_CAPACITY}`);

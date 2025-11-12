@@ -106,6 +106,67 @@ enum ItemRarity {
   DIVINE
 }
 
+enum ItemType {
+  // Weapon Types
+  SWORD
+  AXE
+  BOW
+  CROSSBOW
+  STAFF
+  WAND
+  DAGGER
+  MACE
+  SPEAR
+  FLAIL
+  
+  // Armor Types
+  HELMET
+  CHESTPLATE
+  LEGGINGS
+  BOOTS
+  GLOVES
+  SHOULDERS
+  BELT
+  
+  // Accessory Types
+  RING
+  AMULET
+  NECKLACE
+  
+  // Backpack/Storage
+  BACKPACK
+  
+  // Resource Types
+  ORE
+  LOG
+  HERB
+  FISH
+  HIDE
+  STONE
+  GEM
+  
+  // Consumable Types
+  POTION
+  FOOD
+  ELIXIR
+  SCROLL
+  
+  // Crafting Types
+  MATERIAL
+  INGREDIENT
+  RECIPE
+  
+  // Special Types
+  QUEST_ITEM
+  KEY
+  CURRENCY
+  PET
+  MOUNT
+  
+  // Misc
+  OTHER
+}
+
 enum StatType {
   // Offensive Stats
   PHYSICAL_DAMAGE_MIN
@@ -153,7 +214,15 @@ model Item {
   name    String
   price   Float
   sprite  String
-  equipTo String?
+  
+  // Item categorization
+  itemType     ItemType?   // Specific type (SWORD, ORE, POTION, etc) - nullable for now
+  equipTo      String?     // Equipment slot (WEAPON, CHEST, etc) - nullable
+  
+  // Stacking system
+  stackable    Boolean     @default(false)
+  maxStackSize Int         @default(1)
+  
   rarity  ItemRarity @default(COMMON)
 
   // Denormalized columns for fast marketplace queries
@@ -223,6 +292,9 @@ model UserItem {
   userId         String
   itemId         Int           // Reference to Item template
   rarity         ItemRarity    @default(COMMON)
+  
+  // Stacking - for stackable items only
+  quantity       Int           @default(1)
   
   // Item location/status
   status         ItemStatus    @default(IN_INVENTORY)

@@ -8,11 +8,9 @@ export async function DELETE(req: NextRequest) {
     if (!userId || !userItemId) {
       return NextResponse.json(
         { error: "Missing userId or userItemId" },
-        { status: 400 }
+        { status: 400 },
       );
     }
-
-    console.log(`Deleting UserItem ${userItemId} for user ${userId}`);
 
     // First, remove the item from inventory JSON
     const userInventory = await prisma.inventory.findUnique({
@@ -44,17 +42,15 @@ export async function DELETE(req: NextRequest) {
       where: { id: userItemId },
     });
 
-    console.log(`Successfully deleted UserItem ${userItemId}`);
-
     return NextResponse.json(
       { message: "Item deleted successfully" },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.error("Error deleting item:", error);
     return NextResponse.json(
       { error: "Failed to delete item" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

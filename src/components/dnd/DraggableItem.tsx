@@ -38,7 +38,8 @@ export const DraggableItem = ({
 
   const style = {
     transform: CSS.Transform.toString(transform),
-    boxShadow: isDragging ? "0px 5px 10px black" : undefined,
+    boxShadow: isDragging ? "0px 3px 10px rgba(0, 0, 0, 0.64)" : undefined,
+    zIndex: isDragging ? 999 : undefined,
   };
 
   if (!item) {
@@ -137,7 +138,7 @@ export const DraggableItem = ({
         className="flex h-[62px] w-[62px] items-center justify-center rounded bg-[grey] text-center text-sm shadow"
       >
         <PopoverTrigger asChild>
-          <button type="button" className="h-full w-full">
+          <button type="button" className="relative h-full w-full">
             <Image
               alt={item.name}
               src={sprite}
@@ -145,6 +146,11 @@ export const DraggableItem = ({
               height={62}
               className="rounded"
             />
+            {item.quantity && item.quantity > 1 && (
+              <div className="absolute -left-1 -top-2 flex items-center justify-center rounded-md border bg-background px-2 text-xs text-white">
+                {item.quantity}
+              </div>
+            )}
           </button>
         </PopoverTrigger>
       </div>

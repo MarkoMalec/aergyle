@@ -8,8 +8,6 @@ import { prisma } from "~/lib/prisma";
 export async function fetchUserItemsByIds(userItemIds: number[]) {
   if (userItemIds.length === 0) return [];
 
-  console.log(`fetchUserItemsByIds: Attempting to fetch UserItem IDs: ${userItemIds.join(', ')}`);
-
   const userItems = await prisma.userItem.findMany({
     where: {
       id: { in: userItemIds },
@@ -20,8 +18,6 @@ export async function fetchUserItemsByIds(userItemIds: number[]) {
       stats: true, // Get the rarity-multiplied stats
     },
   });
-
-  console.log(`fetchUserItemsByIds: Found ${userItems.length} UserItems out of ${userItemIds.length} requested`);
   
   // Check for missing UserItems
   const foundIds = new Set(userItems.map(ui => ui.id));
@@ -51,5 +47,6 @@ export async function fetchUserItemsByIds(userItemIds: number[]) {
       statType: stat.statType,
       value: stat.value, // Rarity-multiplied value
     })),
+    quantity: userItem.quantity, // I think we need this?
   }));
 }

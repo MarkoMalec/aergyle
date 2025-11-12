@@ -17,7 +17,12 @@ import toast from "react-hot-toast";
 import { useRarityColors } from "~/hooks/use-rarity-colors";
 import { getRarityTailwindClass } from "~/utils/rarity-colors";
 import { CoinsIcon } from "../ui/coins-icon";
-import { userQueryKeys, inventoryQueryKeys, marketplaceQueryKeys } from "~/lib/query-keys";
+import {
+  userQueryKeys,
+  inventoryQueryKeys,
+  marketplaceQueryKeys,
+} from "~/lib/query-keys";
+import { Button } from "~/components/ui/button";
 
 interface SingleItemTemplateProps {
   item: ItemWithStats;
@@ -163,7 +168,9 @@ export default function SingleItemTemplate({
         )}
         <div className="py-2">
           <div className="ml-auto w-fit">
-            <span className="text-sm text-yellow-500"><CoinsIcon /> {item.price}</span>
+            <span className="text-sm text-yellow-500">
+              <CoinsIcon /> {item.price}
+            </span>
           </div>
         </div>
         <div className="mt-4 space-y-2 border-t pt-3">
