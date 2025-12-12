@@ -30,9 +30,8 @@ export function ItemFilters({ priceRange, onPriceRangeChange }: ItemFiltersProps
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <Button
-          variant={isFiltered ? "default" : "outline"}
-          size="sm"
-          className="gap-2 bg-secondary/50 text-foreground hover:bg-secondary"
+          variant="ghost"
+          className="border bg-gray-700/40 hover:bg-gray-700/40"
         >
           Price Range
           <ChevronDown className="w-4 h-4" />

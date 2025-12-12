@@ -96,9 +96,10 @@ export const DroppableSlot = ({
       </div>
 
       {/* Split stack dialog */}
-      {showSplitDialog && slot.item && (
+      {slot.item && (
         <SplitStackDialog
           item={slot.item}
+          isOpen={showSplitDialog}
           onClose={() => setShowSplitDialog(false)}
         />
       )}

@@ -42,6 +42,8 @@ import SingleItemTemplate from "../items/single-item-template";
 import { Skeleton } from "~/components/ui/skeleton";
 import { CoinsIcon } from "../ui/coins-icon";
 
+import { RARITY_COLORS } from "~/utils/rarity";
+
 // Extend TableMeta to include currentUserId
 declare module "@tanstack/react-table" {
   interface TableMeta<TData> {
@@ -75,6 +77,7 @@ const createColumns = (
       const itemWithStats = {
         ...row.original.itemTemplate,
         id: row.original.id, // Use the UserItem id
+        itemId: row.original.itemTemplate.id, // Original item template ID
         rarity: row.original.rarity, // Use actual item rarity (can be upgraded)
         stats: row.original.stats.map((stat) => ({
           id: stat.id,
@@ -115,35 +118,45 @@ const createColumns = (
         )}
       </Button>
     ),
-    cell: ({ row }) => (
-      <span className="font-medium">{row.original.itemTemplate.name}</span>
-    ),
+    cell: ({ row }) => {
+      const rarityColor = RARITY_COLORS[row.original.rarity];
+      return (
+        <span className="font-medium" style={{ color: rarityColor }}>
+          {row.original.itemTemplate.name}
+        </span>
+      );
+    },
   },
   {
-    accessorFn: (row) => row.itemTemplate.equipTo,
-    id: "equipTo",
-    header: ({ column }) => (
-      <Button
-        variant="ghost"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        className="flex items-center gap-2"
-      >
-        Type
-        {column.getIsSorted() === "asc" ? (
-          <SortAsc className="h-4 w-4" />
-        ) : column.getIsSorted() === "desc" ? (
-          <SortDesc className="h-4 w-4" />
-        ) : (
-          <ArrowUpDown className="h-4 w-4" />
-        )}
-      </Button>
-    ),
-    cell: ({ row }) => (
-      <Badge variant="outline" className="font-light capitalize text-white">
-        {row.original.itemTemplate.equipTo || "Consumable"}
-      </Badge>
-    ),
+    accessorKey: "quantity",
+    header: "Qty",
+    cell: ({ row }) => <span>{row.original.quantity}</span>,
   },
+  // {
+  //   accessorFn: (row) => row.itemTemplate.equipTo,
+  //   id: "equipTo",
+  //   header: ({ column }) => (
+  //     <Button
+  //       variant="ghost"
+  //       onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+  //       className="flex items-center gap-2"
+  //     >
+  //       Type
+  //       {column.getIsSorted() === "asc" ? (
+  //         <SortAsc className="h-4 w-4" />
+  //       ) : column.getIsSorted() === "desc" ? (
+  //         <SortDesc className="h-4 w-4" />
+  //       ) : (
+  //         <ArrowUpDown className="h-4 w-4" />
+  //       )}
+  //     </Button>
+  //   ),
+  //   cell: ({ row }) => (
+  //     <Badge variant="outline" className="font-light capitalize text-white">
+  //       {row.original.itemTemplate.equipTo || "Consumable"}
+  //     </Badge>
+  //   ),
+  // },
   {
     accessorKey: "rarity",
     header: ({ column }) => (
@@ -350,9 +363,8 @@ export function MarketplaceDataTable({
 
   return (
     <div className="flex gap-6">
-
       {/* Table */}
-      <div className="relative overflow-hidden rounded-lg border">
+      <div className="relative flex-1 overflow-hidden rounded-lg border">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -400,7 +412,6 @@ export function MarketplaceDataTable({
                   key={`skeleton-${i}`}
                   className={`${i % 2 === 0 ? "bg-muted/5" : "bg-transparent"} border-none`}
                 >
-                  {/* Image column - skeleton for SingleItemTemplate trigger */}
                   <TableCell className="w-16">
                     <Skeleton className="h-14 w-14 rounded" />
                   </TableCell>
@@ -455,6 +466,7 @@ export function MarketplaceDataTable({
                   ? onSearchChange(e.target.value)
                   : setInternalSearchValue(e.target.value)
               }
+              className="indent-5"
             />
           </div>
 
@@ -468,7 +480,7 @@ export function MarketplaceDataTable({
                   : setInternalEquipTo(v)
               }
             >
-              <SelectTrigger className="w-full bg-secondary/5 text-foreground md:w-[200px]">
+              <SelectTrigger>
                 <SelectValue placeholder="All Types" />
               </SelectTrigger>
               <SelectContent>
@@ -489,7 +501,7 @@ export function MarketplaceDataTable({
                   : setInternalRarity(v)
               }
             >
-              <SelectTrigger className="w-full bg-secondary/50 md:w-[200px]">
+              <SelectTrigger>
                 <SelectValue placeholder="All Rarities" />
               </SelectTrigger>
               <SelectContent>
@@ -510,19 +522,18 @@ export function MarketplaceDataTable({
                   : setInternalPriceRange(r)
               }
             />
-
-            {hasActiveFilters && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={resetFilters}
-                className="gap-2 bg-transparent"
-              >
-                <X className="h-4 w-4" />
-                Reset Filters
-              </Button>
-            )}
           </div>
+          {hasActiveFilters && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={resetFilters}
+              className="ml-auto flex gap-2"
+            >
+              <X className="h-4 w-4" />
+              Reset Filters
+            </Button>
+          )}
         </div>
 
         {/* Results Count */}

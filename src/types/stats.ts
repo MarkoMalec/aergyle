@@ -6,6 +6,7 @@ export { StatType, ItemRarity };
 // Item with stats populated
 export interface ItemWithStats {
   id: number;
+  itemId: number; // Reference to Item template
   name: string;
   price: number;
   sprite: string;

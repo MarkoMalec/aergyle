@@ -48,17 +48,18 @@ export default function ItemImportForm() {
   };
 
   const downloadTemplate = () => {
-    // Create CSV template with base stats AND progressive stats
+    // Create CSV template with base stats AND progressive stats + new stacking columns
     const template = [
-      "name,price,sprite,equipTo,rarity,minPhysicalDamage,maxPhysicalDamage,minMagicDamage,maxMagicDamage,armor,requiredLevel,statType,baseValue,unlocksAtRarity",
-      "Iron Sword,100,/assets/items/weapons/iron-sword.jpg,weapon,COMMON,5,10,0,0,0,5,STRENGTH,5,BASE",
-      "Iron Sword,100,/assets/items/weapons/iron-sword.jpg,weapon,COMMON,5,10,0,0,0,5,CRITICAL_CHANCE,2,RARE",
-      "Leather Helmet,50,/assets/items/armor/leather-helmet.jpg,head,COMMON,0,0,0,0,10,3,VITALITY,3,BASE",
-      "Health Potion,25,/assets/items/consumables/potions/health-potion.jpg,,,0,0,0,0,0,1,HEALTH,50,BASE",
-      "Small Backpack,150,/assets/items/storage/backpacks/small-backpack.jpg,backpack,COMMON,0,0,0,0,0,1,CARRYING_CAPACITY,11,BASE",
-      "Epic Sword,500,/assets/items/weapons/epic-sword.jpg,weapon,COMMON,10,20,0,0,0,10,STRENGTH,10,BASE",
-      "Epic Sword,500,/assets/items/weapons/epic-sword.jpg,weapon,COMMON,10,20,0,0,0,10,CRITICAL_CHANCE,5,RARE",
-      "Epic Sword,500,/assets/items/weapons/epic-sword.jpg,weapon,COMMON,10,20,0,0,0,10,LIFESTEAL,3,EPIC",
+      "name,price,sprite,equipTo,rarity,itemType,stackable,maxStackSize,minPhysicalDamage,maxPhysicalDamage,minMagicDamage,maxMagicDamage,armor,requiredLevel,statType,baseValue,unlocksAtRarity",
+      "Iron Sword,100,/assets/items/weapons/iron-sword.jpg,weapon,COMMON,SWORD,false,1,5,10,0,0,0,5,STRENGTH,5,BASE",
+      "Iron Sword,100,/assets/items/weapons/iron-sword.jpg,weapon,COMMON,SWORD,false,1,5,10,0,0,0,5,CRITICAL_CHANCE,2,RARE",
+      "Leather Helmet,50,/assets/items/armor/leather-helmet.jpg,head,COMMON,HELMET,false,1,0,0,0,0,10,3,VITALITY,3,BASE",
+      "Health Potion,25,/assets/items/consumables/potions/health-potion.jpg,,,POTION,true,99,0,0,0,0,0,1,HEALTH,50,BASE",
+      "Iron Ore,10,/assets/items/resources/iron-ore.jpg,,,ORE,true,99,0,0,0,0,0,1,,,",
+      "Small Backpack,150,/assets/items/storage/backpacks/small-backpack.jpg,backpack,COMMON,BACKPACK,false,1,0,0,0,0,0,1,CARRYING_CAPACITY,11,BASE",
+      "Epic Sword,500,/assets/items/weapons/epic-sword.jpg,weapon,COMMON,SWORD,false,1,10,20,0,0,0,10,STRENGTH,10,BASE",
+      "Epic Sword,500,/assets/items/weapons/epic-sword.jpg,weapon,COMMON,SWORD,false,1,10,20,0,0,0,10,CRITICAL_CHANCE,5,RARE",
+      "Epic Sword,500,/assets/items/weapons/epic-sword.jpg,weapon,COMMON,SWORD,false,1,10,20,0,0,0,10,LIFESTEAL,3,EPIC",
     ].join("\n");
 
     const blob = new Blob([template], { type: "text/csv" });
@@ -236,6 +237,20 @@ export default function ItemImportForm() {
             </li>
             <li>Upload and import</li>
           </ol>
+          <div className="mt-3 rounded border border-blue-200 bg-blue-50 p-3">
+            <h4 className="mb-1 text-sm font-semibold text-blue-900">New Stacking Columns:</h4>
+            <ul className="list-inside list-disc space-y-0.5 text-xs text-blue-800">
+              <li>
+                <strong>itemType:</strong> SWORD, AXE, POTION, ORE, etc. (optional)
+              </li>
+              <li>
+                <strong>stackable:</strong> true/false (whether items can stack)
+              </li>
+              <li>
+                <strong>maxStackSize:</strong> Number (1 for equipment, 99 for consumables/resources)
+              </li>
+            </ul>
+          </div>
         </div>
       </CardContent>
     </Card>

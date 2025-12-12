@@ -381,42 +381,6 @@ export function compareRarity(rarity1: ItemRarity, rarity2: ItemRarity): number 
 }
 
 /**
- * @deprecated Use useRarityColors() hook with getRarityTailwindClass() instead
- * This function uses hardcoded colors and doesn't reflect database changes
- * 
- * For client components:
- * ```tsx
- * import { useRarityColors } from "~/hooks/use-rarity-colors";
- * import { getRarityTailwindClass } from "~/utils/rarity-colors";
- * 
- * const { colors } = useRarityColors();
- * const hexColor = colors[item.rarity];
- * const colorClass = getRarityTailwindClass(item.rarity, hexColor, "text");
- * ```
- * 
- * For server components or inline styles (fallback only):
- * Use getRarityColorsFromDB() to fetch from database
- */
-export function getRarityColor(rarity: ItemRarity): string {
-  const colors: Record<ItemRarity, string> = {
-    WORTHLESS: "#4b5563", // Dark Gray
-    BROKEN: "#92400e", // Brown
-    COMMON: "#9ca3af", // Gray
-    UNCOMMON: "#22c55e", // Green
-    RARE: "#3b82f6", // Blue
-    EXQUISITE: "#06b6d4", // Cyan
-    EPIC: "#a855f7", // Purple
-    ELITE: "#ec4899", // Pink
-    UNIQUE: "#f59e0b", // Amber
-    LEGENDARY: "#eab308", // Gold
-    MYTHIC: "#ef4444", // Red
-    DIVINE: "#f8fafc", // White
-  };
-
-  return colors[rarity];
-}
-
-/**
  * Recalculate item stats based on current rarity in database
  * Use this when rarity was changed manually without going through upgrade system
  */

@@ -30,6 +30,7 @@ export async function fetchUserItemsByIds(userItemIds: number[]) {
   // Transform to match ItemWithStats format
   return userItems.map((userItem) => ({
     id: userItem.id, // UserItem ID (not template ID)
+    itemId: userItem.itemTemplate.id, // Item template ID (for marketplace stats)
     name: userItem.itemTemplate.name,
     price: userItem.itemTemplate.price,
     sprite: userItem.itemTemplate.sprite,
@@ -47,6 +48,6 @@ export async function fetchUserItemsByIds(userItemIds: number[]) {
       statType: stat.statType,
       value: stat.value, // Rarity-multiplied value
     })),
-    quantity: userItem.quantity, // I think we need this?
+    quantity: userItem.quantity,
   }));
 }

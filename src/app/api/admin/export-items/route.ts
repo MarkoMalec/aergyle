@@ -22,13 +22,16 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    // CSV header
+    // CSV header (including new stacking columns)
     const headers = [
       "name",
       "price",
       "sprite",
       "equipTo",
       "rarity",
+      "itemType",
+      "stackable",
+      "maxStackSize",
       "minPhysicalDamage",
       "maxPhysicalDamage",
       "minMagicDamage",
@@ -44,13 +47,16 @@ export async function GET(req: NextRequest) {
     const rows: string[] = [];
     
     for (const item of items) {
-      // Base item data that repeats for each stat
+      // Base item data that repeats for each stat (including new stacking columns)
       const baseData = [
         item.name,
         item.price,
         item.sprite,
         item.equipTo || "",
         item.rarity,
+        item.itemType || "",
+        item.stackable,
+        item.maxStackSize,
         item.minPhysicalDamage,
         item.maxPhysicalDamage,
         item.minMagicDamage,

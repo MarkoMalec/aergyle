@@ -16,10 +16,10 @@ export type EquipmentSlotType =
   | "head"
   | "necklace"
   | "chest"
-  | "shoulders"
-  | "arms"
+  | "pauldrons"
+  | "bracers"
   | "gloves"
-  | "legs"
+  | "greaves"
   | "boots"
   | "belt"
   | "ring1"
@@ -38,11 +38,11 @@ export type EquipmentSlotsWithItems = Record<EquipmentSlotType, ItemWithStats | 
 export const EQUIPMENT_INDEX_MAP: Record<number, EquipmentSlotType> = {
   100: "head",
   101: "necklace",
-  102: "shoulders",
+  102: "pauldrons",
   103: "chest",
-  104: "arms",
+  104: "bracers",
   105: "gloves",
-  106: "legs",
+  106: "greaves",
   107: "boots",
   108: "belt",
   109: "ring1",
@@ -56,11 +56,11 @@ export const EQUIPMENT_INDEX_MAP: Record<number, EquipmentSlotType> = {
 export const EQUIPMENT_SLOT_TO_INDEX: Record<EquipmentSlotType, number> = {
   head: 100,
   necklace: 101,
-  shoulders: 102,
+  pauldrons: 102,
   chest: 103,
-  arms: 104,
+  bracers: 104,
   gloves: 105,
-  legs: 106,
+  greaves: 106,
   boots: 107,
   belt: 108,
   ring1: 109,
@@ -75,10 +75,10 @@ export type ValidEquipSlot =
   | "head"
   | "necklace"
   | "chest"
-  | "shoulders"
-  | "arms"
+  | "pauldrons"
+  | "bracers"
   | "gloves"
-  | "legs"
+  | "greaves"
   | "boots"
   | "belt"
   | "ring"

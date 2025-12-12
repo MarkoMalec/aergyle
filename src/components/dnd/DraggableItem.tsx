@@ -135,19 +135,19 @@ export const DraggableItem = ({
         style={style}
         {...attributes}
         {...listeners}
-        className="flex h-[62px] w-[62px] items-center justify-center rounded bg-[grey] text-center text-sm shadow"
+        className="flex h-[62px] w-[62px] items-center justify-center rounded  text-center text-sm shadow"
       >
         <PopoverTrigger asChild>
           <button type="button" className="relative h-full w-full">
             <Image
               alt={item.name}
               src={sprite}
-              width={62}
-              height={62}
+              width={102}
+              height={102}
               className="rounded"
             />
             {item.quantity && item.quantity > 1 && (
-              <div className="absolute -left-1 -top-2 flex items-center justify-center rounded-md border bg-background px-2 text-xs text-white">
+              <div className="absolute -left-1 -top-2 flex items-center justify-center rounded-md border bg-background px-2 text-xs text-white font-light">
                 {item.quantity}
               </div>
             )}

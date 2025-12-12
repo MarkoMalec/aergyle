@@ -4,8 +4,8 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { MarketplaceDataTable } from "~/components/game/marketplace/marketplaceTable";
-import type { MarketplaceResponse } from "~/types/marketplace";
+import { MarketplaceDataTable } from "~/components/game/marketplace/marketplaceTableNew";
+import type { MarketplaceGroupedResponse } from "~/types/marketplace";
 import toast from "react-hot-toast";
 import {
   Dialog,
@@ -22,6 +22,18 @@ import {
   marketplaceQueryKeys,
   inventoryQueryKeys,
 } from "~/lib/query-keys";
+
+function getErrorMessage(value: unknown): string | undefined {
+  if (typeof value !== "object" || value === null) return undefined;
+  if (!("message" in value)) return undefined;
+  const message = (value as { message?: unknown }).message;
+  return typeof message === "string" ? message : undefined;
+}
+
+type BuyMarketplaceResponse = {
+  item: { itemTemplate: { name: string } };
+  price: number;
+};
 
 export default function MarketplacePage() {
   const { data: session } = useSession();
@@ -42,6 +54,7 @@ export default function MarketplacePage() {
   // Filters (persisted to URL so they are global across pages)
   const router = useRouter();
   const searchParams = useSearchParams();
+
   const [searchQuery, setSearchQuery] = useState("");
   const [equipToFilter, setEquipToFilter] = useState("all");
   const [rarityFilter, setRarityFilter] = useState("all");
@@ -49,15 +62,32 @@ export default function MarketplacePage() {
 
   // Initialize filters from URL on mount
   useEffect(() => {
-    const sp = Object.fromEntries(Array.from(searchParams.entries()));
-    if (sp.search) setSearchQuery(sp.search);
-    if (sp.equipTo) setEquipToFilter(sp.equipTo);
-    if (sp.rarity) setRarityFilter(sp.rarity);
-    if (sp.minPrice)
-      setPriceRange((r) => ({ ...r, min: Number(sp.minPrice) || 0 }));
-    if (sp.maxPrice)
-      setPriceRange((r) => ({ ...r, max: Number(sp.maxPrice) || 100000 }));
-    if (sp.page) setPage(Number(sp.page) || 1);
+    const search = searchParams.get("search");
+    if (search) setSearchQuery(search);
+
+    const equipTo = searchParams.get("equipTo");
+    if (equipTo) setEquipToFilter(equipTo);
+
+    const rarity = searchParams.get("rarity");
+    if (rarity) setRarityFilter(rarity);
+
+    const minPrice = searchParams.get("minPrice");
+    if (minPrice) {
+      const min = Number(minPrice);
+      setPriceRange((r) => ({ ...r, min: Number.isFinite(min) ? min : 0 }));
+    }
+
+    const maxPrice = searchParams.get("maxPrice");
+    if (maxPrice) {
+      const max = Number(maxPrice);
+      setPriceRange((r) => ({ ...r, max: Number.isFinite(max) ? max : 100000 }));
+    }
+
+    const pageParam = searchParams.get("page");
+    if (pageParam) {
+      const p = Number(pageParam);
+      setPage(Number.isFinite(p) && p > 0 ? p : 1);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -80,8 +110,8 @@ export default function MarketplacePage() {
     router.replace(`/marketplace${search}`);
   }, [searchQuery, equipToFilter, rarityFilter, priceRange, page, router]);
 
-  // Fetch marketplace listings
-  const { data, isLoading, error } = useQuery<MarketplaceResponse>({
+  // Fetch grouped marketplace rows (one row per item template)
+  const { data, isLoading, error } = useQuery<MarketplaceGroupedResponse>({
     queryKey: marketplaceQueryKeys.listings({
       page,
       searchQuery,
@@ -107,17 +137,18 @@ export default function MarketplacePage() {
       if (priceRange.max && priceRange.max < 100000)
         params.set("maxPrice", String(priceRange.max));
 
-      const response = await fetch(`/api/marketplace?${params.toString()}`);
+      const response = await fetch(`/api/marketplace/grouped?${params.toString()}`);
       if (!response.ok) {
         throw new Error("Failed to fetch marketplace listings");
       }
-      return response.json();
+      const json: unknown = await response.json();
+      return json as MarketplaceGroupedResponse;
     },
     staleTime: 10000,
   });
 
   // Buy item mutation
-  const buyItemMutation = useMutation({
+  const buyItemMutation = useMutation<BuyMarketplaceResponse, Error, number>({
     mutationFn: async (userItemId: number) => {
       if (!session?.user?.id) {
         throw new Error("You must be logged in to purchase items");
@@ -133,21 +164,19 @@ export default function MarketplacePage() {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to purchase item");
+        const errorBody: unknown = await response.json();
+        throw new Error(getErrorMessage(errorBody) ?? "Failed to purchase item");
       }
 
-      return response.json();
+      const json: unknown = await response.json();
+      return json as BuyMarketplaceResponse;
     },
-    onSuccess: (data: {
-      item: { itemTemplate: { name: string } };
-      price: number;
-    }) => {
-      queryClient.invalidateQueries({ queryKey: marketplaceQueryKeys.all() });
-      queryClient.invalidateQueries({ queryKey: inventoryQueryKeys.all() });
-      queryClient.invalidateQueries({ queryKey: userQueryKeys.gold() });
+    onSuccess: (data) => {
+      void queryClient.invalidateQueries({ queryKey: marketplaceQueryKeys.all() });
+      void queryClient.invalidateQueries({ queryKey: inventoryQueryKeys.all() });
+      void queryClient.invalidateQueries({ queryKey: userQueryKeys.gold() });
 
-      toast.success((t) => (
+      toast.success(() => (
         <span>
           You bought {data.item.itemTemplate.name} for {data.price}{" "}
           <CoinsIcon />
@@ -163,16 +192,9 @@ export default function MarketplacePage() {
     },
   });
 
-  const handleBuyItem = (userItemId: number) => {
-    const item = data?.listings.find((listing) => listing.id === userItemId);
-    if (item) {
-      setSelectedItem({
-        id: item.id,
-        name: item.itemTemplate.name,
-        price: item.listedPrice || 0,
-      });
-      setShowBuyDialog(true);
-    }
+  const handleBuyItem = (payload: { id: number; name: string; price: number }) => {
+    setSelectedItem(payload);
+    setShowBuyDialog(true);
   };
 
   const confirmBuyItem = () => {
@@ -181,12 +203,61 @@ export default function MarketplacePage() {
     }
   };
 
+  // Fetch cursor-paginated listings for a specific item
+  const handleFetchItemListings = async (
+    itemTemplateId: number,
+    cursor: string | null,
+    rarity?: string,
+  ) => {
+    const params = new URLSearchParams({
+      limit: "5",
+    });
+    
+    if (rarity) params.append("rarity", rarity);
+
+    if (cursor) {
+      params.append("cursor", cursor);
+    }
+    
+    const response = await fetch(
+      `/api/marketplace/listings/${itemTemplateId}?${params.toString()}`
+    );
+    
+    if (!response.ok) {
+      throw new Error("Failed to fetch item listings");
+    }
+    
+    const data: unknown = await response.json();
+    if (typeof data !== "object" || data === null) {
+      throw new Error("Invalid listings response");
+    }
+
+    const listings = (data as { listings?: unknown }).listings;
+    const hasMore = (data as { hasMore?: unknown }).hasMore;
+    const nextCursor = (data as { nextCursor?: unknown }).nextCursor;
+    const availableRarities = (data as { availableRarities?: unknown }).availableRarities;
+
+    if (!Array.isArray(listings) || typeof hasMore !== "boolean") {
+      throw new Error("Invalid listings response");
+    }
+
+    return {
+      listings,
+      hasMore,
+      nextCursor: typeof nextCursor === "string" ? nextCursor : null,
+      availableRarities: Array.isArray(availableRarities)
+        ? availableRarities.filter((r): r is string => typeof r === "string")
+        : undefined,
+    };
+  };
+
   if (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return (
       <div className="container mx-auto py-10">
         <div className="text-center text-red-500">
           <p className="text-xl font-semibold">Error loading marketplace</p>
-          <p className="mt-2 text-sm">{(error as Error).message}</p>
+          <p className="mt-2 text-sm">{errorMessage}</p>
         </div>
       </div>
     );
@@ -203,10 +274,11 @@ export default function MarketplacePage() {
 
       <div className="flex flex-col gap-4">
         <MarketplaceDataTable
-          data={data?.listings ?? []}
+          data={data?.items ?? []}
           isLoading={isLoading}
           currentUserId={session?.user?.id}
-          onBuyItem={(itemId) => handleBuyItem(itemId)}
+          onBuyItem={handleBuyItem}
+          onFetchItemListings={handleFetchItemListings}
           searchValue={searchQuery}
           onSearchChange={(v) => {
             setSearchQuery(v);
@@ -233,9 +305,7 @@ export default function MarketplacePage() {
         {data?.pagination && (
           <div className="flex items-center justify-between px-2">
             <div className="text-sm text-muted-foreground">
-              Showing page {data.pagination.page} of{" "}
-              {data.pagination.totalPages}({data.pagination.totalCount} total
-              items)
+              Showing page {data.pagination.page}
             </div>
             <div className="flex gap-2">
               <Button

@@ -144,10 +144,11 @@ model Equipment {
   headItemId      Int?
   chestItemId     Int?
   beltItemId      Int?
-  legsItemId      Int?
+  greavesItemId   Int?
   bootsItemId     Int?
   weaponItemId    Int?
-  shouldersItemId Int?
+  pauldronsItemId Int?
+  bracersItemId   Int?
   glovesItemId    Int?
   necklaceItemId  Int?
   ring1ItemId     Int?
@@ -1117,9 +1118,10 @@ async function equipItem(
     head: "headItemId",
     chest: "chestItemId",
     belt: "beltItemId",
-    legs: "legsItemId",
+    greaves: "greavesItemId",
     boots: "bootsItemId",
-    shoulders: "shouldersItemId",
+    pauldrons: "pauldronsItemId",
+    bracers: "bracersItemId",
     gloves: "glovesItemId",
     necklace: "necklaceItemId",
     ring: "ring1ItemId", // Or ring2ItemId - implement dual ring logic

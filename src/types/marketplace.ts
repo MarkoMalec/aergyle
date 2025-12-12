@@ -15,6 +15,7 @@ export interface MarketplaceListing extends PrismaUserItem {
     maxMagicDamage: number | null;
     armor: number | null;
     requiredLevel: number | null;
+    quantity: number;
   };
   stats: {
     id: number;
@@ -35,6 +36,26 @@ export interface MarketplaceResponse {
     limit: number;
     totalCount: number;
     totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
+}
+
+export interface MarketplaceGroupedItem {
+  itemTemplateId: number;
+  itemName: string;
+  sprite: string;
+  equipTo: string | null;
+  minPrice: number;
+  maxPrice: number;
+  totalListings: number;
+}
+
+export interface MarketplaceGroupedResponse {
+  items: MarketplaceGroupedItem[];
+  pagination: {
+    page: number;
+    limit: number;
     hasNextPage: boolean;
     hasPreviousPage: boolean;
   };

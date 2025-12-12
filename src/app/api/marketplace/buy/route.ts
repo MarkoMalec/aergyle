@@ -7,12 +7,13 @@ import { prisma } from "~/lib/prisma";
  * 
  * Body: {
  *   buyerId: string,
- *   userItemId: number
+ *   userItemId: number,
+ *   quantity?: number (defaults to full quantity available)
  * }
  */
 export async function POST(req: NextRequest) {
   try {
-    const { buyerId, userItemId } = await req.json();
+    const { buyerId, userItemId, quantity: requestedQuantity } = await req.json();
 
     if (!buyerId || !userItemId) {
       return NextResponse.json(
@@ -59,7 +60,28 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const price = userItem.listedPrice || 0;
+    // Determine quantity to buy
+    const availableQuantity = userItem.quantity || 1;
+    const quantityToBuy = requestedQuantity && requestedQuantity > 0
+      ? Math.min(requestedQuantity, availableQuantity)
+      : availableQuantity;
+
+    if (quantityToBuy < 1) {
+      return NextResponse.json(
+        { error: "Invalid quantity" },
+        { status: 400 }
+      );
+    }
+
+    if (quantityToBuy > availableQuantity) {
+      return NextResponse.json(
+        { error: `Only ${availableQuantity} available` },
+        { status: 400 }
+      );
+    }
+
+    const pricePerItem = userItem.listedPrice || 0;
+    const totalPrice = pricePerItem * quantityToBuy;
     const sellerId = userItem.userId;
 
     // Get buyer to check gold balance
@@ -76,9 +98,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if buyer has enough gold
-    if (buyer.gold.lt(price)) {
+    const buyerGold = parseFloat(buyer.gold.toString());
+    if (buyerGold < totalPrice) {
       return NextResponse.json(
-        { error: `Insufficient gold. You need ${price} gold but only have ${buyer.gold}` },
+        { error: `Insufficient gold. You need ${totalPrice.toFixed(2)} gold but only have ${buyerGold.toFixed(2)}` },
         { status: 400 }
       );
     }
@@ -106,55 +129,127 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Prepare updated inventory slots
-    const updatedSlots = slots.map((slot, index) => {
-      if (index === emptySlotIndex) {
-        return { ...slot, item: { id: userItemId } };
-      }
-      return slot;
-    });
+    const isBuyingFullQuantity = quantityToBuy === availableQuantity;
+    let newUserItemId: number | null = null;
+    let updatedSlots = slots;
 
-    // Execute transaction: transfer item, deduct buyer gold, add seller gold
-    const [updatedItem] = await prisma.$transaction([
-      // Transfer item to buyer
-      prisma.userItem.update({
-        where: { id: userItemId },
-        data: {
-          userId: buyerId,
-          status: "IN_INVENTORY",
-          listedPrice: null,
-          listedAt: null,
-        },
-        include: {
-          itemTemplate: true,
-          stats: true,
-        },
-      }),
-      // Update buyer's inventory
-      prisma.inventory.update({
-        where: { userId: buyerId },
-        data: { slots: updatedSlots },
-      }),
-      // Deduct gold from buyer
-      prisma.user.update({
-        where: { id: buyerId },
-        data: { gold: { decrement: price } },
-      }),
-      // Add gold to seller
-      prisma.user.update({
-        where: { id: sellerId },
-        data: { gold: { increment: price } },
-      }),
-    ]);
+    // Execute transaction based on whether buying full or partial quantity
+    if (isBuyingFullQuantity) {
+      // Transfer the entire item to buyer
+      updatedSlots = slots.map((slot, index) => {
+        if (index === emptySlotIndex) {
+          return { ...slot, item: { id: userItemId } };
+        }
+        return slot;
+      });
 
-    console.log(`[Marketplace] ${userItem.itemTemplate.name} sold from ${userItem.user.name} to buyer ${buyerId} for ${price} gold`);
+      const [updatedItem] = await prisma.$transaction([
+        // Transfer item to buyer
+        prisma.userItem.update({
+          where: { id: userItemId },
+          data: {
+            userId: buyerId,
+            status: "IN_INVENTORY",
+            listedPrice: null,
+            listedAt: null,
+          },
+          include: {
+            itemTemplate: true,
+            stats: true,
+          },
+        }),
+        // Update buyer's inventory
+        prisma.inventory.update({
+          where: { userId: buyerId },
+          data: { slots: updatedSlots },
+        }),
+        // Deduct gold from buyer
+        prisma.user.update({
+          where: { id: buyerId },
+          data: { gold: { decrement: totalPrice } },
+        }),
+        // Add gold to seller
+        prisma.user.update({
+          where: { id: sellerId },
+          data: { gold: { increment: totalPrice } },
+        }),
+      ]);
+
+      console.log(`[Marketplace] ${quantityToBuy}x ${userItem.itemTemplate.name} sold from ${userItem.user.name} to buyer ${buyerId} for ${totalPrice} gold`);
+    } else {
+      // Partial purchase: create new item for buyer, reduce seller's quantity
+      const result = await prisma.$transaction(async (tx) => {
+        // Create new item for buyer with purchased quantity
+        const newItem = await tx.userItem.create({
+          data: {
+            userId: buyerId,
+            itemId: userItem.itemId,
+            rarity: userItem.rarity,
+            quantity: quantityToBuy,
+            status: "IN_INVENTORY",
+            stats: {
+              create: userItem.stats.map((stat) => ({
+                statType: stat.statType,
+                value: stat.value,
+              })),
+            },
+          },
+          include: {
+            itemTemplate: true,
+            stats: true,
+          },
+        });
+
+        newUserItemId = newItem.id;
+
+        // Update seller's item quantity
+        await tx.userItem.update({
+          where: { id: userItemId },
+          data: {
+            quantity: availableQuantity - quantityToBuy,
+          },
+        });
+
+        // Update buyer's inventory with new item
+        const updatedSlotsForPartial = slots.map((slot, index) => {
+          if (index === emptySlotIndex) {
+            return { ...slot, item: { id: newItem.id } };
+          }
+          return slot;
+        });
+
+        await tx.inventory.update({
+          where: { userId: buyerId },
+          data: { slots: updatedSlotsForPartial },
+        });
+
+        // Deduct gold from buyer
+        await tx.user.update({
+          where: { id: buyerId },
+          data: { gold: { decrement: totalPrice } },
+        });
+
+        // Add gold to seller
+        await tx.user.update({
+          where: { id: sellerId },
+          data: { gold: { increment: totalPrice } },
+        });
+
+        return newItem;
+      });
+
+      console.log(`[Marketplace] ${quantityToBuy}x ${userItem.itemTemplate.name} (partial) sold from ${userItem.user.name} to buyer ${buyerId} for ${totalPrice} gold`);
+    }
+
+    const finalItemId = isBuyingFullQuantity ? userItemId : newUserItemId;
 
     return NextResponse.json({
       success: true,
-      message: `Purchased ${userItem.itemTemplate.name} for ${price} gold`,
-      item: updatedItem,
+      message: `Purchased ${quantityToBuy}x ${userItem.itemTemplate.name} for ${totalPrice} gold`,
+      itemId: finalItemId,
+      quantity: quantityToBuy,
       seller: userItem.user.name,
-      price,
+      totalPrice,
     });
 
   } catch (error) {

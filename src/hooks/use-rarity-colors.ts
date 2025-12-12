@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import { useQuery } from "@tanstack/react-query";
 import { ItemRarity } from "@prisma/client";
@@ -12,6 +12,7 @@ interface RarityColorsResponse {
 /**
  * Hook to fetch rarity colors from database
  * Colors are cached for 1 hour
+ * Use in combination with getRarityTailwindClass to get Tailwind classes
  */
 export function useRarityColors() {
   const { data, isLoading, error } = useQuery<RarityColorsResponse>({

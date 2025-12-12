@@ -198,15 +198,15 @@ async function main() {
   );
 
   // ============================================
-  // ARMOR - SHOULDERS
+  // ARMOR - PAULDRONS
   // ============================================
 
   await createItemWithStats(
     {
-      name: 'Dragonscale Shoulder Pads',
+      name: 'Dragonscale Pauldrons',
       price: 450,
-      sprite: '/assets/items/armor/dragonscale-shoulder-pads.jpeg',
-      equipTo: 'shoulders',
+      sprite: '/assets/items/armor/dragonscale-pauldrons.jpeg',
+      equipTo: 'pauldrons',
       rarity: ItemRarity.RARE,
       requiredLevel: 8,
     },

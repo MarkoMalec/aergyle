@@ -2,6 +2,13 @@
 
 import React, { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "~/components/ui/dialog";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
@@ -10,10 +17,11 @@ import { ItemWithStats } from "~/types/stats";
 
 interface SplitStackDialogProps {
   item: ItemWithStats;
+  isOpen: boolean;
   onClose: () => void;
 }
 
-export function SplitStackDialog({ item, onClose }: SplitStackDialogProps) {
+export function SplitStackDialog({ item, isOpen, onClose }: SplitStackDialogProps) {
   const queryClient = useQueryClient();
   const maxSplit = (item.quantity || 1) - 1;
   const [splitQuantity, setSplitQuantity] = useState(Math.floor(maxSplit / 2));
@@ -51,32 +59,25 @@ export function SplitStackDialog({ item, onClose }: SplitStackDialogProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="w-full max-w-md rounded-lg bg-zinc-900 p-6 shadow-xl">
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-white">Split Stack</h3>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-white"
-            disabled={splitMutation.isPending}
-          >
-            ✕
-          </button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Split Stack</DialogTitle>
+        </DialogHeader>
 
-        <div className="mb-6 flex items-center gap-3">
+        <div className="mb-4 flex items-center gap-3">
           <img src={item.sprite} alt={item.name} className="h-12 w-12" />
           <div>
-            <div className="font-medium text-white">{item.name}</div>
+            <div className="font-medium">{item.name}</div>
             <div className="text-sm text-gray-400">
               Current quantity: {item.quantity || 1}
             </div>
           </div>
         </div>
 
-        <div className="mb-6 space-y-4">
+        <div className="space-y-4">
           <div>
-            <Label htmlFor="quantity" className="text-white">
+            <Label htmlFor="quantity">
               Amount to split (1 - {maxSplit})
             </Label>
             <div className="mt-2 flex items-center gap-2">
@@ -116,15 +117,15 @@ export function SplitStackDialog({ item, onClose }: SplitStackDialogProps) {
             </div>
           </div>
 
-          <div className="rounded bg-zinc-800 p-3 text-sm text-gray-300">
+          <div className="rounded bg-zinc-800 p-3 text-sm">
             <div className="flex justify-between">
-              <span>Original stack:</span>
+              <span className="text-gray-400">Original stack:</span>
               <span className="font-semibold">
                 {(item.quantity || 1) - splitQuantity}
               </span>
             </div>
             <div className="flex justify-between">
-              <span>New stack:</span>
+              <span className="text-gray-400">New stack:</span>
               <span className="font-semibold">{splitQuantity}</span>
             </div>
           </div>
@@ -136,18 +137,16 @@ export function SplitStackDialog({ item, onClose }: SplitStackDialogProps) {
           )}
         </div>
 
-        <div className="flex gap-3">
+        <DialogFooter>
           <Button
             onClick={onClose}
             variant="outline"
-            className="flex-1"
             disabled={splitMutation.isPending}
           >
             Cancel
           </Button>
           <Button
             onClick={handleSplit}
-            className="flex-1"
             disabled={
               splitMutation.isPending ||
               splitQuantity < 1 ||
@@ -156,8 +155,8 @@ export function SplitStackDialog({ item, onClose }: SplitStackDialogProps) {
           >
             {splitMutation.isPending ? "Splitting..." : "Split Stack"}
           </Button>
-        </div>
-      </div>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -22,9 +22,9 @@ async function main() {
   });
   console.log('✅ Updated Health Potion (id: 36) - POTION, stackable, max 99');
 
-  // Update weapons based on equipTo = 'WEAPON'
+  // Update weapons based on equipTo = 'weapon'
   const weapons = await prisma.item.findMany({
-    where: { equipTo: 'WEAPON' },
+    where: { equipTo: 'weapon' },
   });
 
   for (const weapon of weapons) {
@@ -64,13 +64,14 @@ async function main() {
 
   // Update armor pieces
   const armorSlotMapping: Record<string, ItemType> = {
-    'HEAD': ItemType.HELMET,
-    'CHEST': ItemType.CHESTPLATE,
-    'LEGS': ItemType.LEGGINGS,
-    'BOOTS': ItemType.BOOTS,
-    'GLOVES': ItemType.GLOVES,
-    'SHOULDERS': ItemType.SHOULDERS,
-    'BELT': ItemType.BELT,
+    head: ItemType.HELMET,
+    chest: ItemType.CHESTPLATE,
+    greaves: ItemType.GREAVES,
+    boots: ItemType.BOOTS,
+    gloves: ItemType.GLOVES,
+    pauldrons: ItemType.PAULDRONS,
+    bracers: ItemType.BRACERS,
+    belt: ItemType.BELT,
   };
 
   for (const [slot, type] of Object.entries(armorSlotMapping)) {
@@ -93,9 +94,9 @@ async function main() {
 
   // Update accessories
   const accessorySlotMapping: Record<string, ItemType> = {
-    'RING': ItemType.RING,
-    'AMULET': ItemType.AMULET,
-    'NECKLACE': ItemType.NECKLACE,
+    ring: ItemType.RING,
+    amulet: ItemType.AMULET,
+    necklace: ItemType.NECKLACE,
   };
 
   for (const [slot, type] of Object.entries(accessorySlotMapping)) {
@@ -118,7 +119,7 @@ async function main() {
 
   // Update backpacks
   const backpacks = await prisma.item.findMany({
-    where: { equipTo: 'BACKPACK' },
+    where: { equipTo: 'backpack' },
   });
 
   for (const backpack of backpacks) {

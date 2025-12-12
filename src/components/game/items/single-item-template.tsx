@@ -6,23 +6,17 @@ import {
   PopoverTrigger,
   PopoverContent,
 } from "~/components/ui/popover";
-import { Input } from "~/components/ui/input";
 import { useState } from "react";
 import { ItemWithStats } from "~/types/stats";
 import { formatItemStatsForDisplay } from "~/utils/stats";
 import { RarityBadge } from "~/utils/ui/rarity-badge";
-import { useSession } from "next-auth/react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import toast from "react-hot-toast";
 import { useRarityColors } from "~/hooks/use-rarity-colors";
 import { getRarityTailwindClass } from "~/utils/rarity-colors";
 import { CoinsIcon } from "../ui/coins-icon";
-import {
-  userQueryKeys,
-  inventoryQueryKeys,
-  marketplaceQueryKeys,
-} from "~/lib/query-keys";
-import { Button } from "~/components/ui/button";
+import { useEquipmentContext } from "~/context/equipmentContext";
+import { Badge } from "~/components/ui/badge";
+import { ListItemDialog } from "~/components/game/marketplace/ListItemDialog";
+import { cn } from "~/lib/utils";
 
 interface SingleItemTemplateProps {
   item: ItemWithStats;
@@ -35,6 +29,7 @@ interface SingleItemTemplateProps {
   showUnequipButton?: boolean;
   showListButton?: boolean;
   children?: React.ReactNode; // For the image/trigger wrapper
+  className?: string;
 }
 
 export default function SingleItemTemplate({
@@ -48,75 +43,16 @@ export default function SingleItemTemplate({
   showUnequipButton = false,
   showListButton = false,
   children,
+  className,
 }: SingleItemTemplateProps) {
-  const { data: session } = useSession();
-  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [showListForm, setShowListForm] = useState(false);
-  const [listPrice, setListPrice] = useState("");
+  const [listDialogOpen, setListDialogOpen] = useState(false);
+
+  const { equipment } = useEquipmentContext();
 
   const { colors } = useRarityColors();
   const hexColor = colors[item.rarity];
   const textColorClass = getRarityTailwindClass(item.rarity, hexColor, "text");
-
-  // List item on marketplace mutation
-  const listItemMutation = useMutation({
-    mutationFn: async ({
-      userItemId,
-      price,
-    }: {
-      userItemId: number;
-      price: number;
-    }) => {
-      if (!session?.user?.id) {
-        throw new Error("Not authenticated");
-      }
-
-      const response = await fetch("/api/marketplace/list", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: session.user.id,
-          userItemId,
-          price,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to list item");
-      }
-
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: inventoryQueryKeys.all() });
-      queryClient.invalidateQueries({ queryKey: marketplaceQueryKeys.all() });
-      queryClient.invalidateQueries({ queryKey: userQueryKeys.gold() });
-      toast.success("Item listed successfully!");
-      setOpen(false);
-      setShowListForm(false);
-      setListPrice("");
-    },
-    onError: (error: Error) => {
-      toast.error(`Failed to list item: ${error.message}`);
-    },
-  });
-
-  const handleListItem = () => {
-    const price = parseFloat(listPrice);
-    if (isNaN(price) || price <= 0) {
-      toast.error("Please enter a valid price");
-      return;
-    }
-
-    if (!item.id) {
-      toast.error("Item ID not found");
-      return;
-    }
-
-    listItemMutation.mutate({ userItemId: item.id, price });
-  };
 
   const handleEquipClick = () => {
     if (onEquip) {
@@ -136,7 +72,7 @@ export default function SingleItemTemplate({
     <Popover open={open} onOpenChange={setOpen}>
       {children || (
         <PopoverTrigger asChild>
-          <button type="button" className="h-full w-full">
+          <button type="button" className={`h-12 w-12 ${cn(className)}`}>
             <Image
               alt={item.name}
               src={sprite}
@@ -147,12 +83,15 @@ export default function SingleItemTemplate({
           </button>
         </PopoverTrigger>
       )}
-      <PopoverContent className="bg-gray-900/90 backdrop-blur-lg">
+      <PopoverContent className="min-w-[350px] bg-gray-900/50 backdrop-blur-lg">
         <div className="mb-4 flex flex-col items-start">
           <h3 className={`text-md mb-1 font-bold ${textColorClass}`}>
             {item.name}
           </h3>
           <RarityBadge rarity={item.rarity} />
+          <Badge className="absolute right-2 top-2 capitalize">
+            {item.equipTo}
+          </Badge>
         </div>
         {item.stats && item.stats.length > 0 ? (
           <ul className="space-y-2">
@@ -190,45 +129,33 @@ export default function SingleItemTemplate({
               Unequip
             </button>
           )}
-          {showListButton && !showListForm && (
+          {showListButton && (
             <button
-              onClick={() => setShowListForm(true)}
+              onClick={() => {
+                setListDialogOpen(true);
+                setOpen(false);
+              }}
               className="w-full rounded bg-green-600 px-3 py-2 text-sm text-white hover:bg-green-700"
             >
               List on Marketplace
             </button>
           )}
-          {showListForm && (
-            <div className="space-y-2">
-              <Input
-                type="number"
-                placeholder="Enter price in gold"
-                value={listPrice}
-                onChange={(e) => setListPrice(e.target.value)}
-                className="w-full"
-              />
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    setShowListForm(false);
-                    setListPrice("");
-                  }}
-                  className="flex-1 rounded bg-gray-600 px-3 py-2 text-sm text-white hover:bg-gray-700"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleListItem}
-                  disabled={listItemMutation.isPending}
-                  className="flex-1 rounded bg-green-600 px-3 py-2 text-sm text-white hover:bg-green-700 disabled:opacity-50"
-                >
-                  {listItemMutation.isPending ? "Listing..." : "Confirm"}
-                </button>
-              </div>
-            </div>
-          )}
         </div>
       </PopoverContent>
+
+      {/* List Item Dialog */}
+      {item.id && (
+        <ListItemDialog
+          isOpen={listDialogOpen}
+          onClose={() => setListDialogOpen(false)}
+          userItemId={item.id}
+          itemId={item.itemId}
+          itemName={item.name}
+          sprite={sprite}
+          rarity={item.rarity}
+          maxQuantity={item.quantity || 1}
+        />
+      )}
     </Popover>
   );
 }

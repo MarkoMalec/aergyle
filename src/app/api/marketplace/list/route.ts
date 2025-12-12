@@ -8,16 +8,17 @@ import { prisma } from "~/lib/prisma";
  * Body: {
  *   userId: string,
  *   userItemId: number,
- *   price: number
+ *   price: number,
+ *   quantity: number
  * }
  */
 export async function POST(req: NextRequest) {
   try {
-    const { userId, userItemId, price } = await req.json();
+    const { userId, userItemId, price, quantity } = await req.json();
 
-    if (!userId || !userItemId || price === undefined || price === null) {
+    if (!userId || !userItemId || price === undefined || price === null || quantity === undefined || quantity === null) {
       return NextResponse.json(
-        { error: "Missing required fields: userId, userItemId, price" },
+        { error: "Missing required fields: userId, userItemId, price, quantity" },
         { status: 400 }
       );
     }

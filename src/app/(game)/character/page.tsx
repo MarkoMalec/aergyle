@@ -77,11 +77,11 @@ const CharacterPage = async () => {
     head: userEquipment?.headItemId,
     necklace: userEquipment?.necklaceItemId,
     chest: userEquipment?.chestItemId,
-    shoulders: userEquipment?.shouldersItemId,
-    arms: userEquipment?.armsItemId,
+    pauldrons: userEquipment?.pauldronsItemId,
+    bracers: userEquipment?.bracersItemId,
     gloves: userEquipment?.glovesItemId,
     belt: userEquipment?.beltItemId,
-    legs: userEquipment?.legsItemId,
+    greaves: userEquipment?.greavesItemId,
     boots: userEquipment?.bootsItemId,
     ring1: userEquipment?.ring1ItemId,
     ring2: userEquipment?.ring2ItemId,
@@ -123,15 +123,19 @@ const CharacterPage = async () => {
     chest: userEquipment?.chestItemId
       ? itemMap.get(userEquipment.chestItemId) || null
       : null,
-    shoulders: userEquipment?.shouldersItemId
-      ? itemMap.get(userEquipment.shouldersItemId) || null
+    pauldrons: userEquipment?.pauldronsItemId
+      ? itemMap.get(userEquipment.pauldronsItemId) || null
       : null,
-    arms: userEquipment?.armsItemId ? itemMap.get(userEquipment.armsItemId) || null : null,
+    bracers: userEquipment?.bracersItemId
+      ? itemMap.get(userEquipment.bracersItemId) || null
+      : null,
     gloves: userEquipment?.glovesItemId
       ? itemMap.get(userEquipment.glovesItemId) || null
       : null,
     belt: userEquipment?.beltItemId ? itemMap.get(userEquipment.beltItemId) || null : null,
-    legs: userEquipment?.legsItemId ? itemMap.get(userEquipment.legsItemId) || null : null,
+    greaves: userEquipment?.greavesItemId
+      ? itemMap.get(userEquipment.greavesItemId) || null
+      : null,
     boots: userEquipment?.bootsItemId
       ? itemMap.get(userEquipment.bootsItemId) || null
       : null,

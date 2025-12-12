@@ -21,6 +21,7 @@ export const marketplaceQueryKeys = {
   all: () => ["marketplace"] as const,
   listings: (filters?: Record<string, any>) => ["marketplace", filters] as const,
   myListings: (userId?: string) => ["my-listings", userId] as const,
+  stats: (itemId: number, rarity: string) => ["marketplace", "stats", itemId, rarity] as const,
 } as const;
 
 export const rarityQueryKeys = {

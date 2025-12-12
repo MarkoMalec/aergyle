@@ -42,11 +42,11 @@ const Equipment = () => {
           {/* ROW 2 */}
           <div className="flex w-full justify-between">
             <DroppableSlot
-              id={`equipment-shoulders`}
+              id={`equipment-pauldrons`}
               index={102}
-              slot={{ slotIndex: 102, item: equipment.shoulders }}
+              slot={{ slotIndex: 102, item: equipment.pauldrons }}
               container="equipment"
-              equipmentSlotType="shoulders"
+              equipmentSlotType="pauldrons"
             />
             <DroppableSlot
               id={`equipment-necklace`}
@@ -56,22 +56,22 @@ const Equipment = () => {
               equipmentSlotType="necklace"
             />
             <DroppableSlot
-              id={`equipment-shoulders`}
+              id={`equipment-pauldrons`}
               index={102}
-              slot={{ slotIndex: 102, item: equipment.shoulders }}
+              slot={{ slotIndex: 102, item: equipment.pauldrons }}
               container="equipment"
-              equipmentSlotType="shoulders"
+              equipmentSlotType="pauldrons"
             />
           </div>
         </div>
         {/* ROW 3 */}
         <div className="flex justify-between">
           <DroppableSlot
-            id={`equipment-arms`}
+            id={`equipment-bracers`}
             index={104}
-            slot={{ slotIndex: 104, item: equipment.arms }}
+            slot={{ slotIndex: 104, item: equipment.bracers }}
             container="equipment"
-            equipmentSlotType="arms"
+            equipmentSlotType="bracers"
           />
           <DroppableSlot
             id={`equipment-chest`}
@@ -81,11 +81,11 @@ const Equipment = () => {
             equipmentSlotType="chest"
           />
           <DroppableSlot
-            id={`equipment-arms`}
+            id={`equipment-bracers`}
             index={104}
-            slot={{ slotIndex: 104, item: equipment.arms }}
+            slot={{ slotIndex: 104, item: equipment.bracers }}
             container="equipment"
-            equipmentSlotType="arms"
+            equipmentSlotType="bracers"
           />
         </div>
 
@@ -107,11 +107,11 @@ const Equipment = () => {
         </div>
         <div className="flex justify-between">
           <DroppableSlot
-            id={`equipment-legs`}
+            id={`equipment-greaves`}
             index={106}
-            slot={{ slotIndex: 106, item: equipment.legs }}
+            slot={{ slotIndex: 106, item: equipment.greaves }}
             container="equipment"
-            equipmentSlotType="legs"
+            equipmentSlotType="greaves"
           />
           <DroppableSlot
             id={`equipment-boots`}

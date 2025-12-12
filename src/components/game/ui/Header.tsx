@@ -6,9 +6,9 @@ import Image from "next/image";
 
 const GameHeader = () => {
   return (
-    <header className="border-b border-white/5 border-black">
+    <header className="border-b border-black border-white/5 bg-background">
       <div className=" flex h-[50px] items-center justify-between pr-5">
-        <div className="border-white/5 flex h-full w-[50px] items-center justify-center border-r">
+        <div className="flex h-full w-[50px] items-center justify-center border-r border-white/5">
           <Image
             alt="logo"
             src="/assets/logo/aergyle-logo.png"

@@ -1,7 +1,8 @@
 import { Prisma, PrismaClient } from "@prisma/client";
+import { withOptimize } from "@prisma/extension-optimize";
 
 export const prisma = new PrismaClient({
-  log: ['info'],
+  log: ["info"],
 });
 
 export const handlePrismaError = (error: any) => {

@@ -122,10 +122,11 @@ enum ItemType {
   // Armor Types
   HELMET
   CHESTPLATE
-  LEGGINGS
+  GREAVES
   BOOTS
   GLOVES
-  SHOULDERS
+  PAULDRONS
+  BRACERS
   BELT
   
   // Accessory Types
@@ -363,14 +364,14 @@ model Equipment {
   headItemId      Int?
   chestItemId     Int?
   beltItemId      Int?
-  legsItemId      Int?
+  greavesItemId   Int?
   bootsItemId     Int?
   necklaceItemId  Int?
   ring1ItemId     Int?
   ring2ItemId     Int?
   amuletItemId    Int?
-  shouldersItemId Int?
-  armsItemId      Int?
+  pauldronsItemId Int?
+  bracersItemId   Int?
   glovesItemId    Int?
   backpackItemId  Int?
   weaponItemId    Int?
