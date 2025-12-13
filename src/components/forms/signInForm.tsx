@@ -49,17 +49,15 @@ export default function SignInForm() {
     if (result?.ok) {
       router.push("/character");
     } else {
-      if (result?.error === "No user found with this email") {
-        form.setError("email", {
-          type: "manual",
-          message: result.error,
-        });
-      } else if (result?.error === "Password does not match the given email") {
-        form.setError("password", {
-          type: "manual",
-          message: result.error,
-        });
-      }
+      const message =
+        result?.error === "CredentialsSignin"
+          ? "Invalid email or password."
+          : "Sign-in failed. Please try again.";
+
+      form.setError("password", {
+        type: "manual",
+        message,
+      });
     }
   };
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { ItemRarity, Prisma } from "@prisma/client";
 import { prisma } from "~/lib/prisma";
 import { createUserItem } from "~/utils/userItems";
+import { getServerAuthSession } from "~/server/auth";
 
 /**
  * POST /api/test/add-item
@@ -9,12 +10,18 @@ import { createUserItem } from "~/utils/userItems";
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { userId, itemId, rarity } = body;
+    const session = await getServerAuthSession();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    if (!userId || !itemId || !rarity) {
+    const body = await request.json();
+    const userId = session.user.id;
+    const { itemId, rarity } = body;
+
+    if (!itemId || !rarity) {
       return NextResponse.json(
-        { error: "userId, itemId, and rarity are required" },
+        { error: "itemId and rarity are required" },
         { status: 400 }
       );
     }

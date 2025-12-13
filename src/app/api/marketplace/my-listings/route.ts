@@ -1,23 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "~/lib/prisma";
+import { getServerAuthSession } from "~/server/auth";
 
 /**
  * Get player's active marketplace listings
  * GET /api/marketplace/my-listings
  * 
  * Query params:
- * - userId: string (required)
+ * - (none) uses current session user
  */
 export async function GET(req: NextRequest) {
   try {
-    const userId = req.nextUrl.searchParams.get("userId");
-
-    if (!userId) {
-      return NextResponse.json(
-        { error: "Missing required parameter: userId" },
-        { status: 400 }
-      );
+    const session = await getServerAuthSession();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const userId = session.user.id;
 
     // Get all LISTED items for this user
     const listings = await prisma.userItem.findMany({

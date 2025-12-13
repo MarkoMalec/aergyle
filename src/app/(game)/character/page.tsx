@@ -178,7 +178,7 @@ const CharacterPage = async () => {
       
       {/* Test Form */}
       <div className="my-8 flex gap-4">
-        <AddItemTestForm userId={session.user.id} items={allItems} />
+        <AddItemTestForm items={allItems} />
       </div>
     </main>
   );

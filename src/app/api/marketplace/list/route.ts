@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "~/lib/prisma";
+import { getServerAuthSession } from "~/server/auth";
 
 /**
  * List an item on the marketplace
  * POST /api/marketplace/list
  * 
  * Body: {
- *   userId: string,
  *   userItemId: number,
  *   price: number,
  *   quantity: number
@@ -14,14 +14,20 @@ import { prisma } from "~/lib/prisma";
  */
 export async function POST(req: NextRequest) {
   try {
-    const { userId, userItemId, price, quantity } = await req.json();
-
-    if (!userId || !userItemId || price === undefined || price === null || quantity === undefined || quantity === null) {
-      return NextResponse.json(
-        { error: "Missing required fields: userId, userItemId, price, quantity" },
-        { status: 400 }
-      );
+    const session = await getServerAuthSession();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const userId = session.user.id;
+    const { userItemId, price, quantity } = await req.json();
+
+      if (!userItemId || price == null || quantity == null) {
+        return NextResponse.json(
+          { error: "Missing required fields: userItemId, price, quantity" },
+          { status: 400 }
+        );
+      }
 
     if (price <= 0) {
       return NextResponse.json(

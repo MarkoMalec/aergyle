@@ -1,22 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "~/lib/prisma";
+import { getServerAuthSession } from "~/server/auth";
 
 /**
  * Cancel a marketplace listing
  * DELETE /api/marketplace/cancel
  * 
  * Body: {
- *   userId: string,
  *   userItemId: number
  * }
  */
 export async function DELETE(req: NextRequest) {
   try {
-    const { userId, userItemId } = await req.json();
+    const session = await getServerAuthSession();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    if (!userId || !userItemId) {
+    const userId = session.user.id;
+    const { userItemId } = await req.json();
+
+    if (!userItemId) {
       return NextResponse.json(
-        { error: "Missing required fields: userId, userItemId" },
+        { error: "Missing required fields: userItemId" },
         { status: 400 }
       );
     }

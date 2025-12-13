@@ -168,7 +168,7 @@ const GameLayout = async ({ children }: { children: React.ReactNode }) => {
             ></rect>
           </svg>
         </div>
-        <AuthSessionProvider>
+        <AuthSessionProvider session={session}>
           <UserContextProvider initialUser={user ?? undefined}>
             <Providers>
               <EquipmentProvider initialEquipment={initialEquipment}>

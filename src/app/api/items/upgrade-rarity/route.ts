@@ -1,15 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { upgradeItemRarity } from "~/utils/rarity";
+import { getServerAuthSession } from "~/server/auth";
 
 export async function POST(req: NextRequest) {
   try {
-    const { itemId, userId } = await req.json();
+    const session = await getServerAuthSession();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    if (!itemId || !userId) {
-      return NextResponse.json(
-        { error: "Missing itemId or userId" },
-        { status: 400 }
-      );
+    const { itemId } = await req.json();
+    const userId = session.user.id;
+
+    if (!itemId) {
+      return NextResponse.json({ error: "Missing itemId" }, { status: 400 });
     }
 
     const result = await upgradeItemRarity(itemId, userId);

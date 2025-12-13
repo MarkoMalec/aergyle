@@ -27,7 +27,6 @@ interface AddItemFormData {
 }
 
 interface AddItemTestFormProps {
-  userId: string;
   items: Array<{ id: number; name: string; equipTo: string | null }>;
 }
 
@@ -46,7 +45,7 @@ const RARITIES: ItemRarity[] = [
   "DIVINE",
 ];
 
-export function AddItemTestForm({ userId, items }: AddItemTestFormProps) {
+export function AddItemTestForm({ items }: AddItemTestFormProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<AddItemFormData>({
@@ -63,7 +62,6 @@ export function AddItemTestForm({ userId, items }: AddItemTestFormProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId,
           itemId: parseInt(data.itemId),
           rarity: data.rarity,
         }),

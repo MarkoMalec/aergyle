@@ -3,15 +3,22 @@ import { prisma } from "~/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { fetchUserItemsByIds } from "~/utils/userItemInventory";
 import { getInventoryCapacity } from "~/utils/inventoryCapacity";
+import { getServerAuthSession } from "~/server/auth";
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId, inventory } = await req.json();
+    const session = await getServerAuthSession();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    if (!userId || !inventory || !Array.isArray(inventory)) {
+    const { inventory } = await req.json();
+    const userId = session.user.id;
+
+    if (!inventory || !Array.isArray(inventory)) {
       return NextResponse.json(
-        { error: "Invalid request: userId and inventory array required" },
-        { status: 400 },
+        { error: "Invalid request: inventory array required" },
+        { status: 400 }
       );
     }
 
@@ -38,14 +45,12 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const userId = req.nextUrl.searchParams.get("userId");
-
-    if (!userId) {
-      return NextResponse.json(
-        { error: "Bad Request: Missing userId" },
-        { status: 400 },
-      );
+    const session = await getServerAuthSession();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const userId = session.user.id;
 
     const userInventory = await prisma.inventory.findUnique({
       where: { userId },

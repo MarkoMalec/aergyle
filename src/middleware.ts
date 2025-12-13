@@ -14,7 +14,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Redirect non-signed-in users trying to access protected routes
-  const protectedPaths = ['/admin', '/character'];
+  const protectedPaths = ['/admin', '/character', '/marketplace', '/skills'];
   const isProtectedPath = protectedPaths.some((path) => pathname.startsWith(path));
 
   if (!token && isProtectedPath) {
@@ -29,7 +29,8 @@ export const config = {
   matcher: [
     '/admin/:path*',
     '/character/:path*',
-    '/(game)/:path*',
+    '/marketplace/:path*',
+    '/skills/:path*',
     '/signin',
     '/register',
   ],

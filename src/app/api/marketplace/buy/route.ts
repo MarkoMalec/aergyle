@@ -1,23 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "~/lib/prisma";
+import { getServerAuthSession } from "~/server/auth";
 
 /**
  * Buy an item from the marketplace
  * POST /api/marketplace/buy
  * 
  * Body: {
- *   buyerId: string,
  *   userItemId: number,
  *   quantity?: number (defaults to full quantity available)
  * }
  */
 export async function POST(req: NextRequest) {
   try {
-    const { buyerId, userItemId, quantity: requestedQuantity } = await req.json();
+    const session = await getServerAuthSession();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    if (!buyerId || !userItemId) {
+    const buyerId = session.user.id;
+    const { userItemId, quantity: requestedQuantity } = await req.json();
+
+    if (!userItemId) {
       return NextResponse.json(
-        { error: "Missing required fields: buyerId, userItemId" },
+        { error: "Missing required fields: userItemId" },
         { status: 400 }
       );
     }

@@ -3,15 +3,22 @@ import { prisma } from "~/lib/prisma";
 import { populateEquipmentSlots, validateEquipment } from "~/utils/inventory";
 import { fetchUserItemsByIds } from "~/utils/userItemInventory";
 import { updateInventoryCapacity } from "~/utils/inventoryCapacity";
+import { getServerAuthSession } from "~/server/auth";
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId, equipment } = await req.json();
+    const session = await getServerAuthSession();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    if (!userId || !equipment || typeof equipment !== "object") {
+    const userId = session.user.id;
+    const { equipment } = await req.json();
+
+    if (!equipment || typeof equipment !== "object") {
       return NextResponse.json(
-        { error: "Invalid request: userId and equipment object required" },
-        { status: 400 },
+        { error: "Invalid request: equipment object required" },
+        { status: 400 }
       );
     }
 
@@ -80,14 +87,12 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const userId = req.nextUrl.searchParams.get("userId");
-
-    if (!userId) {
-      return NextResponse.json(
-        { error: "Bad Request: Missing userId" },
-        { status: 400 },
-      );
+    const session = await getServerAuthSession();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const userId = session.user.id;
 
     // Use upsert to create equipment if it doesn't exist
     const userEquipment = await prisma.equipment.upsert({

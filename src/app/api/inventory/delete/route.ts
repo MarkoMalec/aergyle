@@ -1,15 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "~/lib/prisma";
+import { getServerAuthSession } from "~/server/auth";
 
 export async function DELETE(req: NextRequest) {
   try {
-    const { userId, userItemId } = await req.json();
+    const session = await getServerAuthSession();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    if (!userId || !userItemId) {
-      return NextResponse.json(
-        { error: "Missing userId or userItemId" },
-        { status: 400 },
-      );
+    const userId = session.user.id;
+    const { userItemId } = await req.json();
+
+    if (!userItemId) {
+      return NextResponse.json({ error: "Missing userItemId" }, { status: 400 });
+    }
+
+    const userItem = await prisma.userItem.findUnique({
+      where: { id: userItemId },
+      select: { id: true, userId: true },
+    });
+
+    if (!userItem) {
+      return NextResponse.json({ error: "Item not found" }, { status: 404 });
+    }
+
+    if (userItem.userId !== userId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // First, remove the item from inventory JSON
@@ -38,9 +55,7 @@ export async function DELETE(req: NextRequest) {
     });
 
     // Delete the UserItem itself
-    await prisma.userItem.delete({
-      where: { id: userItemId },
-    });
+    await prisma.userItem.delete({ where: { id: userItemId } });
 
     return NextResponse.json(
       { message: "Item deleted successfully" },
