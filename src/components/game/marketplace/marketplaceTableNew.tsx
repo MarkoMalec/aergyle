@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef, useEffect } from "react";
+import type { ItemRarity } from "@prisma/client";
 import {
   type ColumnDef,
   flexRender,
@@ -87,7 +88,9 @@ interface DataTableProps {
   onPriceRangeChange?: (r: { min: number; max: number }) => void;
 }
 
-const createColumns = (): ColumnDef<GroupedMarketplaceItem>[] => [
+const createColumns = (
+  rarityColors: Record<ItemRarity, string>
+): ColumnDef<GroupedMarketplaceItem>[] => [
   {
     id: "item",
     header: ({ column }) => (
@@ -108,6 +111,7 @@ const createColumns = (): ColumnDef<GroupedMarketplaceItem>[] => [
     ),
     accessorFn: (row) => row.itemName,
     cell: ({ row }) => {
+      const rarity = row.original.lowestRarity;
       return (
         <div className="flex items-center gap-3">
           <Image
@@ -117,7 +121,13 @@ const createColumns = (): ColumnDef<GroupedMarketplaceItem>[] => [
             height={56}
           />
           <div>
-            <div className="font-medium">
+            <div
+              className={`font-medium ${getRarityTailwindClass(
+                rarity,
+                rarityColors[rarity],
+                "text"
+              )}`}
+            >
               {row.original.itemName}
             </div>
             <div className="text-xs text-muted-foreground">
@@ -399,7 +409,7 @@ export function MarketplaceDataTable({
     }
   };
 
-  const columns = useMemo(() => createColumns(), []);
+  const columns = useMemo(() => createColumns(rarityColors), [rarityColors]);
 
   const table = useReactTable({
     data,

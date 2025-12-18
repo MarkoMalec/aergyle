@@ -3,6 +3,26 @@ import { NextResponse } from "next/server";
 import { type ItemRarity, ItemRarity as ItemRarityEnum, type Prisma } from "@prisma/client";
 import { prisma } from "~/lib/prisma";
 
+function getFallbackRaritySortOrder(rarity: ItemRarity): number {
+  // Keep in sync with the enum order in `schema.prisma`.
+  const order: ItemRarity[] = [
+    "WORTHLESS",
+    "BROKEN",
+    "COMMON",
+    "UNCOMMON",
+    "RARE",
+    "EXQUISITE",
+    "EPIC",
+    "ELITE",
+    "UNIQUE",
+    "LEGENDARY",
+    "MYTHIC",
+    "DIVINE",
+  ];
+  const index = order.indexOf(rarity);
+  return index === -1 ? Number.MAX_SAFE_INTEGER : index + 1;
+}
+
 function isItemRarity(value: string | null): value is ItemRarity {
   if (value == null) return false;
   return (Object.values(ItemRarityEnum) as string[]).includes(value);
@@ -99,6 +119,41 @@ export async function GET(req: NextRequest) {
 
     const itemById = new Map(items.map((i) => [i.id, i]));
 
+    // Determine lowest rarity among listings per itemId for this page.
+    const rarityConfigs = await prisma.rarityConfig.findMany({
+      select: { rarity: true, sortOrder: true },
+    });
+    const raritySortOrderByRarity = new Map<ItemRarity, number>(
+      rarityConfigs.map((c) => [c.rarity, c.sortOrder])
+    );
+
+    const raritiesByItemId = await prisma.userItem.groupBy({
+      by: ["itemId", "rarity"],
+      where: {
+        ...where,
+        itemId: { in: itemIds },
+      },
+      _count: { _all: true },
+    });
+
+    const lowestRarityByItemId = new Map<number, ItemRarity>();
+    for (const row of raritiesByItemId) {
+      const current = lowestRarityByItemId.get(row.itemId);
+      if (!current) {
+        lowestRarityByItemId.set(row.itemId, row.rarity);
+        continue;
+      }
+
+      const currentOrder =
+        raritySortOrderByRarity.get(current) ?? getFallbackRaritySortOrder(current);
+      const candidateOrder =
+        raritySortOrderByRarity.get(row.rarity) ?? getFallbackRaritySortOrder(row.rarity);
+
+      if (candidateOrder < currentOrder) {
+        lowestRarityByItemId.set(row.itemId, row.rarity);
+      }
+    }
+
     const rows = groupedPage
       .map((g) => {
         const item = itemById.get(g.itemId);
@@ -111,6 +166,7 @@ export async function GET(req: NextRequest) {
           minPrice: g._min.listedPrice ?? 0,
           maxPrice: g._max.listedPrice ?? 0,
           totalListings: g._count.itemId,
+          lowestRarity: lowestRarityByItemId.get(g.itemId) ?? "COMMON",
         };
       })
       .filter((row): row is NonNullable<typeof row> => row !== null);

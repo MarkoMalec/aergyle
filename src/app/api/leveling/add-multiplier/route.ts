@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { addXpMultiplier } from "~/utils/leveling";
-import { XpActionType } from "@prisma/client";
+import { VocationalActionType, XpActionType } from "@prisma/client";
 import { getServerAuthSession } from "~/server/auth";
 
 export async function POST(req: NextRequest) {
@@ -11,7 +11,15 @@ export async function POST(req: NextRequest) {
     }
 
     const userId = session.user.id;
-    const { name, multiplier, actionType, durationMinutes, uses, stackable } = await req.json();
+    const {
+      name,
+      multiplier,
+      actionType,
+      vocationalActionType,
+      durationMinutes,
+      uses,
+      stackable,
+    } = await req.json();
 
     if (!name || multiplier == null) {
       return NextResponse.json(
@@ -20,8 +28,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (vocationalActionType && actionType !== "VOCATION") {
+      return NextResponse.json(
+        { error: "vocationalActionType is only valid when actionType is VOCATION" },
+        { status: 400 },
+      );
+    }
+
     await addXpMultiplier(userId, name, multiplier, {
       actionType: actionType as XpActionType | undefined,
+      vocationalActionType: vocationalActionType as VocationalActionType | undefined,
       durationMinutes,
       uses,
       stackable,

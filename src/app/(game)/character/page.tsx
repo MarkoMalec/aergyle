@@ -1,5 +1,3 @@
-"use server";
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { DndProvider } from "~/components/dnd/DnDContext";
@@ -15,13 +13,29 @@ import { fetchUserItemsByIds } from "~/utils/userItemInventory";
 import { CharacterStats } from "~/components/game/character/CharacterStats";
 import { AddItemTestForm } from "~/components/forms/AddItemTestForm";
 import { redirect } from "next/navigation";
+import { getVocationalStatus, getVocationalStatusDebug } from "~/server/vocations";
 
-const CharacterPage = async () => {
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+const CharacterPage = async ({
+  searchParams,
+}: {
+  searchParams?: { debug?: string };
+}) => {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {
     redirect("/signin");
   }
+
+  const debugEnabled =
+    process.env.NODE_ENV !== "production" && searchParams?.debug === "1";
+
+  // Ensure a refresh of this page reflects newly completed vocational ticks.
+  const vocationalDebug = debugEnabled
+    ? await getVocationalStatusDebug(session.user.id)
+    : await getVocationalStatus(session.user.id);
 
   const [userInventory, userEquipment] = await Promise.all([
     prisma.inventory.findUnique({
@@ -161,6 +175,12 @@ const CharacterPage = async () => {
       <h1 className="mb-12 text-center text-5xl font-bold text-black text-white">
         Character
       </h1>
+
+      {debugEnabled ? (
+        <pre className="mb-6 overflow-auto rounded-md bg-black/40 p-3 text-xs text-white">
+          {JSON.stringify(vocationalDebug, null, 2)}
+        </pre>
+      ) : null}
       
       <DndProvider
         initialEquipment={equipmentWithItems}

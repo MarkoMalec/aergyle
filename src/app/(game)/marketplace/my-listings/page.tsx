@@ -17,6 +17,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog"
+import {
+  inventoryQueryKeys,
+  marketplaceQueryKeys,
+} from "~/lib/query-keys"
 
 export default function MyListingsPage() {
   const { data: session } = useSession()
@@ -28,7 +32,7 @@ export default function MyListingsPage() {
 
   // Fetch user's listings
   const { data, isLoading, error } = useQuery<MyListingsResponse>({
-    queryKey: ["my-listings", session?.user?.id],
+    queryKey: marketplaceQueryKeys.myListings(session?.user?.id),
     queryFn: async () => {
       if (!session?.user?.id) {
         throw new Error("Not authenticated")
@@ -68,9 +72,9 @@ export default function MyListingsPage() {
       return response.json()
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["my-listings"] })
-      queryClient.invalidateQueries({ queryKey: ["inventory"] })
-      queryClient.invalidateQueries({ queryKey: ["marketplace"] })
+      queryClient.invalidateQueries({ queryKey: marketplaceQueryKeys.myListings(session?.user?.id) })
+      queryClient.invalidateQueries({ queryKey: inventoryQueryKeys.all() })
+      queryClient.invalidateQueries({ queryKey: marketplaceQueryKeys.all() })
       toast.success(`${data.item.itemTemplate.name} returned to your inventory!`)
       setShowCancelDialog(false)
       setSelectedListing(null)

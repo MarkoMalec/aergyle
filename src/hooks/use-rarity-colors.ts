@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { ItemRarity } from "@prisma/client";
+import { rarityQueryKeys } from "~/lib/query-keys";
 import { FALLBACK_RARITY_COLORS } from "~/utils/rarity-colors";
 
 interface RarityColorsResponse {
@@ -16,7 +17,7 @@ interface RarityColorsResponse {
  */
 export function useRarityColors() {
   const { data, isLoading, error } = useQuery<RarityColorsResponse>({
-    queryKey: ["rarity-colors"],
+    queryKey: rarityQueryKeys.colors(),
     queryFn: async () => {
       const response = await fetch("/api/rarity/colors");
       if (!response.ok) {

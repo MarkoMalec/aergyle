@@ -71,6 +71,7 @@ async function main() {
     ]
   );
 
+
   await createItemWithStats(
     {
       name: 'Wooden Dagger',

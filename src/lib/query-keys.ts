@@ -8,13 +8,18 @@
  */
 
 export const userQueryKeys = {
-  gold: (userId?: string) => ["user-gold", userId] as const,
+  gold: () => ["user-gold"] as const,
   all: () => ["user"] as const,
 } as const;
 
 export const inventoryQueryKeys = {
   all: () => ["inventory"] as const,
-  byUser: (userId: string) => ["inventory", userId] as const,
+  byUser: (userId?: string) => ["inventory", userId] as const,
+} as const;
+
+export const equipmentQueryKeys = {
+  all: () => ["equipment"] as const,
+  byUser: (userId?: string) => ["equipment", userId] as const,
 } as const;
 
 export const marketplaceQueryKeys = {

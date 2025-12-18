@@ -8,7 +8,7 @@ export function useUserGold() {
   const { data: session } = useSession();
 
   return useQuery({
-    queryKey: userQueryKeys.gold(session?.user?.id),
+    queryKey: userQueryKeys.gold(),
     queryFn: async () => {
       const response = await fetch("/api/user/gold");
       if (!response.ok) {

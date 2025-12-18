@@ -9,7 +9,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Redirect signed-in users away from /signin and /register
-  if (token && (pathname === '/signin' || pathname === '/register')) {
+  if (token && (pathname === '/signin' || pathname === '/register' || pathname === '/play')) {
     return NextResponse.redirect(new URL('/character', request.url));
   }
 
@@ -33,5 +33,6 @@ export const config = {
     '/skills/:path*',
     '/signin',
     '/register',
+    '/play',
   ],
 };

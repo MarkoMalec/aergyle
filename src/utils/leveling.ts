@@ -1,61 +1,88 @@
 import { prisma } from "~/lib/prisma";
-import { XpActionType } from "@prisma/client";
+import { VocationalActionType, XpActionType } from "@prisma/client";
+
+function clampToSafeNumber(value: bigint): number {
+  const max = BigInt(Number.MAX_SAFE_INTEGER);
+  const min = -max;
+  if (value > max) return Number.MAX_SAFE_INTEGER;
+  if (value < min) return -Number.MAX_SAFE_INTEGER;
+  return Number(value);
+}
+
+async function getXpTotalForLevel(level: number): Promise<bigint> {
+  if (level <= 1) return 0n;
+  const row = await prisma.levelXpThreshold.findUnique({
+    where: { level },
+    select: { xpTotal: true },
+  });
+  return row?.xpTotal ?? 0n;
+}
+
+async function getLevelForTotalXp(totalXp: bigint): Promise<number> {
+  if (totalXp <= 0n) return 1;
+  const row = await prisma.levelXpThreshold.findFirst({
+    where: { xpTotal: { lte: totalXp } },
+    orderBy: { xpTotal: "desc" },
+    select: { level: true },
+  });
+  return row?.level ?? 1;
+}
+
+async function ensureThresholdsCoverLevel(level: number) {
+  if (level <= 1) return;
+  const row = await prisma.levelXpThreshold.findUnique({ where: { level }, select: { level: true } });
+  if (!row) {
+    throw new Error(
+      `Missing LevelXpThreshold for level ${level}. Generate thresholds (e.g. tsx scripts/generateLevelThresholds.ts --maxLevel <N>).`,
+    );
+  }
+}
+
+async function normalizeUserTotalXp(params: {
+  userId: string;
+  storedLevel: number;
+  storedXp: bigint;
+}): Promise<{ totalXp: bigint; level: number }> {
+  const { userId, storedLevel, storedXp } = params;
+
+  // If the DB still contains legacy "XP within level" values, they'll be smaller than
+  // the cumulative threshold for the stored level. We convert lazily and fix the row.
+  await ensureThresholdsCoverLevel(storedLevel);
+  const minTotalForStoredLevel = await getXpTotalForLevel(storedLevel);
+  const isLegacyWithinLevelXp = storedXp < minTotalForStoredLevel;
+  const totalXp = isLegacyWithinLevelXp ? minTotalForStoredLevel + storedXp : storedXp;
+
+  const derivedLevel = await getLevelForTotalXp(totalXp);
+  const shouldUpdate = isLegacyWithinLevelXp || derivedLevel !== storedLevel;
+  if (shouldUpdate) {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { experience: totalXp, level: derivedLevel },
+    });
+  }
+
+  return { totalXp, level: derivedLevel };
+}
 
 /**
- * Calculate XP required for a specific level based on active config
+ * Total XP required to reach a level (cumulative threshold).
+ * Example: if level 2 starts at 6 XP, then this returns 6 for level=2.
  */
 export async function getXpRequiredForLevel(level: number): Promise<number> {
-  const config = await getActiveXpConfig();
-  
-  if (level <= 1) return 0;
-  if (level > config.hardCapLevel) return Infinity;
-  
-  // Base XP calculation: baseXp * (level ^ exponentMultiplier) * levelMultiplier
-  let xpRequired = config.baseXp * Math.pow(level, config.exponentMultiplier) * config.levelMultiplier;
-  
-  // Apply difficulty bracket multipliers
-  let bracketMultiplier = 1.0;
-  
-  if (level <= config.easyLevelCap) {
-    bracketMultiplier = config.easyMultiplier;
-  } else if (level <= config.normalLevelCap) {
-    bracketMultiplier = config.normalMultiplier;
-  } else if (level <= config.hardLevelCap) {
-    bracketMultiplier = config.hardMultiplier;
-  } else if (level <= config.veryHardLevelCap) {
-    bracketMultiplier = config.veryHardMultiplier;
-  } else if (level <= config.extremeLevelCap) {
-    bracketMultiplier = config.extremeMultiplier;
-  }
-  
-  // Apply soft cap multiplier (makes it nearly impossible)
-  if (level > config.softCapLevel) {
-    bracketMultiplier *= config.softCapMultiplier;
-  }
-  
-  xpRequired *= bracketMultiplier;
-  
-  // Apply seasonal bonus (reduces XP needed)
-  if (config.seasonalBonus > 0) {
-    xpRequired *= (1 - config.seasonalBonus);
-  }
-  
-  return Math.round(xpRequired);
+  const xpTotal = await getXpTotalForLevel(level);
+  return clampToSafeNumber(xpTotal);
 }
 
 /**
  * Calculate cumulative XP required to reach a level
  */
 export async function getCumulativeXpForLevel(level: number): Promise<number> {
-  let totalXp = 0;
-  for (let i = 2; i <= level; i++) {
-    totalXp += await getXpRequiredForLevel(i);
-  }
-  return totalXp;
+  return await getXpRequiredForLevel(level);
 }
 
 /**
- * Get active XP configuration
+ * Deprecated: legacy formula-based leveling config.
+ * Leveling now uses `LevelXpThreshold`.
  */
 export async function getActiveXpConfig() {
   let config = await prisma.xpConfig.findFirst({
@@ -97,7 +124,10 @@ export async function getActiveXpConfig() {
  */
 export async function getUserXpMultipliers(
   userId: string,
-  actionType?: XpActionType
+  filters?: {
+    actionType?: XpActionType;
+    vocationalActionType?: VocationalActionType;
+  },
 ): Promise<number> {
   const now = new Date();
   
@@ -112,12 +142,19 @@ export async function getUserXpMultipliers(
             { expiresAt: { gt: now } }
           ]
         },
-        actionType ? {
-          OR: [
-            { actionType: null },
-            { actionType }
-          ]
-        } : {}
+        filters?.actionType
+          ? {
+              OR: [{ actionType: null }, { actionType: filters.actionType }],
+            }
+          : {},
+        filters?.vocationalActionType
+          ? {
+              OR: [
+                { vocationalActionType: null },
+                { vocationalActionType: filters.vocationalActionType },
+              ],
+            }
+          : {},
       ]
     }
   });
@@ -151,14 +188,15 @@ export async function awardXp(
   userId: string,
   baseAmount: number,
   actionType: XpActionType,
+  vocationalActionType?: VocationalActionType,
   description?: string,
   metadata?: any
 ): Promise<{
   leveledUp: boolean;
   oldLevel: number;
   newLevel: number;
-  oldXp: number;
-  newXp: number;
+  oldXp: string;
+  newXp: string;
   xpGained: number;
   xpMultiplier: number;
 }> {
@@ -168,48 +206,44 @@ export async function awardXp(
   });
   
   if (!user) throw new Error("User not found");
-  
-  const config = await getActiveXpConfig();
-  
-  // Check hard cap
-  if (user.level >= config.hardCapLevel) {
-    return {
-      leveledUp: false,
-      oldLevel: user.level,
-      newLevel: user.level,
-      oldXp: user.experience,
-      newXp: user.experience,
-      xpGained: 0,
-      xpMultiplier: 0,
-    };
-  }
+
+  // Normalize legacy "within-level" XP to total XP if needed.
+  const normalized = await normalizeUserTotalXp({
+    userId,
+    storedLevel: user.level,
+    storedXp: user.experience,
+  });
+  const oldLevel = normalized.level;
+  const oldTotalXp = normalized.totalXp;
   
   // Get multipliers
-  const xpMultiplier = await getUserXpMultipliers(userId, actionType);
-  const finalAmount = baseAmount * xpMultiplier;
-  
-  let newExperience = user.experience + finalAmount;
-  let newLevel = user.level;
-  let leveledUp = false;
-  
-  // Check for level ups
-  while (newLevel < config.hardCapLevel) {
-    const xpForNextLevel = await getXpRequiredForLevel(newLevel + 1);
-    if (newExperience >= xpForNextLevel) {
-      newExperience -= xpForNextLevel;
-      newLevel++;
-      leveledUp = true;
-    } else {
-      break;
-    }
+  if (actionType === "VOCATION" && !vocationalActionType) {
+    throw new Error("vocationalActionType is required when actionType is VOCATION");
   }
+
+  if (actionType !== "VOCATION" && vocationalActionType) {
+    throw new Error("vocationalActionType is only valid when actionType is VOCATION");
+  }
+
+  const xpMultiplier = await getUserXpMultipliers(userId, {
+    actionType,
+    vocationalActionType: actionType === "VOCATION" ? vocationalActionType : undefined,
+  });
+
+  const baseXpInt = Math.max(0, Math.floor(baseAmount));
+  const finalXpInt = Math.max(0, Math.floor(baseAmount * xpMultiplier));
+  const xpToAdd = BigInt(finalXpInt);
+
+  const newTotalXp = oldTotalXp + xpToAdd;
+  const newLevel = await getLevelForTotalXp(newTotalXp);
+  const leveledUp = newLevel > oldLevel;
   
   // Update user
   await prisma.user.update({
     where: { id: userId },
     data: {
       level: newLevel,
-      experience: newExperience
+      experience: newTotalXp
     }
   });
   
@@ -217,14 +251,15 @@ export async function awardXp(
   await prisma.xpTransaction.create({
     data: {
       userId,
-      amount: baseAmount,
-      finalAmount,
+      amount: BigInt(baseXpInt),
+      finalAmount: BigInt(finalXpInt),
       actionType,
+      vocationalActionType: actionType === "VOCATION" ? vocationalActionType : null,
       baseMultiplier: xpMultiplier,
-      levelBefore: user.level,
+      levelBefore: oldLevel,
       levelAfter: newLevel,
-      experienceBefore: user.experience,
-      experienceAfter: newExperience,
+      experienceBefore: oldTotalXp,
+      experienceAfter: newTotalXp,
       description,
       metadata: metadata || undefined,
     }
@@ -255,11 +290,11 @@ export async function awardXp(
   
   return {
     leveledUp,
-    oldLevel: user.level,
+    oldLevel,
     newLevel,
-    oldXp: user.experience,
-    newXp: newExperience,
-    xpGained: finalAmount,
+    oldXp: oldTotalXp.toString(),
+    newXp: newTotalXp.toString(),
+    xpGained: finalXpInt,
     xpMultiplier,
   };
 }
@@ -280,17 +315,51 @@ export async function getXpProgress(userId: string): Promise<{
   });
   
   if (!user) throw new Error("User not found");
-  
-  const xpForNextLevel = await getXpRequiredForLevel(user.level + 1);
-  const xpProgress = (user.experience / xpForNextLevel) * 100;
-  const xpRemaining = xpForNextLevel - user.experience;
+
+  const normalized = await normalizeUserTotalXp({
+    userId,
+    storedLevel: user.level,
+    storedXp: user.experience,
+  });
+
+  const level = normalized.level;
+  const totalXp = normalized.totalXp;
+  const levelStartTotal = await getXpTotalForLevel(level);
+  const nextRow = await prisma.levelXpThreshold.findUnique({
+    where: { level: level + 1 },
+    select: { xpTotal: true },
+  });
+
+  // If there's no (level + 1) threshold row, we're at the highest generated level.
+  // Treat it as "max for current table" instead of erroring.
+  if (!nextRow) {
+    return {
+      level,
+      currentXp: clampToSafeNumber(totalXp - levelStartTotal),
+      xpForNextLevel: 0,
+      xpProgress: 100,
+      xpRemaining: 0,
+    };
+  }
+
+  const nextLevelStartTotal = nextRow.xpTotal;
+  const xpForNextLevelBig = nextLevelStartTotal - levelStartTotal;
+  const xpIntoLevelBig = totalXp - levelStartTotal;
+  const xpRemainingBig = nextLevelStartTotal > totalXp ? nextLevelStartTotal - totalXp : 0n;
+
+  // Progress percentage using BigInt math (2dp), avoids float overflow.
+  const progressTimes100 =
+    xpForNextLevelBig > 0n
+      ? Number((xpIntoLevelBig * 10000n) / xpForNextLevelBig)
+      : 0;
+  const xpProgress = Math.min(100, Math.max(0, progressTimes100 / 100));
   
   return {
-    level: user.level,
-    currentXp: user.experience,
-    xpForNextLevel,
-    xpProgress: Math.min(100, xpProgress),
-    xpRemaining: Math.max(0, xpRemaining),
+    level,
+    currentXp: clampToSafeNumber(xpIntoLevelBig),
+    xpForNextLevel: clampToSafeNumber(xpForNextLevelBig),
+    xpProgress,
+    xpRemaining: clampToSafeNumber(xpRemainingBig),
   };
 }
 
@@ -303,11 +372,16 @@ export async function addXpMultiplier(
   multiplier: number,
   options?: {
     actionType?: XpActionType;
+    vocationalActionType?: VocationalActionType;
     durationMinutes?: number;
     uses?: number;
     stackable?: boolean;
   }
 ): Promise<void> {
+  if (options?.vocationalActionType && options?.actionType !== "VOCATION") {
+    throw new Error("vocationalActionType is only valid when actionType is VOCATION");
+  }
+
   const expiresAt = options?.durationMinutes
     ? new Date(Date.now() + options.durationMinutes * 60 * 1000)
     : null;
@@ -318,6 +392,7 @@ export async function addXpMultiplier(
       name,
       multiplier,
       actionType: options?.actionType,
+      vocationalActionType: options?.vocationalActionType,
       expiresAt,
       usesRemaining: options?.uses,
       stackable: options?.stackable ?? true,
@@ -334,29 +409,19 @@ export async function generateXpTable(maxLevel: number = 70): Promise<Array<{
   cumulativeXp: number;
   bracket: string;
 }>> {
-  const config = await getActiveXpConfig();
   const table = [];
-  let cumulativeXp = 0;
-  
   for (let level = 1; level <= maxLevel; level++) {
-    const xpRequired = await getXpRequiredForLevel(level);
-    cumulativeXp += xpRequired;
-    
-    let bracket = "Max Level";
-    if (level <= config.easyLevelCap) bracket = "Easy";
-    else if (level <= config.normalLevelCap) bracket = "Normal";
-    else if (level <= config.hardLevelCap) bracket = "Hard";
-    else if (level <= config.veryHardLevelCap) bracket = "Very Hard";
-    else if (level <= config.extremeLevelCap) bracket = "Extreme";
-    else if (level > config.softCapLevel) bracket = "Soft Cap";
-    
+    const cumulativeXp = await getXpRequiredForLevel(level);
+    const nextCumulative = await getXpRequiredForLevel(level + 1);
+    const xpRequired = Math.max(0, nextCumulative - cumulativeXp);
+
     table.push({
       level,
       xpRequired,
       cumulativeXp,
-      bracket,
+      bracket: "",
     });
   }
-  
+
   return table;
 }

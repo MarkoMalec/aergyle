@@ -66,7 +66,8 @@ export const LevelProvider = ({ children, initialLevelData }: LevelProviderProps
       ...levelData,
       level: newLevel,
       currentXp: newXp,
-      xpProgress: (newXp / levelData.xpForNextLevel) * 100,
+      xpProgress:
+        levelData.xpForNextLevel > 0 ? (newXp / levelData.xpForNextLevel) * 100 : 100,
     });
   };
 

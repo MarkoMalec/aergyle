@@ -12,6 +12,7 @@ import {
 import { useUserContext } from "~/context/userContext";
 import { useEquipmentContext } from "~/context/equipmentContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { inventoryQueryKeys } from "~/lib/query-keys";
 import {
   InventorySlotWithItem,
   EquipmentSlotsWithItems,
@@ -54,12 +55,13 @@ export const DndProvider: React.FC<DndProviderProps> = ({
 }) => {
   const { user } = useUserContext();
   const queryClient = useQueryClient();
+  const inventoryKey = inventoryQueryKeys.byUser(user?.id);
   
   // Use global equipment context instead of local state
   const { equipment, updateEquipment: updateGlobalEquipment } = useEquipmentContext();
 
   const fetchInventory = async (): Promise<{ slots: InventorySlotWithItem[], deleteSlot: InventorySlotWithItem }> => {
-    const response = await fetch(`/api/inventory?userId=${user?.id}`);
+    const response = await fetch(`/api/inventory?userId=${user?.id}`, { cache: "no-store" });
     if (!response.ok) {
       throw new Error("Error fetching inventory");
     }
@@ -71,7 +73,7 @@ export const DndProvider: React.FC<DndProviderProps> = ({
   };
 
   const inventoryQuery = useQuery({
-    queryKey: ["inventory", user?.id],
+    queryKey: inventoryKey,
     initialData: { slots: initialInventory, deleteSlot: { slotIndex: 999, item: null } },
     queryFn: fetchInventory,
     enabled: !!user?.id,
@@ -101,14 +103,14 @@ export const DndProvider: React.FC<DndProviderProps> = ({
       return response.json();
     },
     onMutate: async (newInventory) => {
-      await queryClient.cancelQueries({ queryKey: ["inventory", user?.id] });
+      await queryClient.cancelQueries({ queryKey: inventoryKey });
       const previousData = queryClient.getQueryData<{
         slots: InventorySlotWithItem[];
         deleteSlot: InventorySlotWithItem;
-      }>(["inventory", user?.id]);
+      }>(inventoryKey);
       
       // Optimistically update with new inventory, keeping existing deleteSlot
-      queryClient.setQueryData(["inventory", user?.id], {
+      queryClient.setQueryData(inventoryKey, {
         slots: newInventory,
         deleteSlot: previousData?.deleteSlot || { slotIndex: 999, item: null }
       });
@@ -118,7 +120,7 @@ export const DndProvider: React.FC<DndProviderProps> = ({
     onError: (error, variables, context) => {
       if (context?.previousInventory) {
         queryClient.setQueryData(
-          ["inventory", user?.id],
+          inventoryKey,
           context.previousInventory,
         );
       }
@@ -138,10 +140,10 @@ export const DndProvider: React.FC<DndProviderProps> = ({
       const currentData = queryClient.getQueryData<{
         slots: InventorySlotWithItem[];
         deleteSlot: InventorySlotWithItem;
-      }>(["inventory", user?.id]);
+      }>(inventoryKey);
       
       if (currentData) {
-        queryClient.setQueryData(["inventory", user?.id], {
+        queryClient.setQueryData(inventoryKey, {
           ...currentData,
           deleteSlot: newDeleteSlot
         });
@@ -255,7 +257,7 @@ export const DndProvider: React.FC<DndProviderProps> = ({
           }
           
           // Apply optimistic update immediately for instant UI feedback
-          queryClient.setQueryData(["inventory", user?.id], {
+          queryClient.setQueryData(inventoryKey, {
             slots: updatedInventory,
             deleteSlot,
           });
@@ -272,16 +274,16 @@ export const DndProvider: React.FC<DndProviderProps> = ({
             .then(async (response) => {
               if (response.ok) {
                 // Sync with server to correct any discrepancies (e.g., different maxStackSize)
-                await queryClient.invalidateQueries({ queryKey: ["inventory", user?.id] });
+                await queryClient.invalidateQueries({ queryKey: inventoryKey });
               } else {
                 // Revert on error
-                await queryClient.invalidateQueries({ queryKey: ["inventory", user?.id] });
+                await queryClient.invalidateQueries({ queryKey: inventoryKey });
               }
             })
             .catch((error) => {
               console.error("Failed to merge stacks:", error);
               // Revert on error
-              queryClient.invalidateQueries({ queryKey: ["inventory", user?.id] });
+              queryClient.invalidateQueries({ queryKey: inventoryKey });
             });
           
           return; // Exit early, changes already applied optimistically

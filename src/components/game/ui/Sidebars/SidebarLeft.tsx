@@ -11,13 +11,24 @@ import {
   TreeDeciduous,
 } from "lucide-react";
 import { prisma } from "~/lib/prisma";
+import Image from "next/image";
 
 const SidebarLeft = async () => {
   const skills = await prisma.skills.findMany();
 
   return (
-    <aside className="h-[calc(100vh-51px)] w-[50px] overflow-x-hidden overflow-y-scroll border-r border-white/5 bg-background pb-5 pt-5 transition-all hover:w-[250px] hover:bg-[#1a2332] hover:p-5">
-      <div className="space-y-1">
+    <aside className="fixed left-0 top-0 h-screen w-72 bg-background">
+      <div className="flex items-center space-x-4 border-b border-white/10 px-4 py-3">
+        <Image
+          src="/assets/logo/aergyle-logo.png"
+          alt="Game Logo"
+          width={64}
+          height={64}
+          className="grayscale-[1] invert-[1]"
+        />
+        <span>Aergyle</span>
+      </div>
+      <div className="space-y-1 mt-10">
         {/* <h3 className="text-center text-lg font-bold">General</h3> */}
         <Button asChild variant="menu" className="w-full justify-start">
           <Link

@@ -49,6 +49,7 @@ export interface MarketplaceGroupedItem {
   minPrice: number;
   maxPrice: number;
   totalListings: number;
+  lowestRarity: ItemRarity;
 }
 
 export interface MarketplaceGroupedResponse {

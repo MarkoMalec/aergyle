@@ -9,6 +9,10 @@ import Providers, { AuthSessionProvider } from "../providers";
 import { fetchUserItemsByIds } from "~/utils/userItemInventory";
 import { getXpProgress } from "~/utils/leveling";
 import { redirect } from "next/navigation";
+import { getVocationalStatus } from "~/server/vocations";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 import { GeistSans } from "geist/font/sans";
 import GameHeader from "~/components/game/ui/Header";
@@ -27,6 +31,10 @@ const GameLayout = async ({ children }: { children: React.ReactNode }) => {
   if (!session?.user?.id) {
     redirect("/signin");
   }
+
+  // Auto-claim any newly completed vocational ticks on page load/refresh.
+  // This keeps inventory and user state consistent with the "refresh/visit" model.
+  await getVocationalStatus(session.user.id);
 
   const user = await prisma.user.findUnique({
     where: {
@@ -157,13 +165,13 @@ const GameLayout = async ({ children }: { children: React.ReactNode }) => {
             <svg x="50%" y="-1" className="overflow-visible fill-gray-800/20">
               <path
                 d="M-200 0h201v201h-201Z M600 0h201v201h-201Z M-400 600h201v201h-201Z M200 800h201v201h-201Z"
-                stroke-width="0"
+                strokeWidth="0"
               ></path>
             </svg>
             <rect
               width="100%"
               height="100%"
-              stroke-width="0"
+              strokeWidth="0"
               fill="url(#983e3e4c-de6d-4c3f-8d64-b9761d1534cc)"
             ></rect>
           </svg>
@@ -173,13 +181,17 @@ const GameLayout = async ({ children }: { children: React.ReactNode }) => {
             <Providers>
               <EquipmentProvider initialEquipment={initialEquipment}>
                 <LevelProvider initialLevelData={initialLevelData || undefined}>
-                  <GameHeader />
                   <div className="flex gap-10">
                     <div>
                       <SidebarLeft />
                     </div>
-                    <div className="h-[calc(100vh-66px)] w-full overflow-y-scroll pt-10">
-                      <div className="container pb-10">{children}</div>
+                    <div className="min-h-screen w-full">
+                      <div className="container pb-10">
+                        <div className="pl-72">
+                        <GameHeader />
+                        {children}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </LevelProvider>
