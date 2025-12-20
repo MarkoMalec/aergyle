@@ -50,6 +50,8 @@ export const EquipmentProvider: React.FC<EquipmentProviderProps> = ({
     initialData: initialEquipment,
     enabled: !!user?.id,
     staleTime: 1000 * 60 * 5, // 5 minutes
+    refetchOnMount: false, // Don't refetch if data is fresh
+    refetchOnWindowFocus: false, // Prevent refetch on tab switch
   });
 
   // Mutation for updating equipment

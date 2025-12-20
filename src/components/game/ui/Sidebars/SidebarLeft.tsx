@@ -33,11 +33,11 @@ const SidebarLeft = async () => {
         <Button asChild variant="menu" className="w-full justify-start">
           <Link
             className="min-w-[90px]"
-            title="character screen"
-            href="/character"
+            title="profile screen"
+            href="/profile"
           >
             <UserRound className="mr-4 min-h-5 min-w-5" strokeWidth={1} />{" "}
-            Character
+            Profile
           </Link>
         </Button>
         <Button asChild variant="menu" className="w-full justify-start">

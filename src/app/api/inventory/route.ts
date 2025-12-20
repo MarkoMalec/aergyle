@@ -4,7 +4,6 @@ import { Prisma } from "@prisma/client";
 import { fetchUserItemsByIds } from "~/utils/userItemInventory";
 import { getInventoryCapacity } from "~/utils/inventoryCapacity";
 import { getServerAuthSession } from "~/server/auth";
-import { getVocationalStatus } from "~/server/vocations";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -55,10 +54,6 @@ export async function GET(req: NextRequest) {
     }
 
     const userId = session.user.id;
-
-    // Ensure any newly completed vocational ticks are granted before returning inventory.
-    // This makes "refresh/visit" reliably show updated resource counts.
-    await getVocationalStatus(userId);
 
     const userInventory = await prisma.inventory.findUnique({
       where: { userId },

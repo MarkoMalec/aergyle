@@ -2,10 +2,10 @@
 
 import React from "react";
 import { ActionFillBar } from "~/components/game/actions/ActionFillBar";
-import { useVocationalActiveAction } from "~/components/game/actions/useVocationalActiveAction";
+import { useVocationalActiveActionContext } from "~/components/game/actions/VocationalActiveActionProvider";
 
 export default function ActiveActionHeaderWidget() {
-  const { active, viewModel } = useVocationalActiveAction();
+  const { active, viewModel } = useVocationalActiveActionContext();
 
   if (!active || !viewModel) return null;
 

@@ -1,10 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import {
-  VocationalActiveActionProvider,
-  useVocationalActiveActionContext,
-} from "~/components/game/actions/VocationalActiveActionProvider";
+import { useVocationalActiveActionContext } from "~/components/game/actions/VocationalActiveActionProvider";
 import { ActionFillBar } from "~/components/game/actions/ActionFillBar";
 import { Separator } from "~/components/ui/separator";
 import { Badge } from "~/components/ui/badge";
@@ -149,14 +146,16 @@ const SkillsLayoutContent = ({
                     href={viewModel.href}
                     sprite={viewModel.sprite}
                     trackClassName="bg-white/10"
+                    fillClassName="bg-yellow-400"
+                    tickClassName="bg-yellow-500/20"
                     variant="simple"
                   />
                   <div className="flex items-center gap-2">
                     <Badge className="bg-gray-700/60 tabular-nums">
                       + {viewModel.sessionAmount}
                     </Badge>
-                    <Badge className="bg-gray-700/60">
-                      Next item in: {viewModel.nextItemInSeconds}s
+                    <Badge className="bg-gray-700/60 tabular-nums">
+                      Next item in: {viewModel.nextItemInTime}
                     </Badge>
                     <Badge className="bg-gray-700/60">
                       {viewModel.xpPerSecond} XP/s
@@ -176,11 +175,7 @@ const SkillsLayout = (props: {
   children: React.ReactNode;
   params: { name: string };
 }) => {
-  return (
-    <VocationalActiveActionProvider>
-      <SkillsLayoutContent {...props} />
-    </VocationalActiveActionProvider>
-  );
+  return <SkillsLayoutContent {...props} />;
 };
 
 export default SkillsLayout;

@@ -10,11 +10,11 @@ export async function middleware(request: NextRequest) {
 
   // Redirect signed-in users away from /signin and /register
   if (token && (pathname === '/signin' || pathname === '/register' || pathname === '/play')) {
-    return NextResponse.redirect(new URL('/character', request.url));
+    return NextResponse.redirect(new URL('/profile', request.url));
   }
 
   // Redirect non-signed-in users trying to access protected routes
-  const protectedPaths = ['/admin', '/character', '/marketplace', '/skills'];
+  const protectedPaths = ['/admin', '/profile', '/marketplace', '/skills'];
   const isProtectedPath = protectedPaths.some((path) => pathname.startsWith(path));
 
   if (!token && isProtectedPath) {
@@ -28,7 +28,7 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     '/admin/:path*',
-    '/character/:path*',
+    '/profile/:path*',
     '/marketplace/:path*',
     '/skills/:path*',
     '/signin',

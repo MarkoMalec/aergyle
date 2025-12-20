@@ -10,6 +10,7 @@ export function ActionFillBar({
   className,
   trackClassName,
   fillClassName,
+  tickClassName,
   title,
   sessionAmount,
   href,
@@ -21,6 +22,7 @@ export function ActionFillBar({
   className?: string;
   trackClassName?: string;
   fillClassName?: string;
+  tickClassName?: string;
   title: string;
   sessionAmount: number;
   href?: string;
@@ -67,7 +69,7 @@ export function ActionFillBar({
           />
 
           <div
-            className="absolute left-0 top-0 h-full rounded-full bg-green-700/20"
+            className={cn("absolute left-0 top-0 h-full rounded-full bg-green-700/20", tickClassName)}
             style={{
               width: `${Math.floor(clamped * 100)}%`,
             }}
@@ -89,17 +91,17 @@ export function ActionFillBar({
           trackClassName,
         )}
       >
-        <div className="pointer-events-none relative z-30 flex select-none items-center gap-2 px-4 py-1.5 text-sm font-bold text-white/80">
+        <div className="pointer-events-none relative z-30 flex select-none items-center gap-2 pl-2 pr-3 py-1.5 text-sm font-bold text-white/80">
           {sprite ? (
             <Image
               src={sprite}
               alt=""
-              width={120}
-              height={120}
+              width={920}
+              height={920}
               className="h-6 w-6"
             />
           ) : null}
-          <span>{title}</span>
+          <span className="inline-block mb-[2px]">{title}</span>
           <div className="ml-2 h-4 w-4 animate-spin rounded-full border-[3px] border-gray-300 border-b-gray-700/60 border-l-gray-700/60 border-t-gray-700/50" />
         </div>
         <div className="absolute left-0 top-0 h-full w-full">
@@ -114,7 +116,7 @@ export function ActionFillBar({
           />
 
           <div
-            className="absolute left-0 top-0 h-full rounded-full bg-green-700/20"
+            className="absolute left-0 top-0 h-full rounded-full bg-green-700/20 transition-all ease-in"
             style={{
               width: `${Math.floor(clamped * 100)}%`,
             }}

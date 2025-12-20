@@ -1,12 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ItemRarity, VocationalActionType } from "@prisma/client";
-import { useRouter } from "next/navigation";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   addActiveActionEventListener,
   dispatchActiveActionEvent,
 } from "~/components/game/actions/activeActionEvents";
+import toast from "react-hot-toast";
+import { inventoryQueryKeys } from "~/lib/query-keys";
 
 type StatusResponse = {
   activity: null | {
@@ -14,6 +16,8 @@ type StatusResponse = {
     actionType: VocationalActionType;
     startedAt: string;
     endsAt: string;
+    unitHours: number;
+    unitMinutes: number;
     unitSeconds: number;
     unitsClaimed: number;
     resource: {
@@ -61,7 +65,7 @@ export type ActiveActionViewModel = {
   href: string;
   sprite: string;
   remainingSeconds: number;
-  nextItemInSeconds: number | null;
+  nextItemInTime: string | null;
   sessionRemainingSeconds: number;
   progress: number;
   sessionAmount: number;
@@ -78,12 +82,13 @@ export type UseVocationalActiveActionResult = ReturnType<
 >;
 
 export function useVocationalActiveAction() {
+  const queryClient = useQueryClient();
   const [status, setStatus] = useState<StatusResponse | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [displayUnitsTotal, setDisplayUnitsTotal] = useState(0);
-  const [error, setError] = useState<string | null>(null);
-  const [isStopping, setIsStopping] = useState(false);
-  const router = useRouter();
+
+  const prevActivityIdRef = useRef<number | null>(null);
+  const prevUnitsTotalRef = useRef<number | null>(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -101,14 +106,9 @@ export function useVocationalActiveAction() {
     }
   }, []);
 
+  // Initial fetch on mount
   useEffect(() => {
     void refresh();
-
-    const poll = window.setInterval(() => {
-      void refresh();
-    }, 30_000);
-
-    return () => window.clearInterval(poll);
   }, [refresh]);
 
   useEffect(() => {
@@ -137,7 +137,13 @@ export function useVocationalActiveAction() {
     }, msToNext);
 
     return () => window.clearTimeout(t);
-  }, [status?.activity?.startedAt, status?.activity?.endsAt, status?.activity?.unitSeconds, refresh]);
+  }, [
+    status?.activity?.startedAt,
+    status?.activity?.endsAt,
+    status?.activity?.unitSeconds,
+    status?.activity?.unitsClaimed,
+    refresh,
+  ]);
 
   useEffect(() => {
     // Update time in 1-second steps so the fill bar only advances once per second.
@@ -183,6 +189,8 @@ export function useVocationalActiveAction() {
 
     const unitsTotal = Math.floor(elapsed / unitMs);
 
+    const unitHours = Math.floor(activity.unitSeconds / 3600);
+    const unitMinutes = Math.floor(activity.unitSeconds / 60);
     const unitSeconds = Math.max(1, Math.floor(activity.unitSeconds));
     const elapsedSeconds = Math.floor(elapsed / 1000);
     const unitElapsedSeconds = elapsedSeconds % unitSeconds;
@@ -190,9 +198,10 @@ export function useVocationalActiveAction() {
     const remainingSeconds = Math.max(0, Math.ceil((duration - elapsed) / 1000));
 
     const isComplete = duration === 0 ? true : elapsed >= duration;
-    const nextItemInSeconds = isComplete
+    // always must be 0:00 but the numbers must change accordingly, if not null
+    const nextItemInTime = isComplete
       ? null
-      : Math.max(1, unitSeconds - unitElapsedSeconds);
+      : `${unitHours ? unitHours + ":" : ""}${unitMinutes}:${(unitSeconds - unitElapsedSeconds).toString().padStart(2, "0")}`;
 
     // Fill only once per second: each second adds 1/unitSeconds.
     // IMPORTANT: we also show 100% at the exact second a tick completes.
@@ -217,7 +226,7 @@ export function useVocationalActiveAction() {
       href,
       sprite: activity.resource.item.sprite,
       remainingSeconds,
-      nextItemInSeconds,
+      nextItemInTime,
       sessionRemainingSeconds: remainingSeconds,
       progress,
       unitsTotal,
@@ -230,6 +239,39 @@ export function useVocationalActiveAction() {
       skillProgress: status?.skillProgress ?? null,
     };
   }, [status, now]);
+
+  // Instant per-unit callback (matches fill-bar timing).
+  // This fires when the client-side computed "unitsTotal" advances (i.e. when the bar hits 100%).
+  // Note: this is based on time, not on server confirmation.
+  useEffect(() => {
+    const activityId = status?.activity?.id ?? null;
+    const unitsTotal = derived?.unitsTotal ?? null;
+
+    if (!activityId || unitsTotal == null) {
+      prevActivityIdRef.current = null;
+      prevUnitsTotalRef.current = null;
+      return;
+    }
+
+    if (prevActivityIdRef.current !== activityId) {
+      prevActivityIdRef.current = activityId;
+      prevUnitsTotalRef.current = unitsTotal;
+      return;
+    }
+
+    const prevUnitsTotal = prevUnitsTotalRef.current;
+    if (prevUnitsTotal == null) {
+      prevUnitsTotalRef.current = unitsTotal;
+      return;
+    }
+
+    if (unitsTotal > prevUnitsTotal) {
+      const delta = unitsTotal - prevUnitsTotal;
+      for (let i = 0; i < delta; i++) toast.success(`+${derived?.yieldPerUnit} ${derived?.label}`, { position: 'bottom-right' });
+    }
+
+    prevUnitsTotalRef.current = unitsTotal;
+  }, [status?.activity?.id, derived?.unitsTotal]);
 
   useEffect(() => {
     if (!derived) {
@@ -253,7 +295,7 @@ export function useVocationalActiveAction() {
       href: derived.href,
       sprite: derived.sprite,
       remainingSeconds: derived.remainingSeconds,
-      nextItemInSeconds: derived.nextItemInSeconds,
+      nextItemInTime: derived.nextItemInTime,
       sessionRemainingSeconds: derived.sessionRemainingSeconds,
       progress: derived.progress,
       sessionAmount: displayUnitsTotal * derived.yieldPerUnit,
@@ -264,33 +306,38 @@ export function useVocationalActiveAction() {
     };
   }, [derived, displayUnitsTotal]);
 
-  const stop = useCallback(async () => {
-    setIsStopping(true);
-    setError(null);
-
-    setStatus((prev) => (prev ? { activity: null, progress: null, skillProgress: null } : prev));
-    dispatchActiveActionEvent({ kind: "stop-optimistic" });
-
-    try {
+  const stopMutation = useMutation({
+    mutationFn: async () => {
       const res = await fetch("/api/vocations/stop", {
         method: "POST",
       });
       if (!res.ok) {
         const json = await res.json().catch(() => null);
-        setError(json?.error ?? "Failed to stop");
-        await refresh();
-        return;
+        throw new Error(json?.error ?? "Failed to stop");
       }
+      return res.json();
+    },
+    onMutate: async () => {
+      // Optimistic update - immediately clear UI
+      setStatus((prev) => (prev ? { activity: null, progress: null, skillProgress: null } : prev));
+      dispatchActiveActionEvent({ kind: "stop-optimistic" });
+    },
+    onSuccess: async () => {
+      // Refresh status to get updated state (inventory updated server-side)
       await refresh();
-      router.refresh();
+      
+      // Notify listeners of change (for other components)
       dispatchActiveActionEvent({ kind: "changed" });
-    } catch {
-      setError("Failed to stop");
+    },
+    onError: async () => {
+      // Revert optimistic update on error
       await refresh();
-    } finally {
-      setIsStopping(false);
-    }
-  }, [refresh, router]);
+    },
+  });
+
+  const stop = useCallback(() => {
+    stopMutation.mutate();
+  }, [stopMutation]);
 
   return {
     active: !!viewModel,
@@ -298,7 +345,7 @@ export function useVocationalActiveAction() {
     activeResourceId: status?.activity?.resource?.id ?? null,
     activeActionType: status?.activity?.actionType ?? null,
     stop,
-    error,
-    isStopping,
+    error: stopMutation.error?.message ?? null,
+    isStopping: stopMutation.isPending,
   };
 }

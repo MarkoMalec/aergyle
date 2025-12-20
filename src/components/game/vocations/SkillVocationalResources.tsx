@@ -1,12 +1,10 @@
 "use client";
 
 import React, { useCallback, useMemo, useState } from "react";
-import toast from "react-hot-toast";
-import { Button } from "~/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { dispatchActiveActionEvent } from "~/components/game/actions/activeActionEvents";
+import { Card, CardContent, CardTitle } from "~/components/ui/card";
 import { useVocationalActiveActionContext } from "~/components/game/actions/VocationalActiveActionProvider";
 import Image from "next/image";
+import ResourceStartDialog from "./ResourceStartDialog";
 
 export type SkillVocationalResource = {
   id: number;
@@ -24,34 +22,17 @@ export default function SkillVocationalResources(props: {
   const { activeResourceId, isStopping, stop } =
     useVocationalActiveActionContext();
 
-  const [startingResourceId, setStartingResourceId] = useState<number | null>(
-    null,
+  const [selectedResource, setSelectedResource] =
+    useState<SkillVocationalResource | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const openResourceDialog = useCallback(
+    (resource: SkillVocationalResource) => {
+      setSelectedResource(resource);
+      setDialogOpen(true);
+    },
+    [],
   );
-
-  const start = useCallback(async (resourceId: number) => {
-    setStartingResourceId(resourceId);
-
-    try {
-      const res = await fetch("/api/vocations/start", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ resourceId, replace: true }),
-      });
-
-      const json = await res.json().catch(() => null);
-      if (!res.ok) {
-        toast.error(json?.error ?? "Failed to start");
-        return;
-      }
-
-      toast.success("Started");
-      dispatchActiveActionEvent({ kind: "changed" });
-    } catch {
-      toast.error("Failed to start");
-    } finally {
-      setStartingResourceId(null);
-    }
-  }, []);
 
   const cards = useMemo(() => {
     return resources.map((resource) => {
@@ -62,13 +43,11 @@ export default function SkillVocationalResources(props: {
           key={resource.id}
           className="cursor-pointer border-gray-700/40 bg-gray-800/60"
           style={
-            startingResourceId === resource.id || isActive
-              ? { borderColor: "#656565ff", cursor: "not-allowed" }
-              : {}
+            isActive ? { borderColor: "#656565ff", cursor: "not-allowed" } : {}
           }
-          onClick={() => void start(resource.id)}
+          onClick={() => !isActive && openResourceDialog(resource)}
         >
-          <CardContent className="space-y-3 p-3">
+          <CardContent className="flex items-center justify-between p-3">
             <div className="flex items-center gap-4">
               <Image
                 src={resource.item.sprite}
@@ -78,7 +57,7 @@ export default function SkillVocationalResources(props: {
                 className="h-14 w-14"
               />
               <div className="space-y-1">
-                <CardTitle className="text-lg text-white font-medium">
+                <CardTitle className="text-lg font-medium text-white">
                   {resource.name}
                 </CardTitle>
                 <div className="text-sm text-white/70">
@@ -88,18 +67,23 @@ export default function SkillVocationalResources(props: {
                 </div>
               </div>
             </div>
+            {isActive || (isActive && isStopping) ? (
+              <div className="h-4 w-4 animate-spin rounded-full border-[3px] border-gray-300 border-b-gray-700/60 border-l-gray-700/60 border-t-gray-700/50" />
+            ) : null}
           </CardContent>
         </Card>
       );
     });
-  }, [
-    resources,
-    activeResourceId,
-    stop,
-    isStopping,
-    start,
-    startingResourceId,
-  ]);
+  }, [resources, activeResourceId, openResourceDialog]);
 
-  return <div className="space-y-4">{cards}</div>;
+  return (
+    <>
+      <div className="space-y-4">{cards}</div>
+      <ResourceStartDialog
+        resource={selectedResource}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+      />
+    </>
+  );
 }

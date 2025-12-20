@@ -77,8 +77,8 @@ export const DndProvider: React.FC<DndProviderProps> = ({
     initialData: { slots: initialInventory, deleteSlot: { slotIndex: 999, item: null } },
     queryFn: fetchInventory,
     enabled: !!user?.id,
-    staleTime: 0, // Always consider data stale, but use initialData first
-    refetchOnMount: "always", // Always refetch to get accurate capacity
+    staleTime: 0, // Always fresh - invalidation triggers immediate refetch for real-time updates
+    refetchOnMount: false, // Don't refetch if initialData is fresh
   });
 
   const updateInventoryOrder = useMutation<

@@ -13,7 +13,10 @@ import { fetchUserItemsByIds } from "~/utils/userItemInventory";
 import { CharacterStats } from "~/components/game/character/CharacterStats";
 import { AddItemTestForm } from "~/components/forms/AddItemTestForm";
 import { redirect } from "next/navigation";
-import { getVocationalStatus, getVocationalStatusDebug } from "~/server/vocations";
+import {
+  getVocationalStatus,
+  getVocationalStatusDebug,
+} from "~/server/vocations";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -37,7 +40,8 @@ const CharacterPage = async ({
     ? await getVocationalStatusDebug(session.user.id)
     : await getVocationalStatus(session.user.id);
 
-  const [userInventory, userEquipment] = await Promise.all([
+  // Parallelize all independent queries for better performance
+  const [userInventory, userEquipment, user, baseStatsFromDb, allItems] = await Promise.all([
     prisma.inventory.findUnique({
       where: { userId: session.user.id },
     }),
@@ -48,17 +52,24 @@ const CharacterPage = async ({
       },
       update: {},
     }),
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { level: true },
+    }),
+    prisma.characterBaseStat.findMany({
+      where: { userId: session.user.id },
+    }),
+    prisma.item.findMany({
+      select: {
+        id: true,
+        name: true,
+        equipTo: true,
+      },
+      orderBy: {
+        name: "asc",
+      },
+    }),
   ]);
-
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { level: true },
-  });
-
-  // Fetch character base stats
-  const baseStatsFromDb = await prisma.characterBaseStat.findMany({
-    where: { userId: session.user.id },
-  });
 
   // Convert to array format for CharacterStats component
   const baseStats = baseStatsFromDb.map((stat) => ({
@@ -105,22 +116,10 @@ const CharacterPage = async ({
   }).filter((id): id is number => id !== null);
 
   const allItemIds = [...inventoryItemIds, ...equipmentItemIds];
-  
+
   // Fetch UserItems (with rarity and stats)
   const userItems = await fetchUserItemsByIds(allItemIds);
   const itemMap = new Map(userItems.map((item) => [item.id, item]));
-
-  // Get all items for test form
-  const allItems = await prisma.item.findMany({
-    select: {
-      id: true,
-      name: true,
-      equipTo: true,
-    },
-    orderBy: {
-      name: "asc",
-    },
-  });
 
   const slotsWithItems: InventorySlotWithItem[] = slotStructure.map(
     ({ index, itemId }) => ({
@@ -130,7 +129,9 @@ const CharacterPage = async ({
   );
 
   const equipmentWithItems = {
-    head: userEquipment?.headItemId ? itemMap.get(userEquipment.headItemId) || null : null,
+    head: userEquipment?.headItemId
+      ? itemMap.get(userEquipment.headItemId) || null
+      : null,
     necklace: userEquipment?.necklaceItemId
       ? itemMap.get(userEquipment.necklaceItemId) || null
       : null,
@@ -146,7 +147,9 @@ const CharacterPage = async ({
     gloves: userEquipment?.glovesItemId
       ? itemMap.get(userEquipment.glovesItemId) || null
       : null,
-    belt: userEquipment?.beltItemId ? itemMap.get(userEquipment.beltItemId) || null : null,
+    belt: userEquipment?.beltItemId
+      ? itemMap.get(userEquipment.beltItemId) || null
+      : null,
     greaves: userEquipment?.greavesItemId
       ? itemMap.get(userEquipment.greavesItemId) || null
       : null,
@@ -181,21 +184,19 @@ const CharacterPage = async ({
           {JSON.stringify(vocationalDebug, null, 2)}
         </pre>
       ) : null}
-      
+
       <DndProvider
         initialEquipment={equipmentWithItems}
         initialInventory={slotsWithItems}
       >
         <div className="mb-10 flex gap-10">
           <Portrait />
-          <div className="flex w-full gap-5">
-            <Equipment />
-          </div>
+          <Equipment />
         </div>
         <Inventory />
         <CharacterStats baseStats={baseStats} />
       </DndProvider>
-      
+
       {/* Test Form */}
       <div className="my-8 flex gap-4">
         <AddItemTestForm items={allItems} />

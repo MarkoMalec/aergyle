@@ -13,7 +13,7 @@ const Equipment = () => {
   }
 
   return (
-    <div className="ml-16 flex w-full gap-10">
+    <div className="flex w-full gap-10">
       <div className="flex flex-col justify-end space-y-2">
         <DroppableSlot
           id={`equipment-main-weapon`}

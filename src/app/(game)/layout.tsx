@@ -17,6 +17,7 @@ export const revalidate = 0;
 import { GeistSans } from "geist/font/sans";
 import GameHeader from "~/components/game/ui/Header";
 import SidebarLeft from "~/components/game/ui/Sidebars/SidebarLeft";
+import { VocationalActiveActionProvider } from "~/components/game/actions/VocationalActiveActionProvider";
 
 export const metadata = {
   title: "Aergyle Game",
@@ -181,19 +182,21 @@ const GameLayout = async ({ children }: { children: React.ReactNode }) => {
             <Providers>
               <EquipmentProvider initialEquipment={initialEquipment}>
                 <LevelProvider initialLevelData={initialLevelData || undefined}>
-                  <div className="flex gap-10">
-                    <div>
-                      <SidebarLeft />
-                    </div>
-                    <div className="min-h-screen w-full">
-                      <div className="container pb-10">
-                        <div className="pl-72">
-                        <GameHeader />
-                        {children}
+                  <VocationalActiveActionProvider>
+                    <div className="flex gap-10">
+                      <div>
+                        <SidebarLeft />
+                      </div>
+                      <div className="min-h-screen w-full">
+                        <div className="container pb-10">
+                          <div className="pl-72">
+                          <GameHeader />
+                          {children}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </VocationalActiveActionProvider>
                 </LevelProvider>
               </EquipmentProvider>
             </Providers>
