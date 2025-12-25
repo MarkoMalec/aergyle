@@ -1,0 +1,22 @@
+FROM node:20-bullseye-slim
+
+WORKDIR /app
+
+# Prisma needs OpenSSL available at runtime.
+RUN apt-get update \
+	&& apt-get install -y --no-install-recommends openssl ca-certificates \
+	&& rm -rf /var/lib/apt/lists/*
+
+# Install dependencies first (better layer caching). Prisma generate runs on postinstall.
+COPY package.json package-lock.json ./
+COPY prisma ./prisma
+
+RUN npm ci
+
+# Copy the rest of the app code needed by the daemon.
+COPY tsconfig.json next.config.js ./
+COPY src ./src
+
+EXPOSE 3001
+
+CMD ["npm", "run", "realtime:daemon"]
