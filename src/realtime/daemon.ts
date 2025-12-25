@@ -3,9 +3,13 @@ import type { WebSocket } from "ws";
 import type { IncomingMessage } from "http";
 import fs from "fs";
 import path from "path";
-import { prisma } from "~/lib/prisma";
 import { verifyRealtimeToken } from "~/server/realtime/token";
-import { claimVocationalRewards } from "~/server/vocations/service";
+
+type PrismaClientLike = {
+  userVocationalActivity: {
+    findMany: (...args: any[]) => Promise<any[]>;
+  };
+};
 
 type Client = {
   ws: WebSocket;
@@ -83,7 +87,15 @@ function parseTokenFromUrl(url: string) {
   }
 }
 
-async function tickLoop(clientsByUserId: Map<string, Set<Client>>) {
+async function tickLoop(
+  clientsByUserId: Map<string, Set<Client>>,
+  prisma: PrismaClientLike,
+  claimVocationalRewards: (params: { userId: string; maxUnits?: number }) => Promise<{
+    claimedUnits: number;
+    grantedQuantity: number;
+    remainingClaimableUnits: number;
+  }>,
+) {
   // Simple loop: every 250ms check due ticks.
   // This is intentionally simple for your early stage.
   // Later: optimize by scheduling next due tick via min-heap.
@@ -123,6 +135,10 @@ async function tickLoop(clientsByUserId: Map<string, Set<Client>>) {
         const result = await claimVocationalRewards({ userId: a.userId, maxUnits: 1 });
         if (result.claimedUnits <= 0) continue;
 
+        console.log(
+          `[realtime-daemon] tick user=${a.userId} claimedUnits=${result.claimedUnits} grantedQty=${result.grantedQuantity}`,
+        );
+
         const at = new Date().toISOString();
         broadcastToUser(clientsByUserId, a.userId, {
           type: "vocational_tick",
@@ -158,6 +174,14 @@ async function main() {
 
   const clientsByUserId = new Map<string, Set<Client>>();
 
+  // Import after env is loaded so Prisma sees DATABASE_URL.
+  const modPrisma = await import("~/lib/prisma");
+  const modVoc = await import("~/server/vocations/service");
+  const prisma = modPrisma.prisma as unknown as PrismaClientLike;
+  const claimVocationalRewards = modVoc.claimVocationalRewards as unknown as (
+    params: { userId: string; maxUnits?: number },
+  ) => Promise<{ claimedUnits: number; grantedQuantity: number; remainingClaimableUnits: number }>;
+
   const wss = new WebSocketServer({ port: PORT });
   console.log(`[realtime-daemon] WebSocket server listening on :${PORT}`);
 
@@ -184,6 +208,8 @@ async function main() {
     }
     set.add(client);
 
+    console.log(`[realtime-daemon] connected user=${userId} clients=${set.size}`);
+
     ws.on("pong", () => {
       client.lastSeenAt = Date.now();
     });
@@ -193,6 +219,8 @@ async function main() {
       if (!s) return;
       s.delete(client);
       if (s.size === 0) clientsByUserId.delete(userId);
+
+      console.log(`[realtime-daemon] disconnected user=${userId}`);
     });
 
     // Optional: allow clients to send keepalive pings.
@@ -230,7 +258,7 @@ async function main() {
     }
   }, 30_000);
 
-  await tickLoop(clientsByUserId);
+  await tickLoop(clientsByUserId, prisma, claimVocationalRewards);
 }
 
 main().catch((err) => {
