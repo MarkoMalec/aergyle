@@ -305,12 +305,13 @@ export async function stopVocationalActivity(params: {
 
 export async function claimVocationalRewards(params: {
   userId: string;
+  maxUnits?: number;
 }): Promise<{
   claimedUnits: number;
   grantedQuantity: number;
   remainingClaimableUnits: number;
 }> {
-  const { userId } = params;
+  const { userId, maxUnits } = params;
 
   const result = await prisma.$transaction(async (tx) => {
     const activity = await tx.userVocationalActivity.findUnique({
@@ -333,7 +334,10 @@ export async function claimVocationalRewards(params: {
     }
 
     const progress = computeVocationalProgress(activity);
-    const claimableUnits = progress.unitsClaimable;
+    const claimableUnits = Math.min(
+      progress.unitsClaimable,
+      maxUnits === undefined ? progress.unitsClaimable : Math.max(0, Math.floor(maxUnits)),
+    );
 
     if (claimableUnits <= 0) {
       const remaining = Math.max(0, progress.unitsTotal - activity.unitsClaimed);

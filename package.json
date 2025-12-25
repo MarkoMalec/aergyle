@@ -11,6 +11,7 @@
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
     "dev": "next dev",
+    "realtime:daemon": "tsx src/realtime/daemon.ts",
     "postinstall": "prisma generate",
     "lint": "next lint",
     "start": "next start"
@@ -51,6 +52,7 @@
     "tailwind-merge": "^2.3.0",
     "tailwindcss-animate": "^1.0.7",
     "use-sound": "^4.0.1",
+    "ws": "^8.18.3",
     "zod": "^3.23.8"
   },
   "devDependencies": {
@@ -59,6 +61,7 @@
     "@types/node": "^20.14.2",
     "@types/react": "^18.2.57",
     "@types/react-dom": "^18.2.19",
+    "@types/ws": "^8.5.14",
     "@typescript-eslint/eslint-plugin": "^7.1.1",
     "@typescript-eslint/parser": "^7.1.1",
     "eslint": "^8.57.0",

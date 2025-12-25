@@ -25,6 +25,13 @@ export const env = createEnv({
     DISCORD_CLIENT_ID: z.string(),
     DISCORD_CLIENT_SECRET: z.string(),
     OPTIMIZE_API_KEY: z.string(),
+
+    // Realtime (WebSocket) auth
+    // Used to sign short-lived tokens from Next.js that the WS daemon verifies.
+    REALTIME_TOKEN_SECRET:
+      process.env.NODE_ENV === "production"
+        ? z.string().min(16)
+        : z.string().min(8).optional(),
   },
 
   /**
@@ -33,7 +40,7 @@ export const env = createEnv({
    * `NEXT_PUBLIC_`.
    */
   client: {
-    // NEXT_PUBLIC_CLIENTVAR: z.string(),
+    NEXT_PUBLIC_REALTIME_WS_URL: z.string().url().optional(),
   },
 
   /**
@@ -48,6 +55,10 @@ export const env = createEnv({
     DISCORD_CLIENT_ID: process.env.DISCORD_CLIENT_ID,
     DISCORD_CLIENT_SECRET: process.env.DISCORD_CLIENT_SECRET,
     OPTIMIZE_API_KEY: process.env.OPTIMIZE_API_KEY,
+
+    REALTIME_TOKEN_SECRET: process.env.REALTIME_TOKEN_SECRET,
+
+    NEXT_PUBLIC_REALTIME_WS_URL: process.env.NEXT_PUBLIC_REALTIME_WS_URL,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially
