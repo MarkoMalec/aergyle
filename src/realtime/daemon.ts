@@ -1,8 +1,9 @@
 import { WebSocketServer } from "ws";
 import type { WebSocket } from "ws";
 import type { IncomingMessage } from "http";
+import fs from "fs";
+import path from "path";
 import { prisma } from "~/lib/prisma";
-import { env } from "~/env";
 import { verifyRealtimeToken } from "~/server/realtime/token";
 import { claimVocationalRewards } from "~/server/vocations/service";
 
@@ -28,6 +29,36 @@ type ServerEvent =
     };
 
 const PORT = Number(process.env.REALTIME_WS_PORT ?? 3001);
+
+function loadDotEnvIfPresent() {
+  // Next.js auto-loads .env files, but this standalone daemon does not.
+  // This tiny loader keeps RPi usage simple without adding extra dependencies.
+  const envPath = path.join(process.cwd(), ".env");
+  if (!fs.existsSync(envPath)) return;
+
+  const raw = fs.readFileSync(envPath, "utf8");
+  for (const line of raw.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const idx = trimmed.indexOf("=");
+    if (idx === -1) continue;
+
+    const key = trimmed.slice(0, idx).trim();
+    let value = trimmed.slice(idx + 1).trim();
+    if (!key) continue;
+    if (process.env[key] !== undefined) continue; // don't override
+
+    // strip surrounding quotes
+    if (
+      (value.startsWith("\"") && value.endsWith("\"")) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+
+    process.env[key] = value;
+  }
+}
 
 function send(ws: WebSocket, event: ServerEvent) {
   try {
@@ -116,7 +147,9 @@ async function tickLoop(clientsByUserId: Map<string, Set<Client>>) {
 }
 
 async function main() {
-  const secret = env.REALTIME_TOKEN_SECRET;
+  loadDotEnvIfPresent();
+
+  const secret = process.env.REALTIME_TOKEN_SECRET;
   if (!secret) {
     throw new Error(
       "REALTIME_TOKEN_SECRET is required to run the realtime daemon (set it in env).",
