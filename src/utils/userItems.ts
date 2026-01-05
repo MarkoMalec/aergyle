@@ -1,5 +1,106 @@
 import { prisma } from "~/lib/prisma";
-import { ItemRarity, StatType } from "@prisma/client";
+import { ItemRarity, StatType, VocationalActionType } from "~/generated/prisma/enums";
+import { normalizeInventorySlots, slotsToInputJson } from "~/utils/inventorySlots";
+
+const VOCATIONAL_ACTION_STAT_MAP: Record<VocationalActionType, StatType | null> = {
+  [VocationalActionType.WOODCUTTING]: StatType.WOODCUTTING_EFFICIENCY,
+  [VocationalActionType.MINING]: StatType.MINING_EFFICIENCY,
+  [VocationalActionType.FISHING]: StatType.FISHING_EFFICIENCY,
+  [VocationalActionType.GATHERING]: null,
+  [VocationalActionType.ALCHEMY]: null,
+  [VocationalActionType.SMELTING]: null,
+  [VocationalActionType.COOKING]: null,
+  [VocationalActionType.FORGE]: null,
+};
+
+type ToolEfficiencyTemplate = {
+  actionType: VocationalActionType;
+  baseEfficiency: number;
+};
+
+function scaleStatBaseValue(
+  baseValue: number,
+  multiplier: number,
+  flipNegativeStatsWithRarity: boolean,
+  maxValueCap: number | null | undefined,
+): number {
+  let scaled: number;
+  if (!flipNegativeStatsWithRarity) {
+    scaled = baseValue * multiplier;
+  } else if (baseValue >= 0) {
+    scaled = baseValue * multiplier;
+  } else {
+    // Negative base values become less negative (and potentially positive) with higher multipliers.
+    // Example base=-5, multiplier=2.3 => -5 + (1.3*5) = +1.5
+    scaled = baseValue + (multiplier - 1) * Math.abs(baseValue);
+  }
+
+  if (typeof maxValueCap === "number" && Number.isFinite(maxValueCap)) {
+    return Math.min(scaled, maxValueCap);
+  }
+
+  return scaled;
+}
+
+async function applyToolEfficienciesToUserItem(
+  userItemId: number,
+  toolEfficiencies: ToolEfficiencyTemplate[] | undefined,
+  multiplier: number,
+  overridesByStatType: Map<StatType, number> | null,
+  maxCapsByStatType: Map<StatType, number> | null,
+  flipNegativeStatsWithRarity: boolean,
+): Promise<Array<{ statType: StatType; value: number }>> {
+  if (!toolEfficiencies?.length) {
+    return [];
+  }
+
+  const appliedStats: Array<{ statType: StatType; value: number }> = [];
+
+  for (const efficiency of toolEfficiencies) {
+    const statType = VOCATIONAL_ACTION_STAT_MAP[efficiency.actionType];
+    if (!statType) {
+      continue;
+    }
+
+    const overrideValue = overridesByStatType?.get(statType);
+    const baseValue = typeof overrideValue === "number" && Number.isFinite(overrideValue)
+      ? overrideValue
+      : efficiency.baseEfficiency;
+
+    const value = typeof overrideValue === "number" && Number.isFinite(overrideValue)
+      ? scaleStatBaseValue(
+          baseValue,
+          1,
+          flipNegativeStatsWithRarity,
+          maxCapsByStatType?.get(statType) ?? null,
+        )
+      : scaleStatBaseValue(
+          baseValue,
+          multiplier,
+          flipNegativeStatsWithRarity,
+          maxCapsByStatType?.get(statType) ?? null,
+        );
+
+    await prisma.userItemStat.upsert({
+      where: {
+        userItemId_statType: {
+          userItemId,
+          statType,
+        },
+      },
+      update: { value },
+      create: {
+        userItemId,
+        statType,
+        value,
+      },
+    });
+
+    appliedStats.push({ statType, value });
+  }
+
+  return appliedStats;
+}
 
 /**
  * Create a UserItem instance from an Item template
@@ -14,9 +115,11 @@ export async function createUserItem(
   // Get item template with stat progressions
   const itemTemplate = await prisma.item.findUnique({
     where: { id: itemId },
-    include: { 
+    include: {
       stats: true,
       statProgressions: true,
+      statRarityOverrides: true,
+      toolEfficiencies: true,
     },
   });
 
@@ -42,22 +145,27 @@ export async function createUserItem(
 
   const multiplier = rarityConfig?.statMultiplier ?? 1.0;
 
-  // Combine base stats (ItemStat) with progressive stats (ItemStatProgression)
-  
-  // 1. Always add base stats from ItemStat (these are default stats every item has)
-  for (const stat of itemTemplate.stats) {
-    await prisma.userItemStat.create({
-      data: {
-        userItemId: userItem.id,
-        statType: stat.statType,
-        value: stat.value * multiplier,
-      },
-    });
+  const flipNegativeStatsWithRarity = Boolean(itemTemplate.flipNegativeStatsWithRarity);
+
+  const overridesByStatType = new Map<StatType, number>();
+  for (const o of itemTemplate.statRarityOverrides) {
+    if (o.rarity === rarity && Number.isFinite(o.value)) {
+      overridesByStatType.set(o.statType, o.value);
+    }
   }
 
-  // 2. Add progressive stats that unlock at this rarity level
+  // Combine base stats (ItemStat) with progressive stats (ItemStatProgression) into base-values at COMMON.
+  const statSums = new Map<StatType, number>();
+  const maxCaps = new Map<StatType, number>();
+  for (const stat of itemTemplate.stats) {
+    statSums.set(stat.statType, stat.value);
+    const cap = stat.maxValue;
+    if (typeof cap === "number" && Number.isFinite(cap)) {
+      maxCaps.set(stat.statType, cap);
+    }
+  }
+
   if (itemTemplate.statProgressions.length > 0) {
-    // Get rarity order for comparison
     const rarityOrder = [
       ItemRarity.WORTHLESS,
       ItemRarity.BROKEN,
@@ -72,52 +180,57 @@ export async function createUserItem(
       ItemRarity.MYTHIC,
       ItemRarity.DIVINE,
     ];
-    
+
     const currentRarityIndex = rarityOrder.indexOf(rarity);
-    
-    // Get all progressions that unlock at or before this rarity
-    const availableProgressions = itemTemplate.statProgressions.filter(prog => {
-      const unlockIndex = rarityOrder.indexOf(prog.unlocksAtRarity);
-      return unlockIndex <= currentRarityIndex;
-    });
-    
-    // Group progressions by statType to sum values
-    const statSums = new Map<StatType, number>();
-    for (const progression of availableProgressions) {
-      const current = statSums.get(progression.statType) || 0;
-      statSums.set(progression.statType, current + progression.baseValue);
-    }
-    
-    // Create stats from progressions (or update if base stat already exists)
-    for (const [statType, totalValue] of statSums) {
-      // Check if this stat already exists from base stats
-      const existingStat = await prisma.userItemStat.findFirst({
-        where: {
-          userItemId: userItem.id,
-          statType: statType,
-        },
-      });
-      
-      if (existingStat) {
-        // Add to existing base stat value
-        await prisma.userItemStat.update({
-          where: { id: existingStat.id },
-          data: {
-            value: existingStat.value + (totalValue * multiplier),
-          },
-        });
-      } else {
-        // Create new stat from progression
-        await prisma.userItemStat.create({
-          data: {
-            userItemId: userItem.id,
-            statType: statType,
-            value: totalValue * multiplier,
-          },
-        });
-      }
+    const availableProgressions = itemTemplate.statProgressions.filter((p) =>
+      rarityOrder.indexOf(p.unlocksAtRarity) <= currentRarityIndex,
+    );
+
+    for (const prog of availableProgressions) {
+      const current = statSums.get(prog.statType) || 0;
+      statSums.set(prog.statType, current + prog.baseValue);
     }
   }
+
+  const baseStatsToCreate = Array.from(statSums.entries()).map(
+    ([statType, baseValue]) => ({
+      userItemId: userItem.id,
+      statType,
+      value: (() => {
+        const override = overridesByStatType.get(statType);
+        if (typeof override === "number" && Number.isFinite(override)) {
+          // Override is an absolute value at this rarity.
+          return scaleStatBaseValue(
+            override,
+            1,
+            flipNegativeStatsWithRarity,
+            maxCaps.get(statType) ?? null,
+          );
+        }
+        return scaleStatBaseValue(
+          baseValue,
+          multiplier,
+          flipNegativeStatsWithRarity,
+          maxCaps.get(statType) ?? null,
+        );
+      })(),
+    }),
+  );
+
+  if (baseStatsToCreate.length > 0) {
+    await prisma.userItemStat.createMany({
+      data: baseStatsToCreate,
+    });
+  }
+
+  await applyToolEfficienciesToUserItem(
+    userItem.id,
+    itemTemplate.toolEfficiencies,
+    multiplier,
+    overridesByStatType,
+    maxCaps,
+    flipNegativeStatsWithRarity,
+  );
 
   return userItem.id;
 }
@@ -179,6 +292,8 @@ export async function upgradeUserItemRarity(
         include: {
           stats: true, // Base stats from ItemStat
           statProgressions: true, // Progressive stats
+          statRarityOverrides: true,
+          toolEfficiencies: true,
         },
       },
     },
@@ -238,75 +353,80 @@ export async function upgradeUserItemRarity(
 
   const newStats: Array<{ statType: StatType; value: number }> = [];
 
-  // 1. Add base stats from ItemStat (these scale with multiplier)
-  for (const stat of userItem.itemTemplate.stats) {
-    const value = stat.value * nextMultiplier;
-    
-    await prisma.userItemStat.create({
-      data: {
-        userItemId,
-        statType: stat.statType,
-        value,
-      },
-    });
-    
-    newStats.push({ statType: stat.statType, value });
+  const flipNegativeStatsWithRarity = Boolean(userItem.itemTemplate.flipNegativeStatsWithRarity);
+
+  const overridesByStatType = new Map<StatType, number>();
+  for (const o of userItem.itemTemplate.statRarityOverrides) {
+    if (o.rarity === nextRarity && Number.isFinite(o.value)) {
+      overridesByStatType.set(o.statType, o.value);
+    }
   }
 
-  // 2. Add progressive stats that unlock at this rarity level
-  if (userItem.itemTemplate.statProgressions.length > 0) {
-    // Get all progressions that unlock at or before next rarity
-    const availableProgressions = userItem.itemTemplate.statProgressions.filter(prog => {
-      const unlockIndex = rarityOrder.indexOf(prog.unlocksAtRarity);
-      return unlockIndex <= nextRarityIndex;
-    });
-    
-    // Group progressions by statType to sum values
-    const statSums = new Map<StatType, number>();
-    for (const progression of availableProgressions) {
-      const current = statSums.get(progression.statType) || 0;
-      statSums.set(progression.statType, current + progression.baseValue);
-    }
-    
-    // Create or update stats from progressions
-    for (const [statType, totalValue] of statSums) {
-      const value = totalValue * nextMultiplier;
-      
-      // Check if this stat already exists from base stats
-      const existingStatIndex = newStats.findIndex(s => s.statType === statType);
-      
-      if (existingStatIndex >= 0) {
-        // Update existing base stat in DB and newStats array
-        const existingStat = await prisma.userItemStat.findFirst({
-          where: {
-            userItemId,
-            statType: statType,
-          },
-        });
-        
-        if (existingStat) {
-          await prisma.userItemStat.update({
-            where: { id: existingStat.id },
-            data: {
-              value: existingStat.value + value,
-            },
-          });
-          newStats[existingStatIndex]!.value += value;
-        }
-      } else {
-        // Create new stat from progression
-        await prisma.userItemStat.create({
-          data: {
-            userItemId,
-            statType: statType,
-            value,
-          },
-        });
-        
-        newStats.push({ statType: statType, value });
-      }
+  const maxCaps = new Map<StatType, number>();
+  for (const stat of userItem.itemTemplate.stats) {
+    const cap = stat.maxValue;
+    if (typeof cap === "number" && Number.isFinite(cap)) {
+      maxCaps.set(stat.statType, cap);
     }
   }
+
+  const statSums = new Map<StatType, number>();
+  for (const stat of userItem.itemTemplate.stats) {
+    statSums.set(stat.statType, stat.value);
+  }
+
+  if (userItem.itemTemplate.statProgressions.length > 0) {
+    const availableProgressions = userItem.itemTemplate.statProgressions.filter((p) =>
+      rarityOrder.indexOf(p.unlocksAtRarity) <= nextRarityIndex,
+    );
+
+    for (const prog of availableProgressions) {
+      const current = statSums.get(prog.statType) || 0;
+      statSums.set(prog.statType, current + prog.baseValue);
+    }
+  }
+
+  const statsToCreate = Array.from(statSums.entries()).map(
+    ([statType, baseValue]) => ({
+      userItemId,
+      statType,
+      value: (() => {
+        const override = overridesByStatType.get(statType);
+        if (typeof override === "number" && Number.isFinite(override)) {
+          return scaleStatBaseValue(
+            override,
+            1,
+            flipNegativeStatsWithRarity,
+            maxCaps.get(statType) ?? null,
+          );
+        }
+        return scaleStatBaseValue(
+          baseValue,
+          nextMultiplier,
+          flipNegativeStatsWithRarity,
+          maxCaps.get(statType) ?? null,
+        );
+      })(),
+    }),
+  );
+
+  if (statsToCreate.length > 0) {
+    await prisma.userItemStat.createMany({ data: statsToCreate });
+    newStats.push(
+      ...statsToCreate.map((s) => ({ statType: s.statType, value: s.value })),
+    );
+  }
+
+  const toolEfficiencyStats = await applyToolEfficienciesToUserItem(
+    userItemId,
+    userItem.itemTemplate.toolEfficiencies,
+    nextMultiplier,
+    overridesByStatType,
+    maxCaps,
+    flipNegativeStatsWithRarity,
+  );
+
+  newStats.push(...toolEfficiencyStats);
 
   // Update UserItem rarity
   await prisma.userItem.update({
@@ -355,7 +475,7 @@ export async function addUserItemToInventory(
     return { success: false, message: "Inventory not found", userItemIds: [] };
   }
 
-  const slots = (inventory.slots as any[]) || [];
+  const slots = normalizeInventorySlots(inventory.slots, inventory.maxSlots);
   const affectedUserItemIds: number[] = [];
   let remainingQuantity = quantity;
 
@@ -398,7 +518,7 @@ export async function addUserItemToInventory(
       // Find empty slot
       let emptySlotIndex = -1;
       for (let i = 0; i < inventory.maxSlots; i++) {
-        const slot = slots.find((s: any) => s.slotIndex === i);
+        const slot = slots.find((s) => s.slotIndex === i);
         if (!slot || !slot.item) {
           emptySlotIndex = i;
           break;
@@ -430,7 +550,7 @@ export async function addUserItemToInventory(
       affectedUserItemIds.push(newUserItem.id);
 
       // Add to the empty slot
-      const existingSlotIndex = slots.findIndex((s: any) => s.slotIndex === emptySlotIndex);
+      const existingSlotIndex = slots.findIndex((s) => s.slotIndex === emptySlotIndex);
       if (existingSlotIndex >= 0) {
         slots[existingSlotIndex]!.item = { id: newUserItem.id };
       } else {
@@ -446,7 +566,7 @@ export async function addUserItemToInventory(
     // Update inventory
     await prisma.inventory.update({
       where: { userId },
-      data: { slots },
+      data: { slots: slotsToInputJson(slots) },
     });
 
     return {
@@ -460,7 +580,7 @@ export async function addUserItemToInventory(
       // Find empty slot
       let emptySlotIndex = -1;
       for (let j = 0; j < inventory.maxSlots; j++) {
-        const slot = slots.find((s: any) => s.slotIndex === j);
+        const slot = slots.find((s) => s.slotIndex === j);
         if (!slot || !slot.item) {
           emptySlotIndex = j;
           break;
@@ -480,7 +600,7 @@ export async function addUserItemToInventory(
       affectedUserItemIds.push(userItemId);
 
       // Add to the empty slot
-      const existingSlotIndex = slots.findIndex((s: any) => s.slotIndex === emptySlotIndex);
+      const existingSlotIndex = slots.findIndex((s) => s.slotIndex === emptySlotIndex);
       if (existingSlotIndex >= 0) {
         slots[existingSlotIndex]!.item = { id: userItemId };
       } else {
@@ -494,7 +614,7 @@ export async function addUserItemToInventory(
     // Update inventory
     await prisma.inventory.update({
       where: { userId },
-      data: { slots },
+      data: { slots: slotsToInputJson(slots) },
     });
 
     return {
@@ -553,12 +673,12 @@ export async function splitStack(
     return { success: false, message: "Inventory not found" };
   }
 
-  const slots = (inventory.slots as any[]) || [];
+  const slots = normalizeInventorySlots(inventory.slots, inventory.maxSlots);
 
   // Find an empty slot for the new stack
   let emptySlotIndex = -1;
   for (let i = 0; i < inventory.maxSlots; i++) {
-    const slot = slots.find((s: any) => s.slotIndex === i);
+    const slot = slots.find((s) => s.slotIndex === i);
     if (!slot || !slot.item) {
       emptySlotIndex = i;
       break;
@@ -590,7 +710,7 @@ export async function splitStack(
     });
 
     // Add new stack to empty slot
-    const existingSlotIndex = slots.findIndex((s: any) => s.slotIndex === emptySlotIndex);
+    const existingSlotIndex = slots.findIndex((s) => s.slotIndex === emptySlotIndex);
     if (existingSlotIndex >= 0) {
       slots[existingSlotIndex]!.item = { id: newItem.id };
     } else {
@@ -603,7 +723,7 @@ export async function splitStack(
     // Update inventory
     await tx.inventory.update({
       where: { userId },
-      data: { slots },
+      data: { slots: slotsToInputJson(slots) },
     });
 
     return newItem;
@@ -633,10 +753,10 @@ export async function removeUserItemFromInventory(
   }
 
   // Parse slots from JSON
-  const slots = (inventory.slots as any[]) || [];
+  const slots = normalizeInventorySlots(inventory.slots, inventory.maxSlots);
 
   // Find slot with this item
-  const slotIndex = slots.findIndex((s: any) => s.item?.id === userItemId);
+  const slotIndex = slots.findIndex((s) => s.item?.id === userItemId);
 
   if (slotIndex === -1) {
     return { success: false, message: "Item not in inventory" };
@@ -644,14 +764,14 @@ export async function removeUserItemFromInventory(
 
   // Set item to null (empty slot)
   slots[slotIndex] = {
-    slotIndex: slots[slotIndex].slotIndex,
+    slotIndex: slots[slotIndex]!.slotIndex,
     item: null,
   };
 
   // Update inventory
   await prisma.inventory.update({
     where: { userId },
-    data: { slots },
+    data: { slots: slotsToInputJson(slots) },
   });
 
   return { success: true, message: "Item removed from inventory" };
@@ -675,8 +795,8 @@ export async function deleteUserItem(userItemId: number, userId: string): Promis
   });
 
   if (inventory) {
-    const slots = (inventory.slots as any[]) || [];
-    const updatedSlots = slots.map((s: any) => {
+    const slots = normalizeInventorySlots(inventory.slots, inventory.maxSlots);
+    const updatedSlots = slots.map((s) => {
       if (s.item?.id === userItemId) {
         return { slotIndex: s.slotIndex, item: null };
       }
@@ -685,7 +805,7 @@ export async function deleteUserItem(userItemId: number, userId: string): Promis
 
     await prisma.inventory.update({
       where: { userId },
-      data: { slots: updatedSlots },
+      data: { slots: slotsToInputJson(updatedSlots) },
     });
   }
 
@@ -749,10 +869,10 @@ export async function getPlayerInventory(userId: string) {
   }
 
   // Parse slots and fetch UserItems
-  const slots = (inventory.slots as any[]) || [];
+  const slots = normalizeInventorySlots(inventory.slots, inventory.maxSlots);
   const userItemIds = slots
-    .filter((s: any) => s.item?.id)
-    .map((s: any) => s.item.id);
+    .filter((s) => s.item?.id)
+    .map((s) => s.item!.id);
 
   const userItems = await prisma.userItem.findMany({
     where: {
@@ -768,7 +888,7 @@ export async function getPlayerInventory(userId: string) {
   const userItemMap = new Map(userItems.map(item => [item.id, item]));
 
   // Attach userItems to slots
-  const slotsWithItems = slots.map((s: any) => ({
+  const slotsWithItems = slots.map((s) => ({
     slotIndex: s.slotIndex,
     userItem: s.item?.id ? userItemMap.get(s.item.id) || null : null,
   }));

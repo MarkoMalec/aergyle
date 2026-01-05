@@ -3,9 +3,17 @@
  * Run with: npx tsx prisma/migrations/populate-item-types.ts
  */
 
-import { PrismaClient, ItemType } from '@prisma/client';
+import { PrismaClient, ItemType, ItemEquipTo } from '@prisma/client';
+import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 
-const prisma = new PrismaClient();
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl) {
+  throw new Error("DATABASE_URL is required to run populate-item-types");
+}
+
+const prisma = new PrismaClient({
+  adapter: new PrismaMariaDb(databaseUrl),
+});
 
 async function main() {
   console.log('🔄 Populating itemType for existing items...\n');
@@ -24,7 +32,7 @@ async function main() {
 
   // Update weapons based on equipTo = 'weapon'
   const weapons = await prisma.item.findMany({
-    where: { equipTo: 'weapon' },
+    where: { equipTo: ItemEquipTo.weapon },
   });
 
   for (const weapon of weapons) {
@@ -63,20 +71,20 @@ async function main() {
   }
 
   // Update armor pieces
-  const armorSlotMapping: Record<string, ItemType> = {
-    head: ItemType.HELMET,
-    chest: ItemType.CHESTPLATE,
-    greaves: ItemType.GREAVES,
-    boots: ItemType.BOOTS,
-    gloves: ItemType.GLOVES,
-    pauldrons: ItemType.PAULDRONS,
-    bracers: ItemType.BRACERS,
-    belt: ItemType.BELT,
+  const armorSlotMapping: Partial<Record<ItemEquipTo, ItemType>> = {
+    [ItemEquipTo.head]: ItemType.HELMET,
+    [ItemEquipTo.chest]: ItemType.CHESTPLATE,
+    [ItemEquipTo.greaves]: ItemType.GREAVES,
+    [ItemEquipTo.boots]: ItemType.BOOTS,
+    [ItemEquipTo.gloves]: ItemType.GLOVES,
+    [ItemEquipTo.pauldrons]: ItemType.PAULDRONS,
+    [ItemEquipTo.bracers]: ItemType.BRACERS,
+    [ItemEquipTo.belt]: ItemType.BELT,
   };
 
   for (const [slot, type] of Object.entries(armorSlotMapping)) {
     const armorPieces = await prisma.item.findMany({
-      where: { equipTo: slot },
+      where: { equipTo: slot as ItemEquipTo },
     });
 
     for (const armor of armorPieces) {
@@ -93,15 +101,15 @@ async function main() {
   }
 
   // Update accessories
-  const accessorySlotMapping: Record<string, ItemType> = {
-    ring: ItemType.RING,
-    amulet: ItemType.AMULET,
-    necklace: ItemType.NECKLACE,
+  const accessorySlotMapping: Partial<Record<ItemEquipTo, ItemType>> = {
+    [ItemEquipTo.ring]: ItemType.RING,
+    [ItemEquipTo.amulet]: ItemType.AMULET,
+    [ItemEquipTo.necklace]: ItemType.NECKLACE,
   };
 
   for (const [slot, type] of Object.entries(accessorySlotMapping)) {
     const accessories = await prisma.item.findMany({
-      where: { equipTo: slot },
+      where: { equipTo: slot as ItemEquipTo },
     });
 
     for (const accessory of accessories) {
@@ -119,7 +127,7 @@ async function main() {
 
   // Update backpacks
   const backpacks = await prisma.item.findMany({
-    where: { equipTo: 'backpack' },
+    where: { equipTo: ItemEquipTo.backpack },
   });
 
   for (const backpack of backpacks) {

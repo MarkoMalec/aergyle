@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "~/lib/prisma";
 import { getServerAuthSession } from "~/server/auth";
+import { normalizeInventorySlots, slotsToInputJson } from "~/utils/inventorySlots";
 
 /**
  * Buy an item from the marketplace
@@ -125,7 +126,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if buyer has space in inventory
-    const slots = buyerInventory.slots as any[];
+    const slots = normalizeInventorySlots(buyerInventory.slots, buyerInventory.maxSlots);
     const emptySlotIndex = slots.findIndex(slot => slot.item === null);
 
     if (emptySlotIndex === -1) {
@@ -167,7 +168,7 @@ export async function POST(req: NextRequest) {
         // Update buyer's inventory
         prisma.inventory.update({
           where: { userId: buyerId },
-          data: { slots: updatedSlots },
+          data: { slots: slotsToInputJson(updatedSlots) },
         }),
         // Deduct gold from buyer
         prisma.user.update({
@@ -226,7 +227,7 @@ export async function POST(req: NextRequest) {
 
         await tx.inventory.update({
           where: { userId: buyerId },
-          data: { slots: updatedSlotsForPartial },
+          data: { slots: slotsToInputJson(updatedSlotsForPartial) },
         });
 
         // Deduct gold from buyer

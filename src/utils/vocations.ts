@@ -1,4 +1,4 @@
-import type { VocationalActionType } from "@prisma/client";
+import type { VocationalActionType } from "~/generated/prisma/enums";
 
 export function toVocationalActionTypeFromSkillName(
   skillName: string,

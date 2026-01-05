@@ -1,4 +1,4 @@
-import type { UserVocationalActivity } from "@prisma/client";
+import type { UserVocationalActivity } from "~/generated/prisma/client";
 
 export type VocationalProgress = {
   now: Date;

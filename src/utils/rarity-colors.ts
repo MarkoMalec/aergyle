@@ -1,4 +1,4 @@
-import { ItemRarity } from "@prisma/client";
+import type { ItemRarity } from "~/generated/prisma/enums";
 
 /**
  * FALLBACK rarity colors - used only if DB fetch fails

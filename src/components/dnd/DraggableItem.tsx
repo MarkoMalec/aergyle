@@ -38,8 +38,9 @@ export const DraggableItem = ({
 
   const style = {
     transform: CSS.Transform.toString(transform),
-    boxShadow: isDragging ? "0px 3px 10px rgba(0, 0, 0, 0.64)" : undefined,
+    // boxShadow: isDragging ? "0px 3px 10px rgba(0, 0, 0, 0.64)" : undefined,
     zIndex: isDragging ? 999 : undefined,
+    filter: isDragging ? "brightness(0.8)" : undefined,
   };
 
   if (!item) {

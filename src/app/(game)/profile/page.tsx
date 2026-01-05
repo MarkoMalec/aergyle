@@ -4,7 +4,7 @@ import { DndProvider } from "~/components/dnd/DnDContext";
 import Portrait from "~/components/game/character/Portrait";
 import { getServerSession } from "next-auth";
 import { authOptions } from "~/server/auth";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "~/generated/prisma/client";
 import { prisma } from "~/lib/prisma";
 import Inventory from "~/components/game/character/Inventory/Inventory";
 import Equipment from "~/components/game/character/Equipment/Equipment";
@@ -113,6 +113,8 @@ const CharacterPage = async ({
     amulet: userEquipment?.amuletItemId,
     backpack: userEquipment?.backpackItemId,
     weapon: userEquipment?.weaponItemId,
+    fellingAxe: userEquipment?.fellingAxeItemId,
+    pickaxe: userEquipment?.pickaxeItemId,
   }).filter((id): id is number => id !== null);
 
   const allItemIds = [...inventoryItemIds, ...equipmentItemIds];
@@ -170,6 +172,12 @@ const CharacterPage = async ({
       : null,
     weapon: userEquipment?.weaponItemId
       ? itemMap.get(userEquipment.weaponItemId) || null
+      : null,
+    fellingAxe: userEquipment?.fellingAxeItemId
+      ? itemMap.get(userEquipment.fellingAxeItemId) || null
+      : null,
+    pickaxe: userEquipment?.pickaxeItemId
+      ? itemMap.get(userEquipment.pickaxeItemId) || null
       : null,
   };
 

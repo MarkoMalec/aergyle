@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef, useEffect } from "react";
-import type { ItemRarity } from "@prisma/client";
+import type { ItemRarity } from "~/generated/prisma/enums";
 import {
   type ColumnDef,
   flexRender,
@@ -45,7 +45,7 @@ import {
   DialogTitle,
 } from "~/components/ui/dialog";
 import { ItemFilters } from "./marketplaceFilters";
-import { MarketplaceGroupedItem, MarketplaceListing } from "~/types/marketplace";
+import type { MarketplaceGroupedItem, MarketplaceListing } from "~/types/marketplace";
 import SingleItemTemplate from "../items/single-item-template";
 import { Skeleton } from "~/components/ui/skeleton";
 import { CoinsIcon } from "../ui/coins-icon";

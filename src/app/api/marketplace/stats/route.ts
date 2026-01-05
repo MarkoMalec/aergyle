@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "~/server/db";
-import { ItemRarity, ItemStatus } from "@prisma/client";
+import { ItemRarity, ItemStatus } from "~/generated/prisma/enums";
 
 export async function GET(request: Request) {
   try {

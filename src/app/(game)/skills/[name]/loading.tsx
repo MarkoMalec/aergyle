@@ -9,9 +9,7 @@ const SkillLoading = () => (
             <h1>
               <Skeleton className="w-[88px] max-w-full" />
             </h1>
-            <p>
               <Skeleton className="w-[104px] max-w-full" />
-            </p>
           </div>
           <div className="space-y-4">
             <div className="border border-gray-700/40">
@@ -97,9 +95,7 @@ const SkillLoading = () => (
             <div className="space-y-2">
               <div className="flex items-center gap-3">
                 <div className="flex-1">
-                  <p>
                     <Skeleton className="w-[72px] max-w-full" />
-                  </p>
                 </div>
               </div>
               <a className="relative block">

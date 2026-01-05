@@ -10,20 +10,29 @@ import { fetchUserItemsByIds } from "~/utils/userItemInventory";
 import { getXpProgress } from "~/utils/leveling";
 import { redirect } from "next/navigation";
 import { getVocationalStatus } from "~/server/vocations";
+import { EQUIPMENT_SLOTS, type EquipmentDbField } from "~/utils/itemEquipTo";
+import { EquipmentSlotsWithItems } from "~/types/inventory";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 import { GeistSans } from "geist/font/sans";
+import { Inter } from "next/font/google";
 import GameHeader from "~/components/game/ui/Header";
 import SidebarLeft from "~/components/game/ui/Sidebars/SidebarLeft";
 import { VocationalActiveActionProvider } from "~/components/game/actions/VocationalActiveActionProvider";
+import { ActionCompletionDialog } from "~/components/game/actions/ActionCompletionDialog";
 
 export const metadata = {
   title: "Aergyle Game",
   description: "Game",
   icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
+
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+})
 
 const GameLayout = async ({ children }: { children: React.ReactNode }) => {
   const session = await getServerSession(authOptions);
@@ -35,7 +44,7 @@ const GameLayout = async ({ children }: { children: React.ReactNode }) => {
 
   // Auto-claim any newly completed vocational ticks on page load/refresh.
   // This keeps inventory and user state consistent with the "refresh/visit" model.
-  await getVocationalStatus(session.user.id);
+  const vocationalStatus = await getVocationalStatus(session.user.id);
 
   const user = await prisma.user.findUnique({
     where: {
@@ -47,94 +56,33 @@ const GameLayout = async ({ children }: { children: React.ReactNode }) => {
   });
 
   // Fetch equipment for global state
+  const emptyDbFields = Object.fromEntries(
+    EQUIPMENT_SLOTS.map((s) => [s.dbField, null]),
+  ) as Partial<Record<EquipmentDbField, null>>;
+
   const userEquipment = await prisma.equipment.upsert({
     where: { userId: session.user.id },
     create: {
       userId: session.user.id,
-      headItemId: null,
-      necklaceItemId: null,
-      chestItemId: null,
-      pauldronsItemId: null,
-      bracersItemId: null,
-      glovesItemId: null,
-      greavesItemId: null,
-      bootsItemId: null,
-      beltItemId: null,
-      ring1ItemId: null,
-      ring2ItemId: null,
-      amuletItemId: null,
-      backpackItemId: null,
-      weaponItemId: null,
+      ...emptyDbFields,
     },
     update: {},
   });
 
-  const equipmentItemIds = Object.values({
-    head: userEquipment?.headItemId,
-    necklace: userEquipment?.necklaceItemId,
-    chest: userEquipment?.chestItemId,
-    pauldrons: userEquipment?.pauldronsItemId,
-    bracers: userEquipment?.bracersItemId,
-    gloves: userEquipment?.glovesItemId,
-    belt: userEquipment?.beltItemId,
-    greaves: userEquipment?.greavesItemId,
-    boots: userEquipment?.bootsItemId,
-    ring1: userEquipment?.ring1ItemId,
-    ring2: userEquipment?.ring2ItemId,
-    amulet: userEquipment?.amuletItemId,
-    backpack: userEquipment?.backpackItemId,
-    weapon: userEquipment?.weaponItemId,
-  }).filter((id): id is number => id !== null);
+  const equipmentItemIds = EQUIPMENT_SLOTS.map(
+    (s) => userEquipment[s.dbField] as number | null,
+  ).filter((id): id is number => id !== null);
 
   const equipmentItems = await fetchUserItemsByIds(equipmentItemIds);
   const equipmentItemMap = new Map(
     equipmentItems.map((item) => [item.id, item]),
   );
 
-  const initialEquipment = {
-    head: userEquipment?.headItemId
-      ? equipmentItemMap.get(userEquipment.headItemId) || null
-      : null,
-    necklace: userEquipment?.necklaceItemId
-      ? equipmentItemMap.get(userEquipment.necklaceItemId) || null
-      : null,
-    chest: userEquipment?.chestItemId
-      ? equipmentItemMap.get(userEquipment.chestItemId) || null
-      : null,
-    pauldrons: userEquipment?.pauldronsItemId
-      ? equipmentItemMap.get(userEquipment.pauldronsItemId) || null
-      : null,
-    bracers: userEquipment?.bracersItemId
-      ? equipmentItemMap.get(userEquipment.bracersItemId) || null
-      : null,
-    gloves: userEquipment?.glovesItemId
-      ? equipmentItemMap.get(userEquipment.glovesItemId) || null
-      : null,
-    belt: userEquipment?.beltItemId
-      ? equipmentItemMap.get(userEquipment.beltItemId) || null
-      : null,
-    greaves: userEquipment?.greavesItemId
-      ? equipmentItemMap.get(userEquipment.greavesItemId) || null
-      : null,
-    boots: userEquipment?.bootsItemId
-      ? equipmentItemMap.get(userEquipment.bootsItemId) || null
-      : null,
-    ring1: userEquipment?.ring1ItemId
-      ? equipmentItemMap.get(userEquipment.ring1ItemId) || null
-      : null,
-    ring2: userEquipment?.ring2ItemId
-      ? equipmentItemMap.get(userEquipment.ring2ItemId) || null
-      : null,
-    backpack: userEquipment?.backpackItemId
-      ? equipmentItemMap.get(userEquipment.backpackItemId) || null
-      : null,
-    amulet: userEquipment?.amuletItemId
-      ? equipmentItemMap.get(userEquipment.amuletItemId) || null
-      : null,
-    weapon: userEquipment?.weaponItemId
-      ? equipmentItemMap.get(userEquipment.weaponItemId) || null
-      : null,
-  };
+  const initialEquipment = EQUIPMENT_SLOTS.reduce((acc, s) => {
+    const userItemId = userEquipment[s.dbField] as number | null;
+    acc[s.slot] = userItemId ? equipmentItemMap.get(userItemId) || null : null;
+    return acc;
+  }, {} as EquipmentSlotsWithItems);
 
   // Fetch initial level data
   const initialLevelData = await getXpProgress(session.user.id);
@@ -142,7 +90,7 @@ const GameLayout = async ({ children }: { children: React.ReactNode }) => {
   return (
     <html
       lang="en"
-      className={`${GeistSans.variable}`}
+      className={`${inter.className}`}
       suppressHydrationWarning
     >
       <body>
@@ -183,6 +131,7 @@ const GameLayout = async ({ children }: { children: React.ReactNode }) => {
               <EquipmentProvider initialEquipment={initialEquipment}>
                 <LevelProvider initialLevelData={initialLevelData || undefined}>
                   <VocationalActiveActionProvider>
+                    <ActionCompletionDialog completions={vocationalStatus.completionSummaries} />
                     <div className="flex gap-10">
                       <div>
                         <SidebarLeft />

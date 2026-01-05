@@ -41,3 +41,6 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
+
+# prisma client (Prisma ORM v7 output)
+/src/generated/prisma

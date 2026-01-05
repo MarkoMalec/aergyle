@@ -26,6 +26,11 @@ export const env = createEnv({
     DISCORD_CLIENT_SECRET: z.string(),
     OPTIMIZE_API_KEY: z.string(),
 
+    // Admin access control (comma-separated allowlist)
+    // If unset, admin routes will fall back to allowing any authenticated user.
+    ADMIN_EMAILS: z.string().optional(),
+    ADMIN_USER_IDS: z.string().optional(),
+
     // Realtime (WebSocket) auth
     // Used to sign short-lived tokens from Next.js that the WS daemon verifies.
     REALTIME_TOKEN_SECRET:
@@ -55,6 +60,9 @@ export const env = createEnv({
     DISCORD_CLIENT_ID: process.env.DISCORD_CLIENT_ID,
     DISCORD_CLIENT_SECRET: process.env.DISCORD_CLIENT_SECRET,
     OPTIMIZE_API_KEY: process.env.OPTIMIZE_API_KEY,
+
+    ADMIN_EMAILS: process.env.ADMIN_EMAILS,
+    ADMIN_USER_IDS: process.env.ADMIN_USER_IDS,
 
     REALTIME_TOKEN_SECRET: process.env.REALTIME_TOKEN_SECRET,
 

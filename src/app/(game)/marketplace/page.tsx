@@ -25,14 +25,19 @@ import {
 
 function getErrorMessage(value: unknown): string | undefined {
   if (typeof value !== "object" || value === null) return undefined;
-  if (!("message" in value)) return undefined;
-  const message = (value as { message?: unknown }).message;
-  return typeof message === "string" ? message : undefined;
+  const maybe = value as { message?: unknown; error?: unknown };
+  if (typeof maybe.message === "string") return maybe.message;
+  if (typeof maybe.error === "string") return maybe.error;
+  return undefined;
 }
 
 type BuyMarketplaceResponse = {
-  item: { itemTemplate: { name: string } };
-  price: number;
+  success: boolean;
+  message: string;
+  itemId: number | null;
+  quantity: number;
+  seller: string;
+  totalPrice: number;
 };
 
 export default function MarketplacePage() {
@@ -158,7 +163,6 @@ export default function MarketplacePage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          buyerId: session.user.id,
           userItemId,
         }),
       });
@@ -178,7 +182,7 @@ export default function MarketplacePage() {
 
       toast.success(() => (
         <span>
-          You bought {data.item.itemTemplate.name} for {data.price}{" "}
+          {data.message} ({data.totalPrice.toFixed(2)}){" "}
           <CoinsIcon />
         </span>
       ));

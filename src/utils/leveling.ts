@@ -1,5 +1,5 @@
 import { prisma } from "~/lib/prisma";
-import { VocationalActionType, XpActionType } from "@prisma/client";
+import { VocationalActionType, XpActionType } from "~/generated/prisma/enums";
 
 function clampToSafeNumber(value: bigint): number {
   const max = BigInt(Number.MAX_SAFE_INTEGER);

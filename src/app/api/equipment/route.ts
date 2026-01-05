@@ -4,6 +4,7 @@ import { populateEquipmentSlots, validateEquipment } from "~/utils/inventory";
 import { fetchUserItemsByIds } from "~/utils/userItemInventory";
 import { updateInventoryCapacity } from "~/utils/inventoryCapacity";
 import { getServerAuthSession } from "~/server/auth";
+import { EQUIPMENT_SLOTS, type EquipmentDbField } from "~/utils/itemEquipTo";
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,6 +14,28 @@ export async function POST(req: NextRequest) {
     }
 
     const userId = session.user.id;
+
+    // Equipment changes are not allowed while any action is active (vocations or travel).
+    const now = new Date();
+    const [vocational, travel] = await Promise.all([
+      prisma.userVocationalActivity.findUnique({
+        where: { userId },
+        select: { endsAt: true },
+      }),
+      prisma.userTravelActivity.findUnique({
+        where: { userId },
+        select: { endsAt: true, cancelledAt: true },
+      }),
+    ]);
+
+    const hasActiveVocational = !!vocational && vocational.endsAt > now;
+    const hasActiveTravel = !!travel && !travel.cancelledAt && travel.endsAt > now;
+    if (hasActiveVocational || hasActiveTravel) {
+      return NextResponse.json(
+        { error: "You cannot change equipment while an action is active." },
+        { status: 409 },
+      );
+    }
     const { equipment } = await req.json();
 
     if (!equipment || typeof equipment !== "object") {
@@ -29,40 +52,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const dbFields = Object.fromEntries(
+      EQUIPMENT_SLOTS.map((s) => [s.dbField, equipment[s.slot] ?? null]),
+    ) as Partial<Record<EquipmentDbField, number | null>>;
+
     const userEquipment = await prisma.equipment.upsert({
       where: { userId },
       create: {
         userId,
-        headItemId: equipment.head,
-        necklaceItemId: equipment.necklace,
-        chestItemId: equipment.chest,
-        pauldronsItemId: equipment.pauldrons,
-        bracersItemId: equipment.bracers,
-        glovesItemId: equipment.gloves,
-        greavesItemId: equipment.greaves,
-        bootsItemId: equipment.boots,
-        beltItemId: equipment.belt,
-        ring1ItemId: equipment.ring1,
-        ring2ItemId: equipment.ring2,
-        amuletItemId: equipment.amulet,
-        backpackItemId: equipment.backpack,
-        weaponItemId: equipment.weapon,
+        ...dbFields,
       },
       update: {
-        headItemId: equipment.head,
-        necklaceItemId: equipment.necklace,
-        chestItemId: equipment.chest,
-        pauldronsItemId: equipment.pauldrons,
-        bracersItemId: equipment.bracers,
-        glovesItemId: equipment.gloves,
-        greavesItemId: equipment.greaves,
-        bootsItemId: equipment.boots,
-        beltItemId: equipment.belt,
-        ring1ItemId: equipment.ring1,
-        ring2ItemId: equipment.ring2,
-        amuletItemId: equipment.amulet,
-        backpackItemId: equipment.backpack,
-        weaponItemId: equipment.weapon,
+        ...dbFields,
       },
     });
 
@@ -94,45 +95,25 @@ export async function GET(req: NextRequest) {
 
     const userId = session.user.id;
 
+    const emptyDbFields = Object.fromEntries(
+      EQUIPMENT_SLOTS.map((s) => [s.dbField, null]),
+    );
+
     // Use upsert to create equipment if it doesn't exist
     const userEquipment = await prisma.equipment.upsert({
       where: { userId },
       create: {
         userId,
-        headItemId: null,
-        necklaceItemId: null,
-        chestItemId: null,
-        pauldronsItemId: null,
-        bracersItemId: null,
-        glovesItemId: null,
-        greavesItemId: null,
-        bootsItemId: null,
-        beltItemId: null,
-        ring1ItemId: null,
-        ring2ItemId: null,
-        amuletItemId: null,
-        backpackItemId: null,
-        weaponItemId: null,
+        ...(emptyDbFields as Partial<Record<EquipmentDbField, null>>),
       },
       update: {}, // Don't update anything, just return existing
     });
 
-    const equipmentWithItems = await populateEquipmentSlots({
-      head: userEquipment.headItemId,
-      necklace: userEquipment.necklaceItemId,
-      chest: userEquipment.chestItemId,
-      pauldrons: userEquipment.pauldronsItemId,
-      bracers: userEquipment.bracersItemId,
-      gloves: userEquipment.glovesItemId,
-      belt: userEquipment.beltItemId,
-      greaves: userEquipment.greavesItemId,
-      boots: userEquipment.bootsItemId,
-      ring1: userEquipment.ring1ItemId,
-      ring2: userEquipment.ring2ItemId,
-      backpack: userEquipment.backpackItemId,
-      amulet: userEquipment.amuletItemId,
-      weapon: userEquipment.weaponItemId,
-    });
+    const equipmentIds = Object.fromEntries(
+      EQUIPMENT_SLOTS.map((s) => [s.slot, userEquipment[s.dbField]]),
+    );
+
+    const equipmentWithItems = await populateEquipmentSlots(equipmentIds);
 
     return NextResponse.json(equipmentWithItems, { status: 200 });
   } catch (error) {

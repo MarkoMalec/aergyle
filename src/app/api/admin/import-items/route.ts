@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "~/lib/prisma";
-import { ItemRarity, StatType, ItemType } from "@prisma/client";
+import { ItemRarity, StatType, ItemType } from "~/generated/prisma/enums";
+import { normalizeItemEquipTo } from "~/utils/itemEquipTo";
 
 /**
  * Import items from CSV data with stat progressions
@@ -126,7 +127,7 @@ export async function POST(req: NextRequest) {
           name: itemName,
           price: parseInt(firstRow.price || "0"),
           sprite: firstRow.sprite,
-          equipTo: firstRow.equipTo || null,
+          equipTo: normalizeItemEquipTo(firstRow.equipTo),
           rarity: (firstRow.rarity as ItemRarity) || "COMMON",
           itemType: firstRow.itemType ? (firstRow.itemType as ItemType) : null,
           stackable: isStackable,

@@ -36,7 +36,7 @@ const Separator = React.forwardRef<
                 : "h-full w-[1px]",
             )}
           />
-          <span className="mx-2">{children}</span>
+          <span className="mx-2 block shrink-0 text-xs text-gray-400">{children}</span>
           <SeparatorPrimitive.Root
             decorative={decorative}
             orientation={orientation}

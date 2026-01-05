@@ -1,6 +1,11 @@
-import { ItemRarity, Prisma } from "@prisma/client";
+import { ItemRarity } from "~/generated/prisma/enums";
 import { prisma } from "~/lib/prisma";
 import { createUserItem } from "~/utils/userItems";
+import {
+  normalizeInventorySlots,
+  slotsToInputJson,
+  type InventorySlot,
+} from "~/utils/inventorySlots";
 
 const BASE_INVENTORY_CAPACITY = 25;
 
@@ -23,29 +28,28 @@ async function getStarterItemTemplateIds() {
   };
 }
 
-function buildEmptySlots(capacity: number): Prisma.JsonArray {
+function buildEmptySlots(capacity: number): InventorySlot[] {
   return Array.from({ length: capacity }, (_, index) => ({
     slotIndex: index,
     item: null,
-  })) as unknown as Prisma.JsonArray;
+  }));
 }
 
 function applyItemsToFirstSlots(
-  slots: Prisma.JsonArray,
+  slots: InventorySlot[],
   userItemIds: number[],
-): Prisma.JsonArray {
-  const updated = slots.map((slot, index) => {
+): InventorySlot[] {
+  const updated = slots.map((slot, index): InventorySlot => {
     const itemId = userItemIds[index];
     if (itemId === undefined) return slot;
 
     return {
-      ...(slot as any),
       slotIndex: index,
       item: { id: itemId },
     };
   });
 
-  return updated as Prisma.JsonArray;
+  return updated;
 }
 
 /**
@@ -68,7 +72,7 @@ export async function provisionNewUser(userId: string) {
     await prisma.inventory.create({
       data: {
         userId,
-        slots: buildEmptySlots(BASE_INVENTORY_CAPACITY),
+        slots: slotsToInputJson(buildEmptySlots(BASE_INVENTORY_CAPACITY)),
         maxSlots: BASE_INVENTORY_CAPACITY,
         deleteSlotId: null,
       },
@@ -113,15 +117,16 @@ export async function provisionNewUser(userId: string) {
 
   if (!currentInventory) return;
 
-  const baseSlots =
-    (currentInventory.slots as Prisma.JsonArray) ||
-    buildEmptySlots(currentInventory.maxSlots);
+  const baseSlots = normalizeInventorySlots(
+    currentInventory.slots,
+    currentInventory.maxSlots,
+  );
 
   const updatedSlots = applyItemsToFirstSlots(baseSlots, starterUserItemIds);
 
   await prisma.inventory.update({
     where: { userId },
-    data: { slots: updatedSlots as any },
+    data: { slots: slotsToInputJson(updatedSlots) },
     select: { id: true },
   });
 }

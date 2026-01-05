@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ItemRarity } from "@prisma/client";
+import type { ItemRarity } from "~/generated/prisma/enums";
 import {
   Card,
   CardContent,

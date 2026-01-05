@@ -3,7 +3,13 @@
 import React from "react";
 import { DroppableSlot } from "../../../dnd/DroppableSlot";
 import { useDndContext } from "~/components/dnd/DnDContext";
-import { Trash2 } from "lucide-react";
+import { Info, Trash2 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  TooltipProvider,
+} from "~/components/ui/tooltip";
 
 const Inventory = () => {
   const { inventory, deleteSlot } = useDndContext();
@@ -21,10 +27,9 @@ const Inventory = () => {
           />
         ))}
       </div>
-      
+
       {/* Delete Slot */}
       <div className="mt-4 flex items-center gap-3">
-        <div className="text-sm text-white/70">Delete Item:</div>
         <div className="relative">
           <DroppableSlot
             id="delete-slot"
@@ -39,9 +44,16 @@ const Inventory = () => {
           )}
         </div>
         {deleteSlot.item && (
-          <div className="text-sm text-yellow-400">
-            Drop another item here to delete "{deleteSlot.item.name}"
-          </div>
+          <TooltipProvider delayDuration={150}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="ml-2 inline-block h-6 w-6 text-yellow-300" />
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs">
+                Drop another item here to delete <i className="underline">{deleteSlot.item.name}</i>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )}
       </div>
     </div>
@@ -49,4 +61,3 @@ const Inventory = () => {
 };
 
 export default Inventory;
-

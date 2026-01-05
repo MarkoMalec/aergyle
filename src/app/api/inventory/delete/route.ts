@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "~/lib/prisma";
 import { getServerAuthSession } from "~/server/auth";
+import { normalizeInventorySlots, slotsToInputJson } from "~/utils/inventorySlots";
 
 export async function DELETE(req: NextRequest) {
   try {
@@ -35,7 +36,7 @@ export async function DELETE(req: NextRequest) {
     });
 
     if (userInventory && userInventory.slots) {
-      const slots = userInventory.slots as any[];
+      const slots = normalizeInventorySlots(userInventory.slots, userInventory.maxSlots);
       const updatedSlots = slots.map((slot) => {
         if (slot?.item?.id === userItemId) {
           return { ...slot, item: null };
@@ -45,7 +46,7 @@ export async function DELETE(req: NextRequest) {
 
       await prisma.inventory.update({
         where: { userId },
-        data: { slots: updatedSlots },
+        data: { slots: slotsToInputJson(updatedSlots) },
       });
     }
 

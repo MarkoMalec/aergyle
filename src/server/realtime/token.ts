@@ -38,7 +38,7 @@ export function verifyRealtimeToken(token: string, secret: string): RealtimeToke
   const parts = token.split(".");
   if (parts.length !== 3) return null;
 
-  const [headerPart, payloadPart, signaturePart] = parts;
+  const [headerPart, payloadPart, signaturePart] = parts as [string, string, string];
   const data = `${headerPart}.${payloadPart}`;
 
   const expectedSig = crypto
@@ -50,7 +50,7 @@ export function verifyRealtimeToken(token: string, secret: string): RealtimeToke
 
   // timing-safe compare
   if (gotSig.length !== expectedSig.length) return null;
-  if (!crypto.timingSafeEqual(gotSig, expectedSig)) return null;
+  if (!crypto.timingSafeEqual(Uint8Array.from(gotSig), Uint8Array.from(expectedSig))) return null;
 
   let payload: unknown;
   try {
@@ -59,20 +59,20 @@ export function verifyRealtimeToken(token: string, secret: string): RealtimeToke
     return null;
   }
 
-  if (
-    !payload ||
-    typeof payload !== "object" ||
-    !("sub" in payload) ||
-    !("exp" in payload) ||
-    typeof (payload as any).sub !== "string" ||
-    typeof (payload as any).exp !== "number"
-  ) {
+  if (!payload || typeof payload !== "object") {
     return null;
   }
 
-  const exp = (payload as any).exp as number;
+  const record = payload as Record<string, unknown>;
+  const sub = record.sub;
+  const exp = record.exp;
+
+  if (typeof sub !== "string" || typeof exp !== "number" || !Number.isFinite(exp)) {
+    return null;
+  }
+
   const now = Math.floor(Date.now() / 1000);
   if (exp <= now) return null;
 
-  return payload as RealtimeTokenPayload;
+  return { sub, exp };
 }

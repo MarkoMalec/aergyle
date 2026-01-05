@@ -315,6 +315,40 @@ See `scripts/setupStatProgressions.ts` for examples.
 
 ---
 
+#### Vocational Tool Efficiencies
+
+Some equipment pieces (felling axes, pickaxes, fishing rods, etc.) boost offline skill actions via **ToolEfficiency** records:
+
+```
+model ToolEfficiency {
+  id             Int      @id @default(autoincrement())
+  itemId         Int
+  actionType     VocationalActionType  // WOODCUTTING, MINING, FISHING...
+  baseEfficiency Float                 // Percent at COMMON rarity
+}
+```
+
+- Each entry links a template to a vocation and defines the **base percentage** applied at Common rarity.
+- When a `UserItem` is created or its rarity is upgraded, the system copies these efficiencies into the item's stats (`WOODCUTTING_EFFICIENCY`, `MINING_EFFICIENCY`, `FISHING_EFFICIENCY`, etc.), multiplied by the current rarity multiplier.
+- Because the stat lives on the `UserItem`, marketplace listings, trades, and transfers always carry the correct upgraded value—selling an enchanted axe sells *that exact item* with its boosted efficiency.
+- Non-tool items no longer have to define nullable vocation stats in `ItemStat`/`ItemStatProgression`, keeping the general stat tables clean.
+
+To configure a tool you can either insert rows manually (admin UI/SQL) or create a helper script, for example:
+
+```typescript
+await prisma.toolEfficiency.upsert({
+  where: {
+    itemId_actionType: { itemId: SIMPLE_FELLING_AXE_ID, actionType: "WOODCUTTING" },
+  },
+  update: { baseEfficiency: 5 }, // 5%
+  create: { itemId: SIMPLE_FELLING_AXE_ID, actionType: "WOODCUTTING", baseEfficiency: 5 },
+});
+```
+
+Repeat for each rarity tier of the tool (Iron Felling Axe at 10%, etc.). When you later allow enchanting to higher rarities, the efficiency scales automatically using the same rarity multipliers that weapons/armor already use.
+
+---
+
 ## Available Functions
 
 ### Creating Items for Players

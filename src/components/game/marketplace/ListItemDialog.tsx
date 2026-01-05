@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ItemRarity } from "@prisma/client";
+import type { ItemRarity } from "~/generated/prisma/enums";
 import { useSession } from "next-auth/react";
 import {
   Dialog,

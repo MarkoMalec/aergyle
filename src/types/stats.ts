@@ -1,4 +1,4 @@
-import { StatType, ItemRarity } from "@prisma/client";
+import { StatType, ItemRarity, ItemType } from "~/generated/prisma/enums";
 
 // Re-export Prisma enums for convenience
 export { StatType, ItemRarity };
@@ -8,8 +8,10 @@ export interface ItemWithStats {
   id: number;
   itemId: number; // Reference to Item template
   name: string;
+  description?: string | null;
   price: number;
   sprite: string;
+  itemType?: ItemType | null;
   equipTo: string | null;
   rarity: ItemRarity;
   minPhysicalDamage: number | null;
@@ -78,6 +80,11 @@ export interface ComputedStats {
   experienceGain: number;
   lifesteal: number;
   thorns: number;
+
+  // Vocation/tool
+  woodcuttingEfficiency: number;
+  miningEfficiency: number;
+  fishingEfficiency: number;
 }
 
 // Stat display info for UI
@@ -411,5 +418,36 @@ export const STAT_METADATA: Record<StatType, StatMetadata> = {
     icon: "🎒",
     priority: 47,
     formatType: "number",
+  },
+  WOODCUTTING_EFFICIENCY: {
+    label: "Woodcutting Efficiency",
+    description: "Reduces time per woodcutting unit",
+    category: StatCategory.SPECIAL,
+    // Reuse an existing palette value already used elsewhere in this file.
+    color: "#22c55e",
+    icon: "🪓",
+    priority: 48,
+    formatType: "percentage",
+    isPercentage: true,
+  },
+  MINING_EFFICIENCY: {
+    label: "Mining Efficiency",
+    description: "Reduces time per mining unit",
+    category: StatCategory.SPECIAL,
+    color: "#f97316",
+    icon: "⛏️",
+    priority: 49,
+    formatType: "percentage",
+    isPercentage: true,
+  },
+  FISHING_EFFICIENCY: {
+    label: "Fishing Efficiency",
+    description: "Reduces time per fishing unit",
+    category: StatCategory.SPECIAL,
+    color: "#3b82f6",
+    icon: "🎣",
+    priority: 50,
+    formatType: "percentage",
+    isPercentage: true,
   },
 };

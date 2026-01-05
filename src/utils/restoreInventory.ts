@@ -1,5 +1,5 @@
 import { prisma } from "~/lib/prisma";
-import { Prisma } from "@prisma/client";
+import { slotsToInputJson } from "~/utils/inventorySlots";
 
 /**
  * EMERGENCY: Restore inventory to original format
@@ -44,7 +44,7 @@ async function restoreInventory() {
       await prisma.inventory.update({
         where: { id: user.inventory.id },
         data: {
-          slots: emptySlots as any,
+          slots: slotsToInputJson(emptySlots),
         },
       });
       continue;
@@ -64,7 +64,7 @@ async function restoreInventory() {
     await prisma.inventory.update({
       where: { id: user.inventory.id },
       data: {
-        slots: slots as any,
+        slots: slotsToInputJson(slots),
       },
     });
 

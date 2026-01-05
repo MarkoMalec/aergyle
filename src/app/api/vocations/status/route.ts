@@ -17,5 +17,8 @@ export async function GET(req: NextRequest) {
   const status = debugEnabled
     ? await getVocationalStatusDebug(session.user.id)
     : await getVocationalStatus(session.user.id);
-  return NextResponse.json(status);
+  return NextResponse.json({
+    serverNow: new Date().toISOString(),
+    ...status,
+  });
 }

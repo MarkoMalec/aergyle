@@ -4,8 +4,16 @@ import {
   ItemType,
   VocationalActionType,
 } from "@prisma/client";
+import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 
-const prisma = new PrismaClient();
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl) {
+  throw new Error("DATABASE_URL is required to run seedOakLog");
+}
+
+const prisma = new PrismaClient({
+  adapter: new PrismaMariaDb(databaseUrl),
+});
 
 async function main() {
   // 1) Create (or reuse) Oak Log item template
@@ -60,6 +68,7 @@ async function main() {
     },
   });
 
+  console.log("✅ Seeded: Oak Log + WOODCUTTING resource (Oak)");
   console.log("✅ Seeded: Oak Log + WOODCUTTING resource (Oak)");
 }
 

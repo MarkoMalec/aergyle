@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "~/lib/prisma";
 import { getServerAuthSession } from "~/server/auth";
+import { normalizeInventorySlots, slotsToInputJson } from "~/utils/inventorySlots";
 
 /**
  * Cancel a marketplace listing
@@ -71,7 +72,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     // Check if there's space in inventory
-    const slots = inventory.slots as any[];
+    const slots = normalizeInventorySlots(inventory.slots, inventory.maxSlots);
     const emptySlotIndex = slots.findIndex(slot => slot.item === null);
 
     if (emptySlotIndex === -1) {
@@ -105,7 +106,7 @@ export async function DELETE(req: NextRequest) {
 
     await prisma.inventory.update({
       where: { userId },
-      data: { slots: updatedSlots },
+      data: { slots: slotsToInputJson(updatedSlots) },
     });
 
     console.log(`[Marketplace] Listing cancelled: ${userItem.itemTemplate.name} returned to user ${userId}'s inventory`);

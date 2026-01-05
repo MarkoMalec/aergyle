@@ -1,7 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ItemRarity, VocationalActionType } from "@prisma/client";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import type { ItemRarity, VocationalActionType } from "~/generated/prisma/enums";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   addActiveActionEventListener,
@@ -40,17 +46,32 @@ type StatusResponse = {
     remainingSeconds: number;
     isComplete: boolean;
   };
-  skillProgress:
-    | null
-    | {
-        trackKey: string;
-        level: number;
-        currentXp: number;
-        xpForNextLevel: number;
-        xpProgress: number;
-        xpRemaining: number;
-      };
+  skillProgress: null | {
+    trackKey: string;
+    level: number;
+    currentXp: number;
+    xpForNextLevel: number;
+    xpProgress: number;
+    xpRemaining: number;
+  };
 };
+
+type TravelStatusResponse =
+  | {
+      travel: {
+        id: number;
+        startedAt: string;
+        endsAt: string;
+        fromLocation: { id: number; name: string } | null;
+        toLocation: { id: number; name: string };
+      };
+      progress: {
+        progress: number;
+        remainingSeconds: number;
+        isComplete: boolean;
+      };
+    }
+  | { travel: null; progress: null };
 
 function formatAction(action: string) {
   return action
@@ -63,11 +84,12 @@ export type ActiveActionViewModel = {
   skillLabel: string;
   label: string;
   href: string;
-  sprite: string;
+  sprite?: string;
   remainingSeconds: number;
   nextItemInTime: string | null;
   sessionRemainingSeconds: number;
   progress: number;
+  previewProgress: number;
   sessionAmount: number;
   sessionLabel: string;
   xpPerUnit: number;
@@ -83,6 +105,14 @@ export type UseVocationalActiveActionResult = ReturnType<
 
 export function useVocationalActiveAction() {
   const queryClient = useQueryClient();
+  const [travelStatus, setTravelStatus] = useState<TravelStatusResponse | null>(
+    null,
+  );
+  const [travelSync, setTravelSync] = useState<{
+    fetchedAtMs: number;
+    remainingSecondsAtFetch: number;
+    durationSeconds: number;
+  } | null>(null);
   const [status, setStatus] = useState<StatusResponse | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [displayUnitsTotal, setDisplayUnitsTotal] = useState(0);
@@ -92,6 +122,44 @@ export function useVocationalActiveAction() {
 
   const refresh = useCallback(async () => {
     try {
+      // Travel has priority: while traveling, you can't do other actions.
+      const travelRes = await fetch("/api/travel/status", {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+      });
+
+      if (travelRes.ok) {
+        const travelJson = (await travelRes.json()) as TravelStatusResponse;
+        setTravelStatus(travelJson);
+
+        if (travelJson.travel && travelJson.progress) {
+          const startedAtMs = new Date(travelJson.travel.startedAt).getTime();
+          const endsAtMs = new Date(travelJson.travel.endsAt).getTime();
+          const durationSeconds = Math.max(
+            1,
+            Math.round((endsAtMs - startedAtMs) / 1000),
+          );
+
+          setTravelSync({
+            fetchedAtMs: Date.now(),
+            remainingSecondsAtFetch: Math.max(
+              0,
+              Math.floor(travelJson.progress.remainingSeconds),
+            ),
+            durationSeconds,
+          });
+        } else {
+          setTravelSync(null);
+        }
+
+        if (travelJson.travel) {
+          // Clear vocational status while traveling.
+          setStatus({ activity: null, progress: null, skillProgress: null });
+          return;
+        }
+      }
+
       const res = await fetch("/api/vocations/status", {
         method: "GET",
         headers: { "Content-Type": "application/json" },
@@ -112,6 +180,21 @@ export function useVocationalActiveAction() {
   }, [refresh]);
 
   useEffect(() => {
+    const travel = travelStatus?.travel;
+    if (travel) {
+      const endsAtMs = new Date(travel.endsAt).getTime();
+
+      // Schedule a refresh near completion. This is best-effort; the bar itself is
+      // driven from remainingSeconds baseline.
+      const msToEnd = Math.max(0, endsAtMs - Date.now()) + 75;
+
+      const t = window.setTimeout(() => {
+        void refresh();
+      }, msToEnd);
+
+      return () => window.clearTimeout(t);
+    }
+
     const activity = status?.activity;
     if (!activity) return;
 
@@ -126,7 +209,8 @@ export function useVocationalActiveAction() {
 
     // If we're exactly on a unit boundary (and not at start), refresh shortly
     // so the server can auto-grant that unit immediately.
-    let msToNext = remainder === 0 && elapsedMs > 0 ? 75 : Math.max(75, unitMs - remainder);
+    let msToNext =
+      remainder === 0 && elapsedMs > 0 ? 75 : Math.max(75, unitMs - remainder);
 
     // Also ensure we refresh right after endsAt so the activity clears promptly.
     const msToEnd = Math.max(0, endsAtMs - nowMs) + 75;
@@ -138,6 +222,8 @@ export function useVocationalActiveAction() {
 
     return () => window.clearTimeout(t);
   }, [
+    travelStatus?.travel?.startedAt,
+    travelStatus?.travel?.endsAt,
     status?.activity?.startedAt,
     status?.activity?.endsAt,
     status?.activity?.unitSeconds,
@@ -166,7 +252,9 @@ export function useVocationalActiveAction() {
     return addActiveActionEventListener((ev) => {
       const kind = ev?.detail?.kind;
       if (kind === "stop-optimistic") {
-        setStatus((prev) => (prev ? { activity: null, progress: null, skillProgress: null } : prev));
+        setStatus((prev) =>
+          prev ? { activity: null, progress: null, skillProgress: null } : prev,
+        );
         return;
       }
       if (kind === "changed") void refresh();
@@ -174,6 +262,54 @@ export function useVocationalActiveAction() {
   }, [refresh]);
 
   const derived = useMemo(() => {
+    const travel = travelStatus?.travel;
+    if (travel) {
+      const startedAt = new Date(travel.startedAt).getTime();
+      const endsAt = new Date(travel.endsAt).getTime();
+
+      const durationSeconds = Math.max(
+        1,
+        Math.round((endsAt - startedAt) / 1000),
+      );
+
+      let remainingSeconds = travelSync?.remainingSecondsAtFetch ?? null;
+      if (remainingSeconds == null) {
+        // No baseline yet; show 0% until the next refresh populates travelSync.
+        remainingSeconds = durationSeconds;
+      } else {
+        const fetchedAtMs = travelSync?.fetchedAtMs;
+        const elapsedSinceFetchSeconds =
+          fetchedAtMs == null ? 0 : Math.floor((now - fetchedAtMs) / 1000);
+        remainingSeconds = Math.max(
+          0,
+          remainingSeconds - Math.max(0, elapsedSinceFetchSeconds),
+        );
+      }
+
+      const progress = Math.max(
+        0,
+        Math.min(1, 1 - remainingSeconds / Math.max(1, durationSeconds)),
+      );
+
+      return {
+        kind: "travel" as const,
+        skillLabel: "Travel",
+        href: "/map",
+        label: `Traveling to ${travel.toLocation.name}`,
+        sprite: undefined,
+        remainingSeconds,
+        nextItemInTime: null,
+        sessionRemainingSeconds: remainingSeconds,
+        progress,
+        previewProgress: progress,
+        unitsTotal: 0,
+        yieldPerUnit: 0,
+        xpPerUnit: 0,
+        xpPerSecond: "0.00",
+        skillProgress: null,
+      };
+    }
+
     const activity = status?.activity;
     if (!activity) return null;
 
@@ -189,25 +325,39 @@ export function useVocationalActiveAction() {
 
     const unitsTotal = Math.floor(elapsed / unitMs);
 
-    const unitHours = Math.floor(activity.unitSeconds / 3600);
-    const unitMinutes = Math.floor(activity.unitSeconds / 60);
     const unitSeconds = Math.max(1, Math.floor(activity.unitSeconds));
     const elapsedSeconds = Math.floor(elapsed / 1000);
     const unitElapsedSeconds = elapsedSeconds % unitSeconds;
 
-    const remainingSeconds = Math.max(0, Math.ceil((duration - elapsed) / 1000));
+    const completedSecondBoundary =
+      unitSeconds > 1 &&
+      elapsedSeconds > 0 &&
+      elapsedSeconds % unitSeconds === 0;
+
+    const remainingSeconds = Math.max(
+      0,
+      Math.ceil((duration - elapsed) / 1000),
+    );
 
     const isComplete = duration === 0 ? true : elapsed >= duration;
-    // always must be 0:00 but the numbers must change accordingly, if not null
-    const nextItemInTime = isComplete
-      ? null
-      : `${unitHours ? unitHours + ":" : ""}${unitMinutes}:${(unitSeconds - unitElapsedSeconds).toString().padStart(2, "0")}`;
 
-    // Fill only once per second: each second adds 1/unitSeconds.
-    // IMPORTANT: we also show 100% at the exact second a tick completes.
-    // Example (unitSeconds=5): 0%,20%,40%,60%,80%,100%,20%,...
-    const completedSecondBoundary =
-      unitSeconds > 1 && elapsedSeconds > 0 && elapsedSeconds % unitSeconds === 0;
+    // Display remaining time until the next unit completes.
+    // At the exact unit boundary (bar hits 100%), show 0:00 instead of resetting early.
+    const remainingInUnitSeconds = isComplete
+      ? null
+      : completedSecondBoundary
+        ? 0
+        : Math.max(0, unitSeconds - unitElapsedSeconds);
+
+    const nextItemInTime =
+      remainingInUnitSeconds === null
+        ? null
+        : (() => {
+            const hours = Math.floor(remainingInUnitSeconds / 3600);
+            const minutes = Math.floor((remainingInUnitSeconds % 3600) / 60);
+            const seconds = remainingInUnitSeconds % 60;
+            return `${hours ? hours + ":" : ""}${minutes}:${seconds.toString().padStart(2, "0")}`;
+          })();
 
     const progress =
       duration === 0 || remainingSeconds === 0
@@ -218,9 +368,23 @@ export function useVocationalActiveAction() {
             ? 1
             : unitElapsedSeconds / unitSeconds;
 
+    // Visual helper bar: always 1 UI-tick (1 second) ahead.
+    // Example (unitSeconds=5): real 0%,20%,40%,60%,80%,100%,20%...
+    // preview 20%,40%,60%,80%,100%,20%,40%...
+    const previewProgress =
+      unitSeconds <= 1
+        ? 1
+        // When the real bar hits 100% (resource gathered), keep the preview at 100%
+        // for that moment. This prevents the preview bar from appearing "behind"
+        // due to wrapping to the next unit immediately.
+        : completedSecondBoundary
+          ? 1
+          : Math.min(1, progress + 1 / unitSeconds);
+
     const label = `${activity.resource.name}`;
 
     return {
+      kind: "vocation" as const,
       skillLabel,
       label,
       href,
@@ -229,23 +393,27 @@ export function useVocationalActiveAction() {
       nextItemInTime,
       sessionRemainingSeconds: remainingSeconds,
       progress,
+      previewProgress,
       unitsTotal,
       yieldPerUnit: Math.max(1, activity.resource.yieldPerUnit),
       xpPerUnit: Math.max(0, Math.floor(activity.resource.xpPerUnit ?? 0)),
       xpPerSecond: Math.max(
         0,
-        Math.floor(activity.resource.xpPerUnit ?? 0) / Math.max(1, activity.unitSeconds),
+        Math.floor(activity.resource.xpPerUnit ?? 0) /
+          Math.max(1, activity.unitSeconds),
       ).toFixed(2),
       skillProgress: status?.skillProgress ?? null,
     };
-  }, [status, now]);
+  }, [status, travelStatus, travelSync, now]);
 
   // Instant per-unit callback (matches fill-bar timing).
   // This fires when the client-side computed "unitsTotal" advances (i.e. when the bar hits 100%).
   // Note: this is based on time, not on server confirmation.
   useEffect(() => {
+    if (!derived || derived.kind !== "vocation") return;
+
     const activityId = status?.activity?.id ?? null;
-    const unitsTotal = derived?.unitsTotal ?? null;
+    const unitsTotal = derived.unitsTotal ?? null;
 
     if (!activityId || unitsTotal == null) {
       prevActivityIdRef.current = null;
@@ -267,14 +435,43 @@ export function useVocationalActiveAction() {
 
     if (unitsTotal > prevUnitsTotal) {
       const delta = unitsTotal - prevUnitsTotal;
-      for (let i = 0; i < delta; i++) toast.success(`+${derived?.yieldPerUnit} ${derived?.label}`, { position: 'bottom-right' });
+      for (let i = 0; i < delta; i++) {
+        toast.custom(
+          (t) =>
+            React.createElement(
+              "span",
+              {
+                className:
+                  "flex items-center gap-2 bg-gray-700 px-3 py-2 text-sm text-foreground shadow-sm rounded-lg",
+              },
+              derived.sprite
+                ? React.createElement("img", {
+                    src: derived.sprite,
+                    alt: derived.label,
+                    className: "h-8 w-8 object-contain",
+                  })
+                : null,
+              React.createElement(
+                "span",
+                { className: "font-medium" },
+                `+${derived.yieldPerUnit} ${derived.label}`,
+              ),
+            ),
+          { position: "bottom-right", duration: 5000 },
+        );
+      }
     }
 
     prevUnitsTotalRef.current = unitsTotal;
-  }, [status?.activity?.id, derived?.unitsTotal]);
+  }, [status?.activity?.id, derived]);
 
   useEffect(() => {
     if (!derived) {
+      setDisplayUnitsTotal(0);
+      return;
+    }
+
+    if (derived.kind !== "vocation") {
       setDisplayUnitsTotal(0);
       return;
     }
@@ -284,7 +481,7 @@ export function useVocationalActiveAction() {
       ACTION_BAR_LAG_MS,
     );
     return () => window.clearTimeout(t);
-  }, [derived?.unitsTotal]);
+  }, [derived]);
 
   const viewModel: ActiveActionViewModel | null = useMemo(() => {
     if (!derived) return null;
@@ -298,7 +495,11 @@ export function useVocationalActiveAction() {
       nextItemInTime: derived.nextItemInTime,
       sessionRemainingSeconds: derived.sessionRemainingSeconds,
       progress: derived.progress,
-      sessionAmount: displayUnitsTotal * derived.yieldPerUnit,
+      previewProgress: derived.previewProgress,
+      sessionAmount:
+        derived.kind === "vocation"
+          ? displayUnitsTotal * derived.yieldPerUnit
+          : 0,
       sessionLabel: "this session",
       xpPerUnit: derived.xpPerUnit,
       xpPerSecond: derived.xpPerSecond,
@@ -307,10 +508,10 @@ export function useVocationalActiveAction() {
   }, [derived, displayUnitsTotal]);
 
   const stopMutation = useMutation({
-    mutationFn: async () => {
-      const res = await fetch("/api/vocations/stop", {
-        method: "POST",
-      });
+    mutationFn: async (kind: "vocation" | "travel") => {
+      const url =
+        kind === "travel" ? "/api/travel/cancel" : "/api/vocations/stop";
+      const res = await fetch(url, { method: "POST" });
       if (!res.ok) {
         const json = await res.json().catch(() => null);
         throw new Error(json?.error ?? "Failed to stop");
@@ -319,13 +520,16 @@ export function useVocationalActiveAction() {
     },
     onMutate: async () => {
       // Optimistic update - immediately clear UI
-      setStatus((prev) => (prev ? { activity: null, progress: null, skillProgress: null } : prev));
+      setTravelStatus({ travel: null, progress: null });
+      setStatus((prev) =>
+        prev ? { activity: null, progress: null, skillProgress: null } : prev,
+      );
       dispatchActiveActionEvent({ kind: "stop-optimistic" });
     },
     onSuccess: async () => {
       // Refresh status to get updated state (inventory updated server-side)
       await refresh();
-      
+
       // Notify listeners of change (for other components)
       dispatchActiveActionEvent({ kind: "changed" });
     },
@@ -336,14 +540,17 @@ export function useVocationalActiveAction() {
   });
 
   const stop = useCallback(() => {
-    stopMutation.mutate();
-  }, [stopMutation]);
+    const kind = travelStatus?.travel ? "travel" : "vocation";
+    stopMutation.mutate(kind);
+  }, [stopMutation, travelStatus?.travel]);
 
   return {
     active: !!viewModel,
     viewModel,
     activeResourceId: status?.activity?.resource?.id ?? null,
-    activeActionType: status?.activity?.actionType ?? null,
+    activeActionType: travelStatus?.travel
+      ? ("TRAVEL" as const)
+      : status?.activity?.actionType ?? null,
     stop,
     error: stopMutation.error?.message ?? null,
     isStopping: stopMutation.isPending,

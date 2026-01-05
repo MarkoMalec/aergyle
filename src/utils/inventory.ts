@@ -1,56 +1,7 @@
-import { prisma } from "~/lib/prisma";
-import { Item } from "@prisma/client";
-import { EquipmentSlotsWithItems, ValidEquipSlot } from "~/types/inventory";
+import { EquipmentSlotsWithItems } from "~/types/inventory";
 import { ItemWithStats } from "~/types/stats";
 import { fetchUserItemsByIds } from "~/utils/userItemInventory";
-
-/**
- * Fetch multiple items by IDs in a single query
- * More efficient than individual queries
- */
-export async function fetchItemsByIds(itemIds: number[]): Promise<ItemWithStats[]> {
-  // Filter out undefined, null, and invalid values
-  const validItemIds = itemIds.filter((id): id is number => 
-    id !== undefined && id !== null && typeof id === 'number'
-  );
-
-  if (validItemIds.length === 0) return [];
-
-  return await prisma.item.findMany({
-    where: {
-      id: { in: validItemIds },
-    },
-    include: {
-      stats: true, // Include all detailed stats
-    },
-  });
-}
-
-/**
- * Fetch a single item by ID
- */
-export async function fetchItemById(itemId: number): Promise<ItemWithStats | null> {
-  return await prisma.item.findUnique({
-    where: { id: itemId },
-    include: {
-      stats: true,
-    },
-  });
-}
-
-/**
- * Check if an item can be equipped to a specific slot
- * Handles special cases like rings
- */
-export function canEquipToSlot(item: ItemWithStats, slotType: string): boolean {
-  if (!item.equipTo) return false;
-
-  if (slotType === "ring1" || slotType === "ring2") {
-    return item.equipTo === "ring";
-  }
-
-  return item.equipTo === slotType;
-}
+import { EQUIPMENT_ALLOWED_SLOT_SET } from "~/utils/itemEquipTo";
 
 /**
  * Validate equipment data
@@ -58,24 +9,9 @@ export function canEquipToSlot(item: ItemWithStats, slotType: string): boolean {
 export function validateEquipment(
   equipment: Record<string, number | null>,
 ): boolean {
-  const validSlots = [
-    "head",
-    "necklace",
-    "chest",
-    "pauldrons",
-    "bracers",
-    "gloves",
-    "greaves",
-    "boots",
-    "belt",
-    "ring1",
-    "ring2",
-    "amulet",
-    "backpack",
-    "weapon",
-  ];
-
-  return Object.keys(equipment).every((key) => validSlots.includes(key));
+  return Object.keys(equipment).every((key) =>
+    EQUIPMENT_ALLOWED_SLOT_SET.has(key),
+  );
 }
 
 /**

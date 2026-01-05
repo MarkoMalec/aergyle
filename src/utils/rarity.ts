@@ -1,5 +1,5 @@
 import { prisma } from "~/lib/prisma";
-import { ItemRarity, StatType } from "@prisma/client";
+import { ItemEquipTo, ItemRarity, StatType } from "~/generated/prisma/enums";
 import { ItemWithStats } from "~/types/stats";
 
 /**
@@ -473,7 +473,7 @@ export async function generateItemWithRarity(
     name: string;
     price: number;
     sprite: string;
-    equipTo: string | null;
+    equipTo: ItemEquipTo | null;
     requiredLevel: number;
   },
   rarity: ItemRarity,

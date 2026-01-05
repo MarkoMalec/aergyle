@@ -9,6 +9,7 @@ import {
   Shirt,
   UserRound,
   TreeDeciduous,
+  Map,
 } from "lucide-react";
 import { prisma } from "~/lib/prisma";
 import Image from "next/image";
@@ -41,8 +42,13 @@ const SidebarLeft = async () => {
           </Link>
         </Button>
         <Button asChild variant="menu" className="w-full justify-start">
-          <Link title="character screen" href="/character">
+          <Link title="character screen" href="/profile">
             <Shirt className="mr-4 min-h-5 min-w-5" strokeWidth={1} /> Inventory
+          </Link>
+        </Button>
+        <Button asChild variant="menu" className="w-full justify-start">
+          <Link title="character screen" href="/map">
+            <Map className="mr-4 min-h-5 min-w-5" strokeWidth={1} /> Map
           </Link>
         </Button>
       </div>

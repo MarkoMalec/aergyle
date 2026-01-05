@@ -12,9 +12,16 @@ import {
   formatStatValue,
   calculateEquipmentBonuses,
 } from "~/utils/stats";
-import { Card, CardContent, CardTitle } from "~/components/ui/card";
+import { Card, CardContent } from "~/components/ui/card";
 import { Separator } from "~/components/ui/separator";
 import { useEquipmentContext } from "~/context/equipmentContext";
+import { cn } from "~/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "~/components/ui/tooltip";
 
 interface CharacterStatsProps {
   baseStats: Array<{ statType: StatType; value: number }>;
@@ -71,6 +78,9 @@ export const CharacterStats = ({ baseStats }: CharacterStatsProps) => {
     experienceGain: StatType.EXPERIENCE_GAIN,
     lifesteal: StatType.LIFESTEAL,
     thorns: StatType.THORNS,
+    woodcuttingEfficiency: StatType.WOODCUTTING_EFFICIENCY,
+    miningEfficiency: StatType.MINING_EFFICIENCY,
+    fishingEfficiency: StatType.FISHING_EFFICIENCY,
   };
 
   const statsByCategory = useMemo(() => {
@@ -99,39 +109,58 @@ export const CharacterStats = ({ baseStats }: CharacterStatsProps) => {
     return categories;
   }, [finalStats]);
 
-  const renderStatCategory = (
-    category: StatCategory,
-    title: string,
-    stats: Array<[StatType, number]>,
-  ) => {
+  const renderStatCategory = (title: string, stats: Array<[StatType, number]>) => {
     if (stats.length === 0) return null;
 
     return (
-      <div className="mb-4">
-        <h3 className="mb-2 text-sm font-semibold uppercase text-gray-400">
-          {title}
-        </h3>
-        <div className="space-y-1">
+      <div className="rounded-lg border border-gray-700/40 bg-gray-800 p-4">
+        <div className="mb-3 flex items-center justify-between">
+          <div className="text-xs font-semibold uppercase tracking-wide text-white/70">
+            {title}
+          </div>
+          <div className="text-[11px] text-white/40 tabular-nums">
+            {stats.length}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {stats.map(([statType, value]) => {
             const metadata = STAT_METADATA[statType];
             if (!metadata) return null;
 
+            const isZero = value === 0;
+            const label = metadata.shortLabel ?? metadata.label;
+
             return (
-              <div
-                key={statType}
-                className="flex items-center justify-between gap-8 text-sm"
-                style={value === 0 ? { opacity: 0.2, fontWeight: 'normal' } : { opacity: 1, fontWeight: 'bold' }}
-              >
-                <div className="flex items-center gap-2">
-                  <span>{metadata.icon}</span>
-                  <span style={{ color: metadata.color }}>
-                    {metadata.label}
-                  </span>
-                </div>
-                <span className="font-medium" style={{ color: metadata.color }}>
-                  {formatStatValue(value, statType)}
-                </span>
-              </div>
+              <Tooltip key={statType}>
+                <TooltipTrigger asChild>
+                  <div
+                    className={cn(
+                      "flex cursor-default items-center justify-between gap-3 rounded-md border border-gray-700/40 bg-gray-700/20 px-3 py-2",
+                      isZero ? "opacity-40" : "opacity-100",
+                    )}
+                    aria-label={metadata.label}
+                  >
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="shrink-0 text-sm">{metadata.icon}</span>
+                      <span className="truncate text-[13px] text-white/80">
+                        {label}
+                      </span>
+                    </div>
+
+                    <span
+                      className="shrink-0 font-mono text-[13px] font-semibold tabular-nums"
+                      style={{ color: metadata.color }}
+                    >
+                      {formatStatValue(value, statType)}
+                    </span>
+                  </div>
+                </TooltipTrigger>
+
+                <TooltipContent side="top" className="max-w-[260px]">
+                  {metadata.label}
+                </TooltipContent>
+              </Tooltip>
             );
           })}
         </div>
@@ -140,43 +169,34 @@ export const CharacterStats = ({ baseStats }: CharacterStatsProps) => {
   };
 
   return (
-    <Card className="my-8 w-full border border-white/10 bg-white/5 p-2">
-      <CardContent className="p-2">
-        <CardTitle className="mb-4 text-lg font-bold">
-          Character Stats
-        </CardTitle>
-        <Separator className="mb-4" />
-        <div className="flex flex-col justify-between gap-6 md:flex-row">
-          {renderStatCategory(
-            StatCategory.CHARACTER,
-            "Character",
-            statsByCategory.get(StatCategory.CHARACTER) || [],
-          )}
+    <Card className="my-8 w-full border border-gray-700/40 bg-gray-800/40 shadow-none">
+      <CardContent className="p-4">
+        <Separator className="mb-4 text-sm">CHARACTER STATS</Separator>
 
-          {renderStatCategory(
-            StatCategory.OFFENSIVE,
-            "Offensive",
-            statsByCategory.get(StatCategory.OFFENSIVE) || [],
-          )}
-
-          {renderStatCategory(
-            StatCategory.DEFENSIVE,
-            "Defensive",
-            statsByCategory.get(StatCategory.DEFENSIVE) || [],
-          )}
-
-          {renderStatCategory(
-            StatCategory.RESISTANCE,
-            "Resistance",
-            statsByCategory.get(StatCategory.RESISTANCE) || [],
-          )}
-
-          {renderStatCategory(
-            StatCategory.SPECIAL,
-            "Special",
-            statsByCategory.get(StatCategory.SPECIAL) || [],
-          )}
-        </div>
+        <TooltipProvider delayDuration={150}>
+          <div className="flex flex-col gap-4">
+            {renderStatCategory(
+              "Character",
+              statsByCategory.get(StatCategory.CHARACTER) || [],
+            )}
+            {renderStatCategory(
+              "Offensive",
+              statsByCategory.get(StatCategory.OFFENSIVE) || [],
+            )}
+            {renderStatCategory(
+              "Defensive",
+              statsByCategory.get(StatCategory.DEFENSIVE) || [],
+            )}
+            {renderStatCategory(
+              "Resistance",
+              statsByCategory.get(StatCategory.RESISTANCE) || [],
+            )}
+            {renderStatCategory(
+              "Special",
+              statsByCategory.get(StatCategory.SPECIAL) || [],
+            )}
+          </div>
+        </TooltipProvider>
       </CardContent>
     </Card>
   );

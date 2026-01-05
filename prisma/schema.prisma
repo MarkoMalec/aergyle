@@ -1,10 +1,11 @@
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "mysql"
-  url      = env("DATABASE_URL")
+  // url      = env("DATABASE_URL")
 }
 
 model Account {
@@ -45,6 +46,8 @@ model User {
   image         String?
   last_online   DateTime            @default(now()) @db.Timestamp(0)
   last_action   String?
+  // The user's current location in the world (one at a time).
+  currentLocationId Int?
   level         Int                 @default(1)
   // Total (lifetime) XP. Level is derived from `LevelXpThreshold`.
   // NOTE: existing DBs may have legacy "XP within level" values; code normalizes lazily.
@@ -60,9 +63,13 @@ model User {
   userItems     UserItem[]
   trackProgress UserTrackProgress[]
   vocationalActivity UserVocationalActivity?
+  travelActivity UserTravelActivity?
+
+  currentLocation Location? @relation("UserCurrentLocation", fields: [currentLocationId], references: [id], onDelete: SetNull)
   
   @@index([level])
   @@index([experience])
+  @@index([currentLocationId])
 }
 
 model VerificationToken {
@@ -114,6 +121,8 @@ enum ItemType {
   // Weapon Types
   SWORD
   AXE
+  FELLING_AXE
+  PICKAXE
   BOW
   CROSSBOW
   STAFF
@@ -143,9 +152,11 @@ enum ItemType {
   
   // Resource Types
   ORE
+  INGOT
   LOG
   HERB
   FISH
+  BAIT
   HIDE
   STONE
   GEM
@@ -170,6 +181,22 @@ enum ItemType {
   
   // Misc
   OTHER
+}
+
+// Per-unit material requirements for a vocational resource output.
+// Example: SMELTING "Iron Bar" might require 1x Iron Ore per unit.
+model VocationalRequirement {
+  id              Int              @id @default(autoincrement())
+  resourceId      Int
+  itemId          Int
+  quantityPerUnit Int              @default(1)
+
+  resource        VocationalResource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  item            Item               @relation(fields: [itemId], references: [id], onDelete: Restrict)
+
+  @@unique([resourceId, itemId])
+  @@index([resourceId])
+  @@index([itemId])
 }
 
 enum StatType {
@@ -212,21 +239,53 @@ enum StatType {
   LIFESTEAL
   THORNS
   CARRYING_CAPACITY
+
+  // Vocation/tool stats
+  WOODCUTTING_EFFICIENCY
+  MINING_EFFICIENCY
+  FISHING_EFFICIENCY
+}
+
+// Constrained set of equipment-slot targets for Item templates.
+// This is stored as a MySQL ENUM so tools like phpMyAdmin present a dropdown.
+enum ItemEquipTo {
+  head
+  necklace
+  chest
+  pauldrons
+  bracers
+  gloves
+  greaves
+  boots
+  belt
+  ring
+  amulet
+  backpack
+  weapon
+  fellingAxe
+  pickaxe
 }
 
 model Item {
   id      Int        @id @default(autoincrement())
   name    String
+  description String? @db.Text
   price   Float
   sprite  String
   
   // Item categorization
   itemType     ItemType?   // Specific type (SWORD, ORE, POTION, etc) - nullable for now
-  equipTo      String?     // Equipment slot (WEAPON, CHEST, etc) - nullable
+  equipTo      ItemEquipTo? // Equipment slot (weapon, chest, etc) - nullable
   
   // Stacking system
   stackable    Boolean     @default(false)
   maxStackSize Int         @default(1)
+
+  // If enabled, negative stats (e.g. MOVEMENT_SPEED -5) will become less negative
+  // and eventually positive as rarity multipliers increase.
+  flipNegativeStatsWithRarity Boolean @default(false)
+
+  vocationalRequirements VocationalRequirement[]
   
   rarity  ItemRarity @default(COMMON)
 
@@ -241,6 +300,8 @@ model Item {
   // Relationships
   stats            ItemStat[]
   statProgressions ItemStatProgression[] // Defines stats at each rarity tier
+  statRarityOverrides ItemStatRarityOverride[] // Optional absolute overrides per rarity
+  toolEfficiencies ToolEfficiency[]      // Base efficiencies per vocation tool
   userItems        UserItem[]            // Item instances owned by players
   vocationalResource VocationalResource?
 
@@ -252,11 +313,29 @@ model Item {
   @@index([rarity])
 }
 
+// Optional per-rarity absolute override values for an item stat.
+// If a row exists for (itemId, statType, rarity), that value is used instead of rarity multiplier scaling.
+model ItemStatRarityOverride {
+  id       Int       @id @default(autoincrement())
+  itemId   Int
+  statType StatType
+  rarity   ItemRarity
+  value    Float
+
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@unique([itemId, statType, rarity])
+  @@index([itemId, rarity])
+}
+
 model ItemStat {
   id       Int      @id @default(autoincrement())
   itemId   Int
   statType StatType
   value    Float
+  // Optional upper cap applied after rarity scaling.
+  // Example: MOVEMENT_SPEED -5 with maxValue -1 will never exceed -1.
+  maxValue Float?
 
   item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
@@ -282,6 +361,22 @@ model ItemStatProgression {
 // ============================================
 // USER ITEM INSTANCES
 // ============================================
+
+// ============================================
+// VOCATIONAL TOOL EFFICIENCY
+// ============================================
+
+model ToolEfficiency {
+  id             Int                   @id @default(autoincrement())
+  itemId         Int
+  actionType     VocationalActionType  // Which vocation this tool boosts
+  baseEfficiency Float                 // Base percent at COMMON rarity
+
+  item           Item                  @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@unique([itemId, actionType])
+  @@index([actionType])
+}
 
 enum ItemStatus {
   IN_INVENTORY   // In player's inventory
@@ -317,6 +412,8 @@ model UserItem {
   user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   itemTemplate   Item          @relation(fields: [itemId], references: [id], onDelete: Cascade)
   stats          UserItemStat[]
+
+  baitForActivities UserVocationalActivity[] @relation("BaitUserItem")
   
   @@index([userId])
   @@index([itemId])
@@ -380,6 +477,8 @@ model Equipment {
   glovesItemId    Int?
   backpackItemId  Int?
   weaponItemId    Int?
+  fellingAxeItemId Int?
+  pickaxeItemId    Int?
   
   User      User   @relation(fields: [userId], references: [id])
 }
@@ -634,6 +733,45 @@ model Location {
 
   resources LocationVocationalResource[]
   activities UserVocationalActivity[]
+  users      User[] @relation("UserCurrentLocation")
+
+  travelFrom UserTravelActivity[] @relation("TravelFrom")
+  travelTo   UserTravelActivity[] @relation("TravelTo")
+}
+
+// ============================================
+// TRAVEL
+// ============================================
+
+// Optional: keeps global travel duration in the DB.
+// If you never create a row, code falls back to 4 hours.
+model TravelConfig {
+  id               Int      @id @default(autoincrement())
+  secondsPerTravel Int      @default(14400) // 4 hours
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+// One active travel per user.
+model UserTravelActivity {
+  id             Int      @id @default(autoincrement())
+  userId         String   @unique
+  fromLocationId Int?
+  toLocationId   Int
+
+  startedAt   DateTime @default(now())
+  endsAt      DateTime
+  cancelledAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fromLocation Location? @relation("TravelFrom", fields: [fromLocationId], references: [id], onDelete: SetNull)
+  toLocation   Location  @relation("TravelTo", fields: [toLocationId], references: [id], onDelete: Restrict)
+
+  @@index([endsAt])
+  @@index([userId, endsAt])
 }
 
 // A resource that can be produced by a vocational action (e.g. Coal for MINING)
@@ -643,6 +781,9 @@ model VocationalResource {
   actionType    VocationalActionType
   name          String
   itemId        Int                  @unique
+
+  // Skill-gating: minimum SKILL track level for this actionType
+  requiredSkillLevel Int            @default(1)
 
   // Balance knobs (DB-driven)
   defaultSeconds Int                @default(10) // seconds per 1 unit, before tool/buff modifiers
@@ -656,6 +797,7 @@ model VocationalResource {
   item          Item                 @relation(fields: [itemId], references: [id], onDelete: Cascade)
   locations     LocationVocationalResource[]
   activities    UserVocationalActivity[]
+  requirements  VocationalRequirement[]
 
   @@index([actionType])
 }
@@ -666,7 +808,6 @@ model LocationVocationalResource {
   locationId  Int
   resourceId  Int
 
-  baseSeconds Int
   enabled     Boolean            @default(true)
 
   location    Location           @relation(fields: [locationId], references: [id], onDelete: Cascade)
@@ -692,6 +833,9 @@ model UserVocationalActivity {
   // Snapshot of effective unit time (after tool/buff modifiers at start)
   unitSeconds  Int
 
+  // For FISHING: which specific UserItem stack to consume as bait.
+  baitUserItemId Int?
+
   // How many units have already been claimed/paid out
   unitsClaimed Int                  @default(0)
 
@@ -701,7 +845,9 @@ model UserVocationalActivity {
   user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   resource     VocationalResource   @relation(fields: [resourceId], references: [id], onDelete: Restrict)
   location     Location?            @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  baitUserItem  UserItem?            @relation("BaitUserItem", fields: [baitUserItemId], references: [id], onDelete: SetNull)
 
   @@index([endsAt])
   @@index([userId, endsAt])
+  @@index([baitUserItemId])
 }

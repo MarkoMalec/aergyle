@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, ReactNode, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import {
   DndContext as DndKitContext,
   closestCenter,
@@ -19,8 +20,10 @@ import {
   EQUIPMENT_INDEX_MAP,
   EquipmentSlotType,
 } from "~/types/inventory";
-import { canEquipToSlot } from "~/utils/inventory";
+import { canEquipToSlot } from "~/utils/inventoryClient";
 import { useState } from "react";
+import { useVocationalActiveActionContext } from "~/components/game/actions/VocationalActiveActionProvider";
+import toast from "react-hot-toast";
 
 // Export for backward compatibility
 export type InventorySlot = InventorySlotWithItem;
@@ -54,8 +57,11 @@ export const DndProvider: React.FC<DndProviderProps> = ({
   initialEquipment,
 }) => {
   const { user } = useUserContext();
+  const pathname = usePathname();
   const queryClient = useQueryClient();
   const inventoryKey = inventoryQueryKeys.byUser(user?.id);
+
+  const { active: isActionActive } = useVocationalActiveActionContext();
   
   // Use global equipment context instead of local state
   const { equipment, updateEquipment: updateGlobalEquipment } = useEquipmentContext();
@@ -78,8 +84,18 @@ export const DndProvider: React.FC<DndProviderProps> = ({
     queryFn: fetchInventory,
     enabled: !!user?.id,
     staleTime: 0, // Always fresh - invalidation triggers immediate refetch for real-time updates
-    refetchOnMount: false, // Don't refetch if initialData is fresh
+    // Important: Next.js can keep route segments cached client-side.
+    // When navigating away/back to /profile, we must refetch to avoid showing stale stacks.
+    refetchOnMount: true,
   });
+
+  // If Next keeps this segment mounted (router cache), this ensures we still refresh
+  // when the user navigates back to /profile.
+  useEffect(() => {
+    if (!user?.id) return;
+    if (pathname !== "/profile") return;
+    void inventoryQuery.refetch();
+  }, [pathname, user?.id]);
 
   const updateInventoryOrder = useMutation<
     unknown,
@@ -204,6 +220,15 @@ export const DndProvider: React.FC<DndProviderProps> = ({
 
     if (activeIndex === undefined || overIndex === undefined) return;
     if (!activeContainer || !overContainer) return;
+
+    // Block any equipment changes while an action is active.
+    if (
+      isActionActive &&
+      (activeContainer === "equipment" || overContainer === "equipment")
+    ) {
+      toast.error("You cannot equip or unequip items while an action is active.");
+      return;
+    }
 
     // Same container swaps
     if (activeContainer === overContainer) {
@@ -631,4 +656,9 @@ export const useDndContext = () => {
     throw new Error("useDndContext must be used within a DndProvider");
   }
   return context;
+};
+
+// Use this on pages that may not be wrapped in DndProvider.
+export const useOptionalDndContext = () => {
+  return React.useContext(DndContext);
 };

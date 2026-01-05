@@ -1,7 +1,15 @@
-import { PrismaClient, ItemRarity, StatType } from '@prisma/client';
+import { PrismaClient, ItemRarity, StatType, ItemEquipTo } from '@prisma/client';
+import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 import { calculateRarityStats } from '../src/utils/rarity';
 
-const prisma = new PrismaClient();
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl) {
+  throw new Error("DATABASE_URL is required to run prisma seed");
+}
+
+const prisma = new PrismaClient({
+  adapter: new PrismaMariaDb(databaseUrl),
+});
 
 async function main() {
   console.log('🌱 Starting seed...');
@@ -18,7 +26,7 @@ async function main() {
       name: string;
       price: number;
       sprite: string;
-      equipTo: string | null;
+      equipTo: ItemEquipTo | null;
       rarity: ItemRarity;
       requiredLevel: number;
     },
@@ -60,7 +68,7 @@ async function main() {
       name: 'Wooden Sword',
       price: 50,
       sprite: '/assets/items/weapons/wooden-sword.jpg',
-      equipTo: 'weapon',
+      equipTo: ItemEquipTo.weapon,
       rarity: ItemRarity.COMMON,
       requiredLevel: 1,
     },
@@ -77,7 +85,7 @@ async function main() {
       name: 'Wooden Dagger',
       price: 45,
       sprite: '/assets/items/weapons/wooden-dagger.jpg',
-      equipTo: 'weapon',
+      equipTo: ItemEquipTo.weapon,
       rarity: ItemRarity.COMMON,
       requiredLevel: 1,
     },
@@ -94,7 +102,7 @@ async function main() {
       name: 'Wooden Axe',
       price: 60,
       sprite: '/assets/items/weapons/wooden-axe.png',
-      equipTo: 'weapon',
+      equipTo: ItemEquipTo.weapon,
       rarity: ItemRarity.COMMON,
       requiredLevel: 1,
     },
@@ -110,7 +118,7 @@ async function main() {
       name: 'Wooden Mace',
       price: 55,
       sprite: '/assets/items/weapons/wooden-mace.jpg',
-      equipTo: 'weapon',
+      equipTo: ItemEquipTo.weapon,
       rarity: ItemRarity.COMMON,
       requiredLevel: 1,
     },
@@ -127,7 +135,7 @@ async function main() {
       name: 'Silver Revolver',
       price: 250,
       sprite: '/assets/items/weapons/silver-revolver.jpeg',
-      equipTo: 'weapon',
+      equipTo: ItemEquipTo.weapon,
       rarity: ItemRarity.RARE,
       requiredLevel: 5,
     },
@@ -145,7 +153,7 @@ async function main() {
       name: 'Iron Shield',
       price: 180,
       sprite: '/assets/items/weapons/iron-shield.jpg',
-      equipTo: 'weapon',
+      equipTo: ItemEquipTo.weapon,
       rarity: ItemRarity.UNCOMMON,
       requiredLevel: 3,
     },
@@ -167,7 +175,7 @@ async function main() {
       name: 'Gold Helmet',
       price: 200,
       sprite: '/assets/items/armor/gold-helmet.jpg',
-      equipTo: 'head',
+      equipTo: ItemEquipTo.head,
       rarity: ItemRarity.UNCOMMON,
       requiredLevel: 5,
     },
@@ -187,7 +195,7 @@ async function main() {
       name: 'Gold Chestplate',
       price: 300,
       sprite: '/assets/items/armor/gold-chest.jpg',
-      equipTo: 'chest',
+      equipTo: ItemEquipTo.chest,
       rarity: ItemRarity.UNCOMMON,
       requiredLevel: 5,
     },
@@ -207,7 +215,7 @@ async function main() {
       name: 'Dragonscale Pauldrons',
       price: 450,
       sprite: '/assets/items/armor/dragonscale-pauldrons.jpeg',
-      equipTo: 'pauldrons',
+      equipTo: ItemEquipTo.pauldrons,
       rarity: ItemRarity.RARE,
       requiredLevel: 8,
     },
@@ -228,7 +236,7 @@ async function main() {
       name: 'Gold Gloves',
       price: 180,
       sprite: '/assets/items/armor/gold-gloves.jpg',
-      equipTo: 'gloves',
+      equipTo: ItemEquipTo.gloves,
       rarity: ItemRarity.UNCOMMON,
       requiredLevel: 5,
     },
@@ -249,7 +257,7 @@ async function main() {
       name: 'Gold Boots',
       price: 180,
       sprite: '/assets/items/armor/gold-boots.jpg',
-      equipTo: 'boots',
+      equipTo: ItemEquipTo.boots,
       rarity: ItemRarity.UNCOMMON,
       requiredLevel: 5,
     },
@@ -270,7 +278,7 @@ async function main() {
       name: 'Leather Belt',
       price: 100,
       sprite: '/assets/items/armor/leather-belt.jpg',
-      equipTo: 'belt',
+      equipTo: ItemEquipTo.belt,
       rarity: ItemRarity.COMMON,
       requiredLevel: 3,
     },
@@ -290,7 +298,7 @@ async function main() {
       name: 'Gold Ring',
       price: 150,
       sprite: '/assets/items/armor/gold-ring.jpg',
-      equipTo: 'ring',
+      equipTo: ItemEquipTo.ring,
       rarity: ItemRarity.UNCOMMON,
       requiredLevel: 4,
     },
@@ -306,7 +314,7 @@ async function main() {
       name: 'Diamond Ring',
       price: 500,
       sprite: '/assets/items/armor/diamond-ring.jpg',
-      equipTo: 'ring',
+      equipTo: ItemEquipTo.ring,
       rarity: ItemRarity.EPIC,
       requiredLevel: 10,
     },
@@ -327,7 +335,7 @@ async function main() {
       name: 'Gold Necklace',
       price: 220,
       sprite: '/assets/items/armor/gold-necklace.jpg',
-      equipTo: 'necklace',
+      equipTo: ItemEquipTo.necklace,
       rarity: ItemRarity.UNCOMMON,
       requiredLevel: 5,
     },
@@ -348,7 +356,7 @@ async function main() {
       name: 'Gold Amulet',
       price: 280,
       sprite: '/assets/items/armor/gold-amulet.jpg',
-      equipTo: 'amulet',
+      equipTo: ItemEquipTo.amulet,
       rarity: ItemRarity.RARE,
       requiredLevel: 6,
     },
@@ -370,7 +378,7 @@ async function main() {
       name: 'XL Backpack',
       price: 120,
       sprite: '/assets/items/storage/backpacks/backpack-xl.jpg',
-      equipTo: 'backpack',
+      equipTo: ItemEquipTo.backpack,
       rarity: ItemRarity.COMMON,
       requiredLevel: 1,
     },

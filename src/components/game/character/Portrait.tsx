@@ -6,11 +6,11 @@ const Portrait = () => {
   return (
     <div className="relative">
       <Image
-        className="rounded shadow-lg"
+        className="rounded-lg shadow-lg"
         alt="portrait"
         src="/assets/character/character-warrior.jpg"
-        width={400}
-        height={400}
+        width={550}
+        height={500}
       />
       <div className="absolute left-2 top-2">
         <UserLevelBadge />

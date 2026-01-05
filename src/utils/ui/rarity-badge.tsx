@@ -1,7 +1,7 @@
 "use client";
 
 import { Badge } from "~/components/ui/badge";
-import { ItemRarity } from "@prisma/client";
+import type { ItemRarity } from "~/generated/prisma/enums";
 import { cn } from "~/lib/utils";
 import { getRarityTailwindClass } from "~/utils/rarity-colors";
 import { useRarityColors } from "~/hooks/use-rarity-colors";

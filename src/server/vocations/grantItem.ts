@@ -1,8 +1,10 @@
-import { Prisma, ItemRarity, PrismaClient } from "@prisma/client";
+import { ItemRarity } from "~/generated/prisma/enums";
+import { Prisma, PrismaClient } from "~/generated/prisma/client";
+import { normalizeInventorySlots, slotsToInputJson } from "~/utils/inventorySlots";
 
 type DbClient = Pick<
   PrismaClient,
-  "item" | "inventory" | "userItem" | "$transaction"
+  "item" | "inventory" | "userItem"
 >;
 
 export type GrantResult = {
@@ -35,17 +37,7 @@ export async function grantStackableItemToInventory(params: {
   }
 
   const maxSlots = inventory.maxSlots;
-  const slots = ((inventory.slots as Prisma.JsonArray) || []) as any[];
-
-  // Ensure slots array has objects for every index
-  const normalizedSlots: Array<{ slotIndex: number; item: { id: number } | null }> = Array.from(
-    { length: maxSlots },
-    (_, index) => {
-      const existing = slots[index] as any;
-      const itemObj = existing?.item?.id ? { id: existing.item.id as number } : null;
-      return { slotIndex: index, item: itemObj };
-    },
-  );
+  const normalizedSlots = normalizeInventorySlots(inventory.slots as Prisma.JsonValue, maxSlots);
 
   const affectedUserItemIds: number[] = [];
 
@@ -126,7 +118,7 @@ export async function grantStackableItemToInventory(params: {
 
   await db.inventory.update({
     where: { userId },
-    data: { slots: normalizedSlots as any },
+    data: { slots: slotsToInputJson(normalizedSlots) },
   });
 
   return {

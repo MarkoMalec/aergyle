@@ -1,4 +1,4 @@
-import { ProgressionTrackType } from "@prisma/client";
+import { ProgressionTrackType } from "~/generated/prisma/enums";
 import { prisma } from "~/lib/prisma";
 
 function clampToSafeNumber(value: bigint): number {

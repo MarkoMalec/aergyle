@@ -1,7 +1,10 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { type ItemRarity, ItemRarity as ItemRarityEnum, type Prisma } from "@prisma/client";
+import { ItemRarity as ItemRarityEnum } from "~/generated/prisma/enums";
+import type { ItemRarity } from "~/generated/prisma/enums";
+import type { Prisma } from "~/generated/prisma/client";
 import { prisma } from "~/lib/prisma";
+import { normalizeItemEquipTo } from "~/utils/itemEquipTo";
 
 function getFallbackRaritySortOrder(rarity: ItemRarity): number {
   // Keep in sync with the enum order in `schema.prisma`.
@@ -47,7 +50,7 @@ export async function GET(req: NextRequest) {
   try {
     const searchParams = req.nextUrl.searchParams;
 
-    const equipTo = searchParams.get("equipTo");
+    const equipTo = normalizeItemEquipTo(searchParams.get("equipTo"));
     const rarityParam = searchParams.get("rarity");
     const rarity = isItemRarity(rarityParam) ? rarityParam : null;
     const minPrice = searchParams.get("minPrice");

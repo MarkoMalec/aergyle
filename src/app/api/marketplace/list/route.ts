@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "~/lib/prisma";
 import { getServerAuthSession } from "~/server/auth";
+import { normalizeInventorySlots, slotsToInputJson } from "~/utils/inventorySlots";
 
 /**
  * List an item on the marketplace
@@ -98,7 +99,7 @@ export async function POST(req: NextRequest) {
         // Remove from inventory slots (only when listing the full stack)
         const inventory = await tx.inventory.findUnique({ where: { userId } });
         if (inventory) {
-          const slots = inventory.slots as any[];
+          const slots = normalizeInventorySlots(inventory.slots, inventory.maxSlots);
           const updatedSlots = slots.map((slot) => {
             if (slot.item?.id === parsedUserItemId) {
               return { ...slot, item: null };
@@ -108,7 +109,7 @@ export async function POST(req: NextRequest) {
 
           await tx.inventory.update({
             where: { userId },
-            data: { slots: updatedSlots },
+            data: { slots: slotsToInputJson(updatedSlots) },
           });
         }
 
@@ -181,8 +182,9 @@ export async function POST(req: NextRequest) {
       listing: listedItem,
     });
   } catch (error) {
-    if (error instanceof Error && "status" in error && typeof (error as any).status === "number") {
-      return NextResponse.json({ error: error.message }, { status: (error as any).status });
+    const maybeStatus = (error as { status?: unknown })?.status;
+    if (typeof maybeStatus === "number" && Number.isFinite(maybeStatus)) {
+      return NextResponse.json({ error: (error as Error).message }, { status: maybeStatus });
     }
     console.error("Error listing item:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

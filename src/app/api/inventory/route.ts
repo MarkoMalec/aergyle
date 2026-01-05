@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "~/lib/prisma";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "~/generated/prisma/client";
 import { fetchUserItemsByIds } from "~/utils/userItemInventory";
 import { getInventoryCapacity } from "~/utils/inventoryCapacity";
 import { getServerAuthSession } from "~/server/auth";

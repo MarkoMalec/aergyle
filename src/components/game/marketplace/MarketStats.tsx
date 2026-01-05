@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { ItemRarity } from "@prisma/client";
+import type { ItemRarity } from "~/generated/prisma/enums";
 import { CoinsIcon } from "~/components/game/ui/coins-icon";
 import { Skeleton } from "~/components/ui/skeleton";
 import { marketplaceQueryKeys } from "~/lib/query-keys";

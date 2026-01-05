@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { ItemRarity } from "@prisma/client";
+import type { ItemRarity } from "~/generated/prisma/enums";
 import { rarityQueryKeys } from "~/lib/query-keys";
 import { FALLBACK_RARITY_COLORS } from "~/utils/rarity-colors";
 

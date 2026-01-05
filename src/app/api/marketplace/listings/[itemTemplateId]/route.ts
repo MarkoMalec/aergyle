@@ -1,6 +1,8 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { type ItemRarity, ItemRarity as ItemRarityEnum, type Prisma } from "@prisma/client";
+import { ItemRarity as ItemRarityEnum } from "~/generated/prisma/enums";
+import type { ItemRarity } from "~/generated/prisma/enums";
+import type { Prisma } from "~/generated/prisma/client";
 import { prisma } from "~/lib/prisma";
 
 function isItemRarity(value: string | null): value is ItemRarity {

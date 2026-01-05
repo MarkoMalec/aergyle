@@ -1,5 +1,4 @@
-import { StatType } from "@prisma/client";
-import { prisma } from "~/lib/prisma";
+import { StatType } from "~/generated/prisma/enums";
 import {
   ComputedStats,
   ItemWithStats,
@@ -53,6 +52,11 @@ export function getDefaultBaseStats(): Record<StatType, number> {
     LIFESTEAL: 0,
     THORNS: 0,
     CARRYING_CAPACITY: 0,
+
+    // Vocation/tool
+    WOODCUTTING_EFFICIENCY: 0,
+    MINING_EFFICIENCY: 0,
+    FISHING_EFFICIENCY: 0,
   };
 }
 
@@ -82,43 +86,6 @@ export function calculateEquipmentBonuses(
   return bonuses;
 }
 
-/**
- * Get character base stats from database
- */
-export async function getCharacterBaseStats(
-  userId: string
-): Promise<Record<StatType, number>> {
-  const baseStats = await prisma.characterBaseStat.findMany({
-    where: { userId },
-  });
-
-  const stats: Record<StatType, number> = getDefaultBaseStats();
-
-  // Override defaults with saved values
-  baseStats.forEach((stat) => {
-    stats[stat.statType] = stat.value;
-  });
-
-  return stats;
-}
-
-/**
- * Initialize base stats for a new character
- */
-export async function initializeCharacterStats(
-  userId: string
-): Promise<void> {
-  const defaultStats = getDefaultBaseStats();
-
-  await prisma.characterBaseStat.createMany({
-    data: Object.entries(defaultStats).map(([statType, value]) => ({
-      userId,
-      statType: statType as StatType,
-      value,
-    })),
-    skipDuplicates: true,
-  });
-}
 
 /**
  * Calculate final character stats (base + equipment + future: skills)
@@ -170,20 +137,13 @@ export function calculateFinalStats(
     experienceGain: Math.max(0, getStat(StatType.EXPERIENCE_GAIN)),
     lifesteal: Math.min(100, Math.max(0, getStat(StatType.LIFESTEAL))),
     thorns: Math.max(0, getStat(StatType.THORNS)),
+
+    woodcuttingEfficiency: Math.max(0, getStat(StatType.WOODCUTTING_EFFICIENCY)),
+    miningEfficiency: Math.max(0, getStat(StatType.MINING_EFFICIENCY)),
+    fishingEfficiency: Math.max(0, getStat(StatType.FISHING_EFFICIENCY)),
   };
 }
 
-/**
- * Get complete character stats including equipment
- */
-export async function getCompleteCharacterStats(
-  userId: string,
-  equipment: EquipmentSlotsWithItems
-): Promise<ComputedStats> {
-  const baseStats = await getCharacterBaseStats(userId);
-  const equipmentBonuses = calculateEquipmentBonuses(equipment);
-  return calculateFinalStats(baseStats, equipmentBonuses);
-}
 
 /**
  * Format stat value for display
@@ -210,6 +170,13 @@ export function formatStatValue(value: number, statType: StatType): string {
 export function formatItemStatsForDisplay(
   stats: Array<{ statType: StatType; value: number }>
 ): StatDisplay[] {
+  const formatTwoDecimals = (n: number): string => {
+    if (!Number.isFinite(n)) return "0.00";
+    // Prevent artifacts like 8.100000000000001
+    const rounded = Math.round((n + Number.EPSILON) * 100) / 100;
+    return rounded.toFixed(2);
+  };
+
   const statMap = new Map<StatType, number>();
   stats.forEach((stat) => statMap.set(stat.statType, stat.value));
 
@@ -227,7 +194,7 @@ export function formatItemStatsForDisplay(
       displays.push({
         statType: StatType.PHYSICAL_DAMAGE_MIN,
         label: "Physical Damage",
-        value: `${min}-${max}`,
+        value: `${formatTwoDecimals(min)}-${formatTwoDecimals(max)}`,
         rawValue: min,
         color: STAT_METADATA[StatType.PHYSICAL_DAMAGE_MIN].color,
         icon: STAT_METADATA[StatType.PHYSICAL_DAMAGE_MIN].icon,
@@ -249,7 +216,7 @@ export function formatItemStatsForDisplay(
       displays.push({
         statType: StatType.MAGIC_DAMAGE_MIN,
         label: "Magic Damage",
-        value: `${min}-${max}`,
+        value: `${formatTwoDecimals(min)}-${formatTwoDecimals(max)}`,
         rawValue: min,
         color: STAT_METADATA[StatType.MAGIC_DAMAGE_MIN].color,
         icon: STAT_METADATA[StatType.MAGIC_DAMAGE_MIN].icon,
@@ -281,32 +248,4 @@ export function formatItemStatsForDisplay(
 
   // Sort by priority
   return displays.sort((a, b) => a.priority - b.priority);
-}
-
-/**
- * Sync denormalized stat columns on Item when stats change
- */
-export async function syncItemDenormalizedStats(itemId: number): Promise<void> {
-  const item = await prisma.item.findUnique({
-    where: { id: itemId },
-    include: { stats: true },
-  });
-
-  if (!item) return;
-
-  const getStat = (statType: StatType): number | null => {
-    const stat = item.stats.find((s) => s.statType === statType);
-    return stat ? stat.value : null;
-  };
-
-  await prisma.item.update({
-    where: { id: itemId },
-    data: {
-      minPhysicalDamage: getStat(StatType.PHYSICAL_DAMAGE_MIN),
-      maxPhysicalDamage: getStat(StatType.PHYSICAL_DAMAGE_MAX),
-      minMagicDamage: getStat(StatType.MAGIC_DAMAGE_MIN),
-      maxMagicDamage: getStat(StatType.MAGIC_DAMAGE_MAX),
-      armor: getStat(StatType.ARMOR),
-    },
-  });
 }

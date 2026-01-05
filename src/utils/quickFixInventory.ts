@@ -1,4 +1,5 @@
 import { prisma } from "~/lib/prisma";
+import { slotsToInputJson } from "~/utils/inventorySlots";
 
 /**
  * Quick fix: Manually set inventory to use the LATEST UserItem IDs
@@ -37,7 +38,7 @@ async function quickFix() {
   await prisma.inventory.update({
     where: { userId },
     data: {
-      slots: slots as any,
+      slots: slotsToInputJson(slots),
     },
   });
 

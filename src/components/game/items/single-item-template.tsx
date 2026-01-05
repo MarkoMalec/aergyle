@@ -17,6 +17,8 @@ import { useEquipmentContext } from "~/context/equipmentContext";
 import { Badge } from "~/components/ui/badge";
 import { ListItemDialog } from "~/components/game/marketplace/ListItemDialog";
 import { cn } from "~/lib/utils";
+import { useVocationalActiveActionContext } from "~/components/game/actions/VocationalActiveActionProvider";
+import { Separator } from "~/components/ui/separator";
 
 interface SingleItemTemplateProps {
   item: ItemWithStats;
@@ -48,6 +50,8 @@ export default function SingleItemTemplate({
   const [open, setOpen] = useState(false);
   const [listDialogOpen, setListDialogOpen] = useState(false);
 
+  const { active: isActionActive } = useVocationalActiveActionContext();
+
   const { equipment } = useEquipmentContext();
 
   const { colors } = useRarityColors();
@@ -55,6 +59,7 @@ export default function SingleItemTemplate({
   const textColorClass = getRarityTailwindClass(item.rarity, hexColor, "text");
 
   const handleEquipClick = () => {
+    if (isActionActive) return;
     if (onEquip) {
       onEquip();
       setOpen(false);
@@ -62,6 +67,7 @@ export default function SingleItemTemplate({
   };
 
   const handleUnequipClick = () => {
+    if (isActionActive) return;
     if (onUnequip) {
       onUnequip();
       setOpen(false);
@@ -93,6 +99,13 @@ export default function SingleItemTemplate({
             {item.equipTo}
           </Badge>
         </div>
+        {item.description ? (
+          <>
+            <Separator className="mb-4" />
+            <div className="mb-4 text-xs text-white/80">{item.description}</div>
+            <Separator className="mb-4" />
+          </>
+        ) : null}
         {item.stats && item.stats.length > 0 ? (
           <ul className="space-y-2">
             {formatItemStatsForDisplay(item.stats).map((stat, idx) => (
@@ -102,9 +115,7 @@ export default function SingleItemTemplate({
               </li>
             ))}
           </ul>
-        ) : (
-          <p className="text-sm text-gray-400">No stats</p>
-        )}
+        ) : null}
         <div className="py-2">
           <div className="ml-auto w-fit">
             <span className="text-sm text-yellow-500">
@@ -115,16 +126,24 @@ export default function SingleItemTemplate({
         <div className="mt-4 space-y-2 border-t pt-3">
           {showEquipButton && (
             <button
+              disabled={isActionActive}
               onClick={handleEquipClick}
-              className="w-full rounded bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700"
+              className={cn(
+                "w-full rounded bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700",
+                isActionActive && "cursor-not-allowed opacity-50",
+              )}
             >
               Equip
             </button>
           )}
           {showUnequipButton && (
             <button
+              disabled={isActionActive}
               onClick={handleUnequipClick}
-              className="w-full rounded bg-red-600 px-3 py-2 text-sm text-white hover:bg-red-700"
+              className={cn(
+                "w-full rounded bg-red-600 px-3 py-2 text-sm text-white hover:bg-red-700",
+                isActionActive && "cursor-not-allowed opacity-50",
+              )}
             >
               Unequip
             </button>

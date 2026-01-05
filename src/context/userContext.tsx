@@ -8,8 +8,7 @@ import React, {
   SetStateAction,
 } from "react";
 import { redirect } from "next/navigation";
-import { Prisma } from "@prisma/client";
-import { User } from "@prisma/client";
+import type { Prisma, User } from "~/generated/prisma/browser";
 interface UserProps extends User {
   inventory: {
     id: number;

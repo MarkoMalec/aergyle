@@ -32,8 +32,10 @@ export async function fetchUserItemsByIds(userItemIds: number[]) {
     id: userItem.id, // UserItem ID (not template ID)
     itemId: userItem.itemTemplate.id, // Item template ID (for marketplace stats)
     name: userItem.itemTemplate.name,
+    description: userItem.itemTemplate.description,
     price: userItem.itemTemplate.price,
     sprite: userItem.itemTemplate.sprite,
+    itemType: userItem.itemTemplate.itemType,
     equipTo: userItem.itemTemplate.equipTo,
     rarity: userItem.rarity, // UserItem's rarity (player-specific)
     minPhysicalDamage: userItem.itemTemplate.minPhysicalDamage,

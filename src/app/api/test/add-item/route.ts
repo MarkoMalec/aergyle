@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ItemRarity, Prisma } from "@prisma/client";
+import { ItemRarity } from "~/generated/prisma/enums";
 import { prisma } from "~/lib/prisma";
 import { createUserItem } from "~/utils/userItems";
 import { getServerAuthSession } from "~/server/auth";
+import { normalizeInventorySlots, slotsToInputJson } from "~/utils/inventorySlots";
 
 /**
  * POST /api/test/add-item
@@ -61,14 +62,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Parse existing slots
-    const slots = (inventory.slots as Prisma.JsonArray) || [];
+    const slots = normalizeInventorySlots(inventory.slots, inventory.maxSlots);
     
     // Find first empty slot
     let emptySlotIndex = -1;
     for (let i = 0; i < inventory.maxSlots; i++) {
-      const slot = slots[i] as any;
-      if (!slot || !slot.item || slot.item === null) {
+      const slot = slots[i];
+      if (!slot || slot.item === null) {
         emptySlotIndex = i;
         break;
       }
@@ -90,10 +90,10 @@ export async function POST(request: NextRequest) {
         };
       }
       
-      const existingSlot = slots[index] as any;
+      const existingSlot = slots[index];
       return {
         slotIndex: index,
-        item: existingSlot?.item || null,
+        item: existingSlot?.item ?? null,
       };
     });
 
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
     await prisma.inventory.update({
       where: { userId },
       data: {
-        slots: updatedSlots as any,
+        slots: slotsToInputJson(updatedSlots),
       },
     });
 

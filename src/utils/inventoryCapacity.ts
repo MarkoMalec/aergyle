@@ -1,5 +1,6 @@
 import { prisma } from "~/lib/prisma";
-import { StatType } from "@prisma/client";
+import { StatType } from "~/generated/prisma/enums";
+import { normalizeInventorySlots } from "~/utils/inventorySlots";
 
 /**
  * Calculate total inventory capacity for a user
@@ -36,6 +37,7 @@ export async function calculateInventoryCapacity(userId: string): Promise<number
     equipment.glovesItemId,
     equipment.backpackItemId,
     equipment.weaponItemId,
+    equipment.fellingAxeItemId,
   ].filter((id): id is number => id !== null);
 
   // console.log(`[Capacity] User ${userId} has ${equippedItemIds.length} equipped items:`, {
@@ -119,8 +121,8 @@ export async function getInventoryCapacity(userId: string): Promise<{
     select: { slots: true },
   });
 
-  const slots = (inventory?.slots as any[]) || [];
-  const filledSlots = slots.filter((slot) => slot?.item?.id).length;
+  const slots = normalizeInventorySlots(inventory?.slots, null);
+  const filledSlots = slots.filter((slot) => slot.item?.id).length;
 
   return {
     current: filledSlots,

@@ -12,12 +12,14 @@ export const DroppableSlot = ({
   slot,
   container,
   equipmentSlotType,
+  label,
 }: {
   id: string;
   index: number;
   slot: InventorySlot;
   container: string;
   equipmentSlotType?: string;
+  label?: string;
 }) => {
   const { isOver, setNodeRef, active } = useDroppable({
     id,
@@ -91,7 +93,7 @@ export const DroppableSlot = ({
             />
           </>
         ) : (
-          <small>{equipmentSlotType && equipmentSlotType}</small>
+          <small>{label ?? (equipmentSlotType && equipmentSlotType)}</small>
         )}
       </div>
 

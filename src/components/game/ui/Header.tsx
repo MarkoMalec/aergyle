@@ -6,9 +6,9 @@ import ActiveActionHeaderWidget from "~/components/game/actions/ActiveActionHead
 
 const GameHeader = () => {
   return (
-    <header className="sticky mb-12 top-2 w-full z-30">
-      <div className=" flex h-[50px] items-center justify-between pr-5">
-        <div className="flex flex-1 items-center justify-end gap-6">
+    <header className="sticky top-2 z-30 mb-12 w-full">
+      <div className=" flex h-[50px] items-center justify-between">
+        <div className="flex flex-1 items-center justify-end gap-4">
           <ActiveActionHeaderWidget />
           <PlayerIsland />
         </div>

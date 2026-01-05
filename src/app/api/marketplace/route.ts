@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "~/lib/prisma";
 import { fetchUserItemsByIds } from "~/utils/userItemInventory";
+import { normalizeItemEquipTo } from "~/utils/itemEquipTo";
 
 /**
  * Get marketplace listings with filters
@@ -22,7 +23,8 @@ export async function GET(req: NextRequest) {
     const searchParams = req.nextUrl.searchParams;
     
     // Filters
-    const equipTo = searchParams.get("equipTo");
+    const equipToRaw = searchParams.get("equipTo");
+    const equipTo = normalizeItemEquipTo(equipToRaw);
     const rarity = searchParams.get("rarity");
     const minPrice = searchParams.get("minPrice");
     const maxPrice = searchParams.get("maxPrice");

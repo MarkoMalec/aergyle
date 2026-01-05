@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { addXpMultiplier } from "~/utils/leveling";
-import { VocationalActionType, XpActionType } from "@prisma/client";
+import { VocationalActionType, XpActionType } from "~/generated/prisma/enums";
 import { getServerAuthSession } from "~/server/auth";
 
 export async function POST(req: NextRequest) {

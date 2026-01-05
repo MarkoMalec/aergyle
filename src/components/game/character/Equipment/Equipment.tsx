@@ -23,6 +23,22 @@ const Equipment = () => {
           equipmentSlotType="weapon"
         />
         {/* <DroppableSlot
+            id={`equipment-fellingAxe`}
+            index={114}
+            slot={{ slotIndex: 114, item: equipment.fellingAxe }}
+            container="equipment"
+            equipmentSlotType="fellingAxe"
+            label="Felling Axe"
+          />
+          <DroppableSlot
+            id={`equipment-pickaxe`}
+            index={115}
+            slot={{ slotIndex: 115, item: equipment.pickaxe }}
+            container="equipment"
+            equipmentSlotType="pickaxe"
+            label="Pickaxe"
+          /> */}
+        {/* <DroppableSlot
           id={`equipment-offhand-weapon`}
           index={114}
           slot={{ slotIndex: 114, item: equipment.offhandWeapon }}
@@ -30,6 +46,7 @@ const Equipment = () => {
           equipmentSlotType="offhandWeapon"
         /> */}
       </div>
+
       <div className="w-full max-w-[280px] space-y-2">
         <div className="flex flex-col items-center justify-center space-y-2">
           <DroppableSlot
@@ -155,6 +172,24 @@ const Equipment = () => {
             equipmentSlotType="backpack"
           />
         </div>
+      </div>
+      <div className="space-y-2">
+        <DroppableSlot
+          id={`equipment-fellingAxe`}
+          index={114}
+          slot={{ slotIndex: 114, item: equipment.fellingAxe }}
+          container="equipment"
+          equipmentSlotType="fellingAxe"
+          label="Felling Axe"
+        />
+        <DroppableSlot
+          id={`equipment-pickaxe`}
+          index={115}
+          slot={{ slotIndex: 115, item: equipment.pickaxe }}
+          container="equipment"
+          equipmentSlotType="pickaxe"
+          label="Pickaxe"
+        />
       </div>
     </div>
   );

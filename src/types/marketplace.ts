@@ -1,4 +1,5 @@
-import { ItemRarity, StatType, UserItem as PrismaUserItem } from "@prisma/client";
+import type { ItemRarity, StatType } from "~/generated/prisma/enums";
+import type { UserItem as PrismaUserItem } from "~/generated/prisma/browser";
 
 // Marketplace listing type with all relationships
 export interface MarketplaceListing extends PrismaUserItem {
