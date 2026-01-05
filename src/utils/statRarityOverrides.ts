@@ -1,5 +1,5 @@
 import { prisma } from "~/lib/prisma";
-import { ItemRarity, StatType } from "~/generated/prisma/enums";
+import type { ItemRarity, StatType } from "~/generated/prisma/enums";
 
 export async function setItemStatRarityOverrides(
   itemId: number,

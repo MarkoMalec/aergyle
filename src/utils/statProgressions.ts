@@ -1,5 +1,6 @@
 import { prisma } from "~/lib/prisma";
-import { ItemRarity, StatType } from "~/generated/prisma/enums";
+import { ItemRarity } from "~/generated/prisma/enums";
+import type { StatType } from "~/generated/prisma/enums";
 
 /**
  * Stat Progression Management

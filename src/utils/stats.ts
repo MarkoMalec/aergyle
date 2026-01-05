@@ -1,12 +1,7 @@
 import { StatType } from "~/generated/prisma/enums";
-import {
-  ComputedStats,
-  ItemWithStats,
-  StatDisplay,
-  STAT_METADATA,
-  StatCategory,
-} from "~/types/stats";
-import { EquipmentSlotsWithItems } from "~/types/inventory";
+import { STAT_METADATA, StatCategory } from "~/types/stats";
+import type { ComputedStats, ItemWithStats, StatDisplay } from "~/types/stats";
+import type { EquipmentSlotsWithItems } from "~/types/inventory";
 
 /**
  * Get default base stats for a new character
@@ -188,8 +183,8 @@ export function formatItemStatsForDisplay(
     statMap.has(StatType.PHYSICAL_DAMAGE_MIN) ||
     statMap.has(StatType.PHYSICAL_DAMAGE_MAX)
   ) {
-    const min = statMap.get(StatType.PHYSICAL_DAMAGE_MIN) || 0;
-    const max = statMap.get(StatType.PHYSICAL_DAMAGE_MAX) || 0;
+    const min = statMap.get(StatType.PHYSICAL_DAMAGE_MIN) ?? 0;
+    const max = statMap.get(StatType.PHYSICAL_DAMAGE_MAX) ?? 0;
     if (min > 0 || max > 0) {
       displays.push({
         statType: StatType.PHYSICAL_DAMAGE_MIN,
@@ -210,8 +205,8 @@ export function formatItemStatsForDisplay(
     statMap.has(StatType.MAGIC_DAMAGE_MIN) ||
     statMap.has(StatType.MAGIC_DAMAGE_MAX)
   ) {
-    const min = statMap.get(StatType.MAGIC_DAMAGE_MIN) || 0;
-    const max = statMap.get(StatType.MAGIC_DAMAGE_MAX) || 0;
+    const min = statMap.get(StatType.MAGIC_DAMAGE_MIN) ?? 0;
+    const max = statMap.get(StatType.MAGIC_DAMAGE_MAX) ?? 0;
     if (min > 0 || max > 0) {
       displays.push({
         statType: StatType.MAGIC_DAMAGE_MIN,

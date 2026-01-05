@@ -187,7 +187,7 @@ export async function createUserItem(
     );
 
     for (const prog of availableProgressions) {
-      const current = statSums.get(prog.statType) || 0;
+      const current = statSums.get(prog.statType) ?? 0;
       statSums.set(prog.statType, current + prog.baseValue);
     }
   }
@@ -325,7 +325,6 @@ export async function upgradeUserItemRarity(
     return { success: false, message: "Next rarity configuration not found" };
   }
 
-  const currentMultiplier = currentConfig.statMultiplier;
   const nextMultiplier = nextConfig.statMultiplier;
   const nextRarity = nextConfig.rarity;
 
@@ -381,7 +380,7 @@ export async function upgradeUserItemRarity(
     );
 
     for (const prog of availableProgressions) {
-      const current = statSums.get(prog.statType) || 0;
+      const current = statSums.get(prog.statType) ?? 0;
       statSums.set(prog.statType, current + prog.baseValue);
     }
   }
@@ -451,7 +450,7 @@ export async function addUserItemToInventory(
   userId: string,
   itemId: number,
   rarity: ItemRarity = ItemRarity.COMMON,
-  quantity: number = 1
+  quantity = 1
 ): Promise<{ success: boolean; message: string; userItemIds: number[] }> {
   if (quantity <= 0) {
     return { success: false, message: "Invalid quantity", userItemIds: [] };
@@ -484,9 +483,10 @@ export async function addUserItemToInventory(
     // Step 1: Find existing stacks with same itemId + rarity
     for (let i = 0; i < slots.length && remainingQuantity > 0; i++) {
       const slot = slots[i];
-      if (slot && slot.item) {
+      const slotUserItemId = slot?.item?.id;
+      if (typeof slotUserItemId === "number") {
         const userItem = await prisma.userItem.findUnique({
-          where: { id: slot.item.id },
+          where: { id: slotUserItemId },
         });
 
         if (!userItem) continue;
@@ -519,7 +519,7 @@ export async function addUserItemToInventory(
       let emptySlotIndex = -1;
       for (let i = 0; i < inventory.maxSlots; i++) {
         const slot = slots.find((s) => s.slotIndex === i);
-        if (!slot || !slot.item) {
+        if (!slot?.item) {
           emptySlotIndex = i;
           break;
         }
@@ -581,7 +581,7 @@ export async function addUserItemToInventory(
       let emptySlotIndex = -1;
       for (let j = 0; j < inventory.maxSlots; j++) {
         const slot = slots.find((s) => s.slotIndex === j);
-        if (!slot || !slot.item) {
+        if (!slot?.item) {
           emptySlotIndex = j;
           break;
         }
@@ -679,7 +679,7 @@ export async function splitStack(
   let emptySlotIndex = -1;
   for (let i = 0; i < inventory.maxSlots; i++) {
     const slot = slots.find((s) => s.slotIndex === i);
-    if (!slot || !slot.item) {
+    if (!slot?.item) {
       emptySlotIndex = i;
       break;
     }
@@ -890,7 +890,7 @@ export async function getPlayerInventory(userId: string) {
   // Attach userItems to slots
   const slotsWithItems = slots.map((s) => ({
     slotIndex: s.slotIndex,
-    userItem: s.item?.id ? userItemMap.get(s.item.id) || null : null,
+    userItem: s.item?.id ? (userItemMap.get(s.item.id) ?? null) : null,
   }));
 
   return {
