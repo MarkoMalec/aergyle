@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import type { ItemRarity } from "~/generated/prisma/enums";
 import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
 import {
   Form,
   FormControl,
@@ -24,6 +25,7 @@ import {
 interface AddItemFormData {
   itemId: string;
   rarity: ItemRarity;
+  quantity: number;
 }
 
 interface AddItemTestFormProps {
@@ -52,6 +54,7 @@ export function AddItemTestForm({ items }: AddItemTestFormProps) {
     defaultValues: {
       itemId: "",
       rarity: "COMMON",
+      quantity: 1,
     },
   });
 
@@ -64,6 +67,7 @@ export function AddItemTestForm({ items }: AddItemTestFormProps) {
         body: JSON.stringify({
           itemId: parseInt(data.itemId),
           rarity: data.rarity,
+          quantity: Math.max(1, Math.floor(data.quantity ?? 1)),
         }),
       });
 
@@ -73,7 +77,18 @@ export function AddItemTestForm({ items }: AddItemTestFormProps) {
         throw new Error(result.error || "Failed to add item");
       }
 
-      alert(`✅ ${result.itemName} (${result.rarity}) added to slot ${result.slotIndex}`);
+      if (typeof result.addedQuantity === "number" && typeof result.remainingQuantity === "number") {
+        alert(
+          `✅ Added ${result.addedQuantity}× ${result.itemName} (${result.rarity}).` +
+            (result.remainingQuantity > 0
+              ? ` Inventory full: ${result.remainingQuantity} remaining.`
+              : ""),
+        );
+      } else {
+        alert(
+          `✅ ${result.itemName} (${result.rarity}) added to slot ${result.slotIndex}`,
+        );
+      }
 
       form.reset();
 
@@ -142,6 +157,33 @@ export function AddItemTestForm({ items }: AddItemTestFormProps) {
                 </Select>
                 <FormDescription>
                   Choose the rarity for this item instance
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="quantity"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Quantity</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    min={1}
+                    step={1}
+                    value={field.value ?? 1}
+                    onChange={(e) =>
+                      field.onChange(
+                        Math.max(1, Math.floor(Number(e.target.value || 1))),
+                      )
+                    }
+                  />
+                </FormControl>
+                <FormDescription>
+                  How many to add (stackables will stack)
                 </FormDescription>
                 <FormMessage />
               </FormItem>

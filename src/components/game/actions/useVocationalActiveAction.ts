@@ -73,6 +73,140 @@ type TravelStatusResponse =
     }
   | { travel: null; progress: null };
 
+type GardenHarvestStatusResponse =
+  | {
+      harvest: {
+        id: number;
+        startedAt: string;
+        endsAt: string;
+        tileCount: number;
+        tiles?: Array<{
+          tileIndex: number;
+          harvestSeconds: number;
+          yieldItem: { id: number; name: string; sprite: string };
+        }>;
+      };
+      progress: {
+        progress: number;
+        remainingSeconds: number;
+        isComplete: boolean;
+      };
+    }
+  | { harvest: null; progress: null };
+
+function getGardenHarvestCurrentSprite(params: {
+  startedAtMs: number;
+  nowMs: number;
+  tiles:
+    | Array<{
+        tileIndex: number;
+        harvestSeconds: number;
+        yieldItem: { id: number; name: string; sprite: string };
+      }>
+    | null
+    | undefined;
+}) {
+  const tiles = params.tiles;
+  if (!tiles || tiles.length === 0) return undefined;
+
+  const elapsedSeconds = Math.max(
+    0,
+    Math.floor((params.nowMs - params.startedAtMs) / 1000),
+  );
+
+  let cursor = 0;
+  for (const t of tiles) {
+    const dur = Math.max(1, Math.floor(t.harvestSeconds));
+    if (elapsedSeconds < cursor + dur) return t.yieldItem.sprite;
+    cursor += dur;
+  }
+
+  return tiles[tiles.length - 1]?.yieldItem.sprite;
+}
+
+function getGardenHarvestCurrentYieldItem(params: {
+  startedAtMs: number;
+  nowMs: number;
+  tiles:
+    | Array<{
+        tileIndex: number;
+        harvestSeconds: number;
+        yieldItem: { id: number; name: string; sprite: string };
+      }>
+    | null
+    | undefined;
+}) {
+  const tiles = params.tiles;
+  if (!tiles || tiles.length === 0) return undefined;
+
+  const segment = getGardenHarvestSegment({
+    startedAtMs: params.startedAtMs,
+    nowMs: params.nowMs,
+    tiles,
+  });
+
+  const idx = Math.max(0, Math.min(tiles.length - 1, segment.tileIndex));
+  return tiles[idx]?.yieldItem;
+}
+
+function getGardenHarvestSegment(params: {
+  startedAtMs: number;
+  nowMs: number;
+  tiles:
+    | Array<{
+        tileIndex: number;
+        harvestSeconds: number;
+        yieldItem: { id: number; name: string; sprite: string };
+      }>
+    | null
+    | undefined;
+}) {
+  const tiles = params.tiles;
+  if (!tiles || tiles.length === 0) {
+    return {
+      tileIndex: 0,
+      tileCount: 0,
+      tileProgress: 0,
+      tilePreviewProgress: 0,
+      remainingInTileSeconds: null as number | null,
+    };
+  }
+
+  const elapsedSeconds = Math.max(
+    0,
+    Math.floor((params.nowMs - params.startedAtMs) / 1000),
+  );
+
+  let cursor = 0;
+  for (let i = 0; i < tiles.length; i++) {
+    const dur = Math.max(1, Math.floor(tiles[i]!.harvestSeconds));
+    const inThis = elapsedSeconds - cursor;
+    if (inThis < dur) {
+      const tileProgress = dur <= 1 ? 1 : Math.max(0, Math.min(1, inThis / dur));
+      const tilePreviewProgress =
+        dur <= 1 ? 1 : Math.min(1, tileProgress + 1 / dur);
+      const remainingInTileSeconds = Math.max(0, dur - inThis);
+      return {
+        tileIndex: i,
+        tileCount: tiles.length,
+        tileProgress,
+        tilePreviewProgress,
+        remainingInTileSeconds,
+      };
+    }
+    cursor += dur;
+  }
+
+  // If we ran past the end (should be rare), treat as last tile complete.
+  return {
+    tileIndex: tiles.length - 1,
+    tileCount: tiles.length,
+    tileProgress: 1,
+    tilePreviewProgress: 1,
+    remainingInTileSeconds: 0,
+  };
+}
+
 function formatAction(action: string) {
   return action
     .toLowerCase()
@@ -108,6 +242,8 @@ export function useVocationalActiveAction() {
   const [travelStatus, setTravelStatus] = useState<TravelStatusResponse | null>(
     null,
   );
+  const [gardenHarvestStatus, setGardenHarvestStatus] =
+    useState<GardenHarvestStatusResponse | null>(null);
   const [travelSync, setTravelSync] = useState<{
     fetchedAtMs: number;
     remainingSecondsAtFetch: number;
@@ -156,6 +292,25 @@ export function useVocationalActiveAction() {
         if (travelJson.travel) {
           // Clear vocational status while traveling.
           setStatus({ activity: null, progress: null, skillProgress: null });
+          setGardenHarvestStatus({ harvest: null, progress: null });
+          return;
+        }
+      }
+
+      // Gardening harvest has next priority: while harvesting, you can't do other actions.
+      const gardenRes = await fetch("/api/garden/harvest/status", {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+      });
+
+      if (gardenRes.ok) {
+        const gardenJson =
+          (await gardenRes.json()) as GardenHarvestStatusResponse;
+        setGardenHarvestStatus(gardenJson);
+        if (gardenJson.harvest) {
+          // Clear vocational status while harvesting.
+          setStatus({ activity: null, progress: null, skillProgress: null });
           return;
         }
       }
@@ -195,6 +350,18 @@ export function useVocationalActiveAction() {
       return () => window.clearTimeout(t);
     }
 
+    const garden = gardenHarvestStatus?.harvest;
+    if (garden) {
+      const endsAtMs = new Date(garden.endsAt).getTime();
+      const msToEnd = Math.max(0, endsAtMs - Date.now()) + 75;
+
+      const t = window.setTimeout(() => {
+        void refresh();
+      }, msToEnd);
+
+      return () => window.clearTimeout(t);
+    }
+
     const activity = status?.activity;
     if (!activity) return;
 
@@ -224,6 +391,8 @@ export function useVocationalActiveAction() {
   }, [
     travelStatus?.travel?.startedAt,
     travelStatus?.travel?.endsAt,
+    gardenHarvestStatus?.harvest?.startedAt,
+    gardenHarvestStatus?.harvest?.endsAt,
     status?.activity?.startedAt,
     status?.activity?.endsAt,
     status?.activity?.unitSeconds,
@@ -302,6 +471,78 @@ export function useVocationalActiveAction() {
         sessionRemainingSeconds: remainingSeconds,
         progress,
         previewProgress: progress,
+        unitsTotal: 0,
+        yieldPerUnit: 0,
+        xpPerUnit: 0,
+        xpPerSecond: "0.00",
+        skillProgress: null,
+      };
+    }
+
+    const garden = gardenHarvestStatus?.harvest;
+    if (garden) {
+      const startedAt = new Date(garden.startedAt).getTime();
+      const endsAt = new Date(garden.endsAt).getTime();
+
+      const durationSeconds = Math.max(1, Math.round((endsAt - startedAt) / 1000));
+      const remainingSeconds = Math.max(0, Math.ceil((endsAt - now) / 1000));
+
+      const segment = getGardenHarvestSegment({
+        startedAtMs: startedAt,
+        nowMs: now,
+        tiles: garden.tiles ?? null,
+      });
+
+      const currentYieldItem = getGardenHarvestCurrentYieldItem({
+        startedAtMs: startedAt,
+        nowMs: now,
+        tiles: garden.tiles ?? null,
+      });
+
+      const progress =
+        garden.tiles && garden.tiles.length > 0
+          ? segment.tileProgress
+          : Math.max(0, Math.min(1, 1 - remainingSeconds / Math.max(1, durationSeconds)));
+
+      const previewProgress =
+        garden.tiles && garden.tiles.length > 0
+          ? segment.tilePreviewProgress
+          : progress;
+
+      const nextItemInTime =
+        segment.remainingInTileSeconds == null
+          ? null
+          : (() => {
+              const total = Math.max(0, Math.floor(segment.remainingInTileSeconds));
+              const minutes = Math.floor(total / 60);
+              const seconds = total % 60;
+              return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+            })();
+
+      const label = currentYieldItem?.name ?? "Harvesting";
+
+      // Show a single running count (completed tiles) rather than x/x.
+      const sessionAmount =
+        segment.tileCount > 0 ? Math.max(0, segment.tileIndex) : 0;
+
+      return {
+        kind: "garden" as const,
+        skillLabel: "Gathering",
+        href: "/skills/Gathering",
+        label,
+        sprite:
+          currentYieldItem?.sprite ??
+          getGardenHarvestCurrentSprite({
+            startedAtMs: startedAt,
+            nowMs: now,
+            tiles: garden.tiles ?? null,
+          }),
+        remainingSeconds,
+        nextItemInTime,
+        sessionRemainingSeconds: remainingSeconds,
+        progress,
+        previewProgress,
+        sessionAmount,
         unitsTotal: 0,
         yieldPerUnit: 0,
         xpPerUnit: 0,
@@ -404,7 +645,7 @@ export function useVocationalActiveAction() {
       ).toFixed(2),
       skillProgress: status?.skillProgress ?? null,
     };
-  }, [status, travelStatus, travelSync, now]);
+  }, [status, travelStatus, gardenHarvestStatus, travelSync, now]);
 
   // Instant per-unit callback (matches fill-bar timing).
   // This fires when the client-side computed "unitsTotal" advances (i.e. when the bar hits 100%).
@@ -499,7 +740,9 @@ export function useVocationalActiveAction() {
       sessionAmount:
         derived.kind === "vocation"
           ? displayUnitsTotal * derived.yieldPerUnit
-          : 0,
+          : derived.kind === "garden"
+            ? (derived.sessionAmount ?? 0)
+            : 0,
       sessionLabel: "this session",
       xpPerUnit: derived.xpPerUnit,
       xpPerSecond: derived.xpPerSecond,
@@ -508,9 +751,13 @@ export function useVocationalActiveAction() {
   }, [derived, displayUnitsTotal]);
 
   const stopMutation = useMutation({
-    mutationFn: async (kind: "vocation" | "travel") => {
+    mutationFn: async (kind: "vocation" | "travel" | "garden") => {
       const url =
-        kind === "travel" ? "/api/travel/cancel" : "/api/vocations/stop";
+        kind === "travel"
+          ? "/api/travel/cancel"
+          : kind === "garden"
+            ? "/api/garden/harvest/cancel"
+            : "/api/vocations/stop";
       const res = await fetch(url, { method: "POST" });
       if (!res.ok) {
         const json = await res.json().catch(() => null);
@@ -540,9 +787,13 @@ export function useVocationalActiveAction() {
   });
 
   const stop = useCallback(() => {
-    const kind = travelStatus?.travel ? "travel" : "vocation";
+    const kind = travelStatus?.travel
+      ? "travel"
+      : gardenHarvestStatus?.harvest
+        ? "garden"
+        : "vocation";
     stopMutation.mutate(kind);
-  }, [stopMutation, travelStatus?.travel]);
+  }, [stopMutation, travelStatus?.travel, gardenHarvestStatus?.harvest]);
 
   return {
     active: !!viewModel,
@@ -550,6 +801,8 @@ export function useVocationalActiveAction() {
     activeResourceId: status?.activity?.resource?.id ?? null,
     activeActionType: travelStatus?.travel
       ? ("TRAVEL" as const)
+      : gardenHarvestStatus?.harvest
+        ? ("GARDENING" as const)
       : status?.activity?.actionType ?? null,
     stop,
     error: stopMutation.error?.message ?? null,

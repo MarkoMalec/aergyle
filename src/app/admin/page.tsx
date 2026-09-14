@@ -22,6 +22,16 @@ export default function AdminPage() {
                 </Link>
 
                 <Link
+                    href="/admin/gathering"
+                    className="rounded-lg border border-gray-800/60 bg-gray-900/40 p-4 hover:bg-gray-900/60"
+                >
+                    <div className="text-sm font-semibold">Gathering</div>
+                    <div className="mt-1 text-sm text-white/70">
+                        Manage seeds, yields, and harvest timings
+                    </div>
+                </Link>
+
+                <Link
                     href="/admin/vocations"
                     className="rounded-lg border border-gray-800/60 bg-gray-900/40 p-4 hover:bg-gray-900/60"
                 >

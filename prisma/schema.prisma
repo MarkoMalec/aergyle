@@ -64,6 +64,8 @@ model User {
   trackProgress UserTrackProgress[]
   vocationalActivity UserVocationalActivity?
   travelActivity UserTravelActivity?
+  gardenTiles UserGardenTile[]
+  gardenHarvestActivity UserGardenHarvestActivity?
 
   currentLocation Location? @relation("UserCurrentLocation", fields: [currentLocationId], references: [id], onDelete: SetNull)
   
@@ -166,6 +168,9 @@ enum ItemType {
   FOOD
   ELIXIR
   SCROLL
+
+  // Gardening
+  SEED
   
   // Crafting Types
   MATERIAL
@@ -281,6 +286,13 @@ model Item {
   stackable    Boolean     @default(false)
   maxStackSize Int         @default(1)
 
+  // Seed / gardening configuration (only used when itemType = SEED)
+  seedGrowSeconds     Int?
+  seedYieldItemId     Int?
+  seedYieldMin        Int?
+  seedYieldMax        Int?
+  seedHarvestSeconds  Int?
+
   // If enabled, negative stats (e.g. MOVEMENT_SPEED -5) will become less negative
   // and eventually positive as rarity multipliers increase.
   flipNegativeStatsWithRarity Boolean @default(false)
@@ -305,12 +317,71 @@ model Item {
   userItems        UserItem[]            // Item instances owned by players
   vocationalResource VocationalResource?
 
+  seedYieldItem Item? @relation("SeedYieldItem", fields: [seedYieldItemId], references: [id], onDelete: SetNull)
+  seedYieldedBy Item[] @relation("SeedYieldItem")
+
+  gardenSeedTiles  UserGardenTile[] @relation("GardenSeedItem")
+  gardenYieldTiles UserGardenTile[] @relation("GardenYieldItem")
+
   @@index([minPhysicalDamage])
   @@index([maxPhysicalDamage])
   @@index([minMagicDamage])
   @@index([armor])
   @@index([requiredLevel])
   @@index([rarity])
+}
+
+// ============================================
+// GARDENING (TILES)
+// ============================================
+
+model UserGardenTile {
+  id        Int      @id @default(autoincrement())
+  userId    String
+  tileIndex Int
+
+  seedItemId Int
+  plantedAt  DateTime @default(now())
+  readyAt    DateTime
+
+  // Cached yield configuration for UI + balance; RNG is rolled at harvest completion.
+  yieldItemId Int
+  yieldMin    Int
+  yieldMax    Int
+
+  harvestSeconds Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  seedItem  Item @relation("GardenSeedItem", fields: [seedItemId], references: [id], onDelete: Restrict)
+  yieldItem Item @relation("GardenYieldItem", fields: [yieldItemId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, tileIndex])
+  @@index([userId])
+  @@index([readyAt])
+}
+
+// One active garden harvest per user.
+// While active, the user cannot interact with the garden or start other actions.
+model UserGardenHarvestActivity {
+  id     Int    @id @default(autoincrement())
+  userId String @unique
+
+  startedAt DateTime @default(now())
+  endsAt    DateTime
+
+  // Snapshot of the selection at start.
+  tiles Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([endsAt])
+  @@index([userId, endsAt])
 }
 
 // Optional per-rarity absolute override values for an item stat.

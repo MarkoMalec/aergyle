@@ -4,6 +4,7 @@ import { prisma } from "~/lib/prisma";
 import { createUserItem } from "~/utils/userItems";
 import { getServerAuthSession } from "~/server/auth";
 import { normalizeInventorySlots, slotsToInputJson } from "~/utils/inventorySlots";
+import { grantStackableItemToInventory } from "~/server/vocations/grantItem";
 
 /**
  * POST /api/test/add-item
@@ -18,7 +19,9 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const userId = session.user.id;
-    const { itemId, rarity } = body;
+    const { itemId, rarity, quantity } = body;
+
+    const qty = Math.max(1, Math.floor(Number(quantity ?? 1)));
 
     if (!itemId || !rarity) {
       return NextResponse.json(
@@ -47,70 +50,75 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create UserItem instance with rarity and stats
-    const userItemId = await createUserItem(userId, itemId, rarity, "IN_INVENTORY");
+    // Stackables: fast-path via stacking helper (preserves existing stacks).
+    if (itemTemplate.stackable) {
+      const grant = await grantStackableItemToInventory({
+        db: prisma,
+        userId,
+        itemId,
+        rarity,
+        quantity: qty,
+      });
 
-    // Get user's inventory
+      return NextResponse.json({
+        success: true,
+        itemName: itemTemplate.name,
+        rarity,
+        addedQuantity: grant.addedQuantity,
+        remainingQuantity: grant.remainingQuantity,
+      });
+    }
+
+    // Non-stackables: create full UserItem instances (stats, etc) and place into empty slots.
     const inventory = await prisma.inventory.findUnique({
       where: { userId },
     });
 
     if (!inventory) {
-      return NextResponse.json(
-        { error: "Inventory not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Inventory not found" }, { status: 404 });
     }
 
     const slots = normalizeInventorySlots(inventory.slots, inventory.maxSlots);
-    
-    // Find first empty slot
-    let emptySlotIndex = -1;
-    for (let i = 0; i < inventory.maxSlots; i++) {
-      const slot = slots[i];
-      if (!slot || slot.item === null) {
-        emptySlotIndex = i;
-        break;
-      }
-    }
+    let remainingToAdd = qty;
+    const createdUserItemIds: number[] = [];
 
-    if (emptySlotIndex === -1) {
-      return NextResponse.json(
-        { error: "Inventory is full" },
-        { status: 400 }
+    while (remainingToAdd > 0) {
+      const emptySlotIndex = slots.findIndex((s) => s.item === null);
+      if (emptySlotIndex === -1) break;
+
+      const userItemId = await createUserItem(
+        userId,
+        itemId,
+        rarity,
+        "IN_INVENTORY",
       );
+
+      slots[emptySlotIndex] = {
+        slotIndex: emptySlotIndex,
+        item: { id: userItemId },
+      };
+
+      createdUserItemIds.push(userItemId);
+      remainingToAdd -= 1;
     }
 
-    // Build updated slots array - NOW USING UserItem IDs
-    const updatedSlots = Array.from({ length: inventory.maxSlots }, (_, index) => {
-      if (index === emptySlotIndex) {
-        return {
-          slotIndex: index,
-          item: { id: userItemId }, // UserItem instance ID
-        };
-      }
-      
-      const existingSlot = slots[index];
-      return {
-        slotIndex: index,
-        item: existingSlot?.item ?? null,
-      };
-    });
-
-    // Update inventory
     await prisma.inventory.update({
       where: { userId },
-      data: {
-        slots: slotsToInputJson(updatedSlots),
-      },
+      data: { slots: slotsToInputJson(slots) },
     });
+
+    const addedQuantity = qty - remainingToAdd;
 
     return NextResponse.json({
       success: true,
-      userItemId,
       itemName: itemTemplate.name,
-      rarity: rarity,
-      slotIndex: emptySlotIndex,
+      rarity,
+      addedQuantity,
+      remainingQuantity: remainingToAdd,
+      createdUserItemIds,
+      slotIndex: createdUserItemIds.length === 1
+        ? slots.findIndex((s) => s.item?.id === createdUserItemIds[0])
+        : undefined,
     });
   } catch (error) {
     console.error("Error adding test item:", error);

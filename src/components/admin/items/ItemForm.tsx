@@ -301,6 +301,12 @@ const schema = z.object({
   price: z.coerce.number().min(0),
   rarity: z.enum(ITEM_RARITY_VALUES).default(ItemRarity.COMMON),
   itemType: z.enum(ITEM_TYPE_VALUES).nullable().optional(),
+  // Seed / gardening configuration (used only when itemType = SEED)
+  seedGrowSeconds: z.coerce.number().int().nullable().optional(),
+  seedYieldItemId: z.coerce.number().int().nullable().optional(),
+  seedYieldMin: z.coerce.number().int().nullable().optional(),
+  seedYieldMax: z.coerce.number().int().nullable().optional(),
+  seedHarvestSeconds: z.coerce.number().int().nullable().optional(),
   equipTo: z.string().nullable().optional(),
   stackable: z.coerce.boolean().default(false),
   maxStackSize: z.coerce.number().int().min(1).default(1),
@@ -329,6 +335,10 @@ export function ItemForm(props: {
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const [seedYieldOptions, setSeedYieldOptions] = useState<
+    Array<{ id: number; name: string }> | null
+  >(null);
+
   const [rarityConfigs, setRarityConfigs] = useState<
     RarityConfigPreview[] | null
   >(null);
@@ -343,6 +353,11 @@ export function ItemForm(props: {
     description: "",
     rarity: ItemRarity.COMMON,
     itemType: null,
+    seedGrowSeconds: null,
+    seedYieldItemId: null,
+    seedYieldMin: null,
+    seedYieldMax: null,
+    seedHarvestSeconds: null,
     equipTo: null,
     stackable: false,
     maxStackSize: 1,
@@ -380,6 +395,49 @@ export function ItemForm(props: {
   const watchedMinMagicDamage = form.watch("minMagicDamage");
   const watchedMaxMagicDamage = form.watch("maxMagicDamage");
   const watchedArmor = form.watch("armor");
+  const watchedItemType = form.watch("itemType");
+
+  const isSeedItem = watchedItemType === ItemType.SEED;
+
+  React.useEffect(() => {
+    let active = true;
+
+    // Only fetch when the user actually switches an item to SEED.
+    if (!isSeedItem) return;
+    if (seedYieldOptions !== null) return;
+
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/items", { method: "GET" });
+        const json = await res.json().catch(() => null);
+        if (!res.ok) {
+          throw new Error(json?.error ?? "Failed to load items");
+        }
+
+        const rows = Array.isArray(json) ? (json as unknown[]) : [];
+        const parsed = rows
+          .map((r) => {
+            const o = r as { id?: unknown; name?: unknown };
+            return {
+              id: Number(o.id),
+              name: typeof o.name === "string" ? o.name : "",
+            };
+          })
+          .filter((r) => Number.isFinite(r.id) && r.id > 0 && r.name.length > 0)
+          .sort((a, b) => a.name.localeCompare(b.name));
+
+        if (!active) return;
+        setSeedYieldOptions(parsed);
+      } catch {
+        if (!active) return;
+        setSeedYieldOptions([]);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [isSeedItem, seedYieldOptions]);
 
   React.useEffect(() => {
     let active = true;
@@ -1649,6 +1707,70 @@ export function ItemForm(props: {
             )}
           </div>
         </div>
+
+        {isSeedItem ? (
+          <div className="rounded-md border border-gray-800/60 bg-gray-900/20 p-3">
+            <div className="text-sm text-white/80">Seed settings</div>
+            <div className="text-xs text-white/60">
+              Only used when Item Type is <span className="font-mono">SEED</span>.
+            </div>
+
+            <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div className="space-y-2">
+                <div className="text-sm text-white/80">Grow seconds</div>
+                <Input type="number" {...form.register("seedGrowSeconds")} />
+              </div>
+
+              <div className="space-y-2">
+                <div className="text-sm text-white/80">Harvest seconds</div>
+                <Input type="number" {...form.register("seedHarvestSeconds")} />
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <div className="text-sm text-white/80">Yield item</div>
+                <Select
+                  value={
+                    form.watch("seedYieldItemId")
+                      ? String(form.watch("seedYieldItemId"))
+                      : "__null"
+                  }
+                  onValueChange={(v) =>
+                    form.setValue(
+                      "seedYieldItemId",
+                      v === "__null" ? null : Number(v),
+                      { shouldDirty: true },
+                    )
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select yield item" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__null">—</SelectItem>
+                    {(seedYieldOptions ?? []).map((opt) => (
+                      <SelectItem key={opt.id} value={String(opt.id)}>
+                        {opt.name} (#{opt.id})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {seedYieldOptions === null ? (
+                  <div className="text-xs text-white/50">Loading items…</div>
+                ) : null}
+              </div>
+
+              <div className="space-y-2">
+                <div className="text-sm text-white/80">Yield min</div>
+                <Input type="number" {...form.register("seedYieldMin")} />
+              </div>
+
+              <div className="space-y-2">
+                <div className="text-sm text-white/80">Yield max</div>
+                <Input type="number" {...form.register("seedYieldMax")} />
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         <div className="rounded-md border border-gray-800/60 bg-gray-900/20 p-3">
           <div className="text-sm text-white/80">Rarity config (global)</div>

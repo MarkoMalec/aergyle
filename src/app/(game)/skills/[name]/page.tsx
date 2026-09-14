@@ -3,6 +3,7 @@ import { prisma } from "~/lib/prisma";
 
 import { notFound } from "next/navigation";
 import SkillVocationalResources from "~/components/game/vocations/SkillVocationalResources";
+import Garden from "~/components/game/garden/Garden";
 import { getServerAuthSession } from "~/server/auth";
 import { toVocationalActionTypeFromSkillName } from "~/utils/vocations";
 import {
@@ -10,7 +11,18 @@ import {
   getToolEfficiencyForAction,
 } from "~/server/vocations/tools";
 
+function isGatheringSkillParam(name: string) {
+  return name.trim().toLowerCase() === "gathering";
+}
+
 export async function generateMetadata({ params }: { params: { name: string } }) {
+  if (isGatheringSkillParam(params.name)) {
+    return {
+      title: "Gathering",
+      description: "Gathering",
+    };
+  }
+
   const skill = await prisma.skills.findUnique({
     where: {
       skill_name: params.name,
@@ -37,6 +49,14 @@ export async function generateStaticParams() {
 }
 
 const SkillPage = async ({ params }: { params: { name: string } }) => {
+  if (isGatheringSkillParam(params.name)) {
+    return (
+      <main className="space-y-6">
+        <Garden />
+      </main>
+    );
+  }
+
   const skill = await prisma.skills.findUnique({
     where: {
       skill_name: params.name,

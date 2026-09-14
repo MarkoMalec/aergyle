@@ -4,6 +4,7 @@ import { cn } from "~/lib/utils";
 export const adminNavItems: Array<{ href: string; label: string }> = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/items", label: "Items" },
+  { href: "/admin/gathering", label: "Gathering" },
   { href: "/admin/rarity", label: "Rarity" },
   { href: "/admin/vocations", label: "Vocation resources" },
   { href: "/admin/locations", label: "Locations" },

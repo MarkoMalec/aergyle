@@ -17,6 +17,15 @@ import Image from "next/image";
 const SidebarLeft = async () => {
   const skills = await prisma.skills.findMany();
 
+  // Gathering currently renders without requiring a skills DB row (special-cased route).
+  // Ensure it still shows up in the sidebar.
+  const hasGathering = skills.some(
+    (s) => String(s.skill_name ?? "").toLowerCase() === "gathering",
+  );
+  const sidebarSkills = hasGathering
+    ? skills
+    : [...skills, { skill_id: -1, skill_name: "Gathering" } as any];
+
   return (
     <aside className="fixed left-0 top-0 h-screen w-72 bg-background">
       <div className="flex items-center space-x-4 border-b border-white/10 px-4 py-3">
@@ -53,8 +62,13 @@ const SidebarLeft = async () => {
         </Button>
       </div>
       <div className="space-y-2 py-10">
-        {skills.map((skill) => (
-          <Button asChild variant="menu" className="w-full justify-start">
+        {sidebarSkills.map((skill) => (
+          <Button
+            key={typeof skill.skill_id === "number" ? skill.skill_id : skill.skill_name}
+            asChild
+            variant="menu"
+            className="w-full justify-start"
+          >
             <Link
               className="min-w-[90px]"
               title={skill.skill_name}

@@ -97,6 +97,14 @@ export async function getTravelStatus(userId: string): Promise<TravelStatus> {
 export async function startTravel(params: { userId: string; toLocationId: number }) {
   const { userId, toLocationId } = params;
 
+  const activeGardenHarvest = await prisma.userGardenHarvestActivity.findUnique({
+    where: { userId },
+    select: { id: true },
+  });
+  if (activeGardenHarvest) {
+    throw new Error("You already have an active activity");
+  }
+
   const [user, destination, secondsPerTravel] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },

@@ -235,6 +235,15 @@ export async function startVocationalActivity(params: {
 }): Promise<VocationalStatus> {
   const { userId, resourceId, locationId } = params;
 
+  const [activeTravel, activeGardenHarvest] = await Promise.all([
+    prisma.userTravelActivity.findUnique({ where: { userId }, select: { id: true } }),
+    prisma.userGardenHarvestActivity.findUnique({ where: { userId }, select: { id: true } }),
+  ]);
+
+  if (activeTravel || activeGardenHarvest) {
+    throw new Error("You already have an active activity");
+  }
+
   const existing = await prisma.userVocationalActivity.findUnique({
     where: { userId },
     select: { id: true },

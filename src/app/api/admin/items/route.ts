@@ -17,6 +17,11 @@ const itemSchema = z.object({
   price: z.number().min(0),
   rarity: z.nativeEnum(ItemRarity),
   itemType: z.nativeEnum(ItemType).nullable().optional(),
+  seedGrowSeconds: z.number().int().nullable().optional(),
+  seedYieldItemId: z.number().int().nullable().optional(),
+  seedYieldMin: z.number().int().nullable().optional(),
+  seedYieldMax: z.number().int().nullable().optional(),
+  seedHarvestSeconds: z.number().int().nullable().optional(),
   equipTo: z.string().nullable().optional(),
   stackable: z.boolean(),
   maxStackSize: z.number().int().min(1),
@@ -32,6 +37,14 @@ const itemSchema = z.object({
   statProgressionsCsv: z.string().optional(),
   statRarityOverridesCsv: z.string().optional(),
 });
+
+function toOptionalPositiveInt(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  const n = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(n)) return null;
+  const int = Math.floor(n);
+  return int > 0 ? int : null;
+}
 
 function parseCsvLines(input: string): string[] {
   return input
@@ -221,6 +234,15 @@ export async function POST(req: NextRequest) {
 
   const v = parsed.data;
 
+  const isSeed = v.itemType === ItemType.SEED;
+  const seedGrowSeconds = isSeed ? toOptionalPositiveInt(v.seedGrowSeconds) : null;
+  const seedYieldItemId = isSeed ? toOptionalPositiveInt(v.seedYieldItemId) : null;
+  const seedYieldMin = isSeed ? toOptionalPositiveInt(v.seedYieldMin) : null;
+  const seedYieldMax = isSeed ? toOptionalPositiveInt(v.seedYieldMax) : null;
+  const seedHarvestSeconds = isSeed
+    ? toOptionalPositiveInt(v.seedHarvestSeconds)
+    : null;
+
   const created = await prisma.item.create({
     data: {
       name: v.name,
@@ -229,6 +251,11 @@ export async function POST(req: NextRequest) {
       price: v.price,
       rarity: v.rarity,
       itemType: v.itemType ?? null,
+      seedGrowSeconds,
+      seedYieldItemId,
+      seedYieldMin,
+      seedYieldMax,
+      seedHarvestSeconds,
       equipTo: normalizeItemEquipTo(v.equipTo ?? null),
       stackable: v.stackable,
       maxStackSize: v.stackable ? v.maxStackSize : 1,
