@@ -1,0 +1,14 @@
+{
+  "generator": "Built-in image_gen",
+  "generatedOn": "2026-09-18",
+  "pack": "scary-low-level-monsters-v1",
+  "artDirection": "Aergyle grounded common horror",
+  "masterSize": "1254x1254 RGBA PNG",
+  "runtimeSize": "256x256 RGBA PNG",
+  "assets": [
+    { "slug": "tattercrow", "master": "tattercrow-master.png", "runtime": "/assets/creatures/monsters/low-level/tattercrow.png", "generatedFile": "exec-b8d05353-8704-4ec0-8ba7-96f5d3e27097.png" },
+    { "slug": "ruin-gargoyle", "master": "ruin-gargoyle-master.png", "runtime": "/assets/creatures/monsters/low-level/ruin-gargoyle.png", "generatedFile": "exec-d085a340-ce13-4f65-9105-f8436c4e741a.png" },
+    { "slug": "grave-lantern", "master": "grave-lantern-master.png", "runtime": "/assets/creatures/monsters/low-level/grave-lantern.png", "generatedFile": "exec-f31de8dd-e9bd-456d-ad7e-2759ad12fbea.png" },
+    { "slug": "carrion-hound", "master": "carrion-hound-master.png", "runtime": "/assets/creatures/monsters/low-level/carrion-hound.png", "generatedFile": "exec-6d9ee54b-2213-4ea6-939d-4c620d749b10.png" }
+  ]
+}

@@ -7,8 +7,9 @@ import Image from "next/image";
 import { Skeleton } from "~/components/ui/skeleton";
 import { useDndContext } from "./DnDContext";
 import { EQUIPMENT_SLOT_TO_INDEX } from "~/types/inventory";
-import { ItemWithStats } from "~/types/stats";
+import type { ItemWithStats } from "~/types/stats";
 import toast from "react-hot-toast";
+import { ItemRarityMark } from "~/utils/ui/rarity-mark";
 import SingleItemTemplate from "~/components/game/items/single-item-template";
 
 export const DraggableItem = ({
@@ -17,12 +18,14 @@ export const DraggableItem = ({
   item,
   sprite,
   container,
+  slotLabel,
 }: {
   id: string;
   index: number;
   item: ItemWithStats;
   sprite: string;
   container: string;
+  slotLabel?: string;
 }) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
@@ -39,7 +42,7 @@ export const DraggableItem = ({
   const style = {
     transform: CSS.Transform.toString(transform),
     // boxShadow: isDragging ? "0px 3px 10px rgba(0, 0, 0, 0.64)" : undefined,
-    zIndex: isDragging ? 999 : undefined,
+    zIndex: isDragging ? "var(--z-drag)" : undefined,
     filter: isDragging ? "brightness(0.8)" : undefined,
   };
 
@@ -134,23 +137,27 @@ export const DraggableItem = ({
       <div
         ref={setNodeRef}
         style={style}
-        {...attributes}
-        {...listeners}
-        className="flex h-[62px] w-[62px] items-center justify-center rounded  text-center text-sm shadow"
+        data-dragging={isDragging}
+        className="flex h-full w-full items-center justify-center text-center text-sm"
       >
         <PopoverTrigger asChild>
-          <button type="button" className="relative h-full w-full">
+          <button
+            type="button"
+            {...attributes}
+            {...listeners}
+            className="game-item-trigger"
+            aria-label={`${slotLabel ? `${slotLabel}: ` : ""}${item.name}, ${item.rarity.toLowerCase()}${item.quantity && item.quantity > 1 ? `, quantity ${item.quantity}` : ""}. Item details`}
+          >
             <Image
               alt={item.name}
               src={sprite}
               width={102}
               height={102}
-              className="rounded"
+              className="object-contain"
             />
+            <ItemRarityMark rarity={item.rarity} />
             {item.quantity && item.quantity > 1 && (
-              <div className="absolute -left-1 -top-2 flex items-center justify-center rounded-md border bg-background px-2 text-xs text-white font-light">
-                {item.quantity}
-              </div>
+              <div className="game-item-quantity">{item.quantity}</div>
             )}
           </button>
         </PopoverTrigger>

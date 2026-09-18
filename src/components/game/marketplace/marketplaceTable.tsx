@@ -152,7 +152,7 @@ const createColumns = (
   //     </Button>
   //   ),
   //   cell: ({ row }) => (
-  //     <Badge variant="outline" className="font-light capitalize text-white">
+  //     <Badge variant="outline" className="font-light capitalize text-foreground">
   //       {row.original.itemTemplate.equipTo || "Consumable"}
   //     </Badge>
   //   ),
@@ -204,7 +204,7 @@ const createColumns = (
       </Button>
     ),
     cell: ({ row }) => (
-      <span className="font-semibold text-yellow-600">
+      <span className="font-semibold text-currency">
         {row.original.listedPrice?.toLocaleString() || "0"} <CoinsIcon />
       </span>
     ),
@@ -390,10 +390,10 @@ export function MarketplaceDataTable({
               ? table.getRowModel().rows.map((row, idx) => (
                   <TableRow
                     key={row.id}
-                    className={`${idx % 2 === 0 ? "bg-muted/5" : "bg-transparent"} border-none text-white hover:bg-muted/10`}
+                    className={`${idx % 2 === 0 ? "bg-muted/5" : "bg-transparent"} border-none text-foreground hover:bg-muted/10`}
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="text-white">
+                      <TableCell key={cell.id} className="text-foreground">
                         {flexRender(
                           cell.column.columnDef.cell,
                           cell.getContext(),

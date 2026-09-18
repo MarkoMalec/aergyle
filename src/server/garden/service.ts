@@ -1,6 +1,20 @@
 import { prisma } from "~/lib/prisma";
-import { ItemRarity, ItemStatus, ItemType } from "~/generated/prisma/enums";
+import {
+  ItemStatus,
+  ItemType,
+  VocationalActionType,
+  XpActionType,
+} from "~/generated/prisma/enums";
+import type { ActivityStopReason, ItemQuantityChange } from "~/realtime/events";
+import {
+  countFinishedHarvestTiles,
+  hasDueHarvestTiles,
+  parseHarvestSchedule,
+  type HarvestScheduleTile,
+} from "~/server/garden/harvestSchedule";
 import { grantStackableItemToInventory } from "~/server/vocations/grantItem";
+import { awardXp } from "~/utils/leveling";
+import { awardTrackXp } from "~/utils/progression";
 
 const GRID_SIZE = 6;
 const TILE_COUNT = GRID_SIZE * GRID_SIZE;
@@ -14,6 +28,7 @@ export type GardenTileState =
       tileIndex: number;
       state: "GROWING";
       seed: { id: number; name: string; sprite: string };
+      plantedAt: string;
       readyAt: string;
       yieldItem: { id: number; name: string; sprite: string };
       yieldMin: number;
@@ -24,6 +39,7 @@ export type GardenTileState =
       tileIndex: number;
       state: "READY";
       seed: { id: number; name: string; sprite: string };
+      plantedAt: string;
       readyAt: string;
       yieldItem: { id: number; name: string; sprite: string };
       yieldMin: number;
@@ -34,21 +50,17 @@ export type GardenTileState =
 export type GardenState = {
   gridSize: number;
   tiles: GardenTileState[];
-  harvest:
-    | null
-    | {
-        id: number;
-        startedAt: string;
-        endsAt: string;
-        tileCount: number;
-      };
-  harvestProgress:
-    | null
-    | {
-        progress: number;
-        remainingSeconds: number;
-        isComplete: boolean;
-      };
+  harvest: null | {
+    id: number;
+    startedAt: string;
+    endsAt: string;
+    tileCount: number;
+  };
+  harvestProgress: null | {
+    progress: number;
+    remainingSeconds: number;
+    isComplete: boolean;
+  };
 };
 
 function assertValidTileIndices(tileIndices: number[]) {
@@ -80,47 +92,67 @@ async function assertNoGardenHarvestActive(userId: string) {
   }
 }
 
-export async function getGardenState(userId: string): Promise<GardenState> {
-  let [tiles, harvest] = await Promise.all([
-    prisma.userGardenTile.findMany({
+async function assertNoOtherActiveAction(userId: string) {
+  const [travel, vocation, expedition, hunting, dungeon] = await Promise.all([
+    prisma.userTravelActivity.findUnique({
       where: { userId },
-      select: {
-        tileIndex: true,
-        readyAt: true,
-        yieldMin: true,
-        yieldMax: true,
-        harvestSeconds: true,
-        seedItem: { select: { id: true, name: true, sprite: true } },
-        yieldItem: { select: { id: true, name: true, sprite: true } },
-      },
+      select: { id: true },
     }),
-    prisma.userGardenHarvestActivity.findUnique({
+    prisma.userVocationalActivity.findUnique({
       where: { userId },
-      select: { id: true, startedAt: true, endsAt: true, tiles: true },
+      select: { id: true },
+    }),
+    prisma.userGatheringExpedition.findFirst({
+      where: { userId, claimedAt: null },
+      select: { id: true },
+    }),
+    prisma.userHuntingExpedition.findFirst({
+      where: { userId, claimedAt: null },
+      select: { id: true },
+    }),
+    prisma.userDungeonRun.findFirst({
+      where: { userId, claimedAt: null },
+      select: { id: true },
     }),
   ]);
 
-  const now = Date.now();
-
-  // Keep the garden UI responsive: if a harvest has ended, auto-complete it here as well
-  // (grant items + clear tiles + clear activity), so the garden unlocks without requiring
-  // some other polling endpoint to be hit.
-  if (harvest && harvest.endsAt.getTime() <= now) {
-    await getGardenHarvestStatus(userId);
-    tiles = await prisma.userGardenTile.findMany({
-      where: { userId },
-      select: {
-        tileIndex: true,
-        readyAt: true,
-        yieldMin: true,
-        yieldMax: true,
-        harvestSeconds: true,
-        seedItem: { select: { id: true, name: true, sprite: true } },
-        yieldItem: { select: { id: true, name: true, sprite: true } },
-      },
-    });
-    harvest = null;
+  if (travel ?? vocation ?? expedition ?? hunting ?? dungeon) {
+    throw new Error("You already have an active activity");
   }
+}
+
+export async function getGardenState(userId: string): Promise<GardenState> {
+  const readGarden = () =>
+    Promise.all([
+      prisma.userGardenTile.findMany({
+        where: { userId },
+        select: {
+          tileIndex: true,
+          plantedAt: true,
+          readyAt: true,
+          yieldMin: true,
+          yieldMax: true,
+          harvestSeconds: true,
+          seedItem: { select: { id: true, name: true, sprite: true } },
+          yieldItem: { select: { id: true, name: true, sprite: true } },
+        },
+      }),
+      prisma.userGardenHarvestActivity.findUnique({
+        where: { userId },
+        select: { id: true, startedAt: true, endsAt: true, tiles: true },
+      }),
+    ]);
+
+  let [tiles, harvest] = await readGarden();
+
+  // Keep the garden UI responsive: pay out harvest tiles that finished since the last
+  // check, so the grid shows them cleared without waiting on another endpoint.
+  if (harvest && hasDueHarvestTiles(harvest)) {
+    await settleGardenHarvest(userId);
+    [tiles, harvest] = await readGarden();
+  }
+
+  const now = Date.now();
   const byIndex = new Map<number, (typeof tiles)[number]>();
   for (const t of tiles) byIndex.set(t.tileIndex, t);
 
@@ -139,6 +171,7 @@ export async function getGardenState(userId: string): Promise<GardenState> {
       tileIndex,
       state,
       seed: row.seedItem,
+      plantedAt: row.plantedAt.toISOString(),
       readyAt: row.readyAt.toISOString(),
       yieldItem: row.yieldItem,
       yieldMin: row.yieldMin,
@@ -158,9 +191,15 @@ export async function getGardenState(userId: string): Promise<GardenState> {
 
   const startedAtMs = new Date(harvest.startedAt).getTime();
   const endsAtMs = new Date(harvest.endsAt).getTime();
-  const durationSeconds = Math.max(1, Math.round((endsAtMs - startedAtMs) / 1000));
+  const durationSeconds = Math.max(
+    1,
+    Math.round((endsAtMs - startedAtMs) / 1000),
+  );
   const remainingSeconds = Math.max(0, Math.ceil((endsAtMs - now) / 1000));
-  const progress = Math.max(0, Math.min(1, 1 - remainingSeconds / durationSeconds));
+  const progress = Math.max(
+    0,
+    Math.min(1, 1 - remainingSeconds / durationSeconds),
+  );
 
   const tilesJson = (harvest.tiles ?? []) as Array<{ tileIndex: number }>;
 
@@ -190,7 +229,10 @@ export async function plantSeeds(params: {
   const tileIndices = assertValidTileIndices(params.tileIndices);
 
   // Planting is instant, but we still disallow it during an active garden harvest.
-  await assertNoGardenHarvestActive(userId);
+  await Promise.all([
+    assertNoGardenHarvestActive(userId),
+    assertNoOtherActiveAction(userId),
+  ]);
 
   const seed = await prisma.item.findUnique({
     where: { id: seedItemId },
@@ -203,7 +245,10 @@ export async function plantSeeds(params: {
       seedYieldMin: true,
       seedYieldMax: true,
       seedHarvestSeconds: true,
-      seedYieldItem: { select: { id: true, name: true, sprite: true, rarity: true } },
+      seedXp: true,
+      seedYieldItem: {
+        select: { id: true, name: true, sprite: true, rarity: true },
+      },
     },
   });
 
@@ -215,12 +260,17 @@ export async function plantSeeds(params: {
   const yieldMin = seed.seedYieldMin ?? null;
   const yieldMax = seed.seedYieldMax ?? null;
   const harvestSeconds = seed.seedHarvestSeconds ?? null;
+  const xpReward = Math.max(0, seed.seedXp ?? 1);
 
-  if (!growSeconds || growSeconds <= 0) throw new Error("Seed grow time not configured");
+  if (!growSeconds || growSeconds <= 0)
+    throw new Error("Seed grow time not configured");
   if (!yieldItemId) throw new Error("Seed yield item not configured");
-  if (!yieldMin || yieldMin <= 0) throw new Error("Seed yield min not configured");
-  if (!yieldMax || yieldMax < yieldMin) throw new Error("Seed yield max not configured");
-  if (!harvestSeconds || harvestSeconds <= 0) throw new Error("Seed harvest time not configured");
+  if (!yieldMin || yieldMin <= 0)
+    throw new Error("Seed yield min not configured");
+  if (!yieldMax || yieldMax < yieldMin)
+    throw new Error("Seed yield max not configured");
+  if (!harvestSeconds || harvestSeconds <= 0)
+    throw new Error("Seed harvest time not configured");
 
   const now = new Date();
   const readyAt = new Date(now.getTime() + growSeconds * 1000);
@@ -241,9 +291,10 @@ export async function plantSeeds(params: {
     });
     if (!inventory) throw new Error("Inventory not found");
 
-    const slots = (inventory.slots ?? []) as Array<
-      { slotIndex: number; item: { id: number } | null }
-    >;
+    const slots = (inventory.slots ?? []) as Array<{
+      slotIndex: number;
+      item: { id: number } | null;
+    }>;
 
     const userItems = await tx.userItem.findMany({
       where: { userId, status: ItemStatus.IN_INVENTORY },
@@ -276,7 +327,10 @@ export async function plantSeeds(params: {
         if (currentSlot) updatedSlots[i] = { ...currentSlot, item: null };
         slotsChanged = true;
       } else {
-        await tx.userItem.update({ where: { id: userItemId }, data: { quantity: newQty } });
+        await tx.userItem.update({
+          where: { id: userItemId },
+          data: { quantity: newQty },
+        });
         ui.quantity = newQty;
       }
     }
@@ -286,7 +340,10 @@ export async function plantSeeds(params: {
     }
 
     if (slotsChanged) {
-      await tx.inventory.update({ where: { userId }, data: { slots: updatedSlots } });
+      await tx.inventory.update({
+        where: { userId },
+        data: { slots: updatedSlots },
+      });
     }
 
     await tx.userGardenTile.createMany({
@@ -300,6 +357,7 @@ export async function plantSeeds(params: {
         yieldMin,
         yieldMax,
         harvestSeconds,
+        xpReward,
       })),
     });
 
@@ -314,7 +372,10 @@ export async function startGardenHarvest(params: {
   const { userId } = params;
   const tileIndices = assertValidTileIndices(params.tileIndices);
 
-  await assertNoGardenHarvestActive(userId);
+  await Promise.all([
+    assertNoGardenHarvestActive(userId),
+    assertNoOtherActiveAction(userId),
+  ]);
 
   const now = new Date();
 
@@ -326,6 +387,7 @@ export async function startGardenHarvest(params: {
         tileIndex: true,
         readyAt: true,
         harvestSeconds: true,
+        yieldItemId: true,
       },
     });
 
@@ -353,13 +415,23 @@ export async function startGardenHarvest(params: {
 
     const endsAt = new Date(now.getTime() + durationSeconds * 1000);
 
+    // Preserve deterministic order (tileIndices is already validated + sorted). Each tile
+    // is cleared when it pays out, so the schedule keeps what the timeline needs.
+    const schedule: HarvestScheduleTile[] = tiles
+      .sort((a, b) => a.tileIndex - b.tileIndex)
+      .map((tile) => ({
+        tileIndex: tile.tileIndex,
+        harvestSeconds: Math.max(1, tile.harvestSeconds),
+        yieldItemId: tile.yieldItemId,
+        harvested: false,
+      }));
+
     const created = await tx.userGardenHarvestActivity.create({
       data: {
         userId,
         startedAt: now,
         endsAt,
-        // Preserve deterministic order (tileIndices is already validated + sorted).
-        tiles: tileIndices.map((tileIndex) => ({ tileIndex })),
+        tiles: schedule,
       },
       select: { id: true, startedAt: true, endsAt: true },
     });
@@ -374,7 +446,9 @@ export async function startGardenHarvest(params: {
 }
 
 export async function cancelGardenHarvest(userId: string) {
-  await prisma.userGardenHarvestActivity.delete({ where: { userId } });
+  // Keep the crops of tiles that already finished; the rest stay planted.
+  await settleGardenHarvest(userId);
+  await prisma.userGardenHarvestActivity.deleteMany({ where: { userId } });
   return { ok: true };
 }
 
@@ -385,125 +459,253 @@ function rollIntInclusive(min: number, max: number) {
   return lo + Math.floor(Math.random() * (hi - lo + 1));
 }
 
-export async function getGardenHarvestStatus(userId: string) {
-  const activity = await prisma.userGardenHarvestActivity.findUnique({
-    where: { userId },
-    select: { id: true, startedAt: true, endsAt: true, tiles: true },
+export type GardenSettlement = {
+  harvestedTiles: number;
+  xpGained: number;
+  itemChanges: ItemQuantityChange[];
+  newStacks: boolean;
+  /** Set when this settlement ended the harvest. */
+  stopReason: ActivityStopReason | null;
+};
+
+/**
+ * Pays out every harvest tile that finished since the last settlement. A tile pays its
+ * whole rolled yield and is cleared; if that doesn't fit, the harvest stops and the tile
+ * stays planted. Called by status checks and the realtime daemon, so keep this module
+ * free of `server-only` imports.
+ */
+export async function settleGardenHarvest(
+  userId: string,
+): Promise<GardenSettlement> {
+  const settlement = await prisma.$transaction(async (tx) => {
+    // Status checks and the daemon can settle at the same moment; make them take turns.
+    await tx.$queryRaw`SELECT id FROM UserGardenHarvestActivity WHERE userId = ${userId} FOR UPDATE`;
+
+    const activity = await tx.userGardenHarvestActivity.findUnique({
+      where: { userId },
+      select: { startedAt: true, tiles: true },
+    });
+    if (!activity) {
+      return {
+        harvestedTiles: 0,
+        xpGained: 0,
+        itemChanges: [] as ItemQuantityChange[],
+        newStacks: false,
+        stopReason: null,
+      };
+    }
+
+    const parsed = parseHarvestSchedule(activity.tiles);
+    const rows = await tx.userGardenTile.findMany({
+      where: {
+        userId,
+        tileIndex: {
+          in: parsed
+            .filter((tile) => !tile.harvested)
+            .map((tile) => tile.tileIndex),
+        },
+      },
+      select: {
+        id: true,
+        tileIndex: true,
+        harvestSeconds: true,
+        yieldItemId: true,
+        yieldMin: true,
+        yieldMax: true,
+        xpReward: true,
+        yieldItem: { select: { rarity: true } },
+      },
+    });
+    const rowByIndex = new Map(rows.map((row) => [row.tileIndex, row]));
+
+    // Harvests started before per-tile payout only stored tile indices; fill in the
+    // timings from their tiles, which are still planted.
+    let scheduleChanged = false;
+    const schedule: HarvestScheduleTile[] = parsed.map((tile) => {
+      if (tile.harvestSeconds !== undefined && tile.yieldItemId !== undefined) {
+        return {
+          tileIndex: tile.tileIndex,
+          harvestSeconds: tile.harvestSeconds,
+          yieldItemId: tile.yieldItemId,
+          harvested: tile.harvested,
+        };
+      }
+      scheduleChanged = true;
+      const row = rowByIndex.get(tile.tileIndex);
+      return {
+        tileIndex: tile.tileIndex,
+        harvestSeconds: Math.max(1, row?.harvestSeconds ?? 1),
+        yieldItemId: row?.yieldItemId ?? 0,
+        harvested: tile.harvested,
+      };
+    });
+
+    const finished = countFinishedHarvestTiles(
+      schedule,
+      activity.startedAt,
+      new Date(),
+    );
+    const itemChanges = new Map<number, number>();
+    let newStacks = false;
+    let xpGained = 0;
+    let harvestedTiles = 0;
+    let stopReason: ActivityStopReason | null = null;
+
+    for (const tile of schedule.slice(0, finished)) {
+      if (tile.harvested) continue;
+
+      const row = rowByIndex.get(tile.tileIndex);
+      if (row) {
+        const quantity = rollIntInclusive(row.yieldMin, row.yieldMax);
+        const grant = await grantStackableItemToInventory({
+          db: tx,
+          userId,
+          itemId: row.yieldItemId,
+          rarity: row.yieldItem.rarity,
+          quantity,
+          unitSize: quantity,
+        });
+        if (grant.addedQuantity < quantity) {
+          stopReason = "INVENTORY_FULL";
+          break;
+        }
+
+        for (const change of grant.itemChanges) {
+          itemChanges.set(change.userItemId, change.quantity);
+        }
+        newStacks ||= grant.newStacks;
+        xpGained += Math.max(0, row.xpReward);
+        await tx.userGardenTile.delete({ where: { id: row.id } });
+      }
+
+      tile.harvested = true;
+      harvestedTiles++;
+    }
+
+    if (stopReason !== null || schedule.every((tile) => tile.harvested)) {
+      await tx.userGardenHarvestActivity.delete({ where: { userId } });
+      stopReason ??= "COMPLETED";
+    } else if (harvestedTiles > 0 || scheduleChanged) {
+      await tx.userGardenHarvestActivity.update({
+        where: { userId },
+        data: { tiles: schedule },
+      });
+    }
+
+    return {
+      harvestedTiles,
+      xpGained,
+      itemChanges: [...itemChanges].map(([userItemId, quantity]) => ({
+        userItemId,
+        quantity,
+      })),
+      newStacks,
+      stopReason,
+    };
   });
 
+  if (settlement.xpGained > 0) {
+    await awardXp(
+      userId,
+      settlement.xpGained,
+      XpActionType.VOCATION,
+      VocationalActionType.GARDENING,
+      "Gardening harvest",
+    );
+    await awardTrackXp({
+      userId,
+      trackType: "SKILL",
+      trackKey: VocationalActionType.GARDENING,
+      amount: settlement.xpGained,
+      description: "Gardening harvest",
+    });
+  }
+
+  return settlement;
+}
+
+export async function getGardenHarvestStatus(userId: string) {
+  const readHarvest = () =>
+    prisma.userGardenHarvestActivity.findUnique({
+      where: { userId },
+      select: { id: true, startedAt: true, endsAt: true, tiles: true },
+    });
+
+  let activity = await readHarvest();
   if (!activity) {
     return { harvest: null, progress: null } as const;
+  }
+
+  // Pay out tiles that finished since the last check (the daemon usually got there first).
+  if (hasDueHarvestTiles(activity)) {
+    const settlement = await settleGardenHarvest(userId);
+    activity = settlement.stopReason ? null : await readHarvest();
+    if (!activity) {
+      return {
+        harvest: null,
+        progress: null,
+        completion: {
+          xpGained: settlement.xpGained,
+          stopReason: settlement.stopReason,
+        },
+      } as const;
+    }
   }
 
   const now = new Date();
   const startedAtMs = activity.startedAt.getTime();
   const endsAtMs = activity.endsAt.getTime();
-  const durationSeconds = Math.max(1, Math.round((endsAtMs - startedAtMs) / 1000));
-  const remainingSeconds = Math.max(0, Math.ceil((endsAtMs - now.getTime()) / 1000));
-  const progress = Math.max(0, Math.min(1, 1 - remainingSeconds / durationSeconds));
+  const durationSeconds = Math.max(
+    1,
+    Math.round((endsAtMs - startedAtMs) / 1000),
+  );
+  const remainingSeconds = Math.max(
+    0,
+    Math.ceil((endsAtMs - now.getTime()) / 1000),
+  );
+  const progress = Math.max(
+    0,
+    Math.min(1, 1 - remainingSeconds / durationSeconds),
+  );
   const isComplete = remainingSeconds <= 0;
 
-  // Auto-complete: when the timer is done, pay out and clear.
-  if (isComplete) {
-    const tilesJson = (activity.tiles ?? []) as Array<{ tileIndex: number }>;
-    const tileIndices = Array.isArray(tilesJson)
-      ? tilesJson
-          .map((t) => t.tileIndex)
-          .filter((n) => Number.isInteger(n))
-      : [];
-
-    await prisma.$transaction(async (tx) => {
-      const tiles = await tx.userGardenTile.findMany({
-        where: { userId, tileIndex: { in: tileIndices } },
-        select: {
-          id: true,
-          tileIndex: true,
-          yieldItemId: true,
-          yieldMin: true,
-          yieldMax: true,
-          yieldItem: { select: { id: true, rarity: true } },
-        },
-      });
-
-      // Aggregate yields by item.
-      const totalsByItemId = new Map<number, { quantity: number; rarity: ItemRarity }>();
-      for (const t of tiles) {
-        const qty = rollIntInclusive(t.yieldMin, t.yieldMax);
-        const prev = totalsByItemId.get(t.yieldItemId);
-        if (prev) {
-          prev.quantity += qty;
-        } else {
-          totalsByItemId.set(t.yieldItemId, {
-            quantity: qty,
-            rarity: t.yieldItem.rarity,
-          });
-        }
-      }
-
-      // Grant items.
-      for (const [itemId, payload] of totalsByItemId.entries()) {
-        await grantStackableItemToInventory({
-          db: tx,
-          userId,
-          itemId,
-          rarity: payload.rarity,
-          quantity: payload.quantity,
-        });
-      }
-
-      // Clear harvested tiles.
-      if (tiles.length > 0) {
-        await tx.userGardenTile.deleteMany({
-          where: { userId, tileIndex: { in: tiles.map((t) => t.tileIndex) } },
-        });
-      }
-
-      await tx.userGardenHarvestActivity.delete({ where: { userId } });
-    });
-
-    return { harvest: null, progress: null } as const;
-  }
-
-  const tilesJson = (activity.tiles ?? []) as Array<{ tileIndex: number }>;
-  const tileIndices = Array.isArray(tilesJson)
-    ? tilesJson
-        .map((t) => t.tileIndex)
-        .filter((n) => Number.isInteger(n))
-    : [];
-
-  const tileRows = await prisma.userGardenTile.findMany({
-    where: { userId, tileIndex: { in: tileIndices } },
-    select: {
-      tileIndex: true,
-      harvestSeconds: true,
-      yieldItem: { select: { id: true, name: true, sprite: true } },
-    },
+  const schedule = parseHarvestSchedule(activity.tiles);
+  const yieldItemIds = [
+    ...new Set(
+      schedule.flatMap((tile) =>
+        tile.yieldItemId === undefined ? [] : [tile.yieldItemId],
+      ),
+    ),
+  ];
+  const yieldItems = await prisma.item.findMany({
+    where: { id: { in: yieldItemIds } },
+    select: { id: true, name: true, sprite: true },
   });
+  const yieldItemById = new Map(yieldItems.map((item) => [item.id, item]));
 
-  const byIndex = new Map<number, (typeof tileRows)[number]>();
-  for (const r of tileRows) byIndex.set(r.tileIndex, r);
-
-  const tiles = tileIndices
-    .map((tileIndex) => {
-      const row = byIndex.get(tileIndex);
-      if (!row) return null;
-      return {
-        tileIndex,
-        harvestSeconds: Math.max(1, row.harvestSeconds),
-        yieldItem: row.yieldItem,
-      };
-    })
-    .filter(
-      (t): t is { tileIndex: number; harvestSeconds: number; yieldItem: { id: number; name: string; sprite: string } } =>
-        Boolean(t),
-    );
+  // Harvested tiles stay in the timeline so the header's per-tile bar lines up with
+  // the server's schedule.
+  const tiles = schedule.flatMap((tile) => {
+    const yieldItem =
+      tile.yieldItemId === undefined
+        ? undefined
+        : yieldItemById.get(tile.yieldItemId);
+    if (!yieldItem) return [];
+    return [
+      {
+        tileIndex: tile.tileIndex,
+        harvestSeconds: Math.max(1, tile.harvestSeconds ?? 1),
+        yieldItem,
+      },
+    ];
+  });
 
   return {
     harvest: {
       id: activity.id,
       startedAt: activity.startedAt.toISOString(),
       endsAt: activity.endsAt.toISOString(),
-      tileCount: tileIndices.length,
+      tileCount: schedule.length,
       tiles,
     },
     progress: {

@@ -1,4 +1,5 @@
-import { StatType, ItemRarity, ItemType } from "~/generated/prisma/enums";
+import { StatType, ItemRarity } from "~/generated/prisma/enums";
+import type { ItemType } from "~/generated/prisma/enums";
 
 // Re-export Prisma enums for convenience
 export { StatType, ItemRarity };
@@ -20,13 +21,18 @@ export interface ItemWithStats {
   maxMagicDamage: number | null;
   armor: number | null;
   requiredLevel: number | null;
+  stackable?: boolean;
+  maxStackSize?: number;
+  isTradeable?: boolean;
   quantity?: number; // For stackable items
   stats: ItemStat[];
+  foodEffectSeconds?: number | null;
+  foodEffectStats?: Array<{ statType: StatType; value: number }>;
 }
 
 // Individual stat on an item
 export interface ItemStat {
-  id: number;
+  id?: number;
   itemId: number;
   statType: StatType;
   value: number;
@@ -80,11 +86,14 @@ export interface ComputedStats {
   experienceGain: number;
   lifesteal: number;
   thorns: number;
+  carryingCapacity: number;
 
   // Vocation/tool
   woodcuttingEfficiency: number;
   miningEfficiency: number;
   fishingEfficiency: number;
+  gatheringEfficiency: number;
+  huntingEfficiency: number;
 }
 
 // Stat display info for UI
@@ -447,6 +456,26 @@ export const STAT_METADATA: Record<StatType, StatMetadata> = {
     color: "#3b82f6",
     icon: "🎣",
     priority: 50,
+    formatType: "percentage",
+    isPercentage: true,
+  },
+  GATHERING_EFFICIENCY: {
+    label: "Gathering Efficiency",
+    description: "Improves expedition find chance and gathered quantities",
+    category: StatCategory.SPECIAL,
+    color: "#2f8f83",
+    icon: "🍃",
+    priority: 51,
+    formatType: "percentage",
+    isPercentage: true,
+  },
+  HUNTING_EFFICIENCY: {
+    label: "Hunting Efficiency",
+    description: "Improves animal material find chance and quantities",
+    category: StatCategory.SPECIAL,
+    color: "#d97706",
+    icon: "🏹",
+    priority: 52,
     formatType: "percentage",
     isPercentage: true,
   },

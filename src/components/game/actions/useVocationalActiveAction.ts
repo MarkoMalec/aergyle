@@ -7,16 +7,23 @@ import React, {
   useRef,
   useState,
 } from "react";
-import type { ItemRarity, VocationalActionType } from "~/generated/prisma/enums";
+import type {
+  ItemRarity,
+  VocationalActionType,
+} from "~/generated/prisma/enums";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   addActiveActionEventListener,
   dispatchActiveActionEvent,
 } from "~/components/game/actions/activeActionEvents";
+import { useRealtimeConnected } from "~/components/realtime/realtimeConnection";
+import { useUserContext } from "~/context/userContext";
+import { refreshProgress } from "~/lib/player-sync";
+import { gardenQueryKeys, inventoryQueryKeys } from "~/lib/query-keys";
+import { toSkillNameFromActionType } from "~/utils/vocations";
 import toast from "react-hot-toast";
-import { inventoryQueryKeys } from "~/lib/query-keys";
 
-type StatusResponse = {
+export type StatusResponse = {
   activity: null | {
     id: number;
     actionType: VocationalActionType;
@@ -93,6 +100,47 @@ type GardenHarvestStatusResponse =
       };
     }
   | { harvest: null; progress: null };
+
+type GatheringStatusResponse = {
+  expedition: null | {
+    id: number;
+    status: "ACTIVE" | "READY" | "CLAIMED";
+    startedAt: string;
+    endsAt: string;
+    durationSeconds: number;
+    location: { id: number; name: string };
+  };
+};
+
+type HuntingStatusResponse = {
+  expedition: null | {
+    id: number;
+    status: "ACTIVE" | "READY" | "CLAIMED";
+    startedAt: string;
+    endsAt: string;
+    durationSeconds: number;
+    ground: {
+      id: number;
+      name: string;
+      location: { id: number; name: string };
+    };
+  };
+};
+
+type DungeonStatusResponse = {
+  run: null | {
+    id: number;
+    status: "ACTIVE" | "READY" | "CLAIMED";
+    startedAt: string;
+    endsAt: string;
+    durationSeconds: number;
+    dungeon: {
+      id: number;
+      name: string;
+      location: { id: number; name: string };
+    };
+  };
+};
 
 function getGardenHarvestCurrentSprite(params: {
   startedAtMs: number;
@@ -182,7 +230,8 @@ function getGardenHarvestSegment(params: {
     const dur = Math.max(1, Math.floor(tiles[i]!.harvestSeconds));
     const inThis = elapsedSeconds - cursor;
     if (inThis < dur) {
-      const tileProgress = dur <= 1 ? 1 : Math.max(0, Math.min(1, inThis / dur));
+      const tileProgress =
+        dur <= 1 ? 1 : Math.max(0, Math.min(1, inThis / dur));
       const tilePreviewProgress =
         dur <= 1 ? 1 : Math.min(1, tileProgress + 1 / dur);
       const remainingInTileSeconds = Math.max(0, dur - inThis);
@@ -207,11 +256,13 @@ function getGardenHarvestSegment(params: {
   };
 }
 
-function formatAction(action: string) {
-  return action
-    .toLowerCase()
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+async function fetchStatus<T>(url: string): Promise<T | null> {
+  const res = await fetch(url, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+    cache: "no-store",
+  });
+  return res.ok ? ((await res.json()) as T) : null;
 }
 
 export type ActiveActionViewModel = {
@@ -229,6 +280,7 @@ export type ActiveActionViewModel = {
   xpPerUnit: number;
   xpPerSecond: string;
   skillProgress: StatusResponse["skillProgress"];
+  canStop: boolean;
 };
 
 const ACTION_BAR_LAG_MS = 500;
@@ -238,12 +290,17 @@ export type UseVocationalActiveActionResult = ReturnType<
 >;
 
 export function useVocationalActiveAction() {
-  const queryClient = useQueryClient();
   const [travelStatus, setTravelStatus] = useState<TravelStatusResponse | null>(
     null,
   );
   const [gardenHarvestStatus, setGardenHarvestStatus] =
     useState<GardenHarvestStatusResponse | null>(null);
+  const [gatheringStatus, setGatheringStatus] =
+    useState<GatheringStatusResponse | null>(null);
+  const [huntingStatus, setHuntingStatus] =
+    useState<HuntingStatusResponse | null>(null);
+  const [dungeonStatus, setDungeonStatus] =
+    useState<DungeonStatusResponse | null>(null);
   const [travelSync, setTravelSync] = useState<{
     fetchedAtMs: number;
     remainingSecondsAtFetch: number;
@@ -256,17 +313,44 @@ export function useVocationalActiveAction() {
   const prevActivityIdRef = useRef<number | null>(null);
   const prevUnitsTotalRef = useRef<number | null>(null);
 
+  const queryClient = useQueryClient();
+  const { user } = useUserContext();
+  const userId = user?.id;
+  const realtimeConnected = useRealtimeConnected();
+
+  // Items and XP changed server-side but we have no details (a polled tick or a stop):
+  // refetch everything that shows them.
+  const syncPlayerData = useCallback(
+    (skill: VocationalActionType | null) => {
+      void queryClient.invalidateQueries({
+        queryKey: inventoryQueryKeys.byUser(userId),
+      });
+      refreshProgress(queryClient, userId, skill);
+    },
+    [queryClient, userId],
+  );
+
   const refresh = useCallback(async () => {
     try {
-      // Travel has priority: while traveling, you can't do other actions.
-      const travelRes = await fetch("/api/travel/status", {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-        cache: "no-store",
-      });
+      // Every status at once (only one activity can run); priority is applied below.
+      const [
+        travelJson,
+        gardenJson,
+        gatheringJson,
+        huntingJson,
+        dungeonJson,
+        vocationJson,
+      ] = await Promise.all([
+        fetchStatus<TravelStatusResponse>("/api/travel/status"),
+        fetchStatus<GardenHarvestStatusResponse>("/api/garden/harvest/status"),
+        fetchStatus<GatheringStatusResponse>("/api/gathering/status"),
+        fetchStatus<HuntingStatusResponse>("/api/hunting/status"),
+        fetchStatus<DungeonStatusResponse>("/api/dungeons/status"),
+        fetchStatus<StatusResponse>("/api/vocations/status"),
+      ]);
 
-      if (travelRes.ok) {
-        const travelJson = (await travelRes.json()) as TravelStatusResponse;
+      // Travel has priority: while traveling, you can't do other actions.
+      if (travelJson) {
         setTravelStatus(travelJson);
 
         if (travelJson.travel && travelJson.progress) {
@@ -293,40 +377,74 @@ export function useVocationalActiveAction() {
           // Clear vocational status while traveling.
           setStatus({ activity: null, progress: null, skillProgress: null });
           setGardenHarvestStatus({ harvest: null, progress: null });
+          setGatheringStatus({ expedition: null });
+          setHuntingStatus({ expedition: null });
+          setDungeonStatus({ run: null });
           return;
         }
       }
 
       // Gardening harvest has next priority: while harvesting, you can't do other actions.
-      const gardenRes = await fetch("/api/garden/harvest/status", {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-        cache: "no-store",
-      });
-
-      if (gardenRes.ok) {
-        const gardenJson =
-          (await gardenRes.json()) as GardenHarvestStatusResponse;
+      if (gardenJson) {
         setGardenHarvestStatus(gardenJson);
         if (gardenJson.harvest) {
           // Clear vocational status while harvesting.
+          setStatus({ activity: null, progress: null, skillProgress: null });
+          setGatheringStatus({ expedition: null });
+          setHuntingStatus({ expedition: null });
+          setDungeonStatus({ run: null });
+          return;
+        }
+      }
+
+      if (gatheringJson) {
+        setGatheringStatus(gatheringJson);
+        if (
+          gatheringJson.expedition &&
+          gatheringJson.expedition.status !== "CLAIMED"
+        ) {
+          setStatus({ activity: null, progress: null, skillProgress: null });
+          setHuntingStatus({ expedition: null });
+          setDungeonStatus({ run: null });
+          return;
+        }
+      }
+
+      if (huntingJson) {
+        setHuntingStatus(huntingJson);
+        if (
+          huntingJson.expedition &&
+          huntingJson.expedition.status !== "CLAIMED"
+        ) {
+          setStatus({ activity: null, progress: null, skillProgress: null });
+          setDungeonStatus({ run: null });
+          return;
+        }
+      }
+
+      if (dungeonJson) {
+        setDungeonStatus(dungeonJson);
+        if (dungeonJson.run && dungeonJson.run.status !== "CLAIMED") {
           setStatus({ activity: null, progress: null, skillProgress: null });
           return;
         }
       }
 
-      const res = await fetch("/api/vocations/status", {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-        cache: "no-store",
-      });
-
-      if (!res.ok) return;
-      const json = (await res.json()) as StatusResponse;
-      setStatus(json);
+      if (vocationJson) setStatus(vocationJson);
     } catch {
       // ignore
     }
+  }, []);
+
+  // A successful start means no other activity is running; show it without a refetch.
+  const applyVocationStatus = useCallback((next: StatusResponse) => {
+    setTravelStatus({ travel: null, progress: null });
+    setTravelSync(null);
+    setGardenHarvestStatus({ harvest: null, progress: null });
+    setGatheringStatus({ expedition: null });
+    setHuntingStatus({ expedition: null });
+    setDungeonStatus({ run: null });
+    setStatus(next);
   }, []);
 
   // Initial fetch on mount
@@ -352,13 +470,67 @@ export function useVocationalActiveAction() {
 
     const garden = gardenHarvestStatus?.harvest;
     if (garden) {
+      const nowMs = Date.now();
+      const startedAtMs = new Date(garden.startedAt).getTime();
       const endsAtMs = new Date(garden.endsAt).getTime();
-      const msToEnd = Math.max(0, endsAtMs - Date.now()) + 75;
+      const msToEnd = Math.max(0, endsAtMs - nowMs) + 75;
 
+      // The daemon pays out each tile and pushes it; without it, poll each tile's end.
+      let msToNext = msToEnd;
+      if (!realtimeConnected) {
+        const segment = getGardenHarvestSegment({
+          startedAtMs,
+          nowMs,
+          tiles: garden.tiles,
+        });
+        if (segment.remainingInTileSeconds !== null) {
+          const elapsedSeconds = Math.floor((nowMs - startedAtMs) / 1000);
+          const nextTileAtMs =
+            startedAtMs +
+            (elapsedSeconds + segment.remainingInTileSeconds) * 1000;
+          msToNext = Math.min(msToEnd, Math.max(75, nextTileAtMs - nowMs + 75));
+        }
+      }
+
+      const t = window.setTimeout(() => {
+        void refresh().then(() => {
+          syncPlayerData("GARDENING");
+          void queryClient.invalidateQueries({
+            queryKey: gardenQueryKeys.all(),
+          });
+        });
+      }, msToNext);
+
+      return () => window.clearTimeout(t);
+    }
+
+    const expedition = gatheringStatus?.expedition;
+    if (expedition?.status === "ACTIVE") {
+      const endsAtMs = new Date(expedition.endsAt).getTime();
+      const msToEnd = Math.max(0, endsAtMs - Date.now()) + 75;
       const t = window.setTimeout(() => {
         void refresh();
       }, msToEnd);
+      return () => window.clearTimeout(t);
+    }
 
+    const huntingExpedition = huntingStatus?.expedition;
+    if (huntingExpedition?.status === "ACTIVE") {
+      const endsAtMs = new Date(huntingExpedition.endsAt).getTime();
+      const msToEnd = Math.max(0, endsAtMs - Date.now()) + 75;
+      const t = window.setTimeout(() => {
+        void refresh();
+      }, msToEnd);
+      return () => window.clearTimeout(t);
+    }
+
+    const dungeonRun = dungeonStatus?.run;
+    if (dungeonRun?.status === "ACTIVE") {
+      const endsAtMs = new Date(dungeonRun.endsAt).getTime();
+      const msToEnd = Math.max(0, endsAtMs - Date.now()) + 75;
+      const t = window.setTimeout(() => {
+        void refresh();
+      }, msToEnd);
       return () => window.clearTimeout(t);
     }
 
@@ -374,17 +546,25 @@ export function useVocationalActiveAction() {
     const elapsedMs = Math.min(Math.max(0, nowMs - startedAtMs), durationMs);
     const remainder = unitMs <= 0 ? 0 : elapsedMs % unitMs;
 
-    // If we're exactly on a unit boundary (and not at start), refresh shortly
-    // so the server can auto-grant that unit immediately.
-    let msToNext =
-      remainder === 0 && elapsedMs > 0 ? 75 : Math.max(75, unitMs - remainder);
-
-    // Also ensure we refresh right after endsAt so the activity clears promptly.
+    // Always refresh right after endsAt so the activity clears promptly.
     const msToEnd = Math.max(0, endsAtMs - nowMs) + 75;
-    msToNext = Math.min(msToNext, msToEnd);
 
+    // The daemon claims every unit and pushes it. Without it, refresh at each unit
+    // boundary so the server can auto-grant that unit immediately (and shortly after
+    // a boundary we're sitting exactly on, unless it's the start).
+    let msToNext = msToEnd;
+    if (!realtimeConnected) {
+      msToNext = Math.min(
+        msToEnd,
+        remainder === 0 && elapsedMs > 0
+          ? 75
+          : Math.max(75, unitMs - remainder),
+      );
+    }
+
+    const actionType = activity.actionType;
     const t = window.setTimeout(() => {
-      void refresh();
+      void refresh().then(() => syncPlayerData(actionType));
     }, msToNext);
 
     return () => window.clearTimeout(t);
@@ -393,11 +573,28 @@ export function useVocationalActiveAction() {
     travelStatus?.travel?.endsAt,
     gardenHarvestStatus?.harvest?.startedAt,
     gardenHarvestStatus?.harvest?.endsAt,
+    gatheringStatus?.expedition?.status,
+    gatheringStatus?.expedition?.startedAt,
+    gatheringStatus?.expedition?.endsAt,
+    gatheringStatus?.expedition,
+    huntingStatus?.expedition?.status,
+    huntingStatus?.expedition?.startedAt,
+    huntingStatus?.expedition?.endsAt,
+    huntingStatus?.expedition,
+    dungeonStatus?.run?.status,
+    dungeonStatus?.run?.endsAt,
+    dungeonStatus?.run,
     status?.activity?.startedAt,
     status?.activity?.endsAt,
     status?.activity?.unitSeconds,
     status?.activity?.unitsClaimed,
+    status?.activity,
+    travelStatus?.travel,
+    gardenHarvestStatus?.harvest,
     refresh,
+    realtimeConnected,
+    syncPlayerData,
+    queryClient,
   ]);
 
   useEffect(() => {
@@ -424,6 +621,9 @@ export function useVocationalActiveAction() {
         setStatus((prev) =>
           prev ? { activity: null, progress: null, skillProgress: null } : prev,
         );
+        setGatheringStatus({ expedition: null });
+        setHuntingStatus({ expedition: null });
+        setDungeonStatus({ run: null });
         return;
       }
       if (kind === "changed") void refresh();
@@ -476,6 +676,7 @@ export function useVocationalActiveAction() {
         xpPerUnit: 0,
         xpPerSecond: "0.00",
         skillProgress: null,
+        canStop: true,
       };
     }
 
@@ -484,7 +685,10 @@ export function useVocationalActiveAction() {
       const startedAt = new Date(garden.startedAt).getTime();
       const endsAt = new Date(garden.endsAt).getTime();
 
-      const durationSeconds = Math.max(1, Math.round((endsAt - startedAt) / 1000));
+      const durationSeconds = Math.max(
+        1,
+        Math.round((endsAt - startedAt) / 1000),
+      );
       const remainingSeconds = Math.max(0, Math.ceil((endsAt - now) / 1000));
 
       const segment = getGardenHarvestSegment({
@@ -502,7 +706,10 @@ export function useVocationalActiveAction() {
       const progress =
         garden.tiles && garden.tiles.length > 0
           ? segment.tileProgress
-          : Math.max(0, Math.min(1, 1 - remainingSeconds / Math.max(1, durationSeconds)));
+          : Math.max(
+              0,
+              Math.min(1, 1 - remainingSeconds / Math.max(1, durationSeconds)),
+            );
 
       const previewProgress =
         garden.tiles && garden.tiles.length > 0
@@ -513,7 +720,10 @@ export function useVocationalActiveAction() {
         segment.remainingInTileSeconds == null
           ? null
           : (() => {
-              const total = Math.max(0, Math.floor(segment.remainingInTileSeconds));
+              const total = Math.max(
+                0,
+                Math.floor(segment.remainingInTileSeconds),
+              );
               const minutes = Math.floor(total / 60);
               const seconds = total % 60;
               return `${minutes}:${seconds.toString().padStart(2, "0")}`;
@@ -527,8 +737,8 @@ export function useVocationalActiveAction() {
 
       return {
         kind: "garden" as const,
-        skillLabel: "Gathering",
-        href: "/skills/Gathering",
+        skillLabel: "Gardening",
+        href: "/skills/Gardening",
         label,
         sprite:
           currentYieldItem?.sprite ??
@@ -548,13 +758,119 @@ export function useVocationalActiveAction() {
         xpPerUnit: 0,
         xpPerSecond: "0.00",
         skillProgress: null,
+        canStop: true,
+      };
+    }
+
+    const expedition = gatheringStatus?.expedition;
+    if (expedition && expedition.status !== "CLAIMED") {
+      const startedAt = new Date(expedition.startedAt).getTime();
+      const endsAt = new Date(expedition.endsAt).getTime();
+      const duration = Math.max(1, endsAt - startedAt);
+      const elapsed = Math.max(0, Math.min(duration, now - startedAt));
+      const ready = expedition.status === "READY" || now >= endsAt;
+      const progress = ready ? 1 : elapsed / duration;
+      const remainingSeconds = ready
+        ? 0
+        : Math.max(0, Math.ceil((endsAt - now) / 1000));
+
+      return {
+        kind: "gathering" as const,
+        skillLabel: "Gathering",
+        href: "/skills/Gathering",
+        label: ready
+          ? `Claim haul from ${expedition.location.name}`
+          : `Exploring ${expedition.location.name}`,
+        sprite: undefined,
+        remainingSeconds,
+        nextItemInTime: null,
+        sessionRemainingSeconds: remainingSeconds,
+        progress,
+        previewProgress: progress,
+        sessionAmount: 0,
+        unitsTotal: 0,
+        yieldPerUnit: 0,
+        xpPerUnit: 0,
+        xpPerSecond: "0.00",
+        skillProgress: null,
+        canStop: !ready,
+      };
+    }
+
+    const huntingExpedition = huntingStatus?.expedition;
+    if (huntingExpedition && huntingExpedition.status !== "CLAIMED") {
+      const startedAt = new Date(huntingExpedition.startedAt).getTime();
+      const endsAt = new Date(huntingExpedition.endsAt).getTime();
+      const duration = Math.max(1, endsAt - startedAt);
+      const elapsed = Math.max(0, Math.min(duration, now - startedAt));
+      const ready = huntingExpedition.status === "READY" || now >= endsAt;
+      const progress = ready ? 1 : elapsed / duration;
+      const remainingSeconds = ready
+        ? 0
+        : Math.max(0, Math.ceil((endsAt - now) / 1000));
+
+      return {
+        kind: "hunting" as const,
+        skillLabel: "Hunting",
+        href: "/skills/Hunting",
+        label: ready
+          ? `Claim hunt from ${huntingExpedition.ground.name}`
+          : `Hunting in ${huntingExpedition.ground.name}`,
+        sprite: undefined,
+        remainingSeconds,
+        nextItemInTime: null,
+        sessionRemainingSeconds: remainingSeconds,
+        progress,
+        previewProgress: progress,
+        sessionAmount: 0,
+        unitsTotal: 0,
+        yieldPerUnit: 0,
+        xpPerUnit: 0,
+        xpPerSecond: "0.00",
+        skillProgress: null,
+        canStop: !ready,
+      };
+    }
+
+    const dungeonRun = dungeonStatus?.run;
+    if (dungeonRun && dungeonRun.status !== "CLAIMED") {
+      const startedAt = new Date(dungeonRun.startedAt).getTime();
+      const endsAt = new Date(dungeonRun.endsAt).getTime();
+      const duration = Math.max(1, endsAt - startedAt);
+      const elapsed = Math.max(0, Math.min(duration, now - startedAt));
+      const ready = dungeonRun.status === "READY" || now >= endsAt;
+      const progress = ready ? 1 : elapsed / duration;
+      const remainingSeconds = ready
+        ? 0
+        : Math.max(0, Math.ceil((endsAt - now) / 1000));
+
+      return {
+        kind: "dungeon" as const,
+        skillLabel: "Dungeon",
+        href: "/dungeons",
+        label: ready
+          ? `Claim run from ${dungeonRun.dungeon.name}`
+          : `Fighting in ${dungeonRun.dungeon.name}`,
+        sprite: undefined,
+        remainingSeconds,
+        nextItemInTime: null,
+        sessionRemainingSeconds: remainingSeconds,
+        progress,
+        previewProgress: progress,
+        sessionAmount: 0,
+        unitsTotal: 0,
+        yieldPerUnit: 0,
+        xpPerUnit: 0,
+        xpPerSecond: "0.00",
+        skillProgress: null,
+        canStop: !ready,
       };
     }
 
     const activity = status?.activity;
     if (!activity) return null;
 
-    const skillLabel = formatAction(activity.actionType);
+    const skillLabel = toSkillNameFromActionType(activity.actionType);
     const href = `/skills/${encodeURIComponent(skillLabel)}`;
 
     const startedAt = new Date(activity.startedAt).getTime();
@@ -615,10 +931,10 @@ export function useVocationalActiveAction() {
     const previewProgress =
       unitSeconds <= 1
         ? 1
-        // When the real bar hits 100% (resource gathered), keep the preview at 100%
-        // for that moment. This prevents the preview bar from appearing "behind"
-        // due to wrapping to the next unit immediately.
-        : completedSecondBoundary
+        : // When the real bar hits 100% (resource gathered), keep the preview at 100%
+          // for that moment. This prevents the preview bar from appearing "behind"
+          // due to wrapping to the next unit immediately.
+          completedSecondBoundary
           ? 1
           : Math.min(1, progress + 1 / unitSeconds);
 
@@ -644,8 +960,18 @@ export function useVocationalActiveAction() {
           Math.max(1, activity.unitSeconds),
       ).toFixed(2),
       skillProgress: status?.skillProgress ?? null,
+      canStop: true,
     };
-  }, [status, travelStatus, gardenHarvestStatus, travelSync, now]);
+  }, [
+    status,
+    travelStatus,
+    gardenHarvestStatus,
+    gatheringStatus,
+    huntingStatus,
+    dungeonStatus,
+    travelSync,
+    now,
+  ]);
 
   // Instant per-unit callback (matches fill-bar timing).
   // This fires when the client-side computed "unitsTotal" advances (i.e. when the bar hits 100%).
@@ -678,12 +1004,12 @@ export function useVocationalActiveAction() {
       const delta = unitsTotal - prevUnitsTotal;
       for (let i = 0; i < delta; i++) {
         toast.custom(
-          (t) =>
+          (_toast) =>
             React.createElement(
               "span",
               {
                 className:
-                  "flex items-center gap-2 bg-gray-700 px-3 py-2 text-sm text-foreground shadow-sm rounded-lg",
+                  "flex items-center gap-2 bg-card px-3 py-1 text-sm text-foreground shadow-sm rounded-lg",
               },
               derived.sprite
                 ? React.createElement("img", {
@@ -741,41 +1067,77 @@ export function useVocationalActiveAction() {
         derived.kind === "vocation"
           ? displayUnitsTotal * derived.yieldPerUnit
           : derived.kind === "garden"
-            ? (derived.sessionAmount ?? 0)
+            ? derived.sessionAmount ?? 0
             : 0,
       sessionLabel: "this session",
       xpPerUnit: derived.xpPerUnit,
       xpPerSecond: derived.xpPerSecond,
       skillProgress: derived.skillProgress,
+      canStop: derived.canStop,
     };
   }, [derived, displayUnitsTotal]);
 
   const stopMutation = useMutation({
-    mutationFn: async (kind: "vocation" | "travel" | "garden") => {
+    mutationFn: async (
+      kind:
+        | "vocation"
+        | "travel"
+        | "garden"
+        | "gathering"
+        | "hunting"
+        | "dungeon",
+    ) => {
       const url =
         kind === "travel"
           ? "/api/travel/cancel"
           : kind === "garden"
             ? "/api/garden/harvest/cancel"
-            : "/api/vocations/stop";
+            : kind === "gathering"
+              ? "/api/gathering/cancel"
+              : kind === "hunting"
+                ? "/api/hunting/cancel"
+                : kind === "dungeon"
+                  ? "/api/dungeons/cancel"
+                  : "/api/vocations/stop";
       const res = await fetch(url, { method: "POST" });
       if (!res.ok) {
-        const json = await res.json().catch(() => null);
-        throw new Error(json?.error ?? "Failed to stop");
+        const json: unknown = await res.json().catch(() => null);
+        const message =
+          json &&
+          typeof json === "object" &&
+          "error" in json &&
+          typeof json.error === "string"
+            ? json.error
+            : "Failed to stop";
+        throw new Error(message);
       }
       return res.json();
     },
     onMutate: async () => {
+      const skill: VocationalActionType | null = gardenHarvestStatus?.harvest
+        ? "GARDENING"
+        : status?.activity?.actionType ?? null;
+
       // Optimistic update - immediately clear UI
       setTravelStatus({ travel: null, progress: null });
+      setGardenHarvestStatus({ harvest: null, progress: null });
       setStatus((prev) =>
         prev ? { activity: null, progress: null, skillProgress: null } : prev,
       );
+      setGatheringStatus({ expedition: null });
+      setHuntingStatus({ expedition: null });
+      setDungeonStatus({ run: null });
       dispatchActiveActionEvent({ kind: "stop-optimistic" });
+      return { skill };
     },
-    onSuccess: async () => {
+    onSuccess: async (_data, kind, context) => {
       // Refresh status to get updated state (inventory updated server-side)
       await refresh();
+
+      // Stopping a vocation or harvest pays out what it earned so far.
+      if (kind === "vocation" || kind === "garden") {
+        syncPlayerData(context?.skill ?? null);
+      }
 
       // Notify listeners of change (for other components)
       dispatchActiveActionEvent({ kind: "changed" });
@@ -791,9 +1153,24 @@ export function useVocationalActiveAction() {
       ? "travel"
       : gardenHarvestStatus?.harvest
         ? "garden"
-        : "vocation";
+        : gatheringStatus?.expedition &&
+            gatheringStatus.expedition.status !== "CLAIMED"
+          ? "gathering"
+          : huntingStatus?.expedition &&
+              huntingStatus.expedition.status !== "CLAIMED"
+            ? "hunting"
+            : dungeonStatus?.run && dungeonStatus.run.status !== "CLAIMED"
+              ? "dungeon"
+              : "vocation";
     stopMutation.mutate(kind);
-  }, [stopMutation, travelStatus?.travel, gardenHarvestStatus?.harvest]);
+  }, [
+    stopMutation,
+    travelStatus?.travel,
+    gardenHarvestStatus?.harvest,
+    gatheringStatus?.expedition,
+    huntingStatus?.expedition,
+    dungeonStatus?.run,
+  ]);
 
   return {
     active: !!viewModel,
@@ -803,8 +1180,17 @@ export function useVocationalActiveAction() {
       ? ("TRAVEL" as const)
       : gardenHarvestStatus?.harvest
         ? ("GARDENING" as const)
-      : status?.activity?.actionType ?? null,
+        : gatheringStatus?.expedition &&
+            gatheringStatus.expedition.status !== "CLAIMED"
+          ? ("GATHERING" as const)
+          : huntingStatus?.expedition &&
+              huntingStatus.expedition.status !== "CLAIMED"
+            ? ("HUNTING" as const)
+            : dungeonStatus?.run && dungeonStatus.run.status !== "CLAIMED"
+              ? ("DUNGEON" as const)
+              : status?.activity?.actionType ?? null,
     stop,
+    applyVocationStatus,
     error: stopMutation.error?.message ?? null,
     isStopping: stopMutation.isPending,
   };

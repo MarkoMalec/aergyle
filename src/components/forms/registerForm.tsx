@@ -11,7 +11,7 @@ import {
   FormLabel,
   FormControl,
 } from "~/components/ui/form";
-import { CardTitle, CardContent, CardHeader } from "~/components/ui/card";
+import { CardContent, CardHeader } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
 
@@ -29,7 +29,12 @@ const FormSchema = z.object({
 
 type FormData = z.infer<typeof FormSchema>;
 
-export default function RegisterForm() {
+export default function RegisterForm({
+  embedded = false,
+}: {
+  embedded?: boolean;
+}) {
+  const Heading = embedded ? "h2" : "h1";
   const router = useRouter();
 
   const form = useForm({
@@ -42,7 +47,6 @@ export default function RegisterForm() {
   });
 
   const onSubmit = async (data: FormData) => {
-
     const { email, password, name } = data;
 
     const res = await fetch("/api/auth/register", {
@@ -66,7 +70,9 @@ export default function RegisterForm() {
   return (
     <>
       <CardHeader>
-        <CardTitle className="text-center text-2xl">Register</CardTitle>
+        <Heading className="text-3xl font-semibold tracking-tight">
+          Begin your journey
+        </Heading>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -79,7 +85,7 @@ export default function RegisterForm() {
                   <FormLabel>Name</FormLabel>
                   <FormControl>
                     <Input
-                      className="text-black"
+                      className="text-foreground"
                       placeholder="Name"
                       {...field}
                       type="text"
@@ -96,7 +102,7 @@ export default function RegisterForm() {
                   <FormLabel>Email</FormLabel>
                   <FormControl>
                     <Input
-                      className="text-black"
+                      className="text-foreground"
                       placeholder="Email"
                       {...field}
                       type="email"
@@ -113,7 +119,7 @@ export default function RegisterForm() {
                   <FormLabel>Password</FormLabel>
                   <FormControl>
                     <Input
-                      className="text-black"
+                      className="text-foreground"
                       placeholder="Password"
                       {...field}
                       type="password"

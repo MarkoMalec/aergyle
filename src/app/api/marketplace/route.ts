@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "~/lib/prisma";
-import { fetchUserItemsByIds } from "~/utils/userItemInventory";
 import { normalizeItemEquipTo } from "~/utils/itemEquipTo";
+import {
+  hydrateEffectiveItemStats,
+  ITEM_BALANCE_RELATIONS,
+} from "~/server/items/effectiveStats";
+
+export const dynamic = "force-dynamic";
 
 /**
  * Get marketplace listings with filters
  * GET /api/marketplace
- * 
+ *
  * Query params:
  * - equipTo: filter by equipment slot (weapon, head, chest, etc.)
  * - rarity: filter by rarity (COMMON, RARE, EPIC, etc.)
@@ -21,7 +26,7 @@ import { normalizeItemEquipTo } from "~/utils/itemEquipTo";
 export async function GET(req: NextRequest) {
   try {
     const searchParams = req.nextUrl.searchParams;
-    
+
     // Filters
     const equipToRaw = searchParams.get("equipTo");
     const equipTo = normalizeItemEquipTo(equipToRaw);
@@ -29,12 +34,12 @@ export async function GET(req: NextRequest) {
     const minPrice = searchParams.get("minPrice");
     const maxPrice = searchParams.get("maxPrice");
     const search = searchParams.get("search");
-    
+
     // Pagination
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "20");
     const skip = (page - 1) * limit;
-    
+
     // Sorting
     const sortBy = searchParams.get("sortBy") || "listedAt";
     const sortOrder = searchParams.get("sortOrder") || "desc";
@@ -79,8 +84,8 @@ export async function GET(req: NextRequest) {
     const listings = await prisma.userItem.findMany({
       where,
       include: {
-        itemTemplate: true,
-        stats: true,
+        itemTemplate: { include: ITEM_BALANCE_RELATIONS },
+        statModifiers: true,
         user: {
           select: {
             id: true,
@@ -92,6 +97,7 @@ export async function GET(req: NextRequest) {
       skip,
       take: limit,
     });
+    const effectiveListings = await hydrateEffectiveItemStats(listings);
 
     // Calculate pagination metadata
     const totalPages = Math.ceil(totalCount / limit);
@@ -99,7 +105,7 @@ export async function GET(req: NextRequest) {
     const hasPreviousPage = page > 1;
 
     return NextResponse.json({
-      listings,
+      listings: effectiveListings,
       pagination: {
         page,
         limit,
@@ -109,12 +115,11 @@ export async function GET(req: NextRequest) {
         hasPreviousPage,
       },
     });
-
   } catch (error) {
     console.error("Error fetching marketplace listings:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

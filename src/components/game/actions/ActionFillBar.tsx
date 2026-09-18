@@ -57,23 +57,32 @@ export function ActionFillBar({
 
   const Wrapper: React.ElementType = href ? Link : "div";
   const wrapperProps = href
-    ? ({ href, className: "relative block" } as const)
-    : ({ className: "relative" } as const);
+    ? ({
+        href,
+        "aria-label": `${title}, ${toPercent(clamped)} percent${remainingTravelTime != null ? `, ${formatDuration(remainingTravelTime)} remaining` : `, ${sessionAmount} collected`}`,
+        className: "relative block min-w-0 max-w-full",
+      } as const)
+    : ({ className: "relative min-w-0 max-w-full" } as const);
 
   if (variant === "simple") {
     return (
       <Wrapper {...wrapperProps}>
         <div
+          role="progressbar"
+          aria-label={title}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={toPercent(clamped)}
           className={cn(
-            "relative overflow-hidden rounded-full bg-white/10",
+            "relative overflow-hidden rounded-lg bg-surface-inset",
             className,
             trackClassName,
           )}
         >
           <div
             className={cn(
-              "h-2 rounded-full transition-[width]",
-              fillClassName ?? "bg-yellow-400",
+              "h-2 rounded-lg transition-[width]",
+              fillClassName ?? "bg-xp",
             )}
             style={{
               width: `${toPercent(clamped)}%`,
@@ -82,7 +91,7 @@ export function ActionFillBar({
 
           <div
             className={cn(
-              "absolute left-0 top-0 h-full rounded-full bg-yellow-500/20 transition-[width]",
+              "absolute left-0 top-0 h-full rounded-lg bg-xp/20 transition-[width]",
               tickClassName,
             )}
             style={{
@@ -96,19 +105,19 @@ export function ActionFillBar({
 
   return (
     <Wrapper {...wrapperProps}>
-      <span className="absolute -right-2 -top-3 z-30 rounded-full bg-gray-600/80 px-2 py-0.5 text-[10px] font-black text-white/80">
-        {remainingTravelTime
-          ? formatDuration(remainingTravelTime)
-          : sessionAmount}
-      </span>
       <div
+        role="progressbar"
+        aria-label={title}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={toPercent(clamped)}
         className={cn(
-          "relative overflow-hidden rounded-full bg-white/10",
+          "relative overflow-hidden rounded-lg bg-surface-inset",
           className,
           trackClassName,
         )}
       >
-        <div className="pointer-events-none relative z-30 flex select-none items-center gap-2 py-1.5 pl-2 pr-3 text-sm font-bold text-white/80">
+        <div className="pointer-events-none relative z-30 flex min-w-0 select-none items-center gap-2 py-2 pl-2 pr-3 text-xs font-medium text-text-secondary">
           {sprite ? (
             <Image
               src={sprite}
@@ -118,14 +127,21 @@ export function ActionFillBar({
               className="h-6 w-6"
             />
           ) : null}
-          <span className="mb-[2px] inline-block">{title}</span>
-          <div className="ml-2 h-4 w-4 animate-spin rounded-full border-[3px] border-gray-300 border-b-gray-700/60 border-l-gray-700/60 border-t-gray-700/50" />
+          <span className="max-w-32 truncate">{title}</span>
+          <span className="shrink-0 text-xs tabular-nums text-xp">
+            {toPercent(clamped)}%
+          </span>
+          <span className="shrink-0 border-l border-border pl-2 text-xs tabular-nums text-muted-foreground">
+            {remainingTravelTime != null
+              ? formatDuration(remainingTravelTime)
+              : `+${sessionAmount}`}
+          </span>
         </div>
         <div className="absolute left-0 top-0 h-full w-full">
           <div
             className={cn(
-              "h-full rounded-full transition-[width]",
-              fillClassName ?? "bg-[#20c05c]",
+              "h-full rounded-lg transition-[width]",
+              fillClassName ?? "bg-xp/25",
             )}
             style={{
               width: `${toPercent(clamped)}%`,
@@ -133,7 +149,7 @@ export function ActionFillBar({
           />
 
           <div
-            className="absolute left-0 top-0 h-full rounded-full bg-green-700/20 transition-[width]"
+            className="absolute left-0 top-0 h-full rounded-lg bg-xp/15 transition-[width]"
             style={{
               width: `${toPercent(laggedPreview)}%`,
             }}

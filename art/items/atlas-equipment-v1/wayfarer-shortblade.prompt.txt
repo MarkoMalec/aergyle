@@ -1,0 +1,26 @@
+```text
+Create one inventory item sprite for Aergyle, in the “Wayfarer’s Atlas” art direction.
+A tangible fantasy field specimen, illustrated with decisive faceted paint: believable
+construction, simplified chunky mass, crisp silhouette, three dominant value families,
+five to seven broad material planes, two or three identifying wear/texture marks.
+Medium stylisation; a crafted atlas illustration, not a photograph or a 3D product render.
+
+1024 by 1024 square RGBA canvas, genuinely transparent background. One isolated subject,
+optically centred, longest visible dimension 76–84 percent of the canvas, 8–12 percent
+clear margins. No floor, cast-shadow stage, border, label, text or vignette.
+Orthographic-like three-quarter view, camera approximately 20 degrees above and
+25–30 degrees around the object. Long tools/weapons run from lower-left handle to
+upper-right working end at approximately 45 degrees. Other objects show the identifying
+front face toward the lower-left and recede toward the upper-right.
+
+One warm-neutral light from upper-left at 10 o’clock and 45 degrees elevation.
+Cool desaturated teal-grey self-shadows; no second coloured rim light. Three clear
+value groups. Short broken highlights on useful edges, under 8 percent of the object.
+Local dark edge only where needed, no thick uniform black outline. Natural restrained
+material colour; do not tint the whole item brass or green. Slightly enlarge the useful
+head/blade/cut face by 10–15 percent for recognition. Readable category at 32px,
+material at 64px and individual identifying feature at 128px.
+
+No photorealism, anime, pixel art, plastic gradients, chrome studio lighting, tiny
+filigree, muddy painterly smears, heavy cartoon outlines, ambient glow, bloom, particles,
+rarity effects, floating shadow, checkerboard pattern, watermark, lettering or UISUBJECT AND MATERIALS: Wayfarer Shortblade. One practical short arming sword, sturdy blue-grey iron blade with a broad pale cutting bevel and two nicks, short straight crossguard, dark umber leather grip and a plain small iron pommel. The blade is slightly wider for thumbnail clarity. Full sword on the lower-left pommel to upper-right tip diagonal. Natural steel and leather, understated beginner equipment; no sheath, jewelry, effects or ornament.

@@ -2,33 +2,136 @@
 
 import { useMemo } from "react";
 import {
+  ChevronRight,
+  Droplets,
+  Heart,
+  Sparkles,
+  Swords,
+  type LucideIcon,
+} from "lucide-react";
+import {
   StatType,
   StatCategory,
-  ComputedStats,
+  type ComputedStats,
   STAT_METADATA,
 } from "~/types/stats";
 import {
+  COMPUTED_STAT_TYPE_MAP,
   calculateFinalStats,
-  formatStatValue,
   calculateEquipmentBonuses,
 } from "~/utils/stats";
-import { Card, CardContent } from "~/components/ui/card";
-import { Separator } from "~/components/ui/separator";
 import { useEquipmentContext } from "~/context/equipmentContext";
-import { cn } from "~/lib/utils";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "~/components/ui/tooltip";
+import { useActiveFoodEffect } from "~/hooks/use-active-food-effect";
+import { Button } from "~/components/ui/button";
+import { ResponsiveModal } from "~/components/ui/responsive-modal";
 
 interface CharacterStatsProps {
   baseStats: Array<{ statType: StatType; value: number }>;
+  currentHealth?: number;
 }
 
-export const CharacterStats = ({ baseStats }: CharacterStatsProps) => {
+type StatRow = {
+  key: string;
+  label: string;
+  value: string;
+  description: string;
+  isZero: boolean;
+  statTypes: StatType[];
+};
+
+type CoreStat = {
+  label: string;
+  value: string;
+  description: string;
+  tone: string;
+  icon: LucideIcon;
+  statTypes: StatType[];
+};
+
+const CATEGORY_ORDER = [
+  { category: StatCategory.CHARACTER, label: "Vitals" },
+  { category: StatCategory.OFFENSIVE, label: "Offense" },
+  { category: StatCategory.DEFENSIVE, label: "Defense" },
+  { category: StatCategory.RESISTANCE, label: "Resistances" },
+  { category: StatCategory.SPECIAL, label: "Utility & vocations" },
+] as const;
+
+function formatTotalValue(value: number, statType: StatType) {
+  const metadata = STAT_METADATA[statType];
+
+  if (metadata.formatType === "percentage") return `${value.toFixed(1)}%`;
+  if (metadata.formatType === "decimal") return value.toFixed(2);
+  return Math.floor(value).toString();
+}
+
+function formatDamageRange(minimum: number, maximum: number) {
+  return `${Math.floor(minimum)}–${Math.floor(maximum)}`;
+}
+
+function getCategoryRows(stats: Array<[StatType, number]>): StatRow[] {
+  const values = new Map(stats);
+  const rows: StatRow[] = [];
+  const rangePairs = [
+    {
+      minimum: StatType.PHYSICAL_DAMAGE_MIN,
+      maximum: StatType.PHYSICAL_DAMAGE_MAX,
+      label: "Physical damage",
+      description: "Minimum to maximum physical damage per hit",
+    },
+    {
+      minimum: StatType.MAGIC_DAMAGE_MIN,
+      maximum: StatType.MAGIC_DAMAGE_MAX,
+      label: "Magic damage",
+      description: "Minimum to maximum magic damage per hit",
+    },
+  ];
+  const consumed = new Set<StatType>();
+
+  for (const pair of rangePairs) {
+    const minimum = values.get(pair.minimum);
+    const maximum = values.get(pair.maximum);
+    if (minimum === undefined || maximum === undefined) continue;
+
+    rows.push({
+      key: `${pair.minimum}-${pair.maximum}`,
+      label: pair.label,
+      value: formatDamageRange(minimum, maximum),
+      description: pair.description,
+      isZero: minimum === 0 && maximum === 0,
+      statTypes: [pair.minimum, pair.maximum],
+    });
+    consumed.add(pair.minimum);
+    consumed.add(pair.maximum);
+  }
+
+  for (const [statType, value] of stats) {
+    if (consumed.has(statType)) continue;
+    const metadata = STAT_METADATA[statType];
+    rows.push({
+      key: statType,
+      label: metadata.label,
+      value: formatTotalValue(value, statType),
+      description: metadata.description,
+      isZero: value === 0,
+      statTypes: [statType],
+    });
+  }
+
+  return rows;
+}
+
+export const CharacterStats = ({
+  baseStats,
+  currentHealth,
+}: CharacterStatsProps) => {
   const { equipment } = useEquipmentContext();
+  const { effect: activeFoodEffect } = useActiveFoodEffect();
 
   const baseStatsRecord = useMemo(() => {
     const record: Partial<Record<StatType, number>> = {};
@@ -38,166 +141,203 @@ export const CharacterStats = ({ baseStats }: CharacterStatsProps) => {
     return record as Record<StatType, number>;
   }, [baseStats]);
 
-  const equipmentStatsRecord = useMemo(() => {
-    const bonuses = calculateEquipmentBonuses(equipment);
-    return bonuses;
-  }, [equipment]);
-
-  const finalStats = useMemo(
-    () => calculateFinalStats(baseStatsRecord, equipmentStatsRecord),
-    [baseStatsRecord, equipmentStatsRecord],
+  const equipmentStatsRecord = useMemo(
+    () => calculateEquipmentBonuses(equipment),
+    [equipment],
   );
 
-  const statKeyToEnumMap: Record<keyof ComputedStats, StatType> = {
-    minPhysicalDamage: StatType.PHYSICAL_DAMAGE_MIN,
-    maxPhysicalDamage: StatType.PHYSICAL_DAMAGE_MAX,
-    minMagicDamage: StatType.MAGIC_DAMAGE_MIN,
-    maxMagicDamage: StatType.MAGIC_DAMAGE_MAX,
-    criticalChance: StatType.CRITICAL_CHANCE,
-    criticalDamage: StatType.CRITICAL_DAMAGE,
-    attackSpeed: StatType.ATTACK_SPEED,
-    accuracy: StatType.ACCURACY,
-    armor: StatType.ARMOR,
-    magicResist: StatType.MAGIC_RESIST,
-    evasionMelee: StatType.EVASION_MELEE,
-    evasionRanged: StatType.EVASION_RANGED,
-    evasionMagic: StatType.EVASION_MAGIC,
-    blockChance: StatType.BLOCK_CHANCE,
-    fireResist: StatType.FIRE_RESIST,
-    coldResist: StatType.COLD_RESIST,
-    lightningResist: StatType.LIGHTNING_RESIST,
-    poisonResist: StatType.POISON_RESIST,
-    health: StatType.HEALTH,
-    mana: StatType.MANA,
-    healthRegen: StatType.HEALTH_REGEN,
-    manaRegen: StatType.MANA_REGEN,
-    prayerPoints: StatType.PRAYER_POINTS,
-    movementSpeed: StatType.MOVEMENT_SPEED,
-    luck: StatType.LUCK,
-    goldFind: StatType.GOLD_FIND,
-    experienceGain: StatType.EXPERIENCE_GAIN,
-    lifesteal: StatType.LIFESTEAL,
-    thorns: StatType.THORNS,
-    woodcuttingEfficiency: StatType.WOODCUTTING_EFFICIENCY,
-    miningEfficiency: StatType.MINING_EFFICIENCY,
-    fishingEfficiency: StatType.FISHING_EFFICIENCY,
-  };
+  const foodStatsRecord = useMemo(() => {
+    const bonuses: Partial<Record<StatType, number>> = {};
+    for (const stat of activeFoodEffect?.item.foodEffectStats ?? []) {
+      bonuses[stat.statType] = (bonuses[stat.statType] ?? 0) + stat.value;
+    }
+    return bonuses;
+  }, [activeFoodEffect]);
 
-  const statsByCategory = useMemo(() => {
-    const categories = new Map<StatCategory, Array<[StatType, number]>>();
+  const finalStats = useMemo(
+    () =>
+      calculateFinalStats(
+        baseStatsRecord,
+        equipmentStatsRecord,
+        foodStatsRecord,
+      ),
+    [baseStatsRecord, equipmentStatsRecord, foodStatsRecord],
+  );
 
-    Object.entries(finalStats).forEach(([camelCaseKey, value]) => {
-      const statType = statKeyToEnumMap[camelCaseKey as keyof ComputedStats];
+  const categoryRows = useMemo(() => {
+    const grouped = new Map<StatCategory, Array<[StatType, number]>>();
+
+    (
+      Object.entries(finalStats) as Array<[keyof ComputedStats, number]>
+    ).forEach(([computedKey, value]) => {
+      const statType = COMPUTED_STAT_TYPE_MAP[computedKey];
       const metadata = STAT_METADATA[statType];
-      if (!metadata) return;
-
-      if (!categories.has(metadata.category)) {
-        categories.set(metadata.category, []);
-      }
-      categories.get(metadata.category)!.push([statType, value]);
+      const category = metadata.category;
+      const categoryStats = grouped.get(category) ?? [];
+      categoryStats.push([statType, value]);
+      grouped.set(category, categoryStats);
     });
 
-    // Sort stats within each category by priority
-    categories.forEach((stats) => {
-      stats.sort((a, b) => {
-        const priorityA = STAT_METADATA[a[0]].priority;
-        const priorityB = STAT_METADATA[b[0]].priority;
-        return priorityA - priorityB;
-      });
-    });
-
-    return categories;
+    return CATEGORY_ORDER.map(({ category, label }) => {
+      const stats = grouped.get(category) ?? [];
+      stats.sort(
+        (a, b) => STAT_METADATA[a[0]].priority - STAT_METADATA[b[0]].priority,
+      );
+      return { category, label, rows: getCategoryRows(stats) };
+    }).filter(({ rows }) => rows.length > 0);
   }, [finalStats]);
 
-  const renderStatCategory = (title: string, stats: Array<[StatType, number]>) => {
-    if (stats.length === 0) return null;
+  const coreStats: CoreStat[] = [
+    {
+      label: "Health",
+      value:
+        typeof currentHealth === "number"
+          ? `${Math.floor(Math.min(currentHealth, finalStats.health))}/${Math.floor(finalStats.health)}`
+          : Math.floor(finalStats.health).toString(),
+      description: STAT_METADATA[StatType.HEALTH].description,
+      tone: "health",
+      icon: Heart,
+      statTypes: [StatType.HEALTH],
+    },
+    {
+      label: "Mana",
+      value: Math.floor(finalStats.mana).toString(),
+      description: STAT_METADATA[StatType.MANA].description,
+      tone: "mana",
+      icon: Droplets,
+      statTypes: [StatType.MANA],
+    },
+    {
+      label: "Physical",
+      value: formatDamageRange(
+        finalStats.minPhysicalDamage,
+        finalStats.maxPhysicalDamage,
+      ),
+      description: "Minimum to maximum physical damage per hit",
+      tone: "physical",
+      icon: Swords,
+      statTypes: [StatType.PHYSICAL_DAMAGE_MIN, StatType.PHYSICAL_DAMAGE_MAX],
+    },
+    {
+      label: "Magic",
+      value: formatDamageRange(
+        finalStats.minMagicDamage,
+        finalStats.maxMagicDamage,
+      ),
+      description: "Minimum to maximum magic damage per hit",
+      tone: "magic",
+      icon: Sparkles,
+      statTypes: [StatType.MAGIC_DAMAGE_MIN, StatType.MAGIC_DAMAGE_MAX],
+    },
+    // {
+    //   label: "Armor",
+    //   value: Math.floor(finalStats.armor).toString(),
+    //   description: STAT_METADATA[StatType.ARMOR].description,
+    //   tone: "armor",
+    //   icon: Shield,
+    // },
+    // {
+    //   label: "Capacity",
+    //   value: Math.floor(finalStats.carryingCapacity).toString(),
+    //   description: STAT_METADATA[StatType.CARRYING_CAPACITY].description,
+    //   tone: "capacity",
+    //   icon: Backpack,
+    // },
+  ];
+  const detailedStatCount = categoryRows.reduce(
+    (count, category) => count + category.rows.length,
+    0,
+  );
 
-    return (
-      <div className="rounded-lg border border-gray-700/40 bg-gray-800 p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <div className="text-xs font-semibold uppercase tracking-wide text-white/70">
-            {title}
-          </div>
-          <div className="text-[11px] text-white/40 tabular-nums">
-            {stats.length}
-          </div>
-        </div>
+  const boostedStatTypes = new Set(
+    activeFoodEffect?.item.foodEffectStats.map((effect) => effect.statType),
+  );
 
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {stats.map(([statType, value]) => {
-            const metadata = STAT_METADATA[statType];
-            if (!metadata) return null;
-
-            const isZero = value === 0;
-            const label = metadata.shortLabel ?? metadata.label;
-
-            return (
-              <Tooltip key={statType}>
-                <TooltipTrigger asChild>
-                  <div
-                    className={cn(
-                      "flex cursor-default items-center justify-between gap-3 rounded-md border border-gray-700/40 bg-gray-700/20 px-3 py-2",
-                      isZero ? "opacity-40" : "opacity-100",
-                    )}
-                    aria-label={metadata.label}
-                  >
-                    <div className="flex min-w-0 items-center gap-2">
-                      <span className="shrink-0 text-sm">{metadata.icon}</span>
-                      <span className="truncate text-[13px] text-white/80">
-                        {label}
-                      </span>
-                    </div>
-
-                    <span
-                      className="shrink-0 font-mono text-[13px] font-semibold tabular-nums"
-                      style={{ color: metadata.color }}
-                    >
-                      {formatStatValue(value, statType)}
-                    </span>
-                  </div>
-                </TooltipTrigger>
-
-                <TooltipContent side="top" className="max-w-[260px]">
-                  {metadata.label}
-                </TooltipContent>
-              </Tooltip>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
+  const attributeSource = activeFoodEffect ? "Gear + meal" : "Gear included";
 
   return (
-    <Card className="my-8 w-full border border-gray-700/40 bg-gray-800/40 shadow-none">
-      <CardContent className="p-4">
-        <Separator className="mb-4 text-sm">CHARACTER STATS</Separator>
+    <TooltipProvider delayDuration={150}>
+      <div className="game-core-stats" aria-label="Core attributes">
+        {coreStats.map((stat) => {
+          const Icon = stat.icon;
+          return (
+            <Tooltip key={stat.label}>
+              <TooltipTrigger asChild>
+                <div
+                  className="game-core-stat"
+                  data-tone={stat.tone}
+                  tabIndex={0}
+                >
+                  <span className="game-core-stat-icon">
+                    <Icon className="h-4 w-4" aria-hidden={true} />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="game-core-stat-label">{stat.label}</span>
+                    <strong
+                      className={`game-core-stat-value ${stat.statTypes.some((type) => boostedStatTypes.has(type)) ? "text-primary" : ""}`}
+                    >
+                      {stat.value}
+                    </strong>
+                  </span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-[240px]">
+                {stat.description}
+              </TooltipContent>
+            </Tooltip>
+          );
+        })}
+      </div>
 
-        <TooltipProvider delayDuration={150}>
-          <div className="flex flex-col gap-4">
-            {renderStatCategory(
-              "Character",
-              statsByCategory.get(StatCategory.CHARACTER) || [],
-            )}
-            {renderStatCategory(
-              "Offensive",
-              statsByCategory.get(StatCategory.OFFENSIVE) || [],
-            )}
-            {renderStatCategory(
-              "Defensive",
-              statsByCategory.get(StatCategory.DEFENSIVE) || [],
-            )}
-            {renderStatCategory(
-              "Resistance",
-              statsByCategory.get(StatCategory.RESISTANCE) || [],
-            )}
-            {renderStatCategory(
-              "Special",
-              statsByCategory.get(StatCategory.SPECIAL) || [],
-            )}
+      <div className="game-attributes-actions">
+        <ResponsiveModal
+          title="Attributes"
+          description={`${detailedStatCount} values by category · ${attributeSource}`}
+          className="sm:max-w-3xl"
+          trigger={
+            <Button variant="ghost" size="sm">
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
+            </Button>
+          }
+        >
+          <div className="game-attribute-categories">
+            {categoryRows.map(({ category, label, rows }) => (
+              <section className="game-attribute-category" key={category}>
+                <h3>{label}</h3>
+                <div>
+                  {rows.map((row) => (
+                    <Tooltip key={row.key}>
+                      <TooltipTrigger asChild>
+                        <div
+                          className="game-attribute-row"
+                          data-zero={row.isZero}
+                          tabIndex={0}
+                        >
+                          <span>{row.label}</span>
+                          <strong
+                            className={
+                              row.statTypes.some((type) =>
+                                boostedStatTypes.has(type),
+                              )
+                                ? "!text-primary"
+                                : undefined
+                            }
+                          >
+                            {row.value}
+                          </strong>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-[260px]">
+                        {row.description}
+                      </TooltipContent>
+                    </Tooltip>
+                  ))}
+                </div>
+              </section>
+            ))}
           </div>
-        </TooltipProvider>
-      </CardContent>
-    </Card>
+        </ResponsiveModal>
+      </div>
+    </TooltipProvider>
   );
 };

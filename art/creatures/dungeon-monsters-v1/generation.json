@@ -1,0 +1,26 @@
+{
+  "generator": "Built-in image_gen",
+  "generatedOn": "2026-09-17",
+  "pack": "dungeon-monsters-v1",
+  "artDirection": "Aergyle grounded bestiary",
+  "masterSize": "1254x1254 RGBA PNG",
+  "runtimeSize": "256x256 RGBA PNG",
+  "assets": [
+    { "slug": "tunnel-goblin", "tier": "common", "master": "tunnel-goblin-master.png", "runtime": "/assets/creatures/monsters/common/tunnel-goblin.png", "generatedFile": "exec-d949c467-73ab-4a1a-a23e-a44a7f4bec4b.png" },
+    { "slug": "rattlebone-skeleton", "tier": "common", "master": "rattlebone-skeleton-master.png", "runtime": "/assets/creatures/monsters/common/rattlebone-skeleton.png", "generatedFile": "exec-0a87f83e-4719-4a01-9a00-ca4db085b2c3.png" },
+    { "slug": "mire-ooze", "tier": "common", "master": "mire-ooze-master.png", "runtime": "/assets/creatures/monsters/common/mire-ooze.png", "generatedFile": "exec-e6d4927a-51ac-4fd1-9646-575e03ae266f.png" },
+    { "slug": "cavefang-spider", "tier": "common", "master": "cavefang-spider-master.png", "runtime": "/assets/creatures/monsters/common/cavefang-spider.png", "generatedFile": "exec-619e113e-1c40-454f-b296-62fff2c3b702.png" },
+    { "slug": "rotclaw-ghoul", "tier": "common", "master": "rotclaw-ghoul-master.png", "runtime": "/assets/creatures/monsters/common/rotclaw-ghoul.png", "generatedFile": "exec-f5c2623d-e313-48ed-a46d-c0596ae6f00e.png" },
+    { "slug": "ash-imp", "tier": "common", "master": "ash-imp-master.png", "runtime": "/assets/creatures/monsters/common/ash-imp.png", "generatedFile": "exec-5ae94895-8812-4d0d-8688-97672d6d266d.png" },
+    { "slug": "ruin-bat", "tier": "common", "master": "ruin-bat-master.png", "runtime": "/assets/creatures/monsters/common/ruin-bat.png", "generatedFile": "exec-1234d936-c35c-465a-b976-e31de349d830.png" },
+    { "slug": "rootling", "tier": "common", "master": "rootling-master.png", "runtime": "/assets/creatures/monsters/common/rootling.png", "generatedFile": "exec-6e1f65e0-9362-4d8a-bd90-eecf6eb15a88.png" },
+    { "slug": "plague-rat", "tier": "common", "master": "plague-rat-master.png", "runtime": "/assets/creatures/monsters/common/plague-rat.png", "generatedFile": "exec-482ae3ce-ff9b-4db5-857f-c02a38408c72.png" },
+    { "slug": "scalehide-troglodyte", "tier": "common", "master": "scalehide-troglodyte-master.png", "runtime": "/assets/creatures/monsters/common/scalehide-troglodyte.png", "generatedFile": "exec-c961f8ce-f36f-4b79-a194-245555609515.png" },
+    { "slug": "ironhide-ogre", "tier": "rare", "master": "ironhide-ogre-master.png", "runtime": "/assets/creatures/monsters/rare/ironhide-ogre.png", "generatedFile": "exec-86a213b4-15c4-467f-ada8-1652dad8072d.png" },
+    { "slug": "stoneback-troll", "tier": "rare", "master": "stoneback-troll-master.png", "runtime": "/assets/creatures/monsters/rare/stoneback-troll.png", "generatedFile": "exec-5805d8cc-0f19-495e-aefe-483c27ba0c6c.png" },
+    { "slug": "tomb-sentinel", "tier": "rare", "master": "tomb-sentinel-master.png", "runtime": "/assets/creatures/monsters/rare/tomb-sentinel.png", "generatedFile": "exec-74044b82-0b22-4480-acd1-d22de55c5e25.png" },
+    { "slug": "miremaw-hydra", "tier": "rare", "master": "miremaw-hydra-master.png", "runtime": "/assets/creatures/monsters/rare/miremaw-hydra.png", "generatedFile": "exec-8b97ac3c-5a98-4a93-9005-e07af49ebcc0.png" },
+    { "slug": "emberhorn-minotaur", "tier": "rare", "master": "emberhorn-minotaur-master.png", "runtime": "/assets/creatures/monsters/rare/emberhorn-minotaur.png", "generatedFile": "exec-81d4f0d4-3e7c-493b-b6ab-5a08dafc6d70.png" },
+    { "slug": "hollow-wyrm", "tier": "rare", "master": "hollow-wyrm-master.png", "runtime": "/assets/creatures/monsters/rare/hollow-wyrm.png", "generatedFile": "exec-dc19be49-04f0-464f-8ab7-d9e8742dfbd9.png" }
+  ]
+}

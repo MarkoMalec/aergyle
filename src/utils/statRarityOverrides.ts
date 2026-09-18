@@ -1,9 +1,18 @@
 import { prisma } from "~/lib/prisma";
-import type { ItemRarity, StatType } from "~/generated/prisma/enums";
+import type {
+  ItemRarity,
+  ItemStatRarityOverrideKind,
+  StatType,
+} from "~/generated/prisma/enums";
 
 export async function setItemStatRarityOverrides(
   itemId: number,
-  overrides: Array<{ statType: StatType; rarity: ItemRarity; value: number }>,
+  overrides: Array<{
+    statType: StatType;
+    rarity: ItemRarity;
+    kind: ItemStatRarityOverrideKind;
+    value: number;
+  }>,
 ) {
   await prisma.itemStatRarityOverride.deleteMany({ where: { itemId } });
 
@@ -13,6 +22,7 @@ export async function setItemStatRarityOverrides(
       itemId,
       statType: o.statType,
       rarity: o.rarity,
+      kind: o.kind,
       value: o.value,
     }));
 

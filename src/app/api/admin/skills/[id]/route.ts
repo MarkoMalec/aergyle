@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "~/lib/prisma";
 import { requireAdminApiAccess } from "~/server/admin/auth";
+import { SkillCategory } from "~/generated/prisma/enums";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -9,6 +10,7 @@ export const revalidate = 0;
 const skillSchema = z.object({
   skill_name: z.string().min(1),
   description: z.string().optional(),
+  category: z.nativeEnum(SkillCategory).default(SkillCategory.VOCATION),
 });
 
 export async function GET(req: NextRequest, ctx: { params: { id: string } }) {
@@ -51,6 +53,7 @@ export async function PATCH(req: NextRequest, ctx: { params: { id: string } }) {
       data: {
         skill_name: v.skill_name,
         description: v.description?.trim() ? v.description.trim() : null,
+        category: v.category,
       },
     });
 
@@ -63,7 +66,10 @@ export async function PATCH(req: NextRequest, ctx: { params: { id: string } }) {
   }
 }
 
-export async function DELETE(req: NextRequest, ctx: { params: { id: string } }) {
+export async function DELETE(
+  req: NextRequest,
+  ctx: { params: { id: string } },
+) {
   const denied = await requireAdminApiAccess(req);
   if (denied) return denied;
 

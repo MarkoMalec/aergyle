@@ -2,14 +2,42 @@
 
 This repo includes a standalone realtime daemon that:
 - Hosts a WebSocket server (push updates to the browser)
-- Runs a vocational tick loop (claims 1 unit exactly when due)
+- Runs the activity tick loop: settles every vocation unit and garden harvest tile
+  the moment it is due, for every player, online or not
 
 It is designed to run as a separate process alongside Next.js.
 
 ## What it updates
 
-- Calls `claimVocationalRewards({ userId, maxUnits: 1 })` whenever a tick is due.
-- Broadcasts events to the connected user so the UI can refresh inventory and action status.
+Every `VOCATION_TICK_LOOP_MS` it asks each ticker (vocations, garden harvests) which
+players have something due, then settles them one player at a time:
+
+- Vocations: `claimVocationalRewards` (`src/server/vocations/claim.ts`)
+- Garden: `settleGardenHarvest` (`src/server/garden/service.ts`)
+
+Each player is settled in their own try/catch, so one failure (or one full
+inventory) never holds up anyone else. Settlement locks the activity row, so the
+daemon, page loads and status checks can't pay the same tick twice.
+
+After each settlement the player's open tabs get one `activity_tick` event
+(`src/realtime/events.ts`): the new quantity of every inventory stack that changed,
+whether new stacks were created, the skill whose XP moved, and a `stopReason` when
+the activity ended (finished, inventory full, out of materials or bait). On
+connect, clients get an `inventory_changed` hello so they can resync.
+
+## Client side
+
+`RealtimeBridge` applies tick events through `src/lib/player-sync.ts`:
+
+- Stack quantities are patched straight into the cached inventory and marketplace
+  sell list (`inventoryQueryKeys`), so every view updates without a refetch. New
+  stacks trigger a refetch.
+- The level badge and the skill's progress panel refetch.
+- A stop shows a toast and refreshes the header's active action.
+
+While the socket is connected, the header does not poll for ticks. When it is not
+(daemon down, no `NEXT_PUBLIC_REALTIME_WS_URL`), the header refreshes at each unit or
+tile boundary instead, and status checks settle ticks the same way.
 
 ## Requirements
 
@@ -18,8 +46,11 @@ It is designed to run as a separate process alongside Next.js.
   - `DATABASE_URL` (points at the same DB)
   - `REALTIME_TOKEN_SECRET` (shared secret used to sign WS auth tokens)
   - Optional: `REALTIME_WS_PORT` (default `3001`)
-  - Optional: `VOCATION_TICK_LOOP_MS` (default `250`)
+  - Optional: `VOCATION_TICK_LOOP_MS` (default `250`; also drives garden ticks)
   - In Next.js (browser): `NEXT_PUBLIC_REALTIME_WS_URL` (e.g. `ws://<rpi-ip>:3001` or `wss://ws.example.com`)
+- Everything the daemon imports runs as plain Node, outside Next.js. Keep those
+  modules (`claim.ts`, `garden/service.ts`, `harvestSchedule.ts` and what they
+  import) free of `server-only` imports such as `~/server/stats`.
 
 ## Run on the RPi
 
@@ -31,6 +62,9 @@ It is designed to run as a separate process alongside Next.js.
 4) Start the daemon:
 
 - `npm run realtime:daemon`
+
+After changing tick or settlement code, rebuild/restart the daemon: an older
+daemon keeps running the old settlement logic.
 
 ## Production notes
 

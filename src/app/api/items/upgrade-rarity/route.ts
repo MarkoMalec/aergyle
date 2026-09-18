@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { upgradeItemRarity } from "~/utils/rarity";
+import { upgradeUserItemRarity } from "~/utils/userItems";
 import { getServerAuthSession } from "~/server/auth";
 
 export async function POST(req: NextRequest) {
@@ -9,20 +9,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { itemId } = await req.json();
+    const body = (await req.json()) as { userItemId?: unknown };
+    const userItemId = Number(body.userItemId);
     const userId = session.user.id;
 
-    if (!itemId) {
-      return NextResponse.json({ error: "Missing itemId" }, { status: 400 });
+    if (!Number.isSafeInteger(userItemId) || userItemId <= 0) {
+      return NextResponse.json(
+        { error: "A valid userItemId is required" },
+        { status: 400 },
+      );
     }
 
-    const result = await upgradeItemRarity(itemId, userId);
+    const result = await upgradeUserItemRarity(userItemId, userId);
 
     if (!result.success) {
-      return NextResponse.json(
-        { error: result.error },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: result.message }, { status: 400 });
     }
 
     return NextResponse.json({
@@ -34,7 +35,7 @@ export async function POST(req: NextRequest) {
     console.error("Error upgrading item rarity:", error);
     return NextResponse.json(
       { error: "Failed to upgrade item rarity" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

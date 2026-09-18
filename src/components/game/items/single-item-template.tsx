@@ -1,24 +1,33 @@
 "use client";
 
 import Image from "next/image";
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from "~/components/ui/popover";
-import { useState } from "react";
-import { ItemWithStats } from "~/types/stats";
-import { formatItemStatsForDisplay } from "~/utils/stats";
-import { RarityBadge } from "~/utils/ui/rarity-badge";
+import { Popover, PopoverTrigger } from "~/components/ui/popover";
+import { useRef, useState } from "react";
+import type { ItemWithStats } from "~/types/stats";
 import { useRarityColors } from "~/hooks/use-rarity-colors";
-import { getRarityTailwindClass } from "~/utils/rarity-colors";
-import { CoinsIcon } from "../ui/coins-icon";
-import { useEquipmentContext } from "~/context/equipmentContext";
-import { Badge } from "~/components/ui/badge";
+import { rarityStyle } from "~/utils/rarity-colors";
+import {
+  ItemDetails,
+  ItemDetailsPopoverContent,
+  itemHasTimedEffect,
+} from "~/components/game/items/ItemDetails";
 import { ListItemDialog } from "~/components/game/marketplace/ListItemDialog";
 import { cn } from "~/lib/utils";
 import { useVocationalActiveActionContext } from "~/components/game/actions/VocationalActiveActionProvider";
-import { Separator } from "~/components/ui/separator";
+import { Button } from "~/components/ui/button";
+import { SplitStackDialog } from "./SplitStackDialog";
+import { ItemRarityMark } from "~/utils/ui/rarity-mark";
+import { useUserContext } from "~/context/userContext";
+import { meetsItemLevelRequirement } from "~/utils/inventoryClient";
+import { ItemType } from "~/generated/prisma/enums";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  foodEffectQueryKeys,
+  inventoryQueryKeys,
+  recipeQueryKeys,
+} from "~/lib/query-keys";
+import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 
 interface SingleItemTemplateProps {
   item: ItemWithStats;
@@ -38,7 +47,6 @@ export default function SingleItemTemplate({
   item,
   sprite,
   container,
-  index,
   onEquip,
   onUnequip,
   showEquipButton = false,
@@ -47,19 +55,40 @@ export default function SingleItemTemplate({
   children,
   className,
 }: SingleItemTemplateProps) {
+  const triggerRef = useRef<HTMLElement | null>(null);
   const [open, setOpen] = useState(false);
   const [listDialogOpen, setListDialogOpen] = useState(false);
+  const [splitDialogOpen, setSplitDialogOpen] = useState(false);
+  const [isLearningRecipe, setIsLearningRecipe] = useState(false);
+  const [isEating, setIsEating] = useState(false);
 
   const { active: isActionActive } = useVocationalActiveActionContext();
-
-  const { equipment } = useEquipmentContext();
+  const { user } = useUserContext();
+  const queryClient = useQueryClient();
+  const router = useRouter();
+  const meetsLevel = meetsItemLevelRequirement(item, user?.level ?? 0);
+  const isRecipe = item.itemType === ItemType.RECIPE;
+  const supportsTimedEffect = itemHasTimedEffect(item.itemType);
+  const learnedRecipes = useQuery({
+    queryKey: recipeQueryKeys.learned(user?.id),
+    enabled: isRecipe && Boolean(user?.id),
+    queryFn: async (): Promise<{ learnedRecipeItemIds: number[] }> => {
+      const response = await fetch("/api/recipes", { cache: "no-store" });
+      if (!response.ok) throw new Error("Failed to load learned recipes");
+      return (await response.json()) as { learnedRecipeItemIds: number[] };
+    },
+    staleTime: 30_000,
+  });
+  const recipeIsLearned =
+    isRecipe &&
+    (learnedRecipes.data?.learnedRecipeItemIds ?? []).includes(item.itemId);
 
   const { colors } = useRarityColors();
   const hexColor = colors[item.rarity];
-  const textColorClass = getRarityTailwindClass(item.rarity, hexColor, "text");
+  const itemRarityStyle = rarityStyle(item.rarity, hexColor);
 
   const handleEquipClick = () => {
-    if (isActionActive) return;
+    if (isActionActive || !meetsLevel) return;
     if (onEquip) {
       onEquip();
       setOpen(false);
@@ -74,105 +103,228 @@ export default function SingleItemTemplate({
     }
   };
 
+  const handleLearnRecipe = async () => {
+    if (!isRecipe || recipeIsLearned || isLearningRecipe) return;
+
+    setIsLearningRecipe(true);
+    try {
+      const response = await fetch("/api/recipes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userItemId: item.id }),
+      });
+      const result = (await response.json().catch(() => null)) as {
+        error?: string;
+        recipeName?: string;
+        unlockedDishes?: Array<{ name: string }>;
+        unlockedCrafts?: Array<{ name: string }>;
+      } | null;
+      if (!response.ok) {
+        toast.error(result?.error ?? "Failed to learn crafting knowledge");
+        return;
+      }
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: inventoryQueryKeys.all() }),
+        queryClient.invalidateQueries({
+          queryKey: recipeQueryKeys.learned(user?.id),
+        }),
+      ]);
+      router.refresh();
+      setOpen(false);
+
+      const crafts =
+        (result?.unlockedCrafts ?? result?.unlockedDishes)?.map(
+          (craft) => craft.name,
+        ) ?? [];
+      const recipeName = result?.recipeName ?? item.name;
+      toast.success(
+        crafts.length > 0
+          ? `Learned ${recipeName}. Unlocked ${crafts.join(", ")}.`
+          : `Learned ${recipeName}.`,
+      );
+    } catch {
+      toast.error("Failed to learn crafting knowledge");
+    } finally {
+      setIsLearningRecipe(false);
+    }
+  };
+
+  const handleEat = async () => {
+    if (!supportsTimedEffect || isEating) return;
+
+    setIsEating(true);
+    try {
+      const response = await fetch("/api/food-effect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userItemId: item.id }),
+      });
+      const result = (await response.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+      if (!response.ok) {
+        toast.error(result?.error ?? "Failed to use consumable");
+        return;
+      }
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: inventoryQueryKeys.all() }),
+        queryClient.invalidateQueries({
+          queryKey: foodEffectQueryKeys.active(user?.id),
+        }),
+      ]);
+      router.refresh();
+      setOpen(false);
+      toast.success(`${item.name} is now active.`);
+    } catch {
+      toast.error("Failed to use consumable");
+    } finally {
+      setIsEating(false);
+    }
+  };
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      {children || (
+    <Popover
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (nextOpen && document.activeElement instanceof HTMLElement)
+          triggerRef.current = document.activeElement;
+        setOpen(nextOpen);
+      }}
+    >
+      {children ?? (
         <PopoverTrigger asChild>
-          <button type="button" className={`h-12 w-12 ${cn(className)}`}>
+          <button
+            type="button"
+            className={cn(
+              "game-slot game-item-trigger rarity-frame",
+              className,
+            )}
+            style={itemRarityStyle}
+            data-rarity={item.rarity}
+            aria-label={`${item.name}, ${item.rarity.toLowerCase()}. Item details`}
+          >
             <Image
               alt={item.name}
               src={sprite}
               width={62}
               height={62}
-              className="rounded"
+              className="rounded-md"
             />
+            <ItemRarityMark rarity={item.rarity} />
           </button>
         </PopoverTrigger>
       )}
-      <PopoverContent className="min-w-[350px] bg-gray-900/50 backdrop-blur-lg">
-        <div className="mb-4 flex flex-col items-start">
-          <h3 className={`text-md mb-1 font-bold ${textColorClass}`}>
-            {item.name}
-          </h3>
-          <RarityBadge rarity={item.rarity} />
-          <Badge className="absolute right-2 top-2 capitalize">
-            {item.equipTo}
-          </Badge>
-        </div>
-        {item.description ? (
-          <>
-            <Separator className="mb-4" />
-            <div className="mb-4 text-xs text-white/80">{item.description}</div>
-            <Separator className="mb-4" />
-          </>
-        ) : null}
-        {item.stats && item.stats.length > 0 ? (
-          <ul className="space-y-2">
-            {formatItemStatsForDisplay(item.stats).map((stat, idx) => (
-              <li key={idx} className="text-sm" style={{ color: stat.color }}>
-                <span className="mr-1">{stat.icon}</span>
-                {stat.label}: {stat.value}
-              </li>
-            ))}
-          </ul>
-        ) : null}
-        <div className="py-2">
-          <div className="ml-auto w-fit">
-            <span className="text-sm text-yellow-500">
-              <CoinsIcon /> {item.price}
-            </span>
-          </div>
-        </div>
+      <ItemDetailsPopoverContent
+        name={item.name}
+        rarity={item.rarity}
+        onCloseAutoFocus={(event) => {
+          if (listDialogOpen || splitDialogOpen) event.preventDefault();
+        }}
+      >
+        <ItemDetails item={{ ...item, sprite }} />
         <div className="mt-4 space-y-2 border-t pt-3">
           {showEquipButton && (
-            <button
-              disabled={isActionActive}
+            <Button
+              disabled={isActionActive || !meetsLevel}
               onClick={handleEquipClick}
-              className={cn(
-                "w-full rounded bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700",
-                isActionActive && "cursor-not-allowed opacity-50",
-              )}
+              className="w-full"
             >
               Equip
-            </button>
+            </Button>
           )}
           {showUnequipButton && (
-            <button
+            <Button
               disabled={isActionActive}
               onClick={handleUnequipClick}
-              className={cn(
-                "w-full rounded bg-red-600 px-3 py-2 text-sm text-white hover:bg-red-700",
-                isActionActive && "cursor-not-allowed opacity-50",
-              )}
+              variant="secondary"
+              className="w-full"
             >
               Unequip
-            </button>
+            </Button>
+          )}
+          {container === "inventory" && supportsTimedEffect && (
+            <Button
+              onClick={handleEat}
+              disabled={
+                isEating ||
+                !item.foodEffectSeconds ||
+                !item.foodEffectStats?.length
+              }
+              className="w-full"
+            >
+              {isEating ? "Using..." : "Use"}
+            </Button>
           )}
           {showListButton && (
-            <button
+            <Button
               onClick={() => {
                 setListDialogOpen(true);
                 setOpen(false);
               }}
-              className="w-full rounded bg-green-600 px-3 py-2 text-sm text-white hover:bg-green-700"
+              variant="secondary"
+              className="w-full"
             >
               List on Marketplace
-            </button>
+            </Button>
+          )}
+          {container === "inventory" && isRecipe && (
+            <Button
+              onClick={handleLearnRecipe}
+              disabled={
+                isLearningRecipe || learnedRecipes.isLoading || recipeIsLearned
+              }
+              className="w-full"
+            >
+              {isLearningRecipe
+                ? "Learning..."
+                : learnedRecipes.isLoading
+                  ? "Checking recipe..."
+                  : recipeIsLearned
+                    ? "Recipe learned"
+                    : "Learn recipe"}
+            </Button>
+          )}
+          {container === "inventory" && (item.quantity ?? 1) > 1 && (
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                setOpen(false);
+                setSplitDialogOpen(true);
+              }}
+            >
+              Split stack
+            </Button>
+          )}
+          {isActionActive && (showEquipButton || showUnequipButton) && (
+            <p className="text-xs text-muted-foreground">
+              Finish or stop your active action to change equipment.
+            </p>
           )}
         </div>
-      </PopoverContent>
+      </ItemDetailsPopoverContent>
+      <SplitStackDialog
+        item={item}
+        isOpen={splitDialogOpen}
+        returnFocus={() => triggerRef.current?.focus()}
+        onClose={() => setSplitDialogOpen(false)}
+      />
 
       {/* List Item Dialog */}
       {item.id && (
         <ListItemDialog
           isOpen={listDialogOpen}
+          returnFocus={() => triggerRef.current?.focus()}
           onClose={() => setListDialogOpen(false)}
           userItemId={item.id}
           itemId={item.itemId}
           itemName={item.name}
           sprite={sprite}
           rarity={item.rarity}
-          maxQuantity={item.quantity || 1}
+          maxQuantity={item.quantity ?? 1}
+          stackable={item.stackable ?? false}
         />
       )}
     </Popover>

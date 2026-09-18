@@ -8,7 +8,9 @@ import { LocationResourcesEditor } from "~/components/admin/locations/LocationRe
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export default async function AdminEditLocationPage(props: { params: { id: string } }) {
+export default async function AdminEditLocationPage(props: {
+  params: { id: string };
+}) {
   const id = Number(props.params.id);
   if (!Number.isFinite(id)) return notFound();
 
@@ -18,6 +20,7 @@ export default async function AdminEditLocationPage(props: { params: { id: strin
       select: {
         id: true,
         name: true,
+        requiredLevel: true,
         resources: { select: { resourceId: true, enabled: true } },
       },
     }),
@@ -49,14 +52,24 @@ export default async function AdminEditLocationPage(props: { params: { id: strin
           <h1 className="text-2xl font-bold">Edit Location</h1>
           <p className="text-sm text-white/70">ID: {location.id}</p>
         </div>
-        <Link href="/admin/locations" className="text-sm text-white/70 hover:text-white">
+        <Link
+          href="/admin/locations"
+          className="text-sm text-white/70 hover:text-white"
+        >
           Back
         </Link>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="rounded-lg border border-gray-800/60 bg-gray-900/20 p-6">
-          <LocationForm mode="edit" locationId={location.id} initialValues={{ name: location.name }} />
+          <LocationForm
+            mode="edit"
+            locationId={location.id}
+            initialValues={{
+              name: location.name,
+              requiredLevel: location.requiredLevel,
+            }}
+          />
         </div>
 
         <div className="rounded-lg border border-gray-800/60 bg-gray-900/20 p-6">

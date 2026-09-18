@@ -1,55 +1,48 @@
-import { ItemRarity, ItemType, VocationalActionType, XpActionType } from "~/generated/prisma/enums";
+import { ItemType, VocationalActionType } from "~/generated/prisma/enums";
+import type { ItemRarity } from "~/generated/prisma/enums";
 import type { UserVocationalActivity } from "~/generated/prisma/client";
 import { prisma } from "~/lib/prisma";
 import { MAX_VOCATION_DURATION_SECONDS } from "~/server/vocations/constants";
 import { computeVocationalProgress } from "~/server/vocations/progress";
-import { grantStackableItemToInventory } from "~/server/vocations/grantItem";
+import {
+  claimVocationalRewards,
+  type VocationalCompletionSummary,
+} from "~/server/vocations/claim";
 import {
   computeEffectiveUnitSeconds,
   getToolEfficiencyForAction,
   assertRequiredToolEquipped,
 } from "~/server/vocations/tools";
-import { awardXp } from "~/utils/leveling";
-import { awardTrackXp, getTrackXpProgress } from "~/utils/progression";
+import { getTrackXpProgress } from "~/utils/progression";
 import { normalizeInventorySlots } from "~/utils/inventorySlots";
 
 export type VocationalStatus = {
-  activity: (UserVocationalActivity & {
-    resource: {
-      id: number;
-      name: string;
-      itemId: number;
-      yieldPerUnit: number;
-      xpPerUnit: number;
-      rarity: ItemRarity;
-      item: { sprite: string };
-    };
-    location: { id: number; name: string } | null;
-  }) | null;
-  progress: ReturnType<typeof computeVocationalProgress> | null;
-  skillProgress:
-    | {
-        trackKey: string;
-        level: number;
-        currentXp: number;
-        xpForNextLevel: number;
-        xpProgress: number;
-        xpRemaining: number;
-      }
+  activity:
+    | (UserVocationalActivity & {
+        resource: {
+          id: number;
+          name: string;
+          itemId: number;
+          yieldPerUnit: number;
+          xpPerUnit: number;
+          rarity: ItemRarity;
+          item: { sprite: string };
+        };
+        location: { id: number; name: string } | null;
+      })
     | null;
+  progress: ReturnType<typeof computeVocationalProgress> | null;
+  skillProgress: {
+    trackKey: string;
+    level: number;
+    currentXp: number;
+    xpForNextLevel: number;
+    xpProgress: number;
+    xpRemaining: number;
+  } | null;
   // One-time completion summaries generated during this call.
   // Intended for UX ("while you were away") dialogs.
   completionSummaries?: VocationalCompletionSummary[];
-};
-
-export type VocationalCompletionSummary = {
-  kind: "VOCATION";
-  actionType: VocationalActionType;
-  resourceName: string;
-  itemName: string;
-  grantedQuantity: number;
-  userXpGained: number;
-  skillXpGained: number;
 };
 
 type VocationalDebugSnapshot = {
@@ -88,7 +81,9 @@ export type VocationalStatusDebug = VocationalStatus & {
   };
 };
 
-async function fetchVocationalStatusRaw(userId: string): Promise<VocationalStatus> {
+async function fetchVocationalStatusRaw(
+  userId: string,
+): Promise<VocationalStatus> {
   const activity = await prisma.userVocationalActivity.findUnique({
     where: { userId },
     include: {
@@ -164,7 +159,9 @@ function toDebugSnapshot(status: VocationalStatus): VocationalDebugSnapshot {
   };
 }
 
-export async function getVocationalStatus(userId: string): Promise<VocationalStatus> {
+export async function getVocationalStatus(
+  userId: string,
+): Promise<VocationalStatus> {
   const status = await fetchVocationalStatusRaw(userId);
   const { activity, progress } = status;
 
@@ -172,35 +169,36 @@ export async function getVocationalStatus(userId: string): Promise<VocationalSta
     return { activity: null, progress: null, skillProgress: null };
   }
 
-  // Auto-claim any newly completed units on status fetch ("refresh/visit" model).
-  // UX note: only emit completion summaries when the activity is fully complete.
-  if (progress.unitsClaimable > 0) {
-    const wasComplete = progress.isComplete;
-    const claim = await claimVocationalRewards({ userId });
+  // Settle anything due on status fetch ("refresh/visit" model). The claim also ends
+  // an activity whose time is up, so the UI doesn't stay stuck at 100%.
+  if (progress.unitsClaimable > 0 || progress.isComplete) {
+    try {
+      const claim = await claimVocationalRewards({ userId });
+      const nextStatus = await fetchVocationalStatusRaw(userId);
 
-    const nextStatus = await fetchVocationalStatusRaw(userId);
-    const completionSummaries: VocationalCompletionSummary[] = [];
+      // UX note: summarize when the activity ended, but skip a plain finish that paid
+      // nothing here (the daemon already granted it all live).
+      const summary = claim.stopReason ? claim.summary : null;
+      const worthShowing =
+        summary &&
+        (summary.stopReason !== "COMPLETED" || claim.claimedUnits > 0);
 
-    if (wasComplete && claim.claimedUnits > 0 && claim.summary) {
-      completionSummaries.push(claim.summary);
+      return worthShowing
+        ? { ...nextStatus, completionSummaries: [summary] }
+        : nextStatus;
+    } catch (error) {
+      // Never take the page down over a failed claim; the next check retries it.
+      console.error("[vocations] claim failed", error);
+      return status;
     }
-
-    return completionSummaries.length > 0
-      ? { ...nextStatus, completionSummaries }
-      : nextStatus;
-  }
-
-  // If the activity has ended and there is nothing left to claim, clear it so the UI
-  // doesn't remain stuck at 100% until the user presses Stop.
-  if (progress.isComplete && progress.unitsClaimable === 0) {
-    await prisma.userVocationalActivity.deleteMany({ where: { userId } });
-    return { activity: null, progress: null, skillProgress: null };
   }
 
   return status;
 }
 
-export async function getVocationalStatusDebug(userId: string): Promise<VocationalStatusDebug> {
+export async function getVocationalStatusDebug(
+  userId: string,
+): Promise<VocationalStatusDebug> {
   const beforeStatus = await fetchVocationalStatusRaw(userId);
   const before = toDebugSnapshot(beforeStatus);
 
@@ -235,12 +233,43 @@ export async function startVocationalActivity(params: {
 }): Promise<VocationalStatus> {
   const { userId, resourceId, locationId } = params;
 
-  const [activeTravel, activeGardenHarvest] = await Promise.all([
-    prisma.userTravelActivity.findUnique({ where: { userId }, select: { id: true } }),
-    prisma.userGardenHarvestActivity.findUnique({ where: { userId }, select: { id: true } }),
-  ]);
+  const [
+    activeTravel,
+    activeGardenHarvest,
+    activeGatheringExpedition,
+    activeHuntingExpedition,
+    activeDungeonRun,
+  ] =
+    await Promise.all([
+      prisma.userTravelActivity.findUnique({
+        where: { userId },
+        select: { id: true },
+      }),
+      prisma.userGardenHarvestActivity.findUnique({
+        where: { userId },
+        select: { id: true },
+      }),
+      prisma.userGatheringExpedition.findFirst({
+        where: { userId, claimedAt: null },
+        select: { id: true },
+      }),
+      prisma.userHuntingExpedition.findFirst({
+        where: { userId, claimedAt: null },
+        select: { id: true },
+      }),
+      prisma.userDungeonRun.findFirst({
+        where: { userId, claimedAt: null },
+        select: { id: true },
+      }),
+    ]);
 
-  if (activeTravel || activeGardenHarvest) {
+  if (
+    activeTravel ??
+    activeGardenHarvest ??
+    activeGatheringExpedition ??
+    activeHuntingExpedition ??
+    activeDungeonRun
+  ) {
     throw new Error("You already have an active activity");
   }
 
@@ -266,6 +295,7 @@ export async function startVocationalActivity(params: {
       actionType: true,
       itemId: true,
       requiredSkillLevel: true,
+      requiredRecipeItemId: true,
       defaultSeconds: true,
       yieldPerUnit: true,
       rarity: true,
@@ -277,8 +307,35 @@ export async function startVocationalActivity(params: {
     throw new Error("Resource not found");
   }
 
+  if (
+    resource.actionType === VocationalActionType.GATHERING ||
+    resource.actionType === VocationalActionType.GARDENING ||
+    resource.actionType === VocationalActionType.HUNTING
+  ) {
+    throw new Error("Use the dedicated skill page to start this activity");
+  }
+
+  if (resource.requiredRecipeItemId) {
+    const learnedRecipe = await prisma.userLearnedRecipe.findUnique({
+      where: {
+        userId_recipeItemId: {
+          userId,
+          recipeItemId: resource.requiredRecipeItemId,
+        },
+      },
+      select: { id: true },
+    });
+
+    if (!learnedRecipe) {
+      throw new Error("You have not learned the required recipe");
+    }
+  }
+
   // Tool gate: some vocations require a specific tool to be equipped.
-  await assertRequiredToolEquipped(userId, resource.actionType as VocationalActionType);
+  await assertRequiredToolEquipped(
+    userId,
+    resource.actionType as VocationalActionType,
+  );
 
   // Skill gate: player must meet the required skill level for this action type.
   const requiredLevel = Math.max(1, resource.requiredSkillLevel ?? 1);
@@ -295,7 +352,7 @@ export async function startVocationalActivity(params: {
     }
   }
 
-  let secondsPerUnit = resource.defaultSeconds;
+  const secondsPerUnit = resource.defaultSeconds;
 
   if (locationId) {
     const loc = await prisma.locationVocationalResource.findUnique({
@@ -310,7 +367,7 @@ export async function startVocationalActivity(params: {
 
     // If a location is specified, this join table is the source of truth for
     // whether the resource exists at that location.
-    if (!loc || !loc.enabled) {
+    if (!loc?.enabled) {
       throw new Error("Resource is not available at this location");
     }
   }
@@ -319,7 +376,10 @@ export async function startVocationalActivity(params: {
     userId,
     resource.actionType as VocationalActionType,
   );
-  const { unitSeconds } = computeEffectiveUnitSeconds(secondsPerUnit, efficiency);
+  const { unitSeconds } = computeEffectiveUnitSeconds(
+    secondsPerUnit,
+    efficiency,
+  );
 
   // Validate requirements before starting.
   // For fishing: must select a bait stack, must be in inventory, and must be BAIT.
@@ -329,7 +389,10 @@ export async function startVocationalActivity(params: {
     select: { itemId: true, quantityPerUnit: true },
   });
 
-  if ((resource.actionType as VocationalActionType) === VocationalActionType.FISHING) {
+  if (
+    (resource.actionType as VocationalActionType) ===
+    VocationalActionType.FISHING
+  ) {
     const baitUserItemId = params.baitUserItemId ?? null;
     if (!baitUserItemId) {
       throw new Error("You must select a bait stack to fish");
@@ -366,8 +429,17 @@ export async function startVocationalActivity(params: {
 
     // If requirements exist for this resource, they must match the selected bait template.
     if (requirements.length > 0) {
-      if (requirements.length !== 1 || requirements[0]!.itemId !== bait.itemId) {
-        throw new Error("Selected bait does not match this fishing resource requirements");
+      if (
+        requirements.length !== 1 ||
+        requirements[0]!.itemId !== bait.itemId
+      ) {
+        throw new Error(
+          "Selected bait does not match this fishing resource requirements",
+        );
+      }
+      const baitPerUnit = Math.max(1, requirements[0]!.quantityPerUnit);
+      if (bait.quantity < baitPerUnit) {
+        throw new Error(`You need ${baitPerUnit} bait per catch`);
       }
     }
   } else if (requirements.length > 0) {
@@ -388,21 +460,29 @@ export async function startVocationalActivity(params: {
 
     const totalByTemplateId = new Map<number, number>();
     for (const ui of userItems) {
-      totalByTemplateId.set(ui.itemId, (totalByTemplateId.get(ui.itemId) ?? 0) + ui.quantity);
+      totalByTemplateId.set(
+        ui.itemId,
+        (totalByTemplateId.get(ui.itemId) ?? 0) + ui.quantity,
+      );
     }
 
     for (const req of requirements) {
       const needed = Math.max(1, req.quantityPerUnit);
       const available = totalByTemplateId.get(req.itemId) ?? 0;
       if (available < needed) {
-        throw new Error("You don't have the required materials to start this action");
+        throw new Error(
+          "You don't have the required materials to start this action",
+        );
       }
     }
   }
 
   const durationSeconds = Math.min(
     MAX_VOCATION_DURATION_SECONDS,
-    Math.max(1, Math.floor(params.durationSeconds ?? MAX_VOCATION_DURATION_SECONDS)),
+    Math.max(
+      1,
+      Math.floor(params.durationSeconds ?? MAX_VOCATION_DURATION_SECONDS),
+    ),
   );
 
   const now = new Date();
@@ -419,8 +499,9 @@ export async function startVocationalActivity(params: {
       unitSeconds,
       unitsClaimed: 0,
       baitUserItemId:
-        (resource.actionType as VocationalActionType) === VocationalActionType.FISHING
-          ? (params.baitUserItemId ?? null)
+        (resource.actionType as VocationalActionType) ===
+        VocationalActionType.FISHING
+          ? params.baitUserItemId ?? null
           : null,
     },
   });
@@ -439,375 +520,4 @@ export async function stopVocationalActivity(params: {
 
   await prisma.userVocationalActivity.deleteMany({ where: { userId } });
   return { activity: null, progress: null, skillProgress: null };
-}
-
-export async function claimVocationalRewards(params: {
-  userId: string;
-  maxUnits?: number;
-}): Promise<{
-  claimedUnits: number;
-  grantedQuantity: number;
-  remainingClaimableUnits: number;
-  userXpGained: number;
-  skillXpGained: number;
-  summary: VocationalCompletionSummary | null;
-}> {
-  const { userId, maxUnits } = params;
-
-  const result = await prisma.$transaction(async (tx) => {
-    const activity = await tx.userVocationalActivity.findUnique({
-      where: { userId },
-      include: {
-        resource: {
-          select: {
-            itemId: true,
-            yieldPerUnit: true,
-            rarity: true,
-            xpPerUnit: true,
-            name: true,
-            item: { select: { name: true } },
-          },
-        },
-      },
-    });
-
-    if (!activity) {
-      return {
-        claimedUnits: 0,
-        grantedQuantity: 0,
-        remainingClaimableUnits: 0,
-        xpToAward: 0,
-        vocationalActionType: null,
-        resourceName: null,
-        itemName: null,
-      };
-    }
-
-    const progress = computeVocationalProgress(activity);
-    const claimableUnits = Math.min(
-      progress.unitsClaimable,
-      maxUnits === undefined ? progress.unitsClaimable : Math.max(0, Math.floor(maxUnits)),
-    );
-
-    if (claimableUnits <= 0) {
-      const remaining = Math.max(0, progress.unitsTotal - activity.unitsClaimed);
-      return {
-        claimedUnits: 0,
-        grantedQuantity: 0,
-        remainingClaimableUnits: remaining,
-        xpToAward: 0,
-        vocationalActionType: activity.actionType,
-        resourceName: activity.resource.name,
-        itemName: activity.resource.item.name,
-      };
-    }
-
-    // Load requirements for this resource.
-    const requirements = await tx.vocationalRequirement.findMany({
-      where: { resourceId: activity.resourceId },
-      select: { itemId: true, quantityPerUnit: true },
-    });
-
-    // Load inventory slots + referenced UserItems so we can compute availability and consume.
-    const inventory = await tx.inventory.findUnique({
-      where: { userId },
-      select: { slots: true },
-    });
-
-    const slots = normalizeInventorySlots(inventory?.slots, null);
-    const userItemIds = slots
-      .map((slot) => slot.item?.id)
-      .filter((id): id is number => typeof id === "number");
-
-    const userItems = await tx.userItem.findMany({
-      where: { id: { in: userItemIds }, userId, status: "IN_INVENTORY" },
-      select: {
-        id: true,
-        itemId: true,
-        quantity: true,
-        itemTemplate: { select: { itemType: true } },
-      },
-    });
-
-    const userItemById = new Map<number, (typeof userItems)[number]>();
-    for (const ui of userItems) userItemById.set(ui.id, ui);
-
-    const totalByTemplateId = new Map<number, number>();
-    for (const ui of userItems) {
-      totalByTemplateId.set(ui.itemId, (totalByTemplateId.get(ui.itemId) ?? 0) + ui.quantity);
-    }
-
-    const isFishing = activity.actionType === VocationalActionType.FISHING;
-
-    let maxUnitsByInputs = Infinity;
-
-    if (isFishing) {
-      const baitUserItemId = activity.baitUserItemId ?? null;
-      if (!baitUserItemId) {
-        // Invalid activity state; stop it.
-        await tx.userVocationalActivity.delete({ where: { userId } });
-        return {
-          claimedUnits: 0,
-          grantedQuantity: 0,
-          remainingClaimableUnits: 0,
-          xpToAward: 0,
-          vocationalActionType: activity.actionType,
-          resourceName: activity.resource.name,
-          itemName: activity.resource.item.name,
-        };
-      }
-
-      const baitSlotExists = slots.some((slot) => slot?.item?.id === baitUserItemId);
-      const bait = userItemById.get(baitUserItemId);
-      if (!baitSlotExists || !bait || bait.quantity <= 0) {
-        await tx.userVocationalActivity.delete({ where: { userId } });
-        return {
-          claimedUnits: 0,
-          grantedQuantity: 0,
-          remainingClaimableUnits: 0,
-          xpToAward: 0,
-          vocationalActionType: activity.actionType,
-          resourceName: activity.resource.name,
-          itemName: activity.resource.item.name,
-        };
-      }
-
-      if (bait.itemTemplate.itemType !== ItemType.BAIT) {
-        await tx.userVocationalActivity.delete({ where: { userId } });
-        return {
-          claimedUnits: 0,
-          grantedQuantity: 0,
-          remainingClaimableUnits: 0,
-          xpToAward: 0,
-          vocationalActionType: activity.actionType,
-          resourceName: activity.resource.name,
-          itemName: activity.resource.item.name,
-        };
-      }
-
-      const baitPerUnit = Math.max(1, requirements[0]?.quantityPerUnit ?? 1);
-      maxUnitsByInputs = Math.floor(bait.quantity / baitPerUnit);
-    } else if (requirements.length > 0) {
-      for (const req of requirements) {
-        const perUnit = Math.max(1, req.quantityPerUnit);
-        const available = totalByTemplateId.get(req.itemId) ?? 0;
-        maxUnitsByInputs = Math.min(maxUnitsByInputs, Math.floor(available / perUnit));
-      }
-    }
-
-    const unitsToClaim = Math.min(claimableUnits, maxUnitsByInputs);
-
-    // If time says we can claim but inputs are exhausted, auto-stop the activity.
-    if (unitsToClaim <= 0) {
-      if (claimableUnits > 0 && maxUnitsByInputs <= 0) {
-        await tx.userVocationalActivity.delete({ where: { userId } });
-        return {
-          claimedUnits: 0,
-          grantedQuantity: 0,
-          remainingClaimableUnits: 0,
-          xpToAward: 0,
-          vocationalActionType: activity.actionType,
-          resourceName: activity.resource.name,
-          itemName: activity.resource.item.name,
-        };
-      }
-
-      const remaining = Math.max(0, progress.unitsTotal - activity.unitsClaimed);
-      return {
-        claimedUnits: 0,
-        grantedQuantity: 0,
-        remainingClaimableUnits: remaining,
-        xpToAward: 0,
-        vocationalActionType: activity.actionType,
-        resourceName: activity.resource.name,
-        itemName: activity.resource.item.name,
-      };
-    }
-
-    // Consume required inputs for the units we're about to award.
-    const updatedSlots = [...slots];
-    let slotsChanged = false;
-
-    const consumeSpecificUserItem = async (userItemId: number, quantityToConsume: number) => {
-      if (quantityToConsume <= 0) return;
-      const ui = userItemById.get(userItemId);
-      if (!ui || ui.quantity < quantityToConsume) {
-        throw new Error("Insufficient materials");
-      }
-
-      const newQty = ui.quantity - quantityToConsume;
-      if (newQty <= 0) {
-        await tx.userItem.delete({ where: { id: userItemId } });
-        userItemById.delete(userItemId);
-        for (let i = 0; i < updatedSlots.length; i++) {
-          if (updatedSlots[i]?.item?.id === userItemId) {
-            const currentSlot = updatedSlots[i];
-            if (currentSlot) {
-              updatedSlots[i] = { ...currentSlot, item: null };
-            }
-            slotsChanged = true;
-          }
-        }
-      } else {
-        await tx.userItem.update({ where: { id: userItemId }, data: { quantity: newQty } });
-        ui.quantity = newQty;
-      }
-    };
-    const consumeTemplateId = async (templateItemId: number, quantityToConsume: number) => {
-      let remaining = quantityToConsume;
-      if (remaining <= 0) return;
-
-      for (let i = 0; i < updatedSlots.length; i++) {
-        if (remaining <= 0) break;
-
-        const userItemId = updatedSlots[i]?.item?.id;
-        if (typeof userItemId !== "number") continue;
-
-        const ui = userItemById.get(userItemId);
-        if (!ui) continue;
-        if (ui.itemId !== templateItemId) continue;
-
-        const take = Math.min(ui.quantity, remaining);
-        remaining -= take;
-
-        const newQty = ui.quantity - take;
-        if (newQty <= 0) {
-          await tx.userItem.delete({ where: { id: userItemId } });
-          userItemById.delete(userItemId);
-          const currentSlot = updatedSlots[i];
-          if (currentSlot) {
-            updatedSlots[i] = { ...currentSlot, item: null };
-          }
-          slotsChanged = true;
-        } else {
-          await tx.userItem.update({ where: { id: userItemId }, data: { quantity: newQty } });
-          ui.quantity = newQty;
-        }
-      }
-
-      if (remaining > 0) {
-        throw new Error("Insufficient materials");
-      }
-    };
-
-    if (isFishing) {
-      const baitUserItemId = activity.baitUserItemId!;
-      const baitPerUnit = Math.max(1, requirements[0]?.quantityPerUnit ?? 1);
-      await consumeSpecificUserItem(baitUserItemId, unitsToClaim * baitPerUnit);
-    } else if (requirements.length > 0) {
-      for (const req of requirements) {
-        const perUnit = Math.max(1, req.quantityPerUnit);
-        await consumeTemplateId(req.itemId, unitsToClaim * perUnit);
-      }
-    }
-
-    if (slotsChanged) {
-      await tx.inventory.update({ where: { userId }, data: { slots: updatedSlots } });
-    }
-
-    const yieldPerUnit = Math.max(1, activity.resource.yieldPerUnit);
-    const targetQuantity = unitsToClaim * yieldPerUnit;
-
-    const grant = await grantStackableItemToInventory({
-      db: tx,
-      userId,
-      itemId: activity.resource.itemId,
-      rarity: activity.resource.rarity,
-      quantity: targetQuantity,
-    });
-
-    const claimedUnits = Math.floor(grant.addedQuantity / yieldPerUnit);
-    const grantedQuantity = claimedUnits * yieldPerUnit;
-
-    if (claimedUnits > 0) {
-      await tx.userVocationalActivity.update({
-        where: { userId },
-        data: { unitsClaimed: { increment: claimedUnits } },
-      });
-    }
-
-    const remainingClaimableUnits = Math.max(0, unitsToClaim - claimedUnits);
-
-    const xpToAward =
-      claimedUnits > 0
-        ? claimedUnits * Math.max(0, activity.resource.xpPerUnit || 0)
-        : 0;
-
-    // Fishing: if the selected bait stack was depleted, stop the activity immediately.
-    if (isFishing && activity.baitUserItemId) {
-      const baitStillExists = await tx.userItem.findFirst({
-        where: { id: activity.baitUserItemId, userId, status: "IN_INVENTORY" },
-        select: { id: true },
-      });
-      if (!baitStillExists) {
-        await tx.userVocationalActivity.delete({ where: { userId } });
-      }
-    }
-
-    // If completed and fully claimed, remove the activity.
-    const done = progress.isComplete && remainingClaimableUnits === 0;
-    if (done) {
-      // Recompute against the updated row to ensure we don't delete prematurely.
-      const updated = await tx.userVocationalActivity.findUnique({ where: { userId } });
-      if (updated) {
-        const updatedProgress = computeVocationalProgress(updated);
-        if (updatedProgress.isComplete && updatedProgress.unitsClaimable === 0) {
-          await tx.userVocationalActivity.delete({ where: { userId } });
-        }
-      }
-    }
-
-    return {
-      claimedUnits,
-      grantedQuantity,
-      remainingClaimableUnits,
-      xpToAward,
-      vocationalActionType: activity.actionType,
-      resourceName: activity.resource.name,
-      itemName: activity.resource.item.name,
-    };
-  });
-
-  const userXpGained = result.claimedUnits > 0 ? Math.max(0, result.xpToAward) : 0;
-  const skillXpGained = userXpGained;
-
-  if (result.claimedUnits > 0 && result.xpToAward > 0 && result.vocationalActionType) {
-    await awardXp(
-      userId,
-      result.xpToAward,
-      XpActionType.VOCATION,
-      result.vocationalActionType,
-      "Vocational activity",
-    );
-
-    await awardTrackXp({
-      userId,
-      trackType: "SKILL",
-      trackKey: String(result.vocationalActionType),
-      amount: result.xpToAward,
-      description: "Vocational activity (skill XP)",
-    });
-  }
-
-  const summary: VocationalCompletionSummary | null =
-    result.vocationalActionType && result.resourceName && result.itemName
-      ? {
-          kind: "VOCATION",
-          actionType: result.vocationalActionType,
-          resourceName: result.resourceName,
-          itemName: result.itemName,
-          grantedQuantity: result.grantedQuantity,
-          userXpGained,
-          skillXpGained,
-        }
-      : null;
-
-  return {
-    claimedUnits: result.claimedUnits,
-    grantedQuantity: result.grantedQuantity,
-    remainingClaimableUnits: result.remainingClaimableUnits,
-    userXpGained,
-    skillXpGained,
-    summary,
-  };
 }

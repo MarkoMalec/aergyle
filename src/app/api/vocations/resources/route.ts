@@ -4,7 +4,7 @@ import { prisma } from "~/lib/prisma";
 import { getServerAuthSession } from "~/server/auth";
 import {
   computeEffectiveUnitSeconds,
-  getToolEfficiencyForAction,
+  getToolEfficiencyMap,
 } from "~/server/vocations/tools";
 
 // Minimal endpoint for selecting resources.
@@ -22,10 +22,17 @@ export async function GET() {
 
   const currentLocationId = user?.currentLocationId ?? null;
 
+  const learnedRecipeItemIds = (
+    await prisma.userLearnedRecipe.findMany({
+      where: { userId: session.user.id },
+      select: { recipeItemId: true },
+    })
+  ).map((recipe) => recipe.recipeItemId);
+
   const resources = await prisma.vocationalResource.findMany({
-    where:
-      currentLocationId === null
-        ? undefined
+    where: {
+      ...(currentLocationId === null
+        ? {}
         : {
             locations: {
               some: {
@@ -33,33 +40,48 @@ export async function GET() {
                 enabled: true,
               },
             },
-          },
+          }),
+      OR: [
+        { requiredRecipeItemId: null },
+        { requiredRecipeItemId: { in: learnedRecipeItemIds } },
+      ],
+    },
     select: {
       id: true,
       actionType: true,
       name: true,
       itemId: true,
+      requiredSkillLevel: true,
       defaultSeconds: true,
       yieldPerUnit: true,
       xpPerUnit: true,
       rarity: true,
+      item: { select: { sprite: true, itemType: true } },
+      requirements: {
+        select: {
+          quantityPerUnit: true,
+          item: {
+            select: { id: true, name: true, sprite: true, itemType: true },
+          },
+        },
+        orderBy: [{ id: "asc" }],
+      },
     },
     orderBy: [{ actionType: "asc" }, { id: "asc" }],
   });
 
   const actionTypes = Array.from(
-    new Set(resources.map((resource) => resource.actionType as VocationalActionType)),
+    new Set(
+      resources.map((resource) => resource.actionType as VocationalActionType),
+    ),
   );
 
   let efficiencyByAction: Partial<Record<VocationalActionType, number>> = {};
   if (session.user?.id && actionTypes.length > 0) {
-    const entries = await Promise.all(
-      actionTypes.map(async (actionType) => {
-        const value = await getToolEfficiencyForAction(session.user!.id, actionType);
-        return [actionType, value] as const;
-      }),
+    efficiencyByAction = await getToolEfficiencyMap(
+      session.user.id,
+      actionTypes,
     );
-    efficiencyByAction = Object.fromEntries(entries);
   }
 
   const enrichedResources = resources.map((resource) => {

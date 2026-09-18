@@ -1,367 +1,161 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useDeferredValue, useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { MarketplaceNav } from "~/components/game/marketplace/MarketplaceNav";
 import { MarketplaceDataTable } from "~/components/game/marketplace/marketplaceTableNew";
-import type { MarketplaceGroupedResponse } from "~/types/marketplace";
-import toast from "react-hot-toast";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "~/components/ui/dialog";
+import PageHeading from "~/components/game/ui/PageHeading";
 import { Button } from "~/components/ui/button";
-import { CoinsIcon } from "~/components/game/ui/coins-icon";
-import {
-  userQueryKeys,
-  marketplaceQueryKeys,
-  inventoryQueryKeys,
-} from "~/lib/query-keys";
-
-function getErrorMessage(value: unknown): string | undefined {
-  if (typeof value !== "object" || value === null) return undefined;
-  const maybe = value as { message?: unknown; error?: unknown };
-  if (typeof maybe.message === "string") return maybe.message;
-  if (typeof maybe.error === "string") return maybe.error;
-  return undefined;
-}
-
-type BuyMarketplaceResponse = {
-  success: boolean;
-  message: string;
-  itemId: number | null;
-  quantity: number;
-  seller: string;
-  totalPrice: number;
-};
+import { MARKET_DEFAULT_MAX_PRICE } from "~/lib/marketplace";
+import { marketplaceQueryKeys } from "~/lib/query-keys";
+import type { MarketplaceGroupedResponse } from "~/types/marketplace";
 
 export default function MarketplacePage() {
   const { data: session } = useSession();
-  const queryClient = useQueryClient();
-
-  // Dialog state
-  const [showBuyDialog, setShowBuyDialog] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<{
-    id: number;
-    name: string;
-    price: number;
-  } | null>(null);
-
-  // Pagination state
-  const [page, setPage] = useState(1);
-  const [limit] = useState(50);
-
-  // Filters (persisted to URL so they are global across pages)
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [page, setPage] = useState(() =>
+    Math.max(1, Number(searchParams.get("page")) || 1),
+  );
+  const [search, setSearch] = useState(searchParams.get("search") ?? "");
+  const [itemType, setItemType] = useState(
+    searchParams.get("itemType") ?? "all",
+  );
+  const [rarity, setRarity] = useState(searchParams.get("rarity") ?? "all");
+  const [priceRange, setPriceRange] = useState({
+    min: Math.max(0, Number(searchParams.get("minPrice")) || 0),
+    max:
+      Math.max(0, Number(searchParams.get("maxPrice"))) ||
+      MARKET_DEFAULT_MAX_PRICE,
+  });
+  const [sort, setSort] = useState(searchParams.get("sort") ?? "price-asc");
+  const deferredSearch = useDeferredValue(search.trim());
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [equipToFilter, setEquipToFilter] = useState("all");
-  const [rarityFilter, setRarityFilter] = useState("all");
-  const [priceRange, setPriceRange] = useState({ min: 0, max: 100000 });
-
-  // Initialize filters from URL on mount
-  useEffect(() => {
-    const search = searchParams.get("search");
-    if (search) setSearchQuery(search);
-
-    const equipTo = searchParams.get("equipTo");
-    if (equipTo) setEquipToFilter(equipTo);
-
-    const rarity = searchParams.get("rarity");
-    if (rarity) setRarityFilter(rarity);
-
-    const minPrice = searchParams.get("minPrice");
-    if (minPrice) {
-      const min = Number(minPrice);
-      setPriceRange((r) => ({ ...r, min: Number.isFinite(min) ? min : 0 }));
-    }
-
-    const maxPrice = searchParams.get("maxPrice");
-    if (maxPrice) {
-      const max = Number(maxPrice);
-      setPriceRange((r) => ({ ...r, max: Number.isFinite(max) ? max : 100000 }));
-    }
-
-    const pageParam = searchParams.get("page");
-    if (pageParam) {
-      const p = Number(pageParam);
-      setPage(Number.isFinite(p) && p > 0 ? p : 1);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Sync filters & page to URL
   useEffect(() => {
     const params = new URLSearchParams();
-    if (searchQuery) params.set("search", searchQuery);
-    if (equipToFilter && equipToFilter !== "all")
-      params.set("equipTo", equipToFilter);
-    if (rarityFilter && rarityFilter !== "all")
-      params.set("rarity", rarityFilter);
-    if (priceRange.min && priceRange.min > 0)
-      params.set("minPrice", String(priceRange.min));
-    if (priceRange.max && priceRange.max < 100000)
+    if (search.trim()) params.set("search", search.trim());
+    if (itemType !== "all") params.set("itemType", itemType);
+    if (rarity !== "all") params.set("rarity", rarity);
+    if (priceRange.min > 0) params.set("minPrice", String(priceRange.min));
+    if (priceRange.max < MARKET_DEFAULT_MAX_PRICE) {
       params.set("maxPrice", String(priceRange.max));
-    if (page && page > 1) params.set("page", String(page));
-
+    }
+    if (sort !== "price-asc") params.set("sort", sort);
+    if (page > 1) params.set("page", String(page));
     const query = params.toString();
-    const search = query ? `?${query}` : "";
-    router.replace(`/marketplace${search}`);
-  }, [searchQuery, equipToFilter, rarityFilter, priceRange, page, router]);
+    router.replace(query ? `/marketplace?${query}` : "/marketplace", {
+      scroll: false,
+    });
+  }, [itemType, page, priceRange, rarity, router, search, sort]);
 
-  // Fetch grouped marketplace rows (one row per item template)
-  const { data, isLoading, error } = useQuery<MarketplaceGroupedResponse>({
+  const [sortBy, sortOrder] = sort.split("-") as [string, "asc" | "desc"];
+  const query = useQuery<MarketplaceGroupedResponse>({
     queryKey: marketplaceQueryKeys.listings({
       page,
-      searchQuery,
-      equipToFilter,
-      rarityFilter,
+      search: deferredSearch,
+      itemType,
+      rarity,
       priceRange,
+      sort,
     }),
     queryFn: async () => {
       const params = new URLSearchParams({
-        page: page.toString(),
-        limit: limit.toString(),
-        sortBy: "price",
-        sortOrder: "asc",
+        page: String(page),
+        limit: "40",
+        sortBy,
+        sortOrder,
       });
-
-      if (searchQuery) params.set("search", searchQuery);
-      if (equipToFilter && equipToFilter !== "all")
-        params.set("equipTo", equipToFilter);
-      if (rarityFilter && rarityFilter !== "all")
-        params.set("rarity", rarityFilter);
-      if (priceRange.min && priceRange.min > 0)
-        params.set("minPrice", String(priceRange.min));
-      if (priceRange.max && priceRange.max < 100000)
+      if (deferredSearch) params.set("search", deferredSearch);
+      if (itemType !== "all") params.set("itemType", itemType);
+      if (rarity !== "all") params.set("rarity", rarity);
+      if (priceRange.min > 0) params.set("minPrice", String(priceRange.min));
+      if (priceRange.max < MARKET_DEFAULT_MAX_PRICE) {
         params.set("maxPrice", String(priceRange.max));
-
-      const response = await fetch(`/api/marketplace/grouped?${params.toString()}`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch marketplace listings");
       }
-      const json: unknown = await response.json();
-      return json as MarketplaceGroupedResponse;
+
+      const response = await fetch(
+        `/api/marketplace/grouped?${params.toString()}`,
+      );
+      if (!response.ok) throw new Error("The exchange could not be loaded");
+      return response.json() as Promise<MarketplaceGroupedResponse>;
     },
-    staleTime: 10000,
+    staleTime: 10_000,
   });
 
-  // Buy item mutation
-  const buyItemMutation = useMutation<BuyMarketplaceResponse, Error, number>({
-    mutationFn: async (userItemId: number) => {
-      if (!session?.user?.id) {
-        throw new Error("You must be logged in to purchase items");
-      }
-
-      const response = await fetch("/api/marketplace/buy", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userItemId,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorBody: unknown = await response.json();
-        throw new Error(getErrorMessage(errorBody) ?? "Failed to purchase item");
-      }
-
-      const json: unknown = await response.json();
-      return json as BuyMarketplaceResponse;
-    },
-    onSuccess: (data) => {
-      void queryClient.invalidateQueries({ queryKey: marketplaceQueryKeys.all() });
-      void queryClient.invalidateQueries({ queryKey: inventoryQueryKeys.all() });
-      void queryClient.invalidateQueries({ queryKey: userQueryKeys.gold() });
-
-      toast.success(() => (
-        <span>
-          {data.message} ({data.totalPrice.toFixed(2)}){" "}
-          <CoinsIcon />
-        </span>
-      ));
-      setShowBuyDialog(false);
-      setSelectedItem(null);
-    },
-    onError: (error: Error) => {
-      toast.error(error.message);
-      setShowBuyDialog(false);
-      setSelectedItem(null);
-    },
-  });
-
-  const handleBuyItem = (payload: { id: number; name: string; price: number }) => {
-    setSelectedItem(payload);
-    setShowBuyDialog(true);
-  };
-
-  const confirmBuyItem = () => {
-    if (selectedItem) {
-      buyItemMutation.mutate(selectedItem.id);
-    }
-  };
-
-  // Fetch cursor-paginated listings for a specific item
-  const handleFetchItemListings = async (
-    itemTemplateId: number,
-    cursor: string | null,
-    rarity?: string,
-  ) => {
-    const params = new URLSearchParams({
-      limit: "5",
-    });
-    
-    if (rarity) params.append("rarity", rarity);
-
-    if (cursor) {
-      params.append("cursor", cursor);
-    }
-    
-    const response = await fetch(
-      `/api/marketplace/listings/${itemTemplateId}?${params.toString()}`
-    );
-    
-    if (!response.ok) {
-      throw new Error("Failed to fetch item listings");
-    }
-    
-    const data: unknown = await response.json();
-    if (typeof data !== "object" || data === null) {
-      throw new Error("Invalid listings response");
-    }
-
-    const listings = (data as { listings?: unknown }).listings;
-    const hasMore = (data as { hasMore?: unknown }).hasMore;
-    const nextCursor = (data as { nextCursor?: unknown }).nextCursor;
-    const availableRarities = (data as { availableRarities?: unknown }).availableRarities;
-
-    if (!Array.isArray(listings) || typeof hasMore !== "boolean") {
-      throw new Error("Invalid listings response");
-    }
-
-    return {
-      listings,
-      hasMore,
-      nextCursor: typeof nextCursor === "string" ? nextCursor : null,
-      availableRarities: Array.isArray(availableRarities)
-        ? availableRarities.filter((r): r is string => typeof r === "string")
-        : undefined,
+  const resetPage =
+    <T,>(setter: (value: T) => void) =>
+    (value: T) => {
+      setter(value);
+      setPage(1);
     };
-  };
-
-  if (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    return (
-      <div className="container mx-auto py-10">
-        <div className="text-center text-red-500">
-          <p className="text-xl font-semibold">Error loading marketplace</p>
-          <p className="mt-2 text-sm">{errorMessage}</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className="container mx-auto space-y-6 py-10">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold">Marketplace</h1>
-        <p className="text-muted-foreground">
-          Browse and purchase items from other players
-        </p>
-      </div>
+    <div className="min-w-0 space-y-6">
+      <PageHeading
+        eyebrow="The exchange"
+        title="Marketplace"
+        description="Trade directly with other wayfarers. Compare exact offers, place patient bids, and make decisions from completed sales—not advertised prices."
+      />
+      <MarketplaceNav />
 
-      <div className="flex flex-col gap-4">
-        <MarketplaceDataTable
-          data={data?.items ?? []}
-          isLoading={isLoading}
-          currentUserId={session?.user?.id}
-          onBuyItem={handleBuyItem}
-          onFetchItemListings={handleFetchItemListings}
-          searchValue={searchQuery}
-          onSearchChange={(v) => {
-            setSearchQuery(v);
-            setPage(1);
-          }}
-          equipToFilter={equipToFilter}
-          onEquipToFilterChange={(v) => {
-            setEquipToFilter(v);
-            setPage(1);
-          }}
-          rarityFilter={rarityFilter}
-          onRarityFilterChange={(v) => {
-            setRarityFilter(v);
-            setPage(1);
-          }}
-          priceRange={priceRange}
-          onPriceRangeChange={(r) => {
-            setPriceRange(r);
-            setPage(1);
-          }}
-        />
+      {query.error ? (
+        <div className="game-empty-state text-danger">
+          <p className="font-semibold">Could not load the marketplace</p>
+          <p className="mt-1 text-sm">{query.error.message}</p>
+          <Button
+            className="mt-4"
+            variant="outline"
+            onClick={() => query.refetch()}
+          >
+            Try again
+          </Button>
+        </div>
+      ) : (
+        <>
+          <MarketplaceDataTable
+            data={query.data?.items ?? []}
+            isLoading={query.isLoading}
+            currentUserId={session?.user?.id}
+            filterOptions={query.data?.filterOptions}
+            searchValue={search}
+            onSearchChange={resetPage(setSearch)}
+            itemTypeFilter={itemType}
+            onItemTypeFilterChange={resetPage(setItemType)}
+            rarityFilter={rarity}
+            onRarityFilterChange={resetPage(setRarity)}
+            priceRange={priceRange}
+            onPriceRangeChange={resetPage(setPriceRange)}
+            sortValue={sort}
+            onSortChange={resetPage(setSort)}
+          />
 
-        {/* Pagination */}
-        {data?.pagination && (
-          <div className="flex items-center justify-between px-2">
-            <div className="text-sm text-muted-foreground">
-              Showing page {data.pagination.page}
-            </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={!data.pagination.hasPreviousPage}
-              >
-                Previous
-              </Button>
-              <Button
-                onClick={() => setPage((p) => p + 1)}
-                disabled={!data.pagination.hasNextPage}
-              >
-                Next
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Buy Confirmation Dialog */}
-      <Dialog open={showBuyDialog} onOpenChange={setShowBuyDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Purchase</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to buy{" "}
-              <span className="font-semibold">{selectedItem?.name}</span> for{" "}
-              <span className="font-semibold text-yellow-600">
-                {selectedItem?.price?.toLocaleString()} 🪙
+          {query.data?.pagination && (
+            <div className="flex items-center justify-between px-1">
+              <span className="text-sm text-muted-foreground">
+                Page {query.data.pagination.page}
               </span>
-              ?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowBuyDialog(false);
-                setSelectedItem(null);
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={confirmBuyItem}
-              disabled={buyItemMutation.isPending}
-            >
-              {buyItemMutation.isPending ? "Purchasing..." : "Confirm Purchase"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setPage((current) => Math.max(1, current - 1))}
+                  disabled={!query.data.pagination.hasPreviousPage}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setPage((current) => current + 1)}
+                  disabled={!query.data.pagination.hasNextPage}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }

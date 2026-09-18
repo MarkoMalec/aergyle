@@ -8,6 +8,7 @@ export const revalidate = 0;
 
 const updateSchema = z.object({
   name: z.string().min(1),
+  requiredLevel: z.number().int().min(1).max(500),
 });
 
 export async function GET(req: NextRequest, ctx: { params: { id: string } }) {
@@ -56,7 +57,7 @@ export async function PATCH(req: NextRequest, ctx: { params: { id: string } }) {
   try {
     const updated = await prisma.location.update({
       where: { id },
-      data: { name: parsed.data.name },
+      data: parsed.data,
     });
     return NextResponse.json(updated);
   } catch {
@@ -67,7 +68,10 @@ export async function PATCH(req: NextRequest, ctx: { params: { id: string } }) {
   }
 }
 
-export async function DELETE(req: NextRequest, ctx: { params: { id: string } }) {
+export async function DELETE(
+  req: NextRequest,
+  ctx: { params: { id: string } },
+) {
   const denied = await requireAdminApiAccess(req);
   if (denied) return denied;
 
@@ -81,7 +85,10 @@ export async function DELETE(req: NextRequest, ctx: { params: { id: string } }) 
     return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json(
-      { error: "Failed to delete location (it may be referenced by users/activities/resources)" },
+      {
+        error:
+          "Failed to delete location (it may be referenced by users/activities/resources)",
+      },
       { status: 400 },
     );
   }

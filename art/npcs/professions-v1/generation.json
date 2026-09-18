@@ -1,0 +1,77 @@
+{
+  "generator": "Built-in image_gen",
+  "generatedOn": "2026-09-19",
+  "pack": "profession-npcs-v1",
+  "artDirection": "Aergyle grounded full-body NPCs with visual storytelling",
+  "masterSize": "1024x1536 RGBA PNG",
+  "runtimeSize": "512x768 RGBA PNG",
+  "assets": [
+    {
+      "slug": "ossa-blacksmith",
+      "name": "Ossa",
+      "gender": "male",
+      "ancestry": "dwarf",
+      "complexion": "Light warm skin with a weathered ruddy forge-worker complexion",
+      "profession": "Blacksmith",
+      "origin": "Citadel, the River Crown",
+      "socialStatus": "Respected municipal master artisan who rejects guild prestige",
+      "personality": ["meticulous", "stoic", "dependable", "quietly tender"],
+      "lifestyle": "A dawn-working bridge-forge smith who maintains old tools and serves labourers before prestigious clients.",
+      "experience": "Decades of civic ironwork, bridge-chain repair, and emergency forge work.",
+      "habits": ["works with one forge glove", "mends his own apron in indigo thread", "ties back his shoulder-length iron-grey hair", "binds the lower third of his great work beard in plain iron bands", "keeps a child's horseshoe charm at his belt"],
+      "history": "He survived a bridge-chain failure during a flood, kept the forge operating through the night, and left after guild masters claimed the credit.",
+      "visualStory": ["stocky dwarf build", "weathered ruddy complexion", "abundant shoulder-length iron-grey hair", "great iron-bound work beard", "braced knee", "old forearm burn", "mushroomed hammer", "polished tong grips", "half guild seal", "new bridge rivet", "child's horseshoe charm"],
+      "master": "ossa-blacksmith-master.png",
+      "runtime": "/assets/npcs/ossa-blacksmith-v1.png",
+      "generatedFile": "exec-7a59ff72-6f73-4e8d-87e6-11211ee2f532.png",
+      "sourceGeneratedFiles": [
+        "exec-8db47b83-3523-4dce-9e24-9813361c1201.png",
+        "exec-0d8523f4-943a-4e39-b3a6-a4789f8f20d3.png"
+      ],
+      "revision": "Changed from a human woman to a male dwarf, then revised to light weathered skin, abundant shoulder-length hair, and a substantially fuller beard while preserving the original visual story."
+    },
+    {
+      "slug": "varka-ten-reeds-hunter",
+      "name": "Varka Ten-Reeds",
+      "profession": "Hunter, tracker, guide, and antler trader",
+      "origin": "Ashwood Verge",
+      "socialStatus": "Locally respected independent guide and outsider in Crown cities",
+      "personality": ["patient", "skeptical", "observant", "dryly funny", "fair-minded"],
+      "lifestyle": "A light-footed frontier merchant who sells antlers, hides, repaired arrows, and reliable trail knowledge.",
+      "experience": "Former Crown trail scout with expert knowledge of flooded woods and seasonal reed paths.",
+      "habits": ["repairs every arrow", "measures routes with knotted cord", "consults a compass with no needle"],
+      "history": "After Crown officials abandoned her patrol during flood season, she filed their crest from her badge and mapped safe routes for fair-paying travellers.",
+      "visualStory": ["bridged split ear", "five mismatched arrows", "blank ranger badge", "needleless compass", "knotted measuring cord", "bog wrappings", "shed antler", "rolled cured hide"],
+      "master": "varka-ten-reeds-hunter-master.png",
+      "runtime": "/assets/npcs/varka-ten-reeds-hunter-v1.png",
+      "generatedFile": "exec-709a137e-fae0-4f1c-8b70-feca8ce0ab92.png"
+    },
+    {
+      "slug": "pello-nacre-chef",
+      "name": "Pello Nacre",
+      "gender": "male",
+      "ancestry": "human",
+      "appearance": "Light-skinned white Caucasian man with a fair, weathered ruddy coastal complexion and a comfortably rounded cook's belly",
+      "profession": "Chef and market proprietor",
+      "origin": "Farwater Keys",
+      "socialStatus": "Beloved, modestly prosperous Crownhold merchant",
+      "personality": ["jovial", "inquisitive", "hospitable", "exacting", "proud without vanity"],
+      "lifestyle": "A former galley cook who buys his own market produce, maintains fine working knives, and serves practical fish dishes from a permanent stall.",
+      "experience": "A lifetime cooking in cramped galleys, during a shipwreck, and for a busy city market.",
+      "habits": ["tastes with one copper spoon", "balances like the floor is a deck", "pinches salt by hand at the final moment"],
+      "history": "He cooked the last shared meal after a Farwater wreck and later built a Crownhold soup stall from salvaged galley boards.",
+      "visualStory": ["distinctive fair coastal face", "pale blue-grey eyes", "wind-reddened nose", "deep laugh lines", "comfortable cook's belly", "flared eyebrow", "ship-copper knee brace", "salt-marked boots", "wooden ship token", "market key", "cared-for knife roll", "repaired apron", "Farwater towel", "shell salt cellar"],
+      "master": "pello-nacre-chef-master.png",
+      "runtime": "/assets/npcs/pello-nacre-chef-v1.png",
+      "generatedFile": "exec-df25ef2a-f6e5-419d-b424-258d685b1131.png",
+      "sourceGeneratedFile": "exec-2ca20402-af2a-49ce-888a-5704c7f0080c.png",
+      "revision": "Redesigned primarily around a light-skinned Caucasian face and added a modestly larger rounded belly while preserving the original visual story."
+    }
+  ],
+  "runtimeExport": "ffmpeg Lanczos resize from 1024x1536 to 512x768 with RGBA preserved",
+  "validation": [
+    "All masters and runtime exports are RGBA PNGs.",
+    "The upper-left 64x64 corner of every master has alpha minimum, average, and maximum equal to zero.",
+    "No generated source was used outside this pack without a project-local copy."
+  ]
+}

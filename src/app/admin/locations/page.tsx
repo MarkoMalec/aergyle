@@ -10,6 +10,7 @@ export default async function AdminLocationsPage() {
     select: {
       id: true,
       name: true,
+      requiredLevel: true,
       _count: { select: { resources: true } },
     },
     orderBy: [{ id: "desc" }],
@@ -21,7 +22,9 @@ export default async function AdminLocationsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Locations</h1>
-          <p className="text-sm text-white/70">Create locations and configure which resources are available.</p>
+          <p className="text-sm text-white/70">
+            Create locations and configure which resources are available.
+          </p>
         </div>
         <Link
           href="/admin/locations/new"
@@ -36,6 +39,7 @@ export default async function AdminLocationsPage() {
           <thead className="bg-gray-900/50 text-white/80">
             <tr>
               <th className="p-3 text-left">Name</th>
+              <th className="p-3 text-right">Required level</th>
               <th className="p-3 text-right">Resources</th>
               <th className="p-3 text-right">ID</th>
             </tr>
@@ -44,19 +48,31 @@ export default async function AdminLocationsPage() {
             {locations.map((l) => (
               <tr key={l.id} className="border-t border-gray-800/60">
                 <td className="p-3">
-                  <Link href={`/admin/locations/${l.id}`} className="font-semibold text-white hover:underline">
+                  <Link
+                    href={`/admin/locations/${l.id}`}
+                    className="font-semibold text-white hover:underline"
+                  >
                     {l.name}
                   </Link>
                 </td>
-                <td className="p-3 text-right text-white/80">{l._count.resources}</td>
-                <td className="p-3 text-right font-mono text-white/60">{l.id}</td>
+                <td className="p-3 text-right text-white/80">
+                  {l.requiredLevel}
+                </td>
+                <td className="p-3 text-right text-white/80">
+                  {l._count.resources}
+                </td>
+                <td className="p-3 text-right font-mono text-white/60">
+                  {l.id}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      <div className="text-xs text-white/60">Showing {locations.length} locations.</div>
+      <div className="text-xs text-white/60">
+        Showing {locations.length} locations.
+      </div>
     </div>
   );
 }

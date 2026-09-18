@@ -4,6 +4,9 @@ import { ItemRarity as ItemRarityEnum } from "~/generated/prisma/enums";
 import type { ItemRarity } from "~/generated/prisma/enums";
 import type { Prisma } from "~/generated/prisma/client";
 import { prisma } from "~/lib/prisma";
+import { hydrateEffectiveItemStats } from "~/server/items/effectiveStats";
+
+export const dynamic = "force-dynamic";
 
 function isItemRarity(value: string | null): value is ItemRarity {
   if (value == null) return false;
@@ -43,7 +46,7 @@ function encodeCursor(cursor: ListingsCursor): string {
 /**
  * Get paginated listings for a specific item template
  * GET /api/marketplace/listings/:itemTemplateId
- * 
+ *
  * Query params:
  * - cursor: opaque cursor from previous response (optional)
  * - limit: items per page (default: 12)
@@ -51,22 +54,25 @@ function encodeCursor(cursor: ListingsCursor): string {
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ itemTemplateId: string }> }
+  { params }: { params: Promise<{ itemTemplateId: string }> },
 ) {
   try {
     const resolvedParams = await params;
     const itemTemplateId = parseInt(resolvedParams.itemTemplateId);
-    
+
     if (isNaN(itemTemplateId)) {
       return NextResponse.json(
         { error: "Invalid item template ID" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const searchParams = req.nextUrl.searchParams;
     const limitRaw = Number.parseInt(searchParams.get("limit") ?? "12", 10);
-    const limit = Math.min(50, Math.max(1, Number.isFinite(limitRaw) ? limitRaw : 12));
+    const limit = Math.min(
+      50,
+      Math.max(1, Number.isFinite(limitRaw) ? limitRaw : 12),
+    );
     const cursor = decodeCursor(searchParams.get("cursor"));
     const rarityParam = searchParams.get("rarity");
     const rarity = isItemRarity(rarityParam) ? rarityParam : null;
@@ -91,7 +97,7 @@ export async function GET(
         {
           AND: [
             { listedPrice: cursor.listedPrice },
-            { listedAt: { lt: cursorListedAt } },
+            { listedAt: { gt: cursorListedAt } },
           ],
         },
         {
@@ -118,11 +124,45 @@ export async function GET(
             id: true,
             name: true,
             sprite: true,
+            description: true,
+            itemType: true,
+            equipTo: true,
+            stackable: true,
+            maxStackSize: true,
+            price: true,
+            rarity: true,
+            minPhysicalDamage: true,
+            maxPhysicalDamage: true,
+            minMagicDamage: true,
+            maxMagicDamage: true,
+            armor: true,
+            requiredLevel: true,
+            flipNegativeStatsWithRarity: true,
+            stats: {
+              select: { statType: true, value: true, maxValue: true },
+            },
+            statProgressions: {
+              select: {
+                statType: true,
+                baseValue: true,
+                unlocksAtRarity: true,
+              },
+            },
+            statRarityOverrides: {
+              select: {
+                statType: true,
+                rarity: true,
+                kind: true,
+                value: true,
+              },
+            },
+            toolEfficiencies: {
+              select: { actionType: true, baseEfficiency: true },
+            },
           },
         },
-        stats: {
+        statModifiers: {
           select: {
-            id: true,
             statType: true,
             value: true,
           },
@@ -136,14 +176,17 @@ export async function GET(
       },
       orderBy: [
         { listedPrice: "asc" }, // Sort by cheapest first
-        { listedAt: "desc" },   // Then by newest
-        { id: "asc" },          // Stable tie-breaker
+        { listedAt: "asc" }, // Equal price: oldest listing first
+        { id: "asc" }, // Stable tie-breaker
       ],
       take: limit + 1,
     });
 
     const hasMore = listingsPlusOne.length > limit;
-    const listings = hasMore ? listingsPlusOne.slice(0, limit) : listingsPlusOne;
+    const listings = hasMore
+      ? listingsPlusOne.slice(0, limit)
+      : listingsPlusOne;
+    const effectiveListings = await hydrateEffectiveItemStats(listings);
     const last = listings[listings.length - 1];
     const nextCursor =
       hasMore && last?.listedPrice != null && last?.listedAt != null
@@ -172,17 +215,16 @@ export async function GET(
     }
 
     return NextResponse.json({
-      listings,
+      listings: effectiveListings,
       hasMore,
       nextCursor,
       availableRarities: !cursor ? availableRarities : undefined,
     });
-
   } catch (error) {
     console.error("Error fetching item listings:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

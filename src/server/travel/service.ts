@@ -1,23 +1,70 @@
 import { prisma } from "~/lib/prisma";
+import {
+  applyMovementSpeed,
+  FALLBACK_TRAVEL_SECONDS,
+  toTravelRoutePair,
+} from "~/game/world/travel";
+import { getCompleteCharacterStats } from "~/server/stats";
+import {
+  getLocationRequiredLevel,
+  meetsLocationLevelRequirement,
+} from "~/server/travel/requirements";
 
-const FALLBACK_TRAVEL_SECONDS = 4 * 60 * 60;
+/** Admin default for pairs without a route; one config row with id 1. */
+export async function getDefaultTravelSeconds(): Promise<number> {
+  const row = await prisma.travelConfig.findUnique({
+    where: { id: 1 },
+    select: { secondsPerTravel: true },
+  });
+  const seconds = row?.secondsPerTravel;
+  return typeof seconds === "number" && seconds > 0
+    ? seconds
+    : FALLBACK_TRAVEL_SECONDS;
+}
 
-async function getTravelSeconds(): Promise<number> {
-  try {
-    const row = await prisma.travelConfig.findFirst({
-      select: { secondsPerTravel: true },
-      orderBy: [{ id: "desc" }],
-    });
+/**
+ * Journey seconds from one location to each destination for this character:
+ * the route's base time (or the default) scaled by current movement speed.
+ * Used for the atlas preview and when a journey starts, so both agree.
+ */
+export async function getJourneySeconds(
+  userId: string,
+  fromLocationId: number | null,
+  toLocationIds: number[],
+): Promise<Map<number, number>> {
+  const destinations = toLocationIds.filter((id) => id !== fromLocationId);
+  const [stats, defaultSeconds, routes] = await Promise.all([
+    getCompleteCharacterStats(userId),
+    getDefaultTravelSeconds(),
+    fromLocationId === null || destinations.length === 0
+      ? []
+      : prisma.travelRoute.findMany({
+          where: {
+            OR: destinations.map((toLocationId) =>
+              toTravelRoutePair(fromLocationId, toLocationId),
+            ),
+          },
+          select: { locationAId: true, locationBId: true, seconds: true },
+        }),
+  ]);
 
-    const seconds = row?.secondsPerTravel;
-    if (typeof seconds === "number" && Number.isFinite(seconds) && seconds > 0) {
-      return Math.floor(seconds);
-    }
-  } catch {
-    // ignore
-  }
-
-  return FALLBACK_TRAVEL_SECONDS;
+  const baseSecondsByDestination = new Map(
+    routes.map((route) => [
+      route.locationAId === fromLocationId
+        ? route.locationBId
+        : route.locationAId,
+      route.seconds,
+    ]),
+  );
+  return new Map(
+    destinations.map((toLocationId) => [
+      toLocationId,
+      applyMovementSpeed(
+        baseSecondsByDestination.get(toLocationId) ?? defaultSeconds,
+        stats.movementSpeed,
+      ),
+    ]),
+  );
 }
 
 export type TravelStatus =
@@ -74,9 +121,13 @@ export async function getTravelStatus(userId: string): Promise<TravelStatus> {
 
   const durationMs = Math.max(0, endsAtMs - startedAtMs);
   const elapsedMs = Math.min(Math.max(0, nowMs - startedAtMs), durationMs);
-  const remainingSeconds = Math.max(0, Math.ceil((durationMs - elapsedMs) / 1000));
+  const remainingSeconds = Math.max(
+    0,
+    Math.ceil((durationMs - elapsedMs) / 1000),
+  );
 
-  const progress = durationMs === 0 ? 1 : Math.max(0, Math.min(1, elapsedMs / durationMs));
+  const progress =
+    durationMs === 0 ? 1 : Math.max(0, Math.min(1, elapsedMs / durationMs));
 
   return {
     travel: {
@@ -94,35 +145,83 @@ export async function getTravelStatus(userId: string): Promise<TravelStatus> {
   };
 }
 
-export async function startTravel(params: { userId: string; toLocationId: number }) {
+export async function startTravel(params: {
+  userId: string;
+  toLocationId: number;
+}) {
   const { userId, toLocationId } = params;
 
-  const activeGardenHarvest = await prisma.userGardenHarvestActivity.findUnique({
-    where: { userId },
-    select: { id: true },
-  });
-  if (activeGardenHarvest) {
+  const [
+    activeGardenHarvest,
+    activeVocation,
+    activeGatheringExpedition,
+    activeHuntingExpedition,
+    activeDungeonRun,
+  ] = await Promise.all([
+    prisma.userGardenHarvestActivity.findUnique({
+      where: { userId },
+      select: { id: true },
+    }),
+    prisma.userVocationalActivity.findUnique({
+      where: { userId },
+      select: { id: true },
+    }),
+    prisma.userGatheringExpedition.findFirst({
+      where: { userId, claimedAt: null },
+      select: { id: true },
+    }),
+    prisma.userHuntingExpedition.findFirst({
+      where: { userId, claimedAt: null },
+      select: { id: true },
+    }),
+    prisma.userDungeonRun.findFirst({
+      where: { userId, claimedAt: null },
+      select: { id: true },
+    }),
+  ]);
+  if (
+    activeGardenHarvest ??
+    activeVocation ??
+    activeGatheringExpedition ??
+    activeHuntingExpedition ??
+    activeDungeonRun
+  ) {
     throw new Error("You already have an active activity");
   }
 
-  const [user, destination, secondsPerTravel] = await Promise.all([
+  const [user, destination] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
-      select: { currentLocationId: true },
+      select: { currentLocationId: true, level: true },
     }),
-    prisma.location.findUnique({ where: { id: toLocationId }, select: { id: true } }),
-    getTravelSeconds(),
+    prisma.location.findUnique({
+      where: { id: toLocationId },
+      select: { id: true, name: true, requiredLevel: true },
+    }),
   ]);
 
   if (!destination) throw new Error("Location not found");
+  if (!user) throw new Error("User not found");
+  if (!meetsLocationLevelRequirement(destination, user.level)) {
+    throw new Error(
+      `Requires level ${getLocationRequiredLevel(destination)} to travel to ${destination.name}`,
+    );
+  }
 
-  const fromLocationId = user?.currentLocationId ?? null;
+  const fromLocationId = user.currentLocationId ?? null;
   if (fromLocationId !== null && fromLocationId === toLocationId) {
     throw new Error("You are already at this location");
   }
 
+  // Movement speed (gear and food effect) is read once, so the arrival time is
+  // fixed when the journey starts.
+  const journeySeconds = await getJourneySeconds(userId, fromLocationId, [
+    toLocationId,
+  ]);
+  const travelSeconds = journeySeconds.get(toLocationId);
+  if (travelSeconds === undefined) throw new Error("No route to location");
   const now = new Date();
-  const endsAt = new Date(now.getTime() + secondsPerTravel * 1000);
+  const endsAt = new Date(now.getTime() + travelSeconds * 1000);
 
   // Only one travel at a time.
   const existing = await prisma.userTravelActivity.findUnique({

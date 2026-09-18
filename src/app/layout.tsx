@@ -6,7 +6,8 @@ import { GeistSans } from "geist/font/sans";
 
 export const metadata = {
   title: "Aergyle",
-  description: "Action packed game.",
+  description:
+    "Explore Aergyle, master your vocations, tend your garden, and trade your discoveries in a browser idle adventure.",
   icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
 

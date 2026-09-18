@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "~/lib/prisma";
 import { populateEquipmentSlots, validateEquipment } from "~/utils/inventory";
-import { fetchUserItemsByIds } from "~/utils/userItemInventory";
 import { updateInventoryCapacity } from "~/utils/inventoryCapacity";
 import { getServerAuthSession } from "~/server/auth";
 import { EQUIPMENT_SLOTS, type EquipmentDbField } from "~/utils/itemEquipTo";
+import { getEquipmentValidationError } from "~/utils/inventoryClient";
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,45 +15,122 @@ export async function POST(req: NextRequest) {
 
     const userId = session.user.id;
 
-    // Equipment changes are not allowed while any action is active (vocations or travel).
+    // Keep departure/harvest snapshots stable and match the client-side action lock.
     const now = new Date();
-    const [vocational, travel] = await Promise.all([
-      prisma.userVocationalActivity.findUnique({
-        where: { userId },
-        select: { endsAt: true },
-      }),
-      prisma.userTravelActivity.findUnique({
-        where: { userId },
-        select: { endsAt: true, cancelledAt: true },
-      }),
-    ]);
+    const [
+      vocational,
+      travel,
+      gardenHarvest,
+      gatheringExpedition,
+      huntingExpedition,
+      dungeonRun,
+    ] =
+      await Promise.all([
+        prisma.userVocationalActivity.findUnique({
+          where: { userId },
+          select: { endsAt: true },
+        }),
+        prisma.userTravelActivity.findUnique({
+          where: { userId },
+          select: { endsAt: true, cancelledAt: true },
+        }),
+        prisma.userGardenHarvestActivity.findUnique({
+          where: { userId },
+          select: { id: true },
+        }),
+        prisma.userGatheringExpedition.findFirst({
+          where: { userId, claimedAt: null },
+          select: { id: true },
+        }),
+        prisma.userHuntingExpedition.findFirst({
+          where: { userId, claimedAt: null },
+          select: { id: true },
+        }),
+        prisma.userDungeonRun.findFirst({
+          where: { userId, claimedAt: null },
+          select: { id: true },
+        }),
+      ]);
 
     const hasActiveVocational = !!vocational && vocational.endsAt > now;
-    const hasActiveTravel = !!travel && !travel.cancelledAt && travel.endsAt > now;
-    if (hasActiveVocational || hasActiveTravel) {
+    const hasActiveTravel =
+      !!travel && !travel.cancelledAt && travel.endsAt > now;
+    const hasActiveGardenOrGathering = Boolean(
+      gardenHarvest ?? gatheringExpedition ?? huntingExpedition ?? dungeonRun,
+    );
+    if (hasActiveVocational || hasActiveTravel || hasActiveGardenOrGathering) {
       return NextResponse.json(
         { error: "You cannot change equipment while an action is active." },
         { status: 409 },
       );
     }
-    const { equipment } = await req.json();
+    const payload: unknown = await req.json();
+    const equipment =
+      payload && typeof payload === "object" && "equipment" in payload
+        ? payload.equipment
+        : undefined;
 
-    if (!equipment || typeof equipment !== "object") {
+    if (
+      !equipment ||
+      typeof equipment !== "object" ||
+      Array.isArray(equipment)
+    ) {
       return NextResponse.json(
         { error: "Invalid request: equipment object required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    if (!validateEquipment(equipment)) {
+    const selection = equipment as Record<string, number | null>;
+    if (!validateEquipment(selection)) {
       return NextResponse.json(
         { error: "Invalid equipment data" },
         { status: 400 },
       );
     }
 
+    const itemIds = [
+      ...new Set(
+        Object.values(selection).filter(
+          (id): id is number =>
+            typeof id === "number" && Number.isSafeInteger(id) && id > 0,
+        ),
+      ),
+    ];
+    const [character, availableItems] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: { level: true },
+      }),
+      prisma.userItem.findMany({
+        where: {
+          id: { in: itemIds },
+          userId,
+          status: { in: ["IN_INVENTORY", "EQUIPPED"] },
+        },
+        select: {
+          id: true,
+          itemTemplate: {
+            select: { name: true, equipTo: true, requiredLevel: true },
+          },
+        },
+      }),
+    ]);
+    if (!character)
+      return NextResponse.json(
+        { error: "Character not found" },
+        { status: 404 },
+      );
+    const equipmentError = getEquipmentValidationError(
+      selection,
+      availableItems.map((item) => ({ id: item.id, ...item.itemTemplate })),
+      character.level,
+    );
+    if (equipmentError)
+      return NextResponse.json({ error: equipmentError }, { status: 400 });
+
     const dbFields = Object.fromEntries(
-      EQUIPMENT_SLOTS.map((s) => [s.dbField, equipment[s.slot] ?? null]),
+      EQUIPMENT_SLOTS.map((s) => [s.dbField, selection[s.slot] ?? null]),
     ) as Partial<Record<EquipmentDbField, number | null>>;
 
     const userEquipment = await prisma.equipment.upsert({
@@ -68,7 +145,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Recalculate inventory capacity (in case backpack or CARRYING_CAPACITY items changed)
-    const newCapacity = await updateInventoryCapacity(userId);
+    await updateInventoryCapacity(userId);
 
     return NextResponse.json(
       {
@@ -86,7 +163,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   try {
     const session = await getServerAuthSession();
     if (!session?.user?.id) {

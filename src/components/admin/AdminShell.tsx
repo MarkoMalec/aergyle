@@ -3,6 +3,7 @@
 import * as React from "react";
 
 import { AdminSidebar } from "~/components/admin/AdminSidebar";
+import { AppToaster } from "~/components/ui/app-toaster";
 import { Separator } from "~/components/ui/separator";
 import {
   SidebarInset,
@@ -10,13 +11,11 @@ import {
   SidebarTrigger,
 } from "~/components/ui/sidebar";
 
-export function AdminShell({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export function AdminShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="admin-theme dark min-h-svh bg-background text-foreground">
+      {/* Admin pages are outside the game Providers, so they mount their own. */}
+      <AppToaster />
       <SidebarProvider>
         <AdminSidebar />
         <SidebarInset className="min-h-svh">

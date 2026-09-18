@@ -5,11 +5,22 @@ import { useRouter } from "next/navigation";
 import { useFieldArray, useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ItemRarity, VocationalActionType } from "~/generated/prisma/enums";
+import {
+  ItemRarity,
+  ItemType,
+  VocationalActionType,
+} from "~/generated/prisma/enums";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
 import { Separator } from "~/components/ui/separator";
+import { getCraftingRule } from "~/game/crafting";
 
 const VOCATIONAL_ACTION_TYPE_VALUES = Object.values(VocationalActionType) as [
   VocationalActionType,
@@ -31,6 +42,12 @@ const schema = z
     actionType: z.enum(VOCATIONAL_ACTION_TYPE_VALUES),
     name: z.string().min(1),
     itemId: z.coerce.number().int().positive(),
+    requiredRecipeItemId: z.coerce
+      .number()
+      .int()
+      .positive()
+      .nullable()
+      .default(null),
     requiredSkillLevel: z.coerce.number().int().min(1).default(1),
     defaultSeconds: z.coerce.number().int().min(1),
     yieldPerUnit: z.coerce.number().int().min(1),
@@ -71,6 +88,7 @@ export function VocationalResourceForm(props: {
     actionType: VocationalActionType.WOODCUTTING,
     name: "",
     itemId: props.items[0]?.id ?? 1,
+    requiredRecipeItemId: null,
     requiredSkillLevel: 1,
     defaultSeconds: 10,
     yieldPerUnit: 1,
@@ -93,6 +111,7 @@ export function VocationalResourceForm(props: {
   const actionTypes = useMemo(() => Object.values(VocationalActionType), []);
   const rarities = useMemo(() => Object.values(ItemRarity), []);
   const actionType = form.watch("actionType");
+  const craftingRule = getCraftingRule(actionType);
 
   const onSubmit = async (values: FormValues) => {
     setIsSaving(true);
@@ -127,9 +146,12 @@ export function VocationalResourceForm(props: {
 
     setIsDeleting(true);
     try {
-      const res = await fetch(`/api/admin/vocations/resources/${props.resourceId}`, {
-        method: "DELETE",
-      });
+      const res = await fetch(
+        `/api/admin/vocations/resources/${props.resourceId}`,
+        {
+          method: "DELETE",
+        },
+      );
       const json = await res.json().catch(() => null);
       if (!res.ok) {
         alert(json?.error ?? "Failed to delete");
@@ -153,6 +175,26 @@ export function VocationalResourceForm(props: {
     return props.items.filter((i) => (i.itemType ?? null) === "BAIT");
   }, [props.items]);
 
+  const recipeItems = useMemo(() => {
+    return props.items.filter((i) => i.itemType === ItemType.RECIPE);
+  }, [props.items]);
+
+  const craftingOutputItems = craftingRule
+    ? props.items.filter(
+        (item) =>
+          item.itemType &&
+          craftingRule.outputTypes.includes(item.itemType as ItemType),
+      )
+    : props.items;
+
+  const craftingInputItems = craftingRule
+    ? props.items.filter(
+        (item) =>
+          item.itemType &&
+          craftingRule.inputTypes.includes(item.itemType as ItemType),
+      )
+    : props.items;
+
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -160,7 +202,23 @@ export function VocationalResourceForm(props: {
           <div className="text-sm text-white/80">Action Type</div>
           <Select
             value={form.watch("actionType")}
-            onValueChange={(v) => form.setValue("actionType", v as VocationalActionType)}
+            onValueChange={(v) => {
+              const nextAction = v as VocationalActionType;
+              form.setValue("actionType", nextAction);
+              const nextRule = getCraftingRule(nextAction);
+              if (!nextRule?.allowsLearnedRecipes) {
+                form.setValue("requiredRecipeItemId", null);
+              }
+              const firstOutput = nextRule
+                ? props.items.find(
+                    (item) =>
+                      item.itemType &&
+                      nextRule.outputTypes.includes(item.itemType as ItemType),
+                  )
+                : props.items[0];
+              if (firstOutput) form.setValue("itemId", firstOutput.id);
+              fieldArray.replace([]);
+            }}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select action" />
@@ -190,7 +248,7 @@ export function VocationalResourceForm(props: {
               <SelectValue placeholder="Select item" />
             </SelectTrigger>
             <SelectContent>
-              {props.items.map((i) => (
+              {craftingOutputItems.map((i) => (
                 <SelectItem key={i.id} value={String(i.id)}>
                   {i.name} #{i.id}
                 </SelectItem>
@@ -198,9 +256,43 @@ export function VocationalResourceForm(props: {
             </SelectContent>
           </Select>
           <div className="text-xs text-white/50">
-            Note: a single Item template can only belong to one vocational resource.
+            Note: a single Item template can only belong to one vocational
+            resource.
           </div>
         </div>
+
+        {craftingRule?.allowsLearnedRecipes ? (
+          <div className="space-y-2 md:col-span-2">
+            <div className="text-sm text-white/80">Required Recipe</div>
+            <Select
+              value={String(form.watch("requiredRecipeItemId") ?? "__none")}
+              onValueChange={(v) =>
+                form.setValue(
+                  "requiredRecipeItemId",
+                  v === "__none" ? null : Number(v),
+                )
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select unlock item" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none">
+                  None (visible immediately)
+                </SelectItem>
+                {recipeItems.map((recipe) => (
+                  <SelectItem key={recipe.id} value={String(recipe.id)}>
+                    {recipe.name} #{recipe.id}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="text-xs text-white/50">
+              The dish remains hidden until the character learns this RECIPE
+              item. Leave empty for a starter recipe.
+            </div>
+          </div>
+        ) : null}
 
         <div className="space-y-2">
           <div className="text-sm text-white/80">Required Skill Level</div>
@@ -248,12 +340,18 @@ export function VocationalResourceForm(props: {
         <div className="flex items-center justify-between">
           <div>
             <div className="text-sm font-semibold text-white">
-              {actionType === VocationalActionType.FISHING ? "Bait" : "Requirements"}
+              {actionType === VocationalActionType.FISHING
+                ? "Bait"
+                : "Requirements"}
             </div>
             <div className="text-xs text-white/60">
               {actionType === VocationalActionType.FISHING
                 ? "Fishing consumes bait from the selected inventory stack. Optionally restrict to a specific BAIT template."
-                : "Inputs consumed per unit (per tick)."}
+                : actionType === VocationalActionType.COOKING
+                  ? "Fish, meat and vegetables consumed for each cooked dish."
+                  : actionType === VocationalActionType.TAILORING
+                    ? "The physical blueprint, cloth, hides and other materials required for each item."
+                    : "Inputs consumed per unit (per tick)."}
             </div>
           </div>
           {actionType === VocationalActionType.FISHING ? (
@@ -262,11 +360,16 @@ export function VocationalResourceForm(props: {
               variant="secondary"
               onClick={() => {
                 if (baitItems.length === 0) {
-                  alert("No BAIT items exist yet. Create an Item with itemType=BAIT first.");
+                  alert(
+                    "No BAIT items exist yet. Create an Item with itemType=BAIT first.",
+                  );
                   return;
                 }
                 if (fieldArray.fields.length === 0) {
-                  fieldArray.append({ itemId: baitItems[0]!.id, quantityPerUnit: 1 });
+                  fieldArray.append({
+                    itemId: baitItems[0]!.id,
+                    quantityPerUnit: 1,
+                  });
                 }
               }}
             >
@@ -276,7 +379,14 @@ export function VocationalResourceForm(props: {
             <Button
               type="button"
               variant="secondary"
-              onClick={() => fieldArray.append({ itemId: props.items[0]?.id ?? 1, quantityPerUnit: 1 })}
+              onClick={() => {
+                const firstItem = craftingInputItems[0];
+                if (!firstItem) {
+                  alert("No valid requirement items exist yet.");
+                  return;
+                }
+                fieldArray.append({ itemId: firstItem.id, quantityPerUnit: 1 });
+              }}
             >
               Add Requirement
             </Button>
@@ -286,9 +396,11 @@ export function VocationalResourceForm(props: {
         {fieldArray.fields.length === 0 ? (
           actionType === VocationalActionType.FISHING ? (
             <div className="rounded-md border border-gray-800/60 bg-gray-900/20 p-4 text-sm text-white/70">
-              Any item with type <span className="font-semibold text-white">BAIT</span> can be used.
-              Consumption defaults to <span className="font-semibold text-white">1 bait / unit</span> unless you
-              add a specific bait requirement.
+              Any item with type{" "}
+              <span className="font-semibold text-white">BAIT</span> can be
+              used. Consumption defaults to{" "}
+              <span className="font-semibold text-white">1 bait / unit</span>{" "}
+              unless you add a specific bait requirement.
             </div>
           ) : (
             <div className="text-sm text-white/60">No requirements.</div>
@@ -302,16 +414,21 @@ export function VocationalResourceForm(props: {
               const selectableItems =
                 actionType === VocationalActionType.FISHING
                   ? baitItems
-                  : props.items;
+                  : craftingInputItems;
 
               return (
-                <div key={field.id} className="rounded-md border border-gray-800/60 bg-gray-900/20 p-4">
+                <div
+                  key={field.id}
+                  className="rounded-md border border-gray-800/60 bg-gray-900/20 p-4"
+                >
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                     <div className="space-y-2 md:col-span-2">
                       <div className="text-sm text-white/80">Item</div>
                       <Select
                         value={String(itemId)}
-                        onValueChange={(v) => form.setValue(`requirements.${idx}.itemId`, Number(v))}
+                        onValueChange={(v) =>
+                          form.setValue(`requirements.${idx}.itemId`, Number(v))
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select item" />
@@ -324,12 +441,19 @@ export function VocationalResourceForm(props: {
                           ))}
                         </SelectContent>
                       </Select>
-                      <div className="text-xs text-white/50">Selected: {item?.name ?? "—"}</div>
+                      <div className="text-xs text-white/50">
+                        Selected: {item?.name ?? "—"}
+                      </div>
                     </div>
 
                     <div className="space-y-2">
                       <div className="text-sm text-white/80">Qty / Unit</div>
-                      <Input type="number" {...form.register(`requirements.${idx}.quantityPerUnit`)} />
+                      <Input
+                        type="number"
+                        {...form.register(
+                          `requirements.${idx}.quantityPerUnit`,
+                        )}
+                      />
                     </div>
                   </div>
 

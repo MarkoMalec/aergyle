@@ -1,14 +1,18 @@
 "use client";
-
+import Link from "next/link";
 import SignInForm from "~/components/forms/signInForm";
-import { Card } from "~/components/ui/card";
+import AuthShell from "~/components/game/ui/AuthShell";
 
 export default function SignInPage() {
   return (
-    <main className="flex h-screen items-center justify-center">
-      <Card className="w-full max-w-[500px]">
-        <SignInForm />
-      </Card>
-    </main>
+    <AuthShell
+      footer={
+        <>
+          New to Aergyle? <Link href="/register">Begin your journey</Link>
+        </>
+      }
+    >
+      <SignInForm />
+    </AuthShell>
   );
 }

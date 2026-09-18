@@ -20,7 +20,7 @@ import {
   EQUIPMENT_INDEX_MAP,
   EquipmentSlotType,
 } from "~/types/inventory";
-import { canEquipToSlot } from "~/utils/inventoryClient";
+import { canEquipToSlot, meetsItemLevelRequirement } from "~/utils/inventoryClient";
 import { useState } from "react";
 import { useVocationalActiveActionContext } from "~/components/game/actions/VocationalActiveActionProvider";
 import toast from "react-hot-toast";
@@ -227,6 +227,29 @@ export const DndProvider: React.FC<DndProviderProps> = ({
       (activeContainer === "equipment" || overContainer === "equipment")
     ) {
       toast.error("You cannot equip or unequip items while an action is active.");
+      return;
+    }
+
+    // Check both directions before changing inventory, equipment or the delete slot.
+    // Quick equip uses this same path through a synthetic drag event.
+    const itemAt = (container: string, index: number) => {
+      if (container === "inventory") return inventory[index]?.item;
+      if (container === "delete") return deleteSlot.item;
+      if (container === "equipment") {
+        const slot = EQUIPMENT_INDEX_MAP[index];
+        return slot ? equipment[slot] : null;
+      }
+      return null;
+    };
+    const enteringEquipment = [
+      overContainer === "equipment" ? itemAt(activeContainer, activeIndex) : null,
+      activeContainer === "equipment" ? itemAt(overContainer, overIndex) : null,
+    ];
+    const levelLockedItem = enteringEquipment.find(
+      (item) => item && !meetsItemLevelRequirement(item, user?.level ?? 0),
+    );
+    if (levelLockedItem) {
+      toast.error(`Requires level ${levelLockedItem.requiredLevel ?? 1} to equip ${levelLockedItem.name}.`);
       return;
     }
 

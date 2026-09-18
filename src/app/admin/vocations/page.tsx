@@ -20,6 +20,7 @@ export default async function AdminVocationsPage() {
       xpPerUnit: true,
       rarity: true,
       item: { select: { name: true, sprite: true } },
+      requiredRecipeItem: { select: { name: true } },
       _count: { select: { requirements: true } },
     },
     orderBy: [{ id: "desc" }],
@@ -84,6 +85,7 @@ export default async function AdminVocationsPage() {
                     <th className="p-3 text-right">Sec</th>
                     <th className="p-3 text-right">Yield</th>
                     <th className="p-3 text-right">XP</th>
+                    <th className="p-3 text-left">Recipe</th>
                     <th className="p-3 text-right">Reqs</th>
                     <th className="p-3 text-right">ID</th>
                   </tr>
@@ -120,6 +122,9 @@ export default async function AdminVocationsPage() {
                       <td className="p-3 text-right text-white/80">{r.defaultSeconds}</td>
                       <td className="p-3 text-right text-white/80">{r.yieldPerUnit}</td>
                       <td className="p-3 text-right text-white/80">{r.xpPerUnit}</td>
+                      <td className="p-3 text-left text-white/80">
+                        {r.requiredRecipeItem?.name ?? "—"}
+                      </td>
                       <td className="p-3 text-right text-white/80">{r._count.requirements}</td>
                       <td className="p-3 text-right font-mono text-white/60">{r.id}</td>
                     </tr>

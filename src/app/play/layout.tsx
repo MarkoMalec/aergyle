@@ -1,28 +1,46 @@
-import React from "react";
-import { Card } from "~/components/ui/card";
+"use client";
+
+import { useState, type ReactNode } from "react";
+import AuthShell from "~/components/game/ui/AuthShell";
+import { Button } from "~/components/ui/button";
 
 export default function PlayLayout({
   children,
   register,
   signin,
 }: {
-  children: React.ReactNode;
-  register: React.ReactNode;
-  signin: React.ReactNode;
+  children: ReactNode;
+  register: ReactNode;
+  signin: ReactNode;
 }) {
+  const [screen, setScreen] = useState<"register" | "signin">("register");
   return (
-    <main className="flex h-screen flex-col items-center justify-center">
+    <AuthShell>
       {children}
-      <Card className="w-full max-w-[500px]">
-        {register}
-        <div className="relative flex items-center py-5 px-5">
-          <div className="flex-grow border-t border-gray-400"></div>
-          <span className="mx-2 flex-shrink text-gray-400">or</span>
-          <div className="flex-grow border-t border-gray-400"></div>
-        </div>
-
-        {signin}
-      </Card>
-    </main>
+      <div
+        className="m-6 mb-0 flex gap-2 rounded-xl bg-surface-inset p-1"
+        role="group"
+        aria-label="Choose how to enter Aergyle"
+      >
+        <Button
+          variant={screen === "register" ? "secondary" : "ghost"}
+          className="flex-1"
+          aria-pressed={screen === "register"}
+          onClick={() => setScreen("register")}
+        >
+          New adventure
+        </Button>
+        <Button
+          variant={screen === "signin" ? "secondary" : "ghost"}
+          className="flex-1"
+          aria-pressed={screen === "signin"}
+          onClick={() => setScreen("signin")}
+        >
+          Sign in
+        </Button>
+      </div>
+      <div hidden={screen !== "register"}>{register}</div>
+      <div hidden={screen !== "signin"}>{signin}</div>
+    </AuthShell>
   );
 }

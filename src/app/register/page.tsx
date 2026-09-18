@@ -1,14 +1,18 @@
 "use client";
-
+import Link from "next/link";
 import RegisterForm from "~/components/forms/registerForm";
-import { Card } from "~/components/ui/card";
+import AuthShell from "~/components/game/ui/AuthShell";
 
 export default function RegisterPage() {
   return (
-    <main className="flex h-screen items-center justify-center">
-      <Card className="w-full max-w-[500px]">
-        <RegisterForm />
-      </Card>
-    </main>
+    <AuthShell
+      footer={
+        <>
+          Already a wayfarer? <Link href="/signin">Sign in</Link>
+        </>
+      }
+    >
+      <RegisterForm />
+    </AuthShell>
   );
 }

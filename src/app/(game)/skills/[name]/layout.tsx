@@ -3,18 +3,18 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useVocationalActiveActionContext } from "~/components/game/actions/VocationalActiveActionProvider";
 import { ActionFillBar } from "~/components/game/actions/ActionFillBar";
-import { Separator } from "~/components/ui/separator";
 import { Badge } from "~/components/ui/badge";
 import { formatDuration } from "~/components/game/actions/format";
+import { Button } from "~/components/ui/button";
 import { X } from "lucide-react";
 import Image from "next/image";
 import { toVocationalActionTypeFromSkillName } from "~/utils/vocations";
 import SkillPageHeader from "./SkillPageHeader";
-import toast from "react-hot-toast";
 import {
   SkillProgressProvider,
   type SkillProgressResponse,
 } from "~/components/game/skills/SkillProgressContext";
+import { addSkillProgressEventListener } from "~/components/game/skills/skillProgressEvents";
 
 function formatInt(value: number) {
   return new Intl.NumberFormat().format(Math.max(0, Math.floor(value)));
@@ -67,8 +67,16 @@ const SkillsLayoutContent = ({
     }
 
     void load();
+    const removeProgressListener = addSkillProgressEventListener(
+      (skillName) => {
+        if (skillName.toLowerCase() === decodedSkillName.toLowerCase()) {
+          void load();
+        }
+      },
+    );
     return () => {
       cancelled = true;
+      removeProgressListener();
     };
   }, [decodedSkillName]);
 
@@ -81,47 +89,58 @@ const SkillsLayoutContent = ({
   return (
     <>
       <SkillPageHeader skillName={decodedSkillName} />
-      <div className="flex gap-5">
-        <div className="w-3/4">
+      <div className="game-skill-layout">
+        <div className="min-w-0">
           <SkillProgressProvider
             value={{ skillProgress, progressLoading: progressLoading }}
           >
             {children}
           </SkillProgressProvider>
         </div>
-        <div className="w-2/4">
-          <Separator className="mb-5">YOUR PROGRESS</Separator>
-          <div className="mb-6 rounded-lg border border-gray-700/40 bg-gray-800">
+        <div className="min-w-0">
+          <div className="game-panel mb-6">
             <div className="space-y-1">
-              <div className="bg-gray-700/20 p-4 font-semibold text-white">
-                {decodedSkillName}
-              </div>
+              <h2 className="game-panel-header text-base font-semibold text-foreground">
+                {decodedSkillName} Progress
+              </h2>
               {progressLoading ? (
-                <div className="text-sm text-white/70">Loading...</div>
+                <div className="game-panel-body space-y-3">
+                  <div className="game-progress-track"></div>
+                  <div className="flex flex-wrap justify-between gap-2">
+                    <Badge className="text-xs">Level </Badge>
+                    <span className="text-xs tabular-nums text-muted-foreground">
+                      XP to next level
+                    </span>
+                  </div>
+                </div>
               ) : skillProgress ? (
-                <div className="space-y-2 p-4">
-                  <div className="h-2 overflow-hidden rounded-full bg-white/10">
+                <div className="game-panel-body space-y-3">
+                  <div
+                    className="game-progress-track"
+                    role="progressbar"
+                    aria-label={`${decodedSkillName} experience`}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={Math.floor(skillProgress.xpProgress)}
+                  >
                     <div
-                      className="h-full bg-[#20c05c]"
+                      className="game-progress-fill"
                       style={{
                         width: `${Math.floor(skillProgress.xpProgress)}%`,
                       }}
                     />
                   </div>
-                  <div className="flex justify-between">
-                    <Badge className="border border-gray-600 bg-gray-700/30 text-xs text-white">
-                      Lv. {skillProgress.level}
+                  <div className="flex flex-wrap justify-between gap-2">
+                    <Badge className="text-xs">
+                      Level {skillProgress.level}
                     </Badge>
-                    <Badge className="overflow-hidden border border-gray-600 bg-gray-700/30 p-0 pl-2 text-xs text-white">
-                      {formatInt(skillProgress.xpRemaining)} EXP Needed
-                      <span className="ml-2 inline-flex h-full items-center border-l border-gray-600 bg-gray-700/60 px-2 text-gray-300">
-                        {Math.floor(skillProgress.xpProgress)}%
-                      </span>
-                    </Badge>
+                    <span className="text-xs tabular-nums text-muted-foreground">
+                      {formatInt(skillProgress.xpRemaining)} XP to next level
+                    </span>
                   </div>
                 </div>
               ) : (
-                <div className="text-sm text-white/70">
+                <div className="text-sm text-muted-foreground">
                   No progression data yet.
                 </div>
               )}
@@ -130,19 +149,25 @@ const SkillsLayoutContent = ({
 
           {showActive ? (
             <>
-              <Separator className="mb-5 text-sm">ACTIVE</Separator>
-              <div className="relative rounded-lg border border-gray-700/40 bg-gray-800 p-4">
+              <h2 className="mb-3 text-sm font-semibold text-text-secondary">
+                Current activity
+              </h2>
+              <div className="relative rounded-lg border border-border bg-card p-4">
                 <div className="absolute -top-2 right-1">
                   <div className="flex items-center gap-1">
-                    <Badge className="bg-gray-700/60">
+                    <Badge className="bg-secondary">
                       {formatDuration(viewModel.sessionRemainingSeconds)}
                     </Badge>
-                    <Badge
-                      onClick={stop}
-                      className="cursor-pointer bg-gray-700/60 p-1"
-                    >
-                      <X size={13} />
-                    </Badge>
+                    {viewModel.canStop ? (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={stop}
+                        aria-label="Stop active action"
+                      >
+                        <X size={16} />
+                      </Button>
+                    ) : null}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -173,17 +198,24 @@ const SkillsLayoutContent = ({
                       // tickClassName="bg-yellow-500/20"
                       variant="simple"
                     />
-                    <div className="flex items-center gap-2">
-                      <Badge className="bg-gray-700/60 tabular-nums">
-                        + {viewModel.sessionAmount}
-                      </Badge>
-                      <Badge className="bg-gray-700/60 tabular-nums">
-                        Next item in: {viewModel.nextItemInTime}
-                      </Badge>
-                      <Badge className="bg-gray-700/60">
-                        {viewModel.xpPerSecond} XP/s
-                      </Badge>
-                    </div>
+                    {activeActionType !== "GATHERING" &&
+                    activeActionType !== "HUNTING" ? (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge className="bg-secondary tabular-nums">
+                          + {viewModel.sessionAmount}
+                        </Badge>
+                        {viewModel.nextItemInTime ? (
+                          <Badge className="bg-secondary tabular-nums">
+                            Next item in: {viewModel.nextItemInTime}
+                          </Badge>
+                        ) : null}
+                        {Number(viewModel.xpPerSecond) > 0 ? (
+                          <Badge className="bg-secondary">
+                            {viewModel.xpPerSecond} XP/s
+                          </Badge>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               </div>
@@ -191,6 +223,17 @@ const SkillsLayoutContent = ({
           ) : null}
         </div>
       </div>
+      {decodedSkillName.toLowerCase() === "woodcutting" && (
+        <blockquote className="mt-8 max-w-2xl border-l-2 border-primary/40 pl-4 text-sm text-muted-foreground">
+          <p className="font-display italic">
+            “Me ma said to always be careful with sharp objects. But if ye want
+            to be a great woodcutter, ye gotta take some risks!”
+          </p>
+          <cite className="mt-2 block text-xs not-italic text-primary">
+            Roger the Lumberjack
+          </cite>
+        </blockquote>
+      )}
     </>
   );
 };

@@ -1,0 +1,63 @@
+{
+  "generator": "Built-in image_gen",
+  "pack": "carpentry-v1",
+  "artDirection": "Wayfarer's Atlas",
+  "promptSet": "PROMPTS.md",
+  "assets": [
+    {
+      "slug": "basic-plank",
+      "master": "basic-plank-master.png",
+      "runtime": "/assets/items/resources/planks/basic-plank-carpentry-v1.png",
+      "generatedFile": "exec-f0b0e08b-e9f4-4635-b5ee-819bf162262a.png"
+    },
+    {
+      "slug": "oak-plank",
+      "master": "oak-plank-master.png",
+      "runtime": "/assets/items/resources/planks/oak-plank-carpentry-v1.png",
+      "generatedFile": "exec-9da61d5e-cd30-41b4-8181-b09b22456ca6.png"
+    },
+    {
+      "slug": "birch-plank",
+      "master": "birch-plank-master.png",
+      "runtime": "/assets/items/resources/planks/birch-plank-carpentry-v1.png",
+      "generatedFile": "exec-c905482e-c11a-4dd5-98cf-a0c0e417d040.png"
+    },
+    {
+      "slug": "pine-plank",
+      "master": "pine-plank-master.png",
+      "runtime": "/assets/items/resources/planks/pine-plank-carpentry-v1.png",
+      "generatedFile": "exec-62327355-7246-476f-9a0e-9a529b829433.png"
+    },
+    {
+      "slug": "willow-plank",
+      "master": "willow-plank-master.png",
+      "runtime": "/assets/items/resources/planks/willow-plank-carpentry-v1.png",
+      "generatedFile": "exec-63fbbf6f-08ab-4e05-b725-fe985ab12f6b.png"
+    },
+    {
+      "slug": "ash-plank",
+      "master": "ash-plank-master.png",
+      "runtime": "/assets/items/resources/planks/ash-plank-carpentry-v1.png",
+      "generatedFile": "exec-470a58c1-9ca3-4f74-846a-e4d6a552c3e3.png"
+    },
+    {
+      "slug": "frostpine-plank",
+      "master": "frostpine-plank-master.png",
+      "runtime": "/assets/items/resources/planks/frostpine-plank-carpentry-v1.png",
+      "generatedFile": "exec-9d996351-780a-4185-bfe1-ddaac42c1ada.png"
+    },
+    {
+      "slug": "elderwood-plank",
+      "master": "elderwood-plank-master.png",
+      "runtime": "/assets/items/resources/planks/elderwood-plank-carpentry-v1.png",
+      "generatedFile": "exec-a5796cc3-c840-4932-b42b-4d8dba54573f.png"
+    },
+    {
+      "slug": "emberwood-plank",
+      "master": "emberwood-plank-master.png",
+      "runtime": "/assets/items/resources/planks/emberwood-plank-carpentry-v1.png",
+      "generatedFile": "exec-1d4e0510-9c28-4398-980c-e0d9db7a2712.png"
+    }
+  ],
+  "runtimeExport": "Each master was alpha-cropped, Lanczos-scaled to a 210px occupied long dimension, and centered on a transparent 256x256 RGBA canvas."
+}

@@ -38,37 +38,46 @@ model Session {
 }
 
 model User {
-  id            String              @id @unique(map: "user_Id") @default(cuid())
-  name          String?
-  email         String?             @unique
-  emailVerified DateTime?
-  password      String?             @db.VarChar(999)
-  image         String?
-  last_online   DateTime            @default(now()) @db.Timestamp(0)
-  last_action   String?
+  id                    String                     @id @unique(map: "user_Id") @default(cuid())
+  name                  String?
+  email                 String?                    @unique
+  emailVerified         DateTime?
+  password              String?                    @db.VarChar(999)
+  image                 String?
+  last_online           DateTime                   @default(now()) @db.Timestamp(0)
+  last_action           String?
   // The user's current location in the world (one at a time).
-  currentLocationId Int?
-  level         Int                 @default(1)
+  currentLocationId     Int?
+  level                 Int                        @default(1)
   // Total (lifetime) XP. Level is derived from `LevelXpThreshold`.
   // NOTE: existing DBs may have legacy "XP within level" values; code normalizes lazily.
-  experience    BigInt              @default(0)
-  gold          Decimal             @default(0) @db.Decimal(10, 2)
-  accounts      Account[]
-  equipment     Equipment?
-  inventory     Inventory?
-  sessions      Session[]
-  user_skills   user_skills[]
-  baseStats     CharacterBaseStat[]
-  xpMultipliers XpMultiplier[]
-  userItems     UserItem[]
-  trackProgress UserTrackProgress[]
-  vocationalActivity UserVocationalActivity?
-  travelActivity UserTravelActivity?
-  gardenTiles UserGardenTile[]
+  experience            BigInt                     @default(0)
+  gold                  Decimal                    @default(0) @db.Decimal(10, 2)
+  accounts              Account[]
+  equipment             Equipment?
+  inventory             Inventory?
+  sessions              Session[]
+  user_skills           user_skills[]
+  baseStats             CharacterBaseStat[]
+  xpMultipliers         XpMultiplier[]
+  userItems             UserItem[]
+  trackProgress         UserTrackProgress[]
+  vocationalActivity    UserVocationalActivity?
+  travelActivity        UserTravelActivity?
+  gardenTiles           UserGardenTile[]
   gardenHarvestActivity UserGardenHarvestActivity?
+  gatheringExpedition   UserGatheringExpedition?
+  huntingExpedition     UserHuntingExpedition?
+  dungeonRun            UserDungeonRun?
+  healthState           CharacterHealth?
+  learnedRecipes        UserLearnedRecipe[]
+  activeFoodEffect      UserActiveFoodEffect?
+  marketBuyOrders       MarketBuyOrder[]
+  marketPurchases       MarketTransaction[]        @relation("MarketTransactionBuyer")
+  marketSales           MarketTransaction[]        @relation("MarketTransactionSeller")
 
   currentLocation Location? @relation("UserCurrentLocation", fields: [currentLocationId], references: [id], onDelete: SetNull)
-  
+
   @@index([level])
   @@index([experience])
   @@index([currentLocationId])
@@ -133,7 +142,7 @@ enum ItemType {
   MACE
   SPEAR
   FLAIL
-  
+
   // Armor Types
   HELMET
   CHESTPLATE
@@ -143,15 +152,15 @@ enum ItemType {
   PAULDRONS
   BRACERS
   BELT
-  
+
   // Accessory Types
   RING
   AMULET
   NECKLACE
-  
+
   // Backpack/Storage
   BACKPACK
-  
+
   // Resource Types
   ORE
   INGOT
@@ -162,7 +171,7 @@ enum ItemType {
   HIDE
   STONE
   GEM
-  
+
   // Consumable Types
   POTION
   FOOD
@@ -171,33 +180,35 @@ enum ItemType {
 
   // Gardening
   SEED
-  
+
   // Crafting Types
   MATERIAL
-  INGREDIENT
+  MEAT
+  VEGETABLE
   RECIPE
-  
+  BLUEPRINT
+
   // Special Types
   QUEST_ITEM
   KEY
   CURRENCY
   PET
   MOUNT
-  
+
   // Misc
   OTHER
 }
 
 // Per-unit material requirements for a vocational resource output.
-// Example: SMELTING "Iron Bar" might require 1x Iron Ore per unit.
+// Example: BLACKSMITHING "Iron Bar" might require 1x Iron Ore per unit.
 model VocationalRequirement {
-  id              Int              @id @default(autoincrement())
+  id              Int @id @default(autoincrement())
   resourceId      Int
   itemId          Int
-  quantityPerUnit Int              @default(1)
+  quantityPerUnit Int @default(1)
 
-  resource        VocationalResource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
-  item            Item               @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  resource VocationalResource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  item     Item               @relation(fields: [itemId], references: [id], onDelete: Restrict)
 
   @@unique([resourceId, itemId])
   @@index([resourceId])
@@ -249,6 +260,8 @@ enum StatType {
   WOODCUTTING_EFFICIENCY
   MINING_EFFICIENCY
   FISHING_EFFICIENCY
+  GATHERING_EFFICIENCY
+  HUNTING_EFFICIENCY
 }
 
 // Constrained set of equipment-slot targets for Item templates.
@@ -272,34 +285,38 @@ enum ItemEquipTo {
 }
 
 model Item {
-  id      Int        @id @default(autoincrement())
-  name    String
+  id          Int     @id @default(autoincrement())
+  name        String
   description String? @db.Text
-  price   Float
-  sprite  String
-  
+  price       Float
+  sprite      String
+
   // Item categorization
-  itemType     ItemType?   // Specific type (SWORD, ORE, POTION, etc) - nullable for now
-  equipTo      ItemEquipTo? // Equipment slot (weapon, chest, etc) - nullable
-  
+  itemType ItemType? // Specific type (SWORD, ORE, POTION, etc) - nullable for now
+  equipTo  ItemEquipTo? // Equipment slot (weapon, chest, etc) - nullable
+
   // Stacking system
-  stackable    Boolean     @default(false)
-  maxStackSize Int         @default(1)
+  stackable    Boolean @default(false)
+  maxStackSize Int     @default(1)
 
   // Seed / gardening configuration (only used when itemType = SEED)
-  seedGrowSeconds     Int?
-  seedYieldItemId     Int?
-  seedYieldMin        Int?
-  seedYieldMax        Int?
-  seedHarvestSeconds  Int?
+  seedGrowSeconds    Int?
+  seedYieldItemId    Int?
+  seedYieldMin       Int?
+  seedYieldMax       Int?
+  seedHarvestSeconds Int?
+  seedXp             Int?
+
+  // Timed character bonuses applied by FOOD, POTION, or ELIXIR consumables.
+  foodEffectSeconds Int?
 
   // If enabled, negative stats (e.g. MOVEMENT_SPEED -5) will become less negative
   // and eventually positive as rarity multipliers increase.
   flipNegativeStatsWithRarity Boolean @default(false)
 
   vocationalRequirements VocationalRequirement[]
-  
-  rarity  ItemRarity @default(COMMON)
+
+  rarity ItemRarity @default(COMMON)
 
   // Denormalized columns for fast marketplace queries
   minPhysicalDamage Float? @default(0)
@@ -310,14 +327,21 @@ model Item {
   requiredLevel     Int?   @default(1)
 
   // Relationships
-  stats            ItemStat[]
-  statProgressions ItemStatProgression[] // Defines stats at each rarity tier
-  statRarityOverrides ItemStatRarityOverride[] // Optional absolute overrides per rarity
-  toolEfficiencies ToolEfficiency[]      // Base efficiencies per vocation tool
-  userItems        UserItem[]            // Item instances owned by players
-  vocationalResource VocationalResource?
+  stats                ItemStat[]
+  statProgressions     ItemStatProgression[] // Defines stats at each rarity tier
+  statRarityOverrides  ItemStatRarityOverride[] // Optional item/stat-specific multiplier or final-value overrides
+  toolEfficiencies     ToolEfficiency[] // Base efficiencies per vocation tool
+  creatureDrops        CreatureDrop[]
+  userItems            UserItem[] // Item instances owned by players
+  marketBuyOrders      MarketBuyOrder[]
+  marketTransactions   MarketTransaction[]
+  vocationalResource   VocationalResource?      @relation("VocationalOutputItem")
+  requiredByRecipes    VocationalResource[]     @relation("RequiredRecipeItem")
+  learnedRecipeRecords UserLearnedRecipe[]
+  foodEffectStats      FoodEffectStat[]
+  activeFoodEffects    UserActiveFoodEffect[]
 
-  seedYieldItem Item? @relation("SeedYieldItem", fields: [seedYieldItemId], references: [id], onDelete: SetNull)
+  seedYieldItem Item?  @relation("SeedYieldItem", fields: [seedYieldItemId], references: [id], onDelete: SetNull)
   seedYieldedBy Item[] @relation("SeedYieldItem")
 
   gardenSeedTiles  UserGardenTile[] @relation("GardenSeedItem")
@@ -336,7 +360,7 @@ model Item {
 // ============================================
 
 model UserGardenTile {
-  id        Int      @id @default(autoincrement())
+  id        Int    @id @default(autoincrement())
   userId    String
   tileIndex Int
 
@@ -350,6 +374,9 @@ model UserGardenTile {
   yieldMax    Int
 
   harvestSeconds Int
+
+  // Snapshot of Gardening XP earned when this crop is collected.
+  xpReward Int @default(1)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -384,13 +411,19 @@ model UserGardenHarvestActivity {
   @@index([userId, endsAt])
 }
 
-// Optional per-rarity absolute override values for an item stat.
-// If a row exists for (itemId, statType, rarity), that value is used instead of rarity multiplier scaling.
+enum ItemStatRarityOverrideKind {
+  MULTIPLIER
+  ABSOLUTE
+}
+
+// Optional item/stat-specific balance control for one rarity.
+// MULTIPLIER replaces the global rarity multiplier; ABSOLUTE sets the final base value.
 model ItemStatRarityOverride {
-  id       Int       @id @default(autoincrement())
+  id       Int                        @id @default(autoincrement())
   itemId   Int
   statType StatType
   rarity   ItemRarity
+  kind     ItemStatRarityOverrideKind @default(ABSOLUTE)
   value    Float
 
   item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
@@ -420,11 +453,11 @@ model ItemStatProgression {
   id              Int        @id @default(autoincrement())
   itemId          Int
   statType        StatType
-  baseValue       Float      // Base value at COMMON rarity
+  baseValue       Float // Base value at COMMON rarity
   unlocksAtRarity ItemRarity // When this stat becomes available
-  
+
   item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  
+
   @@unique([itemId, statType])
   @@index([itemId, unlocksAtRarity])
 }
@@ -438,54 +471,67 @@ model ItemStatProgression {
 // ============================================
 
 model ToolEfficiency {
-  id             Int                   @id @default(autoincrement())
+  id             Int                  @id @default(autoincrement())
   itemId         Int
-  actionType     VocationalActionType  // Which vocation this tool boosts
-  baseEfficiency Float                 // Base percent at COMMON rarity
+  actionType     VocationalActionType // Which vocation this tool boosts
+  baseEfficiency Float // Base percent at COMMON rarity
 
-  item           Item                  @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
   @@unique([itemId, actionType])
   @@index([actionType])
 }
 
 enum ItemStatus {
-  IN_INVENTORY   // In player's inventory
-  EQUIPPED       // Currently equipped
-  LISTED         // On marketplace
-  SOLD           // Sold (historical record)
-  DELETED        // Deleted/destroyed
+  IN_INVENTORY // In player's inventory
+  EQUIPPED // Currently equipped
+  LISTED // On marketplace
+  SOLD // Sold (historical record)
+  DELETED // Deleted/destroyed
 }
 
-// Player-owned item instances
-// Each player has their own copy with unique rarity and stats
+enum MarketOrderStatus {
+  OPEN
+  FILLED
+  CANCELLED
+}
+
+enum MarketTransactionSource {
+  BUY_NOW
+  SELL_NOW
+}
+
+// Player-owned item instances. Rarity and instance modifiers are unique;
+// template-derived balance stats are resolved live.
 model UserItem {
-  id             Int           @id @default(autoincrement())
-  userId         String
-  itemId         Int           // Reference to Item template
-  rarity         ItemRarity    @default(COMMON)
-  
+  id     Int        @id @default(autoincrement())
+  userId String
+  itemId Int // Reference to Item template
+  rarity ItemRarity @default(COMMON)
+
   // Stacking - for stackable items only
-  quantity       Int           @default(1)
-  
+  quantity Int @default(1)
+
   // Item location/status
-  status         ItemStatus    @default(IN_INVENTORY)
-  
+  status ItemStatus @default(IN_INVENTORY)
+
   // Marketplace data (only when status = LISTED)
-  listedPrice    Float?        // Listing price in gold
-  listedAt       DateTime?     // When listed
-  
+  listedPrice Float? // Listing price in gold
+  listedAt    DateTime? // When listed
+
   // Metadata
-  acquiredAt     DateTime      @default(now())
-  isTradeable    Boolean       @default(true)
-  
+  acquiredAt  DateTime @default(now())
+  isTradeable Boolean  @default(true)
+
   // Relationships
-  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  itemTemplate   Item          @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  stats          UserItemStat[]
+  user          User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  itemTemplate  Item                   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  // Additive per-instance modifiers only (future enchantments, affixes, etc.).
+  // Template and rarity-derived stats are resolved live and are never copied here.
+  statModifiers UserItemStatModifier[]
 
   baitForActivities UserVocationalActivity[] @relation("BaitUserItem")
-  
+
   @@index([userId])
   @@index([itemId])
   @@index([status])
@@ -493,21 +539,70 @@ model UserItem {
   @@index([userId, status])
 }
 
-// Stats for each user item instance
-model UserItemStat {
+// Gold is reserved when an order is created and refunded if its remainder is cancelled.
+// Buy orders intentionally target exact item + rarity combinations and are limited to
+// stackable items; individually rolled equipment continues to trade as exact listings.
+model MarketBuyOrder {
+  id                Int               @id @default(autoincrement())
+  userId            String
+  itemId            Int
+  rarity            ItemRarity
+  quantity          Int
+  remainingQuantity Int
+  pricePerItem      Decimal           @db.Decimal(10, 2)
+  reservedGold      Decimal           @db.Decimal(10, 2)
+  status            MarketOrderStatus @default(OPEN)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  item Item @relation(fields: [itemId], references: [id], onDelete: Restrict)
+
+  @@index([userId, status, createdAt])
+  @@index([itemId, rarity, status, pricePerItem, createdAt])
+}
+
+// Immutable executions are the source of truth for price history and player history.
+model MarketTransaction {
+  id          Int                     @id @default(autoincrement())
+  buyerId     String?
+  sellerId    String?
+  itemId      Int
+  rarity      ItemRarity
+  quantity    Int
+  unitPrice   Decimal                 @db.Decimal(10, 2)
+  grossAmount Decimal                 @db.Decimal(10, 2)
+  taxAmount   Decimal                 @db.Decimal(10, 2)
+  netAmount   Decimal                 @db.Decimal(10, 2)
+  source      MarketTransactionSource
+  executedAt  DateTime                @default(now())
+
+  buyer  User? @relation("MarketTransactionBuyer", fields: [buyerId], references: [id], onDelete: SetNull)
+  seller User? @relation("MarketTransactionSeller", fields: [sellerId], references: [id], onDelete: SetNull)
+  item   Item  @relation(fields: [itemId], references: [id], onDelete: Restrict)
+
+  @@index([itemId, rarity, executedAt])
+  @@index([buyerId, executedAt])
+  @@index([sellerId, executedAt])
+}
+
+// Additive stat adjustments unique to one item instance.
+// Base item and rarity stats remain live on the shared Item balance definition.
+model UserItemStatModifier {
   id         Int      @id @default(autoincrement())
   userItemId Int
   statType   StatType
   value      Float
-  
-  userItem   UserItem @relation(fields: [userItemId], references: [id], onDelete: Cascade)
-  
+
+  userItem UserItem @relation(fields: [userItemId], references: [id], onDelete: Cascade)
+
   @@unique([userItemId, statType])
   @@index([userItemId])
+  @@map("UserItemStat")
 }
 
-
-
+// Per-character additions on top of the level-scaled base stats (for example
+// future quest rewards). Level-derived values are never stored here.
 model CharacterBaseStat {
   id       Int      @id @default(autoincrement())
   userId   String
@@ -520,38 +615,53 @@ model CharacterBaseStat {
   @@index([userId])
 }
 
+// Admin-tuned level scaling of character base stats, resolved live from each
+// character's level so edits apply to every existing character. Stats without
+// a row use the defaults in src/utils/stats.ts.
+model CharacterStatGrowth {
+  id        Int      @id @default(autoincrement())
+  statType  StatType @unique
+  // Value at level 1.
+  baseValue Float
+  // Added for every level above 1.
+  perLevel  Float    @default(0)
+  // Ceiling on the total level bonus; null means no ceiling.
+  maxBonus  Float?
+  updatedAt DateTime @updatedAt
+}
+
 model Inventory {
   id           Int    @id @default(autoincrement())
   maxSlots     Int    @default(25)
   userId       String @unique
-  slots        Json   // Stores { slotIndex: number, item: { id: number } | null }[]
-  deleteSlotId Int?   // UserItem ID in the delete slot (nullable)
+  slots        Json // Stores { slotIndex: number, item: { id: number } | null }[]
+  deleteSlotId Int? // UserItem ID in the delete slot (nullable)
   User         User   @relation(fields: [userId], references: [id])
 }
 
 model Equipment {
-  id        Int    @id @default(autoincrement())
-  userId    String @unique
-  
+  id     Int    @id @default(autoincrement())
+  userId String @unique
+
   // UserItem instance IDs (player-specific items with unique rarity/stats)
-  headItemId      Int?
-  chestItemId     Int?
-  beltItemId      Int?
-  greavesItemId   Int?
-  bootsItemId     Int?
-  necklaceItemId  Int?
-  ring1ItemId     Int?
-  ring2ItemId     Int?
-  amuletItemId    Int?
-  pauldronsItemId Int?
-  bracersItemId   Int?
-  glovesItemId    Int?
-  backpackItemId  Int?
-  weaponItemId    Int?
+  headItemId       Int?
+  chestItemId      Int?
+  beltItemId       Int?
+  greavesItemId    Int?
+  bootsItemId      Int?
+  necklaceItemId   Int?
+  ring1ItemId      Int?
+  ring2ItemId      Int?
+  amuletItemId     Int?
+  pauldronsItemId  Int?
+  bracersItemId    Int?
+  glovesItemId     Int?
+  backpackItemId   Int?
+  weaponItemId     Int?
   fellingAxeItemId Int?
   pickaxeItemId    Int?
-  
-  User      User   @relation(fields: [userId], references: [id])
+
+  User User @relation(fields: [userId], references: [id])
 }
 
 model Modifiers {
@@ -561,10 +671,16 @@ model Modifiers {
   mod_range String @db.VarChar(255)
 }
 
+enum SkillCategory {
+  VOCATION
+  CRAFTING
+}
+
 model skills {
   skill_id    Int           @id @default(autoincrement())
   skill_name  String        @unique(map: "skill_name")
   description String?       @db.Text
+  category    SkillCategory @default(VOCATION)
   user_skills user_skills[]
 }
 
@@ -582,76 +698,119 @@ model user_skills {
   @@index([skill_id], map: "skill_id")
 }
 
+// A consumed RECIPE item permanently unlocks linked recipes for a user.
+// Physical BLUEPRINT items are ordinary VocationalRequirement inputs instead.
+model UserLearnedRecipe {
+  id           Int      @id @default(autoincrement())
+  userId       String
+  recipeItemId Int
+  learnedAt    DateTime @default(now())
+
+  user       User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipeItem Item @relation(fields: [recipeItemId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, recipeItemId])
+  @@index([userId])
+  @@index([recipeItemId])
+}
+
+model FoodEffectStat {
+  id       Int      @id @default(autoincrement())
+  itemId   Int
+  statType StatType
+  value    Float
+
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@unique([itemId, statType])
+  @@index([itemId])
+}
+
+// Only one timed consumable effect can be active at once; another replaces it.
+model UserActiveFoodEffect {
+  id        Int      @id @default(autoincrement())
+  userId    String   @unique
+  itemId    Int
+  startedAt DateTime @default(now())
+  endsAt    DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([endsAt])
+  @@index([itemId])
+}
+
 // ============================================
 // LEVELING SYSTEM
 // ============================================
 
 // XP Configuration - Single source of truth for XP curves
 model XpConfig {
-  id                    Int      @id @default(autoincrement())
-  configName            String   @unique // e.g., "default", "season1", "hardmode"
-  isActive              Boolean  @default(false) // Only one config can be active
-  
+  id         Int     @id @default(autoincrement())
+  configName String  @unique // e.g., "default", "season1", "hardmode"
+  isActive   Boolean @default(false) // Only one config can be active
+
   // Base XP formula parameters
-  baseXp                Float    @default(100)     // XP needed for level 2
-  exponentMultiplier    Float    @default(1.5)     // Controls curve steepness
-  levelMultiplier       Float    @default(1.0)     // Additional scaling per level
-  
+  baseXp             Float @default(100) // XP needed for level 2
+  exponentMultiplier Float @default(1.5) // Controls curve steepness
+  levelMultiplier    Float @default(1.0) // Additional scaling per level
+
   // Level brackets with different difficulty
-  easyLevelCap          Int      @default(5)       // Levels 1-5: easy
-  easyMultiplier        Float    @default(0.8)     // 80% of normal XP
-  
-  normalLevelCap        Int      @default(15)      // Levels 6-15: normal
-  normalMultiplier      Float    @default(1.0)     // 100% of normal XP
-  
-  hardLevelCap          Int      @default(30)      // Levels 16-30: hard
-  hardMultiplier        Float    @default(1.3)     // 130% of normal XP
-  
-  veryHardLevelCap      Int      @default(50)      // Levels 31-50: very hard
-  veryHardMultiplier    Float    @default(1.8)     // 180% of normal XP
-  
-  extremeLevelCap       Int      @default(62)      // Levels 51-62: extreme
-  extremeMultiplier     Float    @default(3.0)     // 300% of normal XP
-  
+  easyLevelCap   Int   @default(5) // Levels 1-5: easy
+  easyMultiplier Float @default(0.8) // 80% of normal XP
+
+  normalLevelCap   Int   @default(15) // Levels 6-15: normal
+  normalMultiplier Float @default(1.0) // 100% of normal XP
+
+  hardLevelCap   Int   @default(30) // Levels 16-30: hard
+  hardMultiplier Float @default(1.3) // 130% of normal XP
+
+  veryHardLevelCap   Int   @default(50) // Levels 31-50: very hard
+  veryHardMultiplier Float @default(1.8) // 180% of normal XP
+
+  extremeLevelCap   Int   @default(62) // Levels 51-62: extreme
+  extremeMultiplier Float @default(3.0) // 300% of normal XP
+
   // Soft cap system (nearly impossible to level past this)
-  softCapLevel          Int      @default(62)
-  softCapMultiplier     Float    @default(10.0)    // 1000% of normal XP (almost impossible)
-  
+  softCapLevel      Int   @default(62)
+  softCapMultiplier Float @default(10.0) // 1000% of normal XP (almost impossible)
+
   // Hard cap (absolute maximum level)
-  hardCapLevel          Int      @default(70)
-  
+  hardCapLevel Int @default(70)
+
   // Seasonal/event settings
-  seasonalBonus         Float    @default(0)       // Global XP bonus (0 = none, 0.1 = 10% more)
-  
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-  
+  seasonalBonus Float @default(0) // Global XP bonus (0 = none, 0.1 = 10% more)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([isActive])
 }
 
 // XP Multipliers (temporary boosts from items, events, etc.)
 model XpMultiplier {
-  id                Int      @id @default(autoincrement())
-  userId            String
-  
-  name              String                        // e.g., "XP Boost Card", "Weekend Event"
-  multiplier        Float                         // 1.1 = 10% more XP, 2.0 = 100% more XP
-  
+  id     Int    @id @default(autoincrement())
+  userId String
+
+  name       String // e.g., "XP Boost Card", "Weekend Event"
+  multiplier Float // 1.1 = 10% more XP, 2.0 = 100% more XP
+
   // Optional: specific action types
-  actionType              XpActionType?                 // null = applies to all XP actions
-  vocationalActionType    VocationalActionType?         // only used when actionType = VOCATION (null = all vocations)
-  
+  actionType           XpActionType? // null = applies to all XP actions
+  vocationalActionType VocationalActionType? // only used when actionType = VOCATION (null = all vocations)
+
   // Duration
-  expiresAt         DateTime?                     // null = permanent until manually removed
-  usesRemaining     Int?                          // null = unlimited uses
-  
-  isActive          Boolean  @default(true)
-  stackable         Boolean  @default(true)       // Can stack with other multipliers
-  
-  createdAt         DateTime @default(now())
-  
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  expiresAt     DateTime? // null = permanent until manually removed
+  usesRemaining Int? // null = unlimited uses
+
+  isActive  Boolean @default(true)
+  stackable Boolean @default(true) // Can stack with other multipliers
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId, isActive, expiresAt])
   @@index([expiresAt])
   @@index([actionType])
@@ -680,62 +839,62 @@ enum ProgressionTrackType {
 
 // Rarity multipliers configuration
 model RarityConfig {
-  id                  Int        @id @default(autoincrement())
-  rarity              ItemRarity @unique
-  
+  id     Int        @id @default(autoincrement())
+  rarity ItemRarity @unique
+
   // Stat multiplier (e.g., 1.0 = 100%, 2.0 = 200%)
-  statMultiplier      Float      @default(1.0)
-  
+  statMultiplier Float @default(1.0)
+
   // Max number of stats this rarity can have
-  minStats            Int        @default(1)
-  maxStats            Int        @default(3)
-  
+  minStats Int @default(1)
+  maxStats Int @default(3)
+
   // Additional bonus stats for higher rarities
-  bonusStatChance     Float      @default(0)  // 0-1 (0% to 100% chance for extra stat)
-  
+  bonusStatChance Float @default(0) // 0-1 (0% to 100% chance for extra stat)
+
   // Visual/Display
-  color               String     @default("#ffffff")
-  displayName         String
-  sortOrder           Int        @default(0)  // For sorting in UI
-  
+  color       String @default("#ffffff")
+  displayName String
+  sortOrder   Int    @default(0) // For sorting in UI
+
   // Upgrade system
-  upgradeEnabled      Boolean    @default(true)
-  nextRarity          ItemRarity?
-  upgradeCost         Int?       // Cost to upgrade to next rarity
-  
-  createdAt           DateTime   @default(now())
-  updatedAt           DateTime   @updatedAt
-  
+  upgradeEnabled Boolean     @default(true)
+  nextRarity     ItemRarity?
+  upgradeCost    Int? // Cost to upgrade to next rarity
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([rarity])
 }
 
 // XP Transaction Log (for debugging and analytics)
 model XpTransaction {
-  id                Int              @id @default(autoincrement())
-  userId            String
-  
-  amount            BigInt                        // Base XP amount (integer)
-  finalAmount       BigInt                        // After all multipliers (integer)
-  actionType        XpActionType                  // top-level XP source
-  vocationalActionType VocationalActionType?      // required when actionType = VOCATION
-  
+  id     Int    @id @default(autoincrement())
+  userId String
+
+  amount               BigInt // Base XP amount (integer)
+  finalAmount          BigInt // After all multipliers (integer)
+  actionType           XpActionType // top-level XP source
+  vocationalActionType VocationalActionType? // required when actionType = VOCATION
+
   // Multipliers applied
-  baseMultiplier    Float            @default(1.0)
-  itemMultipliers   Json?                         // Array of applied item multipliers
-  eventMultipliers  Json?                         // Array of applied event multipliers
-  
+  baseMultiplier   Float @default(1.0)
+  itemMultipliers  Json? // Array of applied item multipliers
+  eventMultipliers Json? // Array of applied event multipliers
+
   // Level context
-  levelBefore       Int
-  levelAfter        Int
-  experienceBefore  BigInt
-  experienceAfter   BigInt
-  
+  levelBefore      Int
+  levelAfter       Int
+  experienceBefore BigInt
+  experienceAfter  BigInt
+
   // Optional context
-  description       String?                       // e.g., "Killed Goblin", "Completed Quest: Save the Village"
-  metadata          Json?                         // Any additional data
-  
-  createdAt         DateTime         @default(now())
-  
+  description String? // e.g., "Killed Goblin", "Completed Quest: Save the Village"
+  metadata    Json? // Any additional data
+
+  createdAt DateTime @default(now())
+
   @@index([userId, createdAt])
   @@index([actionType])
   @@index([vocationalActionType])
@@ -745,8 +904,8 @@ model XpTransaction {
 // Defines the cumulative total XP required to reach each level.
 // Example: if level 2 starts at 6 XP, then row { level: 2, xpTotal: 6 }.
 model LevelXpThreshold {
-  level     Int    @id
-  xpTotal   BigInt @unique
+  level   Int    @id
+  xpTotal BigInt @unique
 
   @@index([xpTotal])
 }
@@ -789,25 +948,39 @@ enum VocationalActionType {
   WOODCUTTING
   MINING
   FISHING
+  GARDENING
   GATHERING
+  HUNTING
   ALCHEMY
-  SMELTING
+  BLACKSMITHING
+  WEAPONSMITHING
+  CARPENTRY
   COOKING
+  TAILORING
   FORGE
 }
 
 model Location {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                     Int      @id @default(autoincrement())
+  name                   String   @unique
+  requiredLevel          Int      @default(1)
+  gatheringEnabled       Boolean  @default(false)
+  gatheringRequiredLevel Int      @default(1)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
 
-  resources LocationVocationalResource[]
-  activities UserVocationalActivity[]
-  users      User[] @relation("UserCurrentLocation")
+  resources            LocationVocationalResource[]
+  activities           UserVocationalActivity[]
+  gatheringExpeditions UserGatheringExpedition[]
+  huntingGrounds       HuntingGround[]
+  dungeons             Dungeon[]
+  users                User[]                       @relation("UserCurrentLocation")
 
   travelFrom UserTravelActivity[] @relation("TravelFrom")
   travelTo   UserTravelActivity[] @relation("TravelTo")
+
+  travelRoutesA TravelRoute[] @relation("TravelRouteA")
+  travelRoutesB TravelRoute[] @relation("TravelRouteB")
 }
 
 // ============================================
@@ -818,19 +991,37 @@ model Location {
 // If you never create a row, code falls back to 4 hours.
 model TravelConfig {
   id               Int      @id @default(autoincrement())
+  // Base time for a location pair without a TravelRoute row.
   secondsPerTravel Int      @default(14400) // 4 hours
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 }
 
+// Base travel time between two locations at 100% movement speed. Routes are
+// undirected: stored once with the lower location id as A.
+model TravelRoute {
+  id          Int      @id @default(autoincrement())
+  locationAId Int
+  locationBId Int
+  seconds     Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  locationA Location @relation("TravelRouteA", fields: [locationAId], references: [id], onDelete: Cascade)
+  locationB Location @relation("TravelRouteB", fields: [locationBId], references: [id], onDelete: Cascade)
+
+  @@unique([locationAId, locationBId])
+  @@index([locationBId])
+}
+
 // One active travel per user.
 model UserTravelActivity {
-  id             Int      @id @default(autoincrement())
-  userId         String   @unique
+  id             Int    @id @default(autoincrement())
+  userId         String @unique
   fromLocationId Int?
   toLocationId   Int
 
-  startedAt   DateTime @default(now())
+  startedAt   DateTime  @default(now())
   endsAt      DateTime
   cancelledAt DateTime?
 
@@ -848,75 +1039,478 @@ model UserTravelActivity {
 // A resource that can be produced by a vocational action (e.g. Coal for MINING)
 // Links to an Item template which is granted as the reward.
 model VocationalResource {
-  id            Int                  @id @default(autoincrement())
-  actionType    VocationalActionType
-  name          String
-  itemId        Int                  @unique
+  id         Int                  @id @default(autoincrement())
+  actionType VocationalActionType
+  name       String
+  itemId     Int                  @unique
+
+  // Optional RECIPE item which must be learned before this craft is visible/startable.
+  // Physical BLUEPRINT items belong in requirements; null keeps starter recipes available.
+  requiredRecipeItemId Int?
 
   // Skill-gating: minimum SKILL track level for this actionType
-  requiredSkillLevel Int            @default(1)
+  requiredSkillLevel Int @default(1)
 
   // Balance knobs (DB-driven)
-  defaultSeconds Int                @default(10) // seconds per 1 unit, before tool/buff modifiers
-  yieldPerUnit   Int                @default(1)
-  xpPerUnit      Int                @default(0) // XP granted per completed unit (1 action tick)
-  rarity         ItemRarity         @default(COMMON)
+  defaultSeconds Int        @default(10) // seconds per 1 unit, before tool/buff modifiers
+  yieldPerUnit   Int        @default(1)
+  xpPerUnit      Int        @default(0) // XP granted per completed unit (1 action tick)
+  rarity         ItemRarity @default(COMMON)
 
-  createdAt     DateTime             @default(now())
-  updatedAt     DateTime             @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  item          Item                 @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  locations     LocationVocationalResource[]
-  activities    UserVocationalActivity[]
-  requirements  VocationalRequirement[]
+  item               Item                         @relation("VocationalOutputItem", fields: [itemId], references: [id], onDelete: Cascade)
+  requiredRecipeItem Item?                        @relation("RequiredRecipeItem", fields: [requiredRecipeItemId], references: [id], onDelete: SetNull)
+  locations          LocationVocationalResource[]
+  activities         UserVocationalActivity[]
+  requirements       VocationalRequirement[]
 
   @@index([actionType])
+  @@index([requiredRecipeItemId])
 }
 
 // Location-specific configuration (overrides defaultSeconds per location)
 model LocationVocationalResource {
-  id          Int                @id @default(autoincrement())
-  locationId  Int
-  resourceId  Int
+  id         Int @id @default(autoincrement())
+  locationId Int
+  resourceId Int
 
-  enabled     Boolean            @default(true)
+  enabled Boolean @default(true)
 
-  location    Location           @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  resource    VocationalResource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  // Expedition-only balance knobs. Other vocations ignore these values.
+  gatheringBaseChance  Float @default(0.25)
+  gatheringMinQuantity Int   @default(1)
+  gatheringMaxQuantity Int   @default(1)
+
+  location Location           @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  resource VocationalResource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
 
   @@unique([locationId, resourceId])
   @@index([locationId])
   @@index([resourceId])
 }
 
+// Admin-configured expedition choices. Duration controls the number of find
+// rolls, quantity scaling and XP without hardcoding balance into the client.
+model GatheringDuration {
+  id                     Int      @id @default(autoincrement())
+  label                  String   @unique
+  durationSeconds        Int      @unique
+  rewardRolls            Int      @default(3)
+  quantityMultiplier     Float    @default(1)
+  xpReward               Int      @default(0)
+  requiredGatheringLevel Int      @default(0)
+  enabled                Boolean  @default(true)
+  sortOrder              Int      @default(0)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  expeditions UserGatheringExpedition[]
+
+  @@index([enabled, sortOrder])
+}
+
+// One expedition record per character. Claimed records remain until the next
+// departure so the return haul can be shown after refresh without a history table.
+model UserGatheringExpedition {
+  id         Int    @id @default(autoincrement())
+  userId     String @unique
+  locationId Int
+  durationId Int?
+
+  startedAt DateTime  @default(now())
+  endsAt    DateTime
+  claimedAt DateTime?
+
+  // Departure-time snapshots keep in-flight expeditions stable across admin edits.
+  durationSeconds             Int
+  rewardRolls                 Int
+  quantityMultiplier          Float
+  xpReward                    Int
+  skillLevelSnapshot          Int
+  luckSnapshot                Float
+  gatheringEfficiencySnapshot Float
+  rewardPool                  Json
+  rewards                     Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  location Location           @relation(fields: [locationId], references: [id], onDelete: Restrict)
+  duration GatheringDuration? @relation(fields: [durationId], references: [id], onDelete: SetNull)
+
+  @@index([endsAt])
+  @@index([locationId])
+  @@index([durationId])
+}
+
+// ============================================
+// CREATURES, HUNTING, AND CHARACTER HEALTH
+// ============================================
+
+// Shared creature taxonomy. Hunting uses ANIMAL rows; dungeons use MONSTER
+// rows. Both share assets, combat fields and the drop table.
+enum CreatureKind {
+  ANIMAL
+  MONSTER
+}
+
+enum CreatureAttackStyle {
+  MELEE
+  RANGED
+  MAGIC
+}
+
+// Optional elemental rider on a creature's attack, reduced by the matching
+// character resistance (ICE uses Cold Resistance).
+enum CreatureDamageType {
+  FIRE
+  ICE
+  LIGHTNING
+  POISON
+}
+
+model Creature {
+  id          Int          @id @default(autoincrement())
+  name        String       @unique
+  description String?      @db.Text
+  kind        CreatureKind @default(ANIMAL)
+  asset       String
+  enabled     Boolean      @default(true)
+
+  // Attack profile, used by dungeon combat and Hunting retaliation.
+  // attackStyle selects the evasion stat that can avoid a strike. Physical
+  // damage (damageMin/damageMax) is reduced by armor, magic damage by magic
+  // resistance, and elemental damage by the matching resistance.
+  // Percentages use the character stat scale (crit damage 150 = x1.5).
+  attackStyle        CreatureAttackStyle @default(MELEE)
+  // Hunting only: chance an animal retaliates during an encounter.
+  attackChance       Float               @default(0)
+  damageMin          Int                 @default(0)
+  damageMax          Int                 @default(0)
+  magicDamageMin     Int                 @default(0)
+  magicDamageMax     Int                 @default(0)
+  damageType         CreatureDamageType?
+  elementalDamageMin Int                 @default(0)
+  elementalDamageMax Int                 @default(0)
+  critChance         Float               @default(0)
+  critDamage         Float               @default(0)
+
+  // Defensive profile, used by dungeon combat only.
+  health      Int   @default(0)
+  armor       Float @default(0)
+  magicResist Float @default(0)
+  evasion     Float @default(0)
+  blockChance Float @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  drops          CreatureDrop[]
+  huntingGrounds HuntingGroundCreature[]
+  dungeons       DungeonMonster[]
+
+  @@index([kind, enabled])
+}
+
+// A reusable creature loot table. Item rarity remains owned by Item, keeping
+// granted stacks consistent with every other item source in the game.
+model CreatureDrop {
+  id         Int @id @default(autoincrement())
+  creatureId Int
+  itemId     Int
+
+  enabled       Boolean @default(true)
+  baseChance    Float   @default(0.5)
+  minQuantity   Int     @default(1)
+  maxQuantity   Int     @default(1)
+  // Interpreted by the activity exposing the loot table: Hunting skill level
+  // for animals, character level for dungeon monsters.
+  requiredLevel Int     @default(1)
+
+  creature Creature @relation(fields: [creatureId], references: [id], onDelete: Cascade)
+  item     Item     @relation(fields: [itemId], references: [id], onDelete: Restrict)
+
+  @@unique([creatureId, itemId])
+  @@index([creatureId, enabled])
+  @@index([itemId])
+}
+
+// A player-selectable hunting sub-location inside a world Location.
+model HuntingGround {
+  id         Int @id @default(autoincrement())
+  locationId Int
+
+  name                 String
+  description          String? @db.Text
+  requiredHuntingLevel Int     @default(1)
+  enabled              Boolean @default(true)
+  sortOrder            Int     @default(0)
+
+  // Non-creature mishaps such as falls or weapon-handling accidents. This is
+  // rolled once per encounter, so longer expeditions naturally carry more risk.
+  accidentChance    Float @default(0)
+  accidentDamageMin Int   @default(0)
+  accidentDamageMax Int   @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  location    Location                @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  creatures   HuntingGroundCreature[]
+  expeditions UserHuntingExpedition[]
+
+  @@unique([locationId, name])
+  @@index([locationId, enabled, sortOrder])
+}
+
+model HuntingGroundCreature {
+  id              Int     @id @default(autoincrement())
+  groundId        Int
+  creatureId      Int
+  enabled         Boolean @default(true)
+  encounterWeight Float   @default(1)
+
+  ground   HuntingGround @relation(fields: [groundId], references: [id], onDelete: Cascade)
+  creature Creature      @relation(fields: [creatureId], references: [id], onDelete: Cascade)
+
+  @@unique([groundId, creatureId])
+  @@index([groundId, enabled])
+  @@index([creatureId])
+}
+
+model HuntingDuration {
+  id                   Int      @id @default(autoincrement())
+  label                String   @unique
+  durationSeconds      Int      @unique
+  encounterRolls       Int      @default(2)
+  quantityMultiplier   Float    @default(1)
+  dangerMultiplier     Float    @default(1)
+  xpReward             Int      @default(0)
+  requiredHuntingLevel Int      @default(1)
+  enabled              Boolean  @default(true)
+  sortOrder            Int      @default(0)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  expeditions UserHuntingExpedition[]
+
+  @@index([enabled, sortOrder])
+}
+
+// Singleton-style global guardrails. Fine-grained danger remains on creatures,
+// grounds, and durations; these values let admins disable or cap it instantly.
+model HuntingConfig {
+  id                            Int      @id @default(1)
+  damageEnabled                 Boolean  @default(true)
+  globalDangerMultiplier        Float    @default(1)
+  maxHealthLossPercent          Float    @default(30)
+  minimumRemainingHealthPercent Float    @default(5)
+  minimumHealthToStartPercent   Float    @default(25)
+  createdAt                     DateTime @default(now())
+  updatedAt                     DateTime @updatedAt
+}
+
+// One record is retained after claim so the return journal survives refresh.
+// All balance inputs are snapshotted at departure, like Gathering expeditions.
+model UserHuntingExpedition {
+  id         Int    @id @default(autoincrement())
+  userId     String @unique
+  groundId   Int
+  durationId Int?
+
+  startedAt DateTime  @default(now())
+  endsAt    DateTime
+  claimedAt DateTime?
+
+  durationSeconds           Int
+  encounterRolls            Int
+  quantityMultiplier        Float
+  dangerMultiplier          Float
+  xpReward                  Int
+  skillLevelSnapshot        Int
+  luckSnapshot              Float
+  huntingEfficiencySnapshot Float
+
+  armorSnapshot           Float
+  magicResistSnapshot     Float
+  evasionMeleeSnapshot    Float
+  evasionRangedSnapshot   Float
+  evasionMagicSnapshot    Float
+  blockChanceSnapshot     Float
+  movementSpeedSnapshot   Float
+  maxHealthSnapshot       Float
+  // Added with elemental retaliation; older hunts resolve with no resistance.
+  fireResistSnapshot      Float @default(0)
+  coldResistSnapshot      Float @default(0)
+  lightningResistSnapshot Float @default(0)
+  poisonResistSnapshot    Float @default(0)
+
+  resolutionSeed String
+  creaturePool   Json
+  riskConfig     Json
+  rewards        Json?
+  report         Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ground   HuntingGround    @relation(fields: [groundId], references: [id], onDelete: Restrict)
+  duration HuntingDuration? @relation(fields: [durationId], references: [id], onDelete: SetNull)
+
+  @@index([endsAt])
+  @@index([groundId])
+  @@index([durationId])
+}
+
+// ============================================
+// DUNGEONS
+// ============================================
+
+// Admin-set label shown to players. Actual danger comes from the monsters.
+enum DungeonDifficulty {
+  EASY
+  NORMAL
+  HARD
+  DEADLY
+}
+
+// A timed, lethal PvE run inside a world Location. The dungeon grants XP only;
+// every item comes from the drop tables of the monsters defeated inside it.
+model Dungeon {
+  id         Int @id @default(autoincrement())
+  locationId Int
+
+  name            String
+  description     String?           @db.Text
+  difficulty      DungeonDifficulty @default(NORMAL)
+  // Character level.
+  requiredLevel   Int               @default(1)
+  durationSeconds Int               @default(1800)
+  // How many monsters fight the character at once (1 = one at a time).
+  packSize        Int               @default(1)
+  xpReward        Int               @default(0)
+  enabled         Boolean           @default(true)
+  sortOrder       Int               @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  location Location         @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  monsters DungeonMonster[]
+  runs     UserDungeonRun[]
+
+  @@unique([locationId, name])
+  @@index([locationId, enabled, sortOrder])
+}
+
+// Monster population of a dungeon. Each run rolls a count in the range; the
+// counts are never sent to players.
+model DungeonMonster {
+  id         Int     @id @default(autoincrement())
+  dungeonId  Int
+  creatureId Int
+  enabled    Boolean @default(true)
+  minCount   Int     @default(1)
+  maxCount   Int     @default(1)
+
+  dungeon  Dungeon  @relation(fields: [dungeonId], references: [id], onDelete: Cascade)
+  creature Creature @relation(fields: [creatureId], references: [id], onDelete: Cascade)
+
+  @@unique([dungeonId, creatureId])
+  @@index([dungeonId, enabled])
+  @@index([creatureId])
+}
+
+// Singleton-style global dungeon rules.
+model DungeonConfig {
+  id                          Int      @id @default(1)
+  minimumHealthToStartPercent Float    @default(25)
+  // On defeat, each looted stack survives with this chance (0-1) and keeps
+  // this share of its quantity (minimum 1).
+  deathLootKeepChance         Float    @default(0.35)
+  deathLootQuantityPercent    Float    @default(25)
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+}
+
+// One record per character, retained after claim so the run journal survives
+// refresh. Combat inputs are snapshotted at entry and resolved once at claim.
+model UserDungeonRun {
+  id        Int    @id @default(autoincrement())
+  userId    String @unique
+  dungeonId Int
+
+  startedAt DateTime  @default(now())
+  endsAt    DateTime
+  claimedAt DateTime?
+
+  durationSeconds Int
+  xpReward        Int
+  packSize        Int    @default(1)
+  startingHealth  Float
+  combatSnapshot  Json
+  monsterPool     Json
+  deathRules      Json
+  resolutionSeed  String
+  rewards         Json?
+  report          Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dungeon Dungeon @relation(fields: [dungeonId], references: [id], onDelete: Cascade)
+
+  @@index([endsAt])
+  @@index([dungeonId])
+}
+
+// Reusable live health state for Hunting and later PvE. Regeneration is derived
+// lazily from HEALTH_REGEN whenever the state is read or damage is applied.
+model CharacterHealth {
+  userId        String   @id
+  currentHealth Float
+  regeneratedAt DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([regeneratedAt])
+}
+
 // One active vocational activity per user.
 // Progress is derived from timestamps; the server does not tick.
 model UserVocationalActivity {
-  id           Int                  @id @default(autoincrement())
-  userId       String               @unique
-  actionType   VocationalActionType
-  resourceId   Int
-  locationId   Int?
+  id         Int                  @id @default(autoincrement())
+  userId     String               @unique
+  actionType VocationalActionType
+  resourceId Int
+  locationId Int?
 
-  startedAt    DateTime             @default(now())
-  endsAt       DateTime
+  startedAt DateTime @default(now())
+  endsAt    DateTime
 
   // Snapshot of effective unit time (after tool/buff modifiers at start)
-  unitSeconds  Int
+  unitSeconds Int
 
   // For FISHING: which specific UserItem stack to consume as bait.
   baitUserItemId Int?
 
   // How many units have already been claimed/paid out
-  unitsClaimed Int                  @default(0)
+  unitsClaimed Int @default(0)
 
-  createdAt    DateTime             @default(now())
-  updatedAt    DateTime             @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  resource     VocationalResource   @relation(fields: [resourceId], references: [id], onDelete: Restrict)
-  location     Location?            @relation(fields: [locationId], references: [id], onDelete: SetNull)
-  baitUserItem  UserItem?            @relation("BaitUserItem", fields: [baitUserItemId], references: [id], onDelete: SetNull)
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resource     VocationalResource @relation(fields: [resourceId], references: [id], onDelete: Restrict)
+  location     Location?          @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  baitUserItem UserItem?          @relation("BaitUserItem", fields: [baitUserItemId], references: [id], onDelete: SetNull)
 
   @@index([endsAt])
   @@index([userId, endsAt])

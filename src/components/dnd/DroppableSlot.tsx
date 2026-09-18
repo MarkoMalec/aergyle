@@ -2,8 +2,12 @@
 
 import { useDroppable } from "@dnd-kit/core";
 import { DraggableItem } from "./DraggableItem";
-import { InventorySlot } from "./DnDContext";
-import { useState, useEffect } from "react";
+import type { InventorySlot } from "./DnDContext";
+import type { ReactNode } from "react";
+import { useState } from "react";
+import { useRarityColors } from "~/hooks/use-rarity-colors";
+import { rarityStyle } from "~/utils/rarity-colors";
+import { Plus } from "lucide-react";
 import { SplitStackDialog } from "../game/items/SplitStackDialog";
 
 export const DroppableSlot = ({
@@ -13,6 +17,7 @@ export const DroppableSlot = ({
   container,
   equipmentSlotType,
   label,
+  emptyIcon,
 }: {
   id: string;
   index: number;
@@ -20,6 +25,7 @@ export const DroppableSlot = ({
   container: string;
   equipmentSlotType?: string;
   label?: string;
+  emptyIcon?: ReactNode;
 }) => {
   const { isOver, setNodeRef, active } = useDroppable({
     id,
@@ -29,47 +35,25 @@ export const DroppableSlot = ({
     },
   });
 
-  const [highlight, setHighlight] = useState(false);
   const [showSplitDialog, setShowSplitDialog] = useState(false);
+  const activeEquipType: unknown = active?.data.current?.equipType;
+  const highlight =
+    typeof activeEquipType === "string" &&
+    activeEquipType === equipmentSlotType;
 
-  useEffect(() => {
-    if (active && active.data.current) {
-      const activeEquipType = active.data.current.equipType;
-      setHighlight(activeEquipType === equipmentSlotType);
-    } else {
-      setHighlight(false);
-    }
-  }, [active, equipmentSlotType]);
-
-  const style = {
-    borderColor:
-      (isOver && container === "inventory") || 
-      (isOver && container === "delete") ||
-      highlight
-        ? container === "delete" ? "red" : "lightblue"
-        : undefined,
-    borderWidth:
-      (isOver && container === "inventory") || 
-      (isOver && container === "delete") ||
-      highlight 
-        ? "2px" 
-        : undefined,
-    boxShadow:
-      (isOver && container === "inventory") || highlight
-        ? "inset 2px 2px 10px black"
-        : (isOver && container === "delete")
-        ? "inset 2px 2px 10px rgba(255, 0, 0, 0.5)"
-        : undefined,
-  };
-
-  const containerClass = container === "delete" 
-    ? "flex h-[62px] w-[62px] items-center justify-center rounded bg-red-900/20 shadow-lg border-2 border-red-500/30"
-    : "flex h-[62px] w-[62px] items-center justify-center rounded bg-white/5 shadow-lg";
+  const { colors } = useRarityColors();
+  const style = slot.item
+    ? rarityStyle(slot.item.rarity, colors[slot.item.rarity])
+    : undefined;
 
   const handleRightClick = (e: React.MouseEvent) => {
     e.preventDefault();
     // Only show split dialog for inventory items (not equipment or delete slot)
-    if (container === "inventory" && slot.item && slot.item.quantity && slot.item.quantity > 1) {
+    if (
+      container === "inventory" &&
+      slot.item?.quantity &&
+      slot.item.quantity > 1
+    ) {
       setShowSplitDialog(true);
     }
   };
@@ -79,22 +63,40 @@ export const DroppableSlot = ({
       <div
         ref={setNodeRef}
         style={style}
-        className={`${containerClass} relative`}
+        className={`game-slot${slot.item ? " rarity-frame" : ""}`}
+        data-rarity={slot.item?.rarity}
+        data-equipped={container === "equipment" && !!slot.item}
+        data-delete={container === "delete"}
+        data-over={isOver}
+        data-highlight={highlight}
+        aria-label={
+          !slot.item
+            ? container === "delete"
+              ? "Discard slot"
+              : `Empty ${label ?? "inventory"} slot`
+            : undefined
+        }
         onContextMenu={handleRightClick}
       >
         {slot.item ? (
           <>
             <DraggableItem
-              id={`draggable-${index}`}
+              id={`draggable-${id}`}
               index={index}
               item={slot.item}
               sprite={slot.item.sprite}
               container={container}
+              slotLabel={container === "equipment" ? label : undefined}
             />
           </>
-        ) : (
-          <small>{label ?? (equipmentSlotType && equipmentSlotType)}</small>
-        )}
+        ) : container === "equipment" ? (
+          emptyIcon ?? (
+            <Plus
+              className="h-4 w-4 text-muted-foreground/50"
+              aria-hidden="true"
+            />
+          )
+        ) : null}
       </div>
 
       {/* Split stack dialog */}

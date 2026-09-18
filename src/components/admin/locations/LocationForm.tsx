@@ -10,6 +10,7 @@ import { Input } from "~/components/ui/input";
 
 const schema = z.object({
   name: z.string().min(1),
+  requiredLevel: z.number().int().min(1).max(500),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -27,6 +28,7 @@ export function LocationForm(props: {
     resolver: zodResolver(schema),
     defaultValues: {
       name: "",
+      requiredLevel: 1,
       ...props.initialValues,
     },
   });
@@ -35,7 +37,9 @@ export function LocationForm(props: {
     setIsSaving(true);
     try {
       const res = await fetch(
-        props.mode === "create" ? "/api/admin/locations" : `/api/admin/locations/${props.locationId}`,
+        props.mode === "create"
+          ? "/api/admin/locations"
+          : `/api/admin/locations/${props.locationId}`,
         {
           method: props.mode === "create" ? "POST" : "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -62,7 +66,9 @@ export function LocationForm(props: {
 
     setIsDeleting(true);
     try {
-      const res = await fetch(`/api/admin/locations/${props.locationId}`, { method: "DELETE" });
+      const res = await fetch(`/api/admin/locations/${props.locationId}`, {
+        method: "DELETE",
+      });
       const json = await res.json().catch(() => null);
       if (!res.ok) {
         alert(json?.error ?? "Failed to delete");
@@ -83,13 +89,33 @@ export function LocationForm(props: {
         <Input {...form.register("name")} />
       </div>
 
+      <div className="space-y-2">
+        <div className="text-sm text-white/80">Required player level</div>
+        <Input
+          type="number"
+          min={1}
+          max={500}
+          {...form.register("requiredLevel", { valueAsNumber: true })}
+        />
+        {form.formState.errors.requiredLevel ? (
+          <div className="text-sm text-danger">
+            {form.formState.errors.requiredLevel.message}
+          </div>
+        ) : null}
+      </div>
+
       <div className="flex items-center justify-between gap-3">
         <Button type="submit" disabled={isSaving}>
           {isSaving ? "Saving..." : props.mode === "create" ? "Create" : "Save"}
         </Button>
 
         {props.mode === "edit" ? (
-          <Button type="button" variant="destructive" disabled={isDeleting} onClick={onDelete}>
+          <Button
+            type="button"
+            variant="destructive"
+            disabled={isDeleting}
+            onClick={onDelete}
+          >
             {isDeleting ? "Deleting..." : "Delete"}
           </Button>
         ) : null}

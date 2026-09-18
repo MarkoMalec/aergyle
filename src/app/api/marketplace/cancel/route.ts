@@ -1,127 +1,114 @@
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "~/lib/prisma";
 import { getServerAuthSession } from "~/server/auth";
-import { normalizeInventorySlots, slotsToInputJson } from "~/utils/inventorySlots";
+import { grantStackableItemToInventory } from "~/server/vocations/grantItem";
+import {
+  normalizeInventorySlots,
+  slotsToInputJson,
+} from "~/utils/inventorySlots";
 
-/**
- * Cancel a marketplace listing
- * DELETE /api/marketplace/cancel
- * 
- * Body: {
- *   userItemId: number
- * }
- */
+type HttpError = Error & { status?: number };
+function fail(status: number, message: string): never {
+  const error = new Error(message) as HttpError;
+  error.status = status;
+  throw error;
+}
+
+/** Withdraw a sell listing and atomically return it to inventory. */
 export async function DELETE(req: NextRequest) {
   try {
     const session = await getServerAuthSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    const userId = session.user.id;
-    const { userItemId } = await req.json();
-
-    if (!userItemId) {
-      return NextResponse.json(
-        { error: "Missing required fields: userItemId" },
-        { status: 400 }
-      );
+    const body = (await req.json()) as { userItemId?: unknown };
+    const userItemId = Number(body.userItemId);
+    if (!Number.isInteger(userItemId) || userItemId < 1) {
+      return NextResponse.json({ error: "Invalid listing" }, { status: 400 });
     }
 
-    // Get the listed item
-    const userItem = await prisma.userItem.findUnique({
-      where: { id: userItemId },
-      include: {
-        itemTemplate: true,
-      },
-    });
-
-    if (!userItem) {
-      return NextResponse.json(
-        { error: "Item not found" },
-        { status: 404 }
-      );
-    }
-
-    // Verify ownership
-    if (userItem.userId !== userId) {
-      return NextResponse.json(
-        { error: "You don't own this item" },
-        { status: 403 }
-      );
-    }
-
-    // Check if item is listed
-    if (userItem.status !== "LISTED") {
-      return NextResponse.json(
-        { error: "This item is not listed on the marketplace" },
-        { status: 400 }
-      );
-    }
-
-    // Get seller's inventory
-    const inventory = await prisma.inventory.findUnique({
-      where: { userId },
-    });
-
-    if (!inventory) {
-      return NextResponse.json(
-        { error: "Inventory not found" },
-        { status: 404 }
-      );
-    }
-
-    // Check if there's space in inventory
-    const slots = normalizeInventorySlots(inventory.slots, inventory.maxSlots);
-    const emptySlotIndex = slots.findIndex(slot => slot.item === null);
-
-    if (emptySlotIndex === -1) {
-      return NextResponse.json(
-        { error: "Your inventory is full. Cannot cancel listing." },
-        { status: 400 }
-      );
-    }
-
-    // Update item status back to IN_INVENTORY
-    const cancelledItem = await prisma.userItem.update({
-      where: { id: userItemId },
-      data: {
-        status: "IN_INVENTORY",
-        listedPrice: null,
-        listedAt: null,
-      },
-      include: {
-        itemTemplate: true,
-        stats: true,
-      },
-    });
-
-    // Add item back to seller's inventory slots
-    const updatedSlots = slots.map((slot, index) => {
-      if (index === emptySlotIndex) {
-        return { ...slot, item: { id: userItemId } };
+    const result = await prisma.$transaction(async (tx) => {
+      const listing = await tx.userItem.findFirst({
+        where: { id: userItemId, userId: session.user.id },
+        include: { itemTemplate: true, statModifiers: true },
+      });
+      if (!listing) fail(404, "Listing not found");
+      if (listing.status !== "LISTED") {
+        fail(409, "This listing is no longer active");
       }
-      return slot;
-    });
 
-    await prisma.inventory.update({
-      where: { userId },
-      data: { slots: slotsToInputJson(updatedSlots) },
-    });
+      if (listing.itemTemplate.stackable) {
+        const claimed = await tx.userItem.updateMany({
+          where: {
+            id: listing.id,
+            userId: session.user.id,
+            status: "LISTED",
+            quantity: listing.quantity,
+          },
+          data: { status: "DELETED", listedPrice: null, listedAt: null },
+        });
+        if (claimed.count !== 1) fail(409, "The listing changed");
 
-    console.log(`[Marketplace] Listing cancelled: ${userItem.itemTemplate.name} returned to user ${userId}'s inventory`);
+        const grant = await grantStackableItemToInventory({
+          db: tx,
+          userId: session.user.id,
+          itemId: listing.itemId,
+          rarity: listing.rarity,
+          quantity: listing.quantity,
+          statModifiers: listing.statModifiers,
+        });
+        if (grant.remainingQuantity > 0) {
+          fail(
+            400,
+            "Your inventory does not have enough room to withdraw this stack",
+          );
+        }
+      } else {
+        const inventory = await tx.inventory.findUnique({
+          where: { userId: session.user.id },
+        });
+        if (!inventory) fail(404, "Inventory not found");
+        const slots = normalizeInventorySlots(
+          inventory.slots,
+          inventory.maxSlots,
+        );
+        const emptyIndex = slots.findIndex((slot) => slot.item === null);
+        if (emptyIndex < 0) {
+          fail(
+            400,
+            "Your inventory is full. Make room before withdrawing this item.",
+          );
+        }
+
+        const claimed = await tx.userItem.updateMany({
+          where: { id: listing.id, userId: session.user.id, status: "LISTED" },
+          data: { status: "IN_INVENTORY", listedPrice: null, listedAt: null },
+        });
+        if (claimed.count !== 1) fail(409, "The listing changed");
+        slots[emptyIndex] = { slotIndex: emptyIndex, item: { id: listing.id } };
+        await tx.inventory.update({
+          where: { userId: session.user.id },
+          data: { slots: slotsToInputJson(slots) },
+        });
+      }
+
+      return { name: listing.itemTemplate.name, quantity: listing.quantity };
+    });
 
     return NextResponse.json({
       success: true,
-      message: `${userItem.itemTemplate.name} removed from marketplace and returned to your inventory`,
-      item: cancelledItem,
+      message: `${result.quantity}× ${result.name} returned to your inventory`,
     });
-
   } catch (error) {
-    console.error("Error cancelling listing:", error);
+    const status = (error as HttpError).status;
+    if (typeof status === "number") {
+      return NextResponse.json({ error: (error as Error).message }, { status });
+    }
+    console.error("Error withdrawing marketplace listing:", error);
     return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
+      { error: "Could not withdraw the listing" },
+      { status: 500 },
     );
   }
 }

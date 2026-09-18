@@ -1,271 +1,325 @@
-"use client"
+"use client";
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { useSession } from "next-auth/react"
-import { useState } from "react"
-import { Button } from "~/components/ui/button"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "~/components/ui/table"
-import { RarityBadge } from "~/utils/ui/rarity-badge"
-import { X, Loader2 } from "lucide-react"
-import type { MyListingsResponse } from "~/types/marketplace"
-import toast from "react-hot-toast"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "~/components/ui/dialog"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowDownToLine, ArrowUpFromLine, Loader2, Undo2 } from "lucide-react";
+import Link from "next/link";
+import { useSession } from "next-auth/react";
+import toast from "react-hot-toast";
+import { MarketplaceNav } from "~/components/game/marketplace/MarketplaceNav";
+import { ItemArtwork } from "~/components/game/items/ItemArtwork";
+import PageHeading from "~/components/game/ui/PageHeading";
+import { CoinsIcon } from "~/components/game/ui/coins-icon";
+import { Button } from "~/components/ui/button";
+import { calculateMarketSale } from "~/lib/marketplace";
 import {
   inventoryQueryKeys,
   marketplaceQueryKeys,
-} from "~/lib/query-keys"
+  userQueryKeys,
+} from "~/lib/query-keys";
+import type { MyListingsResponse } from "~/types/marketplace";
+import { RarityBadge } from "~/utils/ui/rarity-badge";
+
+function apiError(body: unknown) {
+  if (typeof body === "object" && body !== null) {
+    const value = body as { error?: unknown; message?: unknown };
+    if (typeof value.error === "string") return value.error;
+    if (typeof value.message === "string") return value.message;
+  }
+  return "Could not update the order";
+}
 
 export default function MyListingsPage() {
-  const { data: session } = useSession()
-  const queryClient = useQueryClient()
-  
-  // Dialog state
-  const [showCancelDialog, setShowCancelDialog] = useState(false)
-  const [selectedListing, setSelectedListing] = useState<{ id: number; name: string; price: number } | null>(null)
-
-  // Fetch user's listings
-  const { data, isLoading, error } = useQuery<MyListingsResponse>({
+  const { data: session } = useSession();
+  const queryClient = useQueryClient();
+  const query = useQuery<MyListingsResponse>({
     queryKey: marketplaceQueryKeys.myListings(session?.user?.id),
     queryFn: async () => {
-      if (!session?.user?.id) {
-        throw new Error("Not authenticated")
-      }
-      
-      const response = await fetch(`/api/marketplace/my-listings?userId=${session.user.id}`)
-      if (!response.ok) {
-        throw new Error("Failed to fetch listings")
-      }
-      return response.json()
+      const response = await fetch("/api/marketplace/my-listings");
+      if (!response.ok) throw new Error("Could not load your market orders");
+      return response.json() as Promise<MyListingsResponse>;
     },
-    enabled: !!session?.user?.id,
-    staleTime: 10000,
-  })
+    enabled: Boolean(session?.user?.id),
+    staleTime: 10_000,
+  });
 
-  // Cancel listing mutation
-  const cancelMutation = useMutation({
+  const refresh = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: marketplaceQueryKeys.myListings(session?.user?.id),
+      }),
+      queryClient.invalidateQueries({ queryKey: marketplaceQueryKeys.all() }),
+      queryClient.invalidateQueries({ queryKey: inventoryQueryKeys.all() }),
+      queryClient.invalidateQueries({ queryKey: userQueryKeys.gold() }),
+    ]);
+  };
+
+  const withdrawListing = useMutation({
     mutationFn: async (userItemId: number) => {
-      if (!session?.user?.id) {
-        throw new Error("Not authenticated")
-      }
-
       const response = await fetch("/api/marketplace/cancel", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: session.user.id,
-          userItemId,
-        }),
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.message || "Failed to cancel listing")
-      }
-
-      return response.json()
+        body: JSON.stringify({ userItemId }),
+      });
+      const body: unknown = await response.json();
+      if (!response.ok) throw new Error(apiError(body));
+      return body as { message: string };
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: marketplaceQueryKeys.myListings(session?.user?.id) })
-      queryClient.invalidateQueries({ queryKey: inventoryQueryKeys.all() })
-      queryClient.invalidateQueries({ queryKey: marketplaceQueryKeys.all() })
-      toast.success(`${data.item.itemTemplate.name} returned to your inventory!`)
-      setShowCancelDialog(false)
-      setSelectedListing(null)
+    onSuccess: async (data) => {
+      toast.success(data.message);
+      await refresh();
     },
-    onError: (error: Error) => {
-      toast.error(error.message)
-      setShowCancelDialog(false)
-      setSelectedListing(null)
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const cancelBuyOrder = useMutation({
+    mutationFn: async (orderId: number) => {
+      const response = await fetch(`/api/marketplace/buy-orders/${orderId}`, {
+        method: "DELETE",
+      });
+      const body: unknown = await response.json();
+      if (!response.ok) throw new Error(apiError(body));
+      return body as { message: string };
     },
-  })
-
-  const handleCancelListing = (userItemId: number) => {
-    const listing = data?.listings.find((l) => l.id === userItemId)
-    if (listing) {
-      setSelectedListing({
-        id: listing.id,
-        name: listing.itemTemplate.name,
-        price: listing.listedPrice || 0,
-      })
-      setShowCancelDialog(true)
-    }
-  }
-
-  const confirmCancelListing = () => {
-    if (selectedListing) {
-      cancelMutation.mutate(selectedListing.id)
-    }
-  }
-
-  if (!session?.user?.id) {
-    return (
-      <div className="container mx-auto py-10">
-        <div className="text-center">
-          <p className="text-xl font-semibold">Please sign in to view your listings</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="container mx-auto py-10">
-        <div className="text-center text-red-500">
-          <p className="text-xl font-semibold">Error loading listings</p>
-          <p className="text-sm mt-2">{(error as Error).message}</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (isLoading) {
-    return (
-      <div className="container mx-auto py-10">
-        <div className="flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin" />
-        </div>
-      </div>
-    )
-  }
+    onSuccess: async (data) => {
+      toast.success(data.message);
+      await refresh();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
 
   return (
-    <div className="container mx-auto py-10 space-y-6">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold">My Listings</h1>
-        <p className="text-muted-foreground">
-          Manage your active marketplace listings
-        </p>
-      </div>
+    <div className="min-w-0 space-y-6">
+      <PageHeading
+        eyebrow="The exchange"
+        title="My orders"
+        description="Track what you are offering, what you want to buy, and exactly how much gold is committed."
+      />
+      <MarketplaceNav />
 
-      {/* Summary */}
-      {data && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-card border border-border rounded-lg p-4">
-            <p className="text-sm text-muted-foreground">Active Listings</p>
-            <p className="text-2xl font-bold">{data.count}</p>
-          </div>
-          <div className="bg-card border border-border rounded-lg p-4">
-            <p className="text-sm text-muted-foreground">Total Value</p>
-            <p className="text-2xl font-bold text-yellow-600">{data.totalValue.toLocaleString()} 🪙</p>
-          </div>
-          <div className="bg-card border border-border rounded-lg p-4">
-            <p className="text-sm text-muted-foreground">Average Price</p>
-            <p className="text-2xl font-bold">
-              {data.count > 0 ? Math.round(data.totalValue / data.count).toLocaleString() : "0"} 🪙
-            </p>
-          </div>
+      {!session?.user?.id ? (
+        <div className="game-empty-state">
+          Sign in to view your market orders.
         </div>
-      )}
+      ) : query.isLoading ? (
+        <div className="game-empty-state">
+          <Loader2 className="mx-auto h-6 w-6 animate-spin" />
+        </div>
+      ) : query.error ? (
+        <div className="game-empty-state text-danger">
+          {query.error.message}
+        </div>
+      ) : !query.data ? (
+        <div className="game-empty-state text-danger">
+          Could not load your orders
+        </div>
+      ) : (
+        <>
+          <dl className="game-panel grid grid-cols-2 gap-px overflow-hidden bg-border md:grid-cols-4">
+            <div className="bg-card p-4">
+              <dt className="text-xs text-muted-foreground">Sell offers</dt>
+              <dd className="mt-1 text-xl font-semibold tabular-nums">
+                {query.data.summary.sellListingCount}
+              </dd>
+              <p className="text-[11px] text-muted-foreground">
+                {query.data.summary.sellUnits} units
+              </p>
+            </div>
+            <div className="bg-card p-4">
+              <dt className="text-xs text-muted-foreground">
+                Expected proceeds
+              </dt>
+              <dd className="mt-1 text-xl font-semibold tabular-nums text-success">
+                {query.data.summary.sellNet.toLocaleString()}
+              </dd>
+              <p className="text-[11px] text-muted-foreground">
+                after {query.data.summary.sellTax.toLocaleString()} tax
+              </p>
+            </div>
+            <div className="bg-card p-4">
+              <dt className="text-xs text-muted-foreground">Buy orders</dt>
+              <dd className="mt-1 text-xl font-semibold tabular-nums">
+                {query.data.summary.buyOrderCount}
+              </dd>
+              <p className="text-[11px] text-muted-foreground">
+                {query.data.summary.buyUnits} units wanted
+              </p>
+            </div>
+            <div className="bg-card p-4">
+              <dt className="text-xs text-muted-foreground">Gold reserved</dt>
+              <dd className="mt-1 text-xl font-semibold tabular-nums text-currency">
+                {query.data.summary.reservedGold.toLocaleString()}
+              </dd>
+              <p className="text-[11px] text-muted-foreground">
+                returned if cancelled
+              </p>
+            </div>
+          </dl>
 
-      {/* Listings Table */}
-      <div className="rounded-lg border border-border overflow-hidden bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow className="border-b hover:bg-transparent">
-              <TableHead className="font-semibold">Item</TableHead>
-              <TableHead className="font-semibold">Rarity</TableHead>
-              <TableHead className="font-semibold">Type</TableHead>
-              <TableHead className="font-semibold">Price</TableHead>
-              <TableHead className="font-semibold">Listed At</TableHead>
-              <TableHead className="font-semibold text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data?.listings && data.listings.length > 0 ? (
-              data.listings.map((listing, idx) => (
-                <TableRow key={listing.id} className={idx % 2 === 0 ? "bg-muted/20" : "bg-transparent"}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-md bg-muted overflow-hidden flex-shrink-0">
-                        <img
-                          src={listing.itemTemplate.sprite || "/placeholder.svg"}
-                          alt={listing.itemTemplate.name}
-                          className="w-full h-full object-cover"
+          <section className="game-panel overflow-hidden">
+            <header className="flex items-center justify-between border-b border-border p-4">
+              <div>
+                <h2 className="game-section-title flex items-center gap-2">
+                  <ArrowUpFromLine className="h-4 w-4 text-primary" /> Sell
+                  offers
+                </h2>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Expected proceeds include the 12% exchange tax.
+                </p>
+              </div>
+              <Button asChild size="sm">
+                <Link href="/marketplace/sell">Sell an item</Link>
+              </Button>
+            </header>
+            {query.data.sellListings.length > 0 ? (
+              <div className="divide-y divide-border">
+                {query.data.sellListings.map((listing) => {
+                  const sale = calculateMarketSale(
+                    listing.listedPrice ?? 0,
+                    listing.quantity,
+                  );
+                  return (
+                    <div
+                      key={listing.id}
+                      className="grid gap-3 p-4 sm:grid-cols-[minmax(220px,1fr)_repeat(3,minmax(80px,auto))_auto] sm:items-center"
+                    >
+                      <div className="flex min-w-0 items-center gap-3">
+                        <ItemArtwork
+                          src={listing.itemTemplate.sprite}
+                          name={listing.itemTemplate.name}
+                          rarity={listing.rarity}
+                          size={48}
+                          itemId={listing.itemTemplate.id}
                         />
+                        <div className="min-w-0">
+                          <span className="block truncate font-semibold">
+                            {listing.itemTemplate.name}
+                          </span>
+                          <div className="mt-1">
+                            <RarityBadge rarity={listing.rarity} />
+                          </div>
+                        </div>
                       </div>
-                      <span className="font-semibold">{listing.itemTemplate.name}</span>
+                      <div className="text-sm">
+                        <span className="text-xs text-muted-foreground">
+                          Quantity
+                        </span>
+                        <span className="block font-semibold tabular-nums">
+                          {listing.quantity}
+                        </span>
+                      </div>
+                      <div className="text-sm">
+                        <span className="text-xs text-muted-foreground">
+                          Unit price
+                        </span>
+                        <span className="block font-semibold tabular-nums text-currency">
+                          {listing.listedPrice?.toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="text-sm">
+                        <span className="text-xs text-muted-foreground">
+                          Net if sold
+                        </span>
+                        <span className="block font-semibold tabular-nums text-success">
+                          {sale.net.toLocaleString()}
+                        </span>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => withdrawListing.mutate(listing.id)}
+                        disabled={withdrawListing.isPending}
+                      >
+                        <Undo2 className="h-3.5 w-3.5" /> Withdraw
+                      </Button>
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <RarityBadge rarity={listing.rarity} />
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-sm capitalize">{listing.itemTemplate.equipTo || "Consumable"}</span>
-                  </TableCell>
-                  <TableCell>
-                    <span className="font-semibold text-yellow-600">
-                      {listing.listedPrice?.toLocaleString() || "0"} 🪙
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-sm text-muted-foreground">
-                      {listing.listedAt ? new Date(listing.listedAt).toLocaleDateString() : "Unknown"}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="game-empty-state m-4">
+                You have no active sell offers.
+              </div>
+            )}
+          </section>
+
+          <section className="game-panel overflow-hidden">
+            <header className="border-b border-border p-4">
+              <h2 className="game-section-title flex items-center gap-2">
+                <ArrowDownToLine className="h-4 w-4 text-primary" /> Buy orders
+              </h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Gold is reserved; higher prices fill first and equal prices fill
+                oldest first. Orders that cannot fit are cancelled and refunded.
+              </p>
+            </header>
+            {query.data.buyOrders.length > 0 ? (
+              <div className="divide-y divide-border">
+                {query.data.buyOrders.map((order) => (
+                  <div
+                    key={order.id}
+                    className="grid gap-3 p-4 sm:grid-cols-[minmax(220px,1fr)_repeat(3,minmax(80px,auto))_auto] sm:items-center"
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <ItemArtwork
+                        src={order.item.sprite}
+                        name={order.item.name}
+                        rarity={order.rarity}
+                        size={48}
+                        itemId={order.itemId}
+                      />
+                      <div className="min-w-0">
+                        <span className="block truncate font-semibold">
+                          {order.item.name}
+                        </span>
+                        <div className="mt-1">
+                          <RarityBadge rarity={order.rarity} />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-sm">
+                      <span className="text-xs text-muted-foreground">
+                        Remaining
+                      </span>
+                      <span className="block font-semibold tabular-nums">
+                        {order.remainingQuantity} / {order.quantity}
+                      </span>
+                    </div>
+                    <div className="text-sm">
+                      <span className="text-xs text-muted-foreground">
+                        Bid each
+                      </span>
+                      <span className="block font-semibold tabular-nums text-success">
+                        {order.pricePerItem.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="text-sm">
+                      <span className="text-xs text-muted-foreground">
+                        Reserved
+                      </span>
+                      <span className="block font-semibold tabular-nums text-currency">
+                        <CoinsIcon size={14} />{" "}
+                        {order.reservedGold.toLocaleString()}
+                      </span>
+                    </div>
                     <Button
                       size="sm"
-                      variant="destructive"
-                      onClick={() => handleCancelListing(listing.id)}
-                      disabled={cancelMutation.isPending}
-                      className="gap-2"
+                      variant="outline"
+                      onClick={() => cancelBuyOrder.mutate(order.id)}
+                      disabled={cancelBuyOrder.isPending}
                     >
-                      <X className="w-4 h-4" />
-                      Cancel
+                      <Undo2 className="h-3.5 w-3.5" /> Cancel & refund
                     </Button>
-                  </TableCell>
-                </TableRow>
-              ))
+                  </div>
+                ))}
+              </div>
             ) : (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-8">
-                  <p className="text-muted-foreground">
-                    You don't have any active listings. Visit your inventory to list items for sale.
-                  </p>
-                </TableCell>
-              </TableRow>
+              <div className="game-empty-state m-4">
+                You have no open buy orders.
+              </div>
             )}
-          </TableBody>
-        </Table>
-      </div>
-
-      {/* Cancel Confirmation Dialog */}
-      <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Cancel Listing</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to cancel the listing for <span className="font-semibold">{selectedListing?.name}</span>?
-              The item will be returned to your inventory.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowCancelDialog(false)
-                setSelectedListing(null)
-              }}
-            >
-              No, Keep Listed
-            </Button>
-            <Button 
-              variant="destructive"
-              onClick={confirmCancelListing}
-              disabled={cancelMutation.isPending}
-            >
-              {cancelMutation.isPending ? "Canceling..." : "Yes, Cancel Listing"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </section>
+        </>
+      )}
     </div>
-  )
+  );
 }

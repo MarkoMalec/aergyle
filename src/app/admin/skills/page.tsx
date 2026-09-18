@@ -11,6 +11,7 @@ export default async function AdminSkillsPage() {
       skill_id: true,
       skill_name: true,
       description: true,
+      category: true,
     },
     orderBy: [{ skill_name: "asc" }],
     take: 500,
@@ -21,7 +22,9 @@ export default async function AdminSkillsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Skills</h1>
-          <p className="text-sm text-white/70">Manage the base skills list (name + description).</p>
+          <p className="text-sm text-white/70">
+            Manage the base skills list (name + description).
+          </p>
         </div>
         <Link
           href="/admin/skills/new"
@@ -37,6 +40,7 @@ export default async function AdminSkillsPage() {
             <tr>
               <th className="p-3 text-left">Name</th>
               <th className="p-3 text-left">Description</th>
+              <th className="p-3 text-left">Category</th>
               <th className="p-3 text-right">ID</th>
             </tr>
           </thead>
@@ -58,14 +62,19 @@ export default async function AdminSkillsPage() {
                     "—"
                   )}
                 </td>
-                <td className="p-3 text-right font-mono text-white/60">{s.skill_id}</td>
+                <td className="p-3 text-white/80">{s.category}</td>
+                <td className="p-3 text-right font-mono text-white/60">
+                  {s.skill_id}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      <div className="text-xs text-white/60">Showing {skills.length} skills.</div>
+      <div className="text-xs text-white/60">
+        Showing {skills.length} skills.
+      </div>
     </div>
   );
 }

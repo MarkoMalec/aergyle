@@ -1,0 +1,42 @@
+{
+  "pack": "component-expansion-v1",
+  "generatedOn": "2026-09-16",
+  "generator": "OpenAI imagegen",
+  "masters": [
+    {
+      "item": "Wooden Handle",
+      "mode": "generate",
+      "file": "wooden-handle-master.png",
+      "sourceOutput": "/Users/malec/.codex/generated_images/01a0aad5-0ef1-7023-9ddb-3d64783fa272/exec-94914c37-6a3e-43b8-8b61-da343ff6cf8b.png"
+    },
+    {
+      "item": "Duskbound Handle",
+      "mode": "edit/composite",
+      "file": "duskbound-handle-master.png",
+      "sourceOutput": "/Users/malec/.codex/generated_images/01a0aad5-0ef1-7023-9ddb-3d64783fa272/exec-bbd85c9a-ada7-4e8a-a301-c46d20852b06.png"
+    },
+    {
+      "item": "Dusk Oil",
+      "mode": "generate",
+      "file": "dusk-oil-master.png",
+      "sourceOutput": "/Users/malec/.codex/generated_images/01a0aad5-0ef1-7023-9ddb-3d64783fa272/exec-106aed5a-91eb-4f7e-8a38-50d6e003062f.png"
+    },
+    {
+      "item": "Tempering Resin",
+      "mode": "generate",
+      "file": "tempering-resin-master.png",
+      "sourceOutput": "/Users/malec/.codex/generated_images/01a0aad5-0ef1-7023-9ddb-3d64783fa272/exec-e627c944-0f91-44b8-910c-3ddde61a1fbc.png"
+    },
+    {
+      "item": "Hardened Leather",
+      "mode": "generate",
+      "file": "hardened-leather-master.png",
+      "sourceOutput": "/Users/malec/.codex/generated_images/01a0aad5-0ef1-7023-9ddb-3d64783fa272/exec-ac81cbbb-165b-4484-8afc-5edabc8ed033.png"
+    }
+  ],
+  "runtime": {
+    "canvas": "256x256 RGBA PNG",
+    "occupiedSafeArea": "approximately 210px on the longest alpha-bound dimension",
+    "background": "transparent"
+  }
+}

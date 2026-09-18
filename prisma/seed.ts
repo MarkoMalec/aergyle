@@ -1,6 +1,10 @@
-import { PrismaClient, ItemRarity, StatType, ItemEquipTo } from '@prisma/client';
+import {
+  PrismaClient,
+  ItemRarity,
+  StatType,
+  ItemEquipTo,
+} from "@prisma/client";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
-import { calculateRarityStats } from '../src/utils/rarity';
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
@@ -12,13 +16,13 @@ const prisma = new PrismaClient({
 });
 
 async function main() {
-  console.log('🌱 Starting seed...');
+  console.log("🌱 Starting seed...");
 
   // Clear existing items and stats
   await prisma.itemStat.deleteMany({});
   await prisma.item.deleteMany({});
 
-  console.log('🗑️  Cleared existing items and stats');
+  console.log("🗑️  Cleared existing items and stats");
 
   // Helper function to create item with stats
   async function createItemWithStats(
@@ -30,13 +34,11 @@ async function main() {
       rarity: ItemRarity;
       requiredLevel: number;
     },
-    stats: Array<{ statType: StatType; value: number }>
+    stats: Array<{ statType: StatType; value: number }>,
   ) {
-    // Apply rarity multiplier to base stats
-    const rarityAdjustedStats = calculateRarityStats(stats, itemData.rarity);
-
-    // Calculate denormalized columns
-    const statsMap = new Map(rarityAdjustedStats.map((s) => [s.statType, s.value]));
+    // ItemStat stores canonical base values. Rarity is resolved live for every
+    // owned item, so seeding must never pre-apply a rarity multiplier.
+    const statsMap = new Map(stats.map((s) => [s.statType, s.value]));
 
     const item = await prisma.item.create({
       data: {
@@ -47,7 +49,7 @@ async function main() {
         maxMagicDamage: statsMap.get(StatType.MAGIC_DAMAGE_MAX) || 0,
         armor: statsMap.get(StatType.ARMOR) || 0,
         stats: {
-          create: rarityAdjustedStats,
+          create: stats,
         },
       },
       include: {
@@ -65,9 +67,9 @@ async function main() {
 
   await createItemWithStats(
     {
-      name: 'Wooden Sword',
+      name: "Wooden Sword",
       price: 50,
-      sprite: '/assets/items/weapons/wooden-sword.jpg',
+      sprite: "/assets/items/weapons/wooden-sword.jpg",
       equipTo: ItemEquipTo.weapon,
       rarity: ItemRarity.COMMON,
       requiredLevel: 1,
@@ -76,15 +78,14 @@ async function main() {
       { statType: StatType.PHYSICAL_DAMAGE_MIN, value: 3 },
       { statType: StatType.PHYSICAL_DAMAGE_MAX, value: 7 },
       { statType: StatType.ATTACK_SPEED, value: 1.2 },
-    ]
+    ],
   );
-
 
   await createItemWithStats(
     {
-      name: 'Wooden Dagger',
+      name: "Wooden Dagger",
       price: 45,
-      sprite: '/assets/items/weapons/wooden-dagger.jpg',
+      sprite: "/assets/items/weapons/wooden-dagger.jpg",
       equipTo: ItemEquipTo.weapon,
       rarity: ItemRarity.COMMON,
       requiredLevel: 1,
@@ -94,14 +95,14 @@ async function main() {
       { statType: StatType.PHYSICAL_DAMAGE_MAX, value: 5 },
       { statType: StatType.ATTACK_SPEED, value: 1.5 },
       { statType: StatType.CRITICAL_CHANCE, value: 5 },
-    ]
+    ],
   );
 
   await createItemWithStats(
     {
-      name: 'Wooden Axe',
+      name: "Wooden Axe",
       price: 60,
-      sprite: '/assets/items/weapons/wooden-axe.png',
+      sprite: "/assets/items/weapons/wooden-axe.png",
       equipTo: ItemEquipTo.weapon,
       rarity: ItemRarity.COMMON,
       requiredLevel: 1,
@@ -110,14 +111,14 @@ async function main() {
       { statType: StatType.PHYSICAL_DAMAGE_MIN, value: 5 },
       { statType: StatType.PHYSICAL_DAMAGE_MAX, value: 10 },
       { statType: StatType.ATTACK_SPEED, value: 0.9 },
-    ]
+    ],
   );
 
   await createItemWithStats(
     {
-      name: 'Wooden Mace',
+      name: "Wooden Mace",
       price: 55,
-      sprite: '/assets/items/weapons/wooden-mace.jpg',
+      sprite: "/assets/items/weapons/wooden-mace.jpg",
       equipTo: ItemEquipTo.weapon,
       rarity: ItemRarity.COMMON,
       requiredLevel: 1,
@@ -127,14 +128,14 @@ async function main() {
       { statType: StatType.PHYSICAL_DAMAGE_MAX, value: 8 },
       { statType: StatType.ATTACK_SPEED, value: 1.0 },
       { statType: StatType.ARMOR, value: 2 },
-    ]
+    ],
   );
 
   await createItemWithStats(
     {
-      name: 'Silver Revolver',
+      name: "Silver Revolver",
       price: 250,
-      sprite: '/assets/items/weapons/silver-revolver.jpeg',
+      sprite: "/assets/items/weapons/silver-revolver.jpeg",
       equipTo: ItemEquipTo.weapon,
       rarity: ItemRarity.RARE,
       requiredLevel: 5,
@@ -145,14 +146,14 @@ async function main() {
       { statType: StatType.ATTACK_SPEED, value: 1.8 },
       { statType: StatType.CRITICAL_CHANCE, value: 10 },
       { statType: StatType.ACCURACY, value: 15 },
-    ]
+    ],
   );
 
   await createItemWithStats(
     {
-      name: 'Iron Shield',
+      name: "Iron Shield",
       price: 180,
-      sprite: '/assets/items/weapons/iron-shield.jpg',
+      sprite: "/assets/items/weapons/iron-shield.jpg",
       equipTo: ItemEquipTo.weapon,
       rarity: ItemRarity.UNCOMMON,
       requiredLevel: 3,
@@ -163,7 +164,7 @@ async function main() {
       { statType: StatType.ARMOR, value: 25 },
       { statType: StatType.BLOCK_CHANCE, value: 15 },
       { statType: StatType.HEALTH, value: 50 },
-    ]
+    ],
   );
 
   // ============================================
@@ -172,9 +173,9 @@ async function main() {
 
   await createItemWithStats(
     {
-      name: 'Gold Helmet',
+      name: "Gold Helmet",
       price: 200,
-      sprite: '/assets/items/armor/gold-helmet.jpg',
+      sprite: "/assets/items/armor/gold-helmet.jpg",
       equipTo: ItemEquipTo.head,
       rarity: ItemRarity.UNCOMMON,
       requiredLevel: 5,
@@ -183,7 +184,7 @@ async function main() {
       { statType: StatType.ARMOR, value: 15 },
       { statType: StatType.HEALTH, value: 30 },
       { statType: StatType.MAGIC_RESIST, value: 5 },
-    ]
+    ],
   );
 
   // ============================================
@@ -192,9 +193,9 @@ async function main() {
 
   await createItemWithStats(
     {
-      name: 'Gold Chestplate',
+      name: "Gold Chestplate",
       price: 300,
-      sprite: '/assets/items/armor/gold-chest.jpg',
+      sprite: "/assets/items/armor/gold-chest.jpg",
       equipTo: ItemEquipTo.chest,
       rarity: ItemRarity.UNCOMMON,
       requiredLevel: 5,
@@ -203,7 +204,7 @@ async function main() {
       { statType: StatType.ARMOR, value: 30 },
       { statType: StatType.HEALTH, value: 60 },
       { statType: StatType.HEALTH_REGEN, value: 2 },
-    ]
+    ],
   );
 
   // ============================================
@@ -212,9 +213,9 @@ async function main() {
 
   await createItemWithStats(
     {
-      name: 'Dragonscale Pauldrons',
+      name: "Dragonscale Pauldrons",
       price: 450,
-      sprite: '/assets/items/armor/dragonscale-pauldrons.jpeg',
+      sprite: "/assets/items/armor/dragonscale-pauldrons.jpeg",
       equipTo: ItemEquipTo.pauldrons,
       rarity: ItemRarity.RARE,
       requiredLevel: 8,
@@ -224,7 +225,7 @@ async function main() {
       { statType: StatType.FIRE_RESIST, value: 15 },
       { statType: StatType.HEALTH, value: 40 },
       { statType: StatType.CRITICAL_DAMAGE, value: 10 },
-    ]
+    ],
   );
 
   // ============================================
@@ -233,9 +234,9 @@ async function main() {
 
   await createItemWithStats(
     {
-      name: 'Gold Gloves',
+      name: "Gold Gloves",
       price: 180,
-      sprite: '/assets/items/armor/gold-gloves.jpg',
+      sprite: "/assets/items/armor/gold-gloves.jpg",
       equipTo: ItemEquipTo.gloves,
       rarity: ItemRarity.UNCOMMON,
       requiredLevel: 5,
@@ -245,7 +246,7 @@ async function main() {
       { statType: StatType.ATTACK_SPEED, value: 0.1 },
       { statType: StatType.ACCURACY, value: 8 },
       { statType: StatType.CRITICAL_CHANCE, value: 3 },
-    ]
+    ],
   );
 
   // ============================================
@@ -254,9 +255,9 @@ async function main() {
 
   await createItemWithStats(
     {
-      name: 'Gold Boots',
+      name: "Gold Boots",
       price: 180,
-      sprite: '/assets/items/armor/gold-boots.jpg',
+      sprite: "/assets/items/armor/gold-boots.jpg",
       equipTo: ItemEquipTo.boots,
       rarity: ItemRarity.UNCOMMON,
       requiredLevel: 5,
@@ -266,7 +267,7 @@ async function main() {
       { statType: StatType.MOVEMENT_SPEED, value: 10 },
       { statType: StatType.EVASION_MELEE, value: 5 },
       { statType: StatType.HEALTH, value: 25 },
-    ]
+    ],
   );
 
   // ============================================
@@ -275,9 +276,9 @@ async function main() {
 
   await createItemWithStats(
     {
-      name: 'Leather Belt',
+      name: "Leather Belt",
       price: 100,
-      sprite: '/assets/items/armor/leather-belt.jpg',
+      sprite: "/assets/items/armor/leather-belt.jpg",
       equipTo: ItemEquipTo.belt,
       rarity: ItemRarity.COMMON,
       requiredLevel: 3,
@@ -286,7 +287,7 @@ async function main() {
       { statType: StatType.ARMOR, value: 5 },
       { statType: StatType.HEALTH, value: 40 },
       { statType: StatType.HEALTH_REGEN, value: 1 },
-    ]
+    ],
   );
 
   // ============================================
@@ -295,9 +296,9 @@ async function main() {
 
   await createItemWithStats(
     {
-      name: 'Gold Ring',
+      name: "Gold Ring",
       price: 150,
-      sprite: '/assets/items/armor/gold-ring.jpg',
+      sprite: "/assets/items/armor/gold-ring.jpg",
       equipTo: ItemEquipTo.ring,
       rarity: ItemRarity.UNCOMMON,
       requiredLevel: 4,
@@ -306,14 +307,14 @@ async function main() {
       { statType: StatType.CRITICAL_CHANCE, value: 5 },
       { statType: StatType.GOLD_FIND, value: 10 },
       { statType: StatType.LUCK, value: 5 },
-    ]
+    ],
   );
 
   await createItemWithStats(
     {
-      name: 'Diamond Ring',
+      name: "Diamond Ring",
       price: 500,
-      sprite: '/assets/items/armor/diamond-ring.jpg',
+      sprite: "/assets/items/armor/diamond-ring.jpg",
       equipTo: ItemEquipTo.ring,
       rarity: ItemRarity.EPIC,
       requiredLevel: 10,
@@ -323,7 +324,7 @@ async function main() {
       { statType: StatType.CRITICAL_DAMAGE, value: 15 },
       { statType: StatType.MAGIC_RESIST, value: 10 },
       { statType: StatType.GOLD_FIND, value: 20 },
-    ]
+    ],
   );
 
   // ============================================
@@ -332,9 +333,9 @@ async function main() {
 
   await createItemWithStats(
     {
-      name: 'Gold Necklace',
+      name: "Gold Necklace",
       price: 220,
-      sprite: '/assets/items/armor/gold-necklace.jpg',
+      sprite: "/assets/items/armor/gold-necklace.jpg",
       equipTo: ItemEquipTo.necklace,
       rarity: ItemRarity.UNCOMMON,
       requiredLevel: 5,
@@ -344,7 +345,7 @@ async function main() {
       { statType: StatType.MANA, value: 30 },
       { statType: StatType.MAGIC_RESIST, value: 8 },
       { statType: StatType.EXPERIENCE_GAIN, value: 5 },
-    ]
+    ],
   );
 
   // ============================================
@@ -353,9 +354,9 @@ async function main() {
 
   await createItemWithStats(
     {
-      name: 'Gold Amulet',
+      name: "Gold Amulet",
       price: 280,
-      sprite: '/assets/items/armor/gold-amulet.jpg',
+      sprite: "/assets/items/armor/gold-amulet.jpg",
       equipTo: ItemEquipTo.amulet,
       rarity: ItemRarity.RARE,
       requiredLevel: 6,
@@ -366,7 +367,7 @@ async function main() {
       { statType: StatType.MANA, value: 80 },
       { statType: StatType.MANA_REGEN, value: 3 },
       { statType: StatType.MAGIC_RESIST, value: 12 },
-    ]
+    ],
   );
 
   // ============================================
@@ -375,16 +376,16 @@ async function main() {
 
   await createItemWithStats(
     {
-      name: 'XL Backpack',
+      name: "XL Backpack",
       price: 120,
-      sprite: '/assets/items/storage/backpacks/backpack-xl.jpg',
+      sprite: "/assets/items/storage/backpacks/backpack-xl.jpg",
       equipTo: ItemEquipTo.backpack,
       rarity: ItemRarity.COMMON,
       requiredLevel: 1,
     },
     [
       { statType: StatType.MOVEMENT_SPEED, value: -5 }, // Negative because it's heavy
-    ]
+    ],
   );
 
   // ============================================
@@ -393,25 +394,25 @@ async function main() {
 
   await createItemWithStats(
     {
-      name: 'Health Potion',
+      name: "Health Potion",
       price: 25,
-      sprite: '/assets/items/consumables/potions/health-potion.jpg',
+      sprite: "/assets/items/consumables/potions/health-potion.jpg",
       equipTo: null, // Consumable, not equipped
       rarity: ItemRarity.COMMON,
       requiredLevel: 1,
     },
     [
       { statType: StatType.HEALTH, value: 50 }, // Restores 50 HP
-    ]
+    ],
   );
 
-  console.log('\n✅ Seed completed successfully!');
-  console.log('📊 Total items created: Check your database');
+  console.log("\n✅ Seed completed successfully!");
+  console.log("📊 Total items created: Check your database");
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Seed failed:', e);
+    console.error("❌ Seed failed:", e);
     process.exit(1);
   })
   .finally(async () => {

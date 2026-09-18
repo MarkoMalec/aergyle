@@ -1,7 +1,9 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, type ReactNode } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useUserContext } from "./userContext";
+import { userQueryKeys } from "~/lib/query-keys";
 
 interface LevelData {
   level: number;
@@ -25,57 +27,56 @@ interface LevelProviderProps {
   initialLevelData?: LevelData;
 }
 
-export const LevelProvider = ({ children, initialLevelData }: LevelProviderProps) => {
+export const LevelProvider = ({
+  children,
+  initialLevelData,
+}: LevelProviderProps) => {
   const { user } = useUserContext();
-  const [levelData, setLevelData] = useState<LevelData | null>(initialLevelData || null);
-  const [isLoading, setIsLoading] = useState(!initialLevelData);
+  const queryClient = useQueryClient();
+  const levelKey = userQueryKeys.level(user?.id);
 
-  // Fetch level data
-  const fetchLevelData = async () => {
-    if (!user?.id) return;
-    
-    setIsLoading(true);
-    try {
-      const response = await fetch(`/api/leveling/progress?userId=${user.id}`);
-      const data = await response.json();
-      setLevelData(data);
-    } catch (error) {
-      console.error("Error fetching level data:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Initial load
-  useEffect(() => {
-    if (!initialLevelData && user?.id) {
-      fetchLevelData();
-    }
-  }, [user?.id]);
+  // Invalidated whenever XP is awarded (e.g. activity ticks), so the badge stays live.
+  const levelQuery = useQuery({
+    queryKey: levelKey,
+    queryFn: async (): Promise<LevelData> => {
+      const response = await fetch("/api/leveling/progress", {
+        cache: "no-store",
+      });
+      if (!response.ok) throw new Error("Error fetching level data");
+      return (await response.json()) as LevelData;
+    },
+    enabled: Boolean(user?.id),
+    initialData: initialLevelData,
+    staleTime: Infinity,
+  });
 
   // Refresh level data (call after awarding XP)
   const refreshLevel = async () => {
-    await fetchLevelData();
+    await levelQuery.refetch();
   };
 
   // For showing level up animations before backend sync
   const simulateLevelUp = (newLevel: number, newXp: number) => {
-    if (!levelData) return;
-    
-    setLevelData({
-      ...levelData,
-      level: newLevel,
-      currentXp: newXp,
-      xpProgress:
-        levelData.xpForNextLevel > 0 ? (newXp / levelData.xpForNextLevel) * 100 : 100,
-    });
+    queryClient.setQueryData<LevelData>(levelKey, (levelData) =>
+      levelData
+        ? {
+            ...levelData,
+            level: newLevel,
+            currentXp: newXp,
+            xpProgress:
+              levelData.xpForNextLevel > 0
+                ? (newXp / levelData.xpForNextLevel) * 100
+                : 100,
+          }
+        : levelData,
+    );
   };
 
   return (
     <LevelContext.Provider
       value={{
-        levelData,
-        isLoading,
+        levelData: levelQuery.data ?? null,
+        isLoading: levelQuery.isLoading,
         refreshLevel,
         simulateLevelUp,
       }}

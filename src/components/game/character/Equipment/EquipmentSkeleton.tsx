@@ -1,59 +1,32 @@
-import React from "react";
 import { Skeleton } from "~/components/ui/skeleton";
-import { Loader2Icon } from "lucide-react";
+import { EquipmentLayout } from "./EquipmentLayout";
 
-const EquipmentSkeleton = () => {
+export default function EquipmentSkeleton() {
   return (
-    <div className="ml-16 flex w-full gap-10">
-      <div className="flex flex-col justify-end space-y-2">
-        <Skeleton className="flex h-[62px] w-[62px] items-center justify-center rounded bg-white/5 shadow-lg"><Loader2Icon className="animate-spin stroke-white" /></Skeleton>
+    <section
+      className="game-panel game-equipment-panel min-w-0"
+      aria-label="Equipment"
+      aria-busy="true"
+    >
+      <div className="game-panel-header">
+        <div>
+          <p className="game-eyebrow">Loadout</p>
+          <h2 className="game-section-title">Equipment</h2>
+        </div>
+        <span className="text-xs text-muted-foreground" role="status">
+          Loading gear…
+        </span>
       </div>
-      <div className="w-full max-w-[280px] space-y-2">
-        <div className="flex flex-col items-center justify-center space-y-2">
-          <Skeleton className="flex h-[62px] w-[62px] items-center justify-center rounded bg-white/5 shadow-lg"><Loader2Icon className="animate-spin stroke-white" /></Skeleton>
-          {/* ROW 2 */}
-          <div className="flex w-full justify-between">
-            <Skeleton className="flex h-[62px] w-[62px] items-center justify-center rounded bg-white/5 shadow-lg"><Loader2Icon className="animate-spin stroke-white" /></Skeleton>
-
-            <Skeleton className="flex h-[62px] w-[62px] items-center justify-center rounded bg-white/5 shadow-lg"><Loader2Icon className="animate-spin stroke-white" /></Skeleton>
-
-            <Skeleton className="flex h-[62px] w-[62px] items-center justify-center rounded bg-white/5 shadow-lg"><Loader2Icon className="animate-spin stroke-white" /></Skeleton>
-          </div>
+      <div className="game-panel-body game-equipment-content">
+        <div aria-hidden="true">
+          <EquipmentLayout
+            renderSlot={() => <Skeleton className="game-slot" />}
+          />
         </div>
-        {/* ROW 3 */}
-        <div className="flex justify-between">
-          <Skeleton className="flex h-[62px] w-[62px] items-center justify-center rounded bg-white/5 shadow-lg"><Loader2Icon className="animate-spin stroke-white" /></Skeleton>
-
-          <Skeleton className="flex h-[62px] w-[62px] items-center justify-center rounded bg-white/5 shadow-lg"><Loader2Icon className="animate-spin stroke-white" /></Skeleton>
-
-          <Skeleton className="flex h-[62px] w-[62px] items-center justify-center rounded bg-white/5 shadow-lg"><Loader2Icon className="animate-spin stroke-white" /></Skeleton>
-        </div>
-
-        <div className="flex justify-between">
-          <Skeleton className="flex h-[62px] w-[62px] items-center justify-center rounded bg-white/5 shadow-lg"><Loader2Icon className="animate-spin stroke-white" /></Skeleton>
-
-          <Skeleton className="flex h-[62px] w-[62px] items-center justify-center rounded bg-white/5 shadow-lg"><Loader2Icon className="animate-spin stroke-white" /></Skeleton>
-        </div>
-        <div className="flex justify-between">
-          <Skeleton className="flex h-[62px] w-[62px] items-center justify-center rounded bg-white/5 shadow-lg"><Loader2Icon className="animate-spin stroke-white" /></Skeleton>
-
-          <Skeleton className="flex h-[62px] w-[62px] items-center justify-center rounded bg-white/5 shadow-lg"><Loader2Icon className="animate-spin stroke-white" /></Skeleton>
-        </div>
+        <p className="game-equipment-hint">
+          Drag gear onto a matching slot. Paired armor equips both sides.
+        </p>
       </div>
-      <div className="flex flex-col justify-between gap-2">
-        <div className="flex justify-between">
-          <Skeleton className="flex h-[62px] w-[62px] items-center justify-center rounded bg-white/5 shadow-lg"><Loader2Icon className="animate-spin stroke-white" /></Skeleton>
-        </div>
-        <div className="space-y-2">
-          <Skeleton className="flex h-[62px] w-[62px] items-center justify-center rounded bg-white/5 shadow-lg"><Loader2Icon className="animate-spin stroke-white" /></Skeleton>
-
-          <Skeleton className="flex h-[62px] w-[62px] items-center justify-center rounded bg-white/5 shadow-lg"><Loader2Icon className="animate-spin stroke-white" /></Skeleton>
-
-          <Skeleton className="flex h-[62px] w-[62px] items-center justify-center rounded bg-white/5 shadow-lg"><Loader2Icon className="animate-spin stroke-white" /></Skeleton>
-        </div>
-      </div>
-    </div>
+    </section>
   );
-};
-
-export default EquipmentSkeleton;
+}

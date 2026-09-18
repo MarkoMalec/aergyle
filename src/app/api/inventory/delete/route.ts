@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "~/lib/prisma";
 import { getServerAuthSession } from "~/server/auth";
-import { normalizeInventorySlots, slotsToInputJson } from "~/utils/inventorySlots";
+import {
+  normalizeInventorySlots,
+  slotsToInputJson,
+} from "~/utils/inventorySlots";
 
 export async function DELETE(req: NextRequest) {
   try {
@@ -14,7 +17,10 @@ export async function DELETE(req: NextRequest) {
     const { userItemId } = await req.json();
 
     if (!userItemId) {
-      return NextResponse.json({ error: "Missing userItemId" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing userItemId" },
+        { status: 400 },
+      );
     }
 
     const userItem = await prisma.userItem.findUnique({
@@ -36,7 +42,10 @@ export async function DELETE(req: NextRequest) {
     });
 
     if (userInventory && userInventory.slots) {
-      const slots = normalizeInventorySlots(userInventory.slots, userInventory.maxSlots);
+      const slots = normalizeInventorySlots(
+        userInventory.slots,
+        userInventory.maxSlots,
+      );
       const updatedSlots = slots.map((slot) => {
         if (slot?.item?.id === userItemId) {
           return { ...slot, item: null };
@@ -50,12 +59,7 @@ export async function DELETE(req: NextRequest) {
       });
     }
 
-    // Delete the UserItem's stats
-    await prisma.userItemStat.deleteMany({
-      where: { userItemId },
-    });
-
-    // Delete the UserItem itself
+    // Per-instance modifiers cascade with the UserItem.
     await prisma.userItem.delete({ where: { id: userItemId } });
 
     return NextResponse.json(

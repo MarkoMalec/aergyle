@@ -1,0 +1,153 @@
+{
+  "generator": "Built-in image_gen",
+  "pack": "vocation-expansion-v1",
+  "artDirection": "Wayfarer's Atlas",
+  "promptSet": "PROMPTS.md",
+  "assets": [
+    {
+      "slug": "copper-ore",
+      "master": "copper-ore-master.png",
+      "runtime": "/assets/items/resources/ores/copper-ore-atlas-v1.png",
+      "generatedFile": "exec-f9daa3f4-a207-4743-951a-e18383fa1f72.png"
+    },
+    {
+      "slug": "tin-ore",
+      "master": "tin-ore-master.png",
+      "runtime": "/assets/items/resources/ores/tin-ore-atlas-v1.png",
+      "generatedFile": "exec-92eb3de4-b55d-4cdb-a03e-e59a6f17d67f.png"
+    },
+    {
+      "slug": "silver-ore",
+      "master": "silver-ore-master.png",
+      "runtime": "/assets/items/resources/ores/silver-ore-atlas-v1.png",
+      "generatedFile": "exec-0be85042-1468-45a4-978f-a1f714ade434.png"
+    },
+    {
+      "slug": "frostsilver-ore",
+      "master": "frostsilver-ore-master.png",
+      "runtime": "/assets/items/resources/ores/frostsilver-ore-atlas-v1.png",
+      "generatedFile": "exec-8f1f8114-938a-4b12-9ff6-6a8d42562117.png"
+    },
+    {
+      "slug": "cobalt-ore",
+      "master": "cobalt-ore-master.png",
+      "runtime": "/assets/items/resources/ores/cobalt-ore-atlas-v1.png",
+      "generatedFile": "exec-771f615b-f776-45fb-81f2-100dea6e9f45.png"
+    },
+    {
+      "slug": "obsidian-ore",
+      "master": "obsidian-ore-master.png",
+      "runtime": "/assets/items/resources/ores/obsidian-ore-atlas-v1.png",
+      "generatedFile": "exec-9bd8a8ae-ec28-4fec-af9a-2244973c6026.png"
+    },
+    {
+      "slug": "pine-log",
+      "master": "pine-log-master.png",
+      "runtime": "/assets/items/resources/logs/pine-log-atlas-v1.png",
+      "generatedFile": "exec-5ecbac80-b907-488f-8e09-19b3d3a94147.png"
+    },
+    {
+      "slug": "willow-log",
+      "master": "willow-log-master.png",
+      "runtime": "/assets/items/resources/logs/willow-log-atlas-v1.png",
+      "generatedFile": "exec-68fd09b9-ecd1-4ee1-ab47-590c1143afea.png"
+    },
+    {
+      "slug": "ash-log",
+      "master": "ash-log-master.png",
+      "runtime": "/assets/items/resources/logs/ash-log-atlas-v1.png",
+      "generatedFile": "exec-ffe265f8-2dda-4ed0-a4cc-2bce4908fd79.png"
+    },
+    {
+      "slug": "frostpine-log",
+      "master": "frostpine-log-master.png",
+      "runtime": "/assets/items/resources/logs/frostpine-log-atlas-v1.png",
+      "generatedFile": "exec-badf4d80-ad1b-4f82-9ecb-a402571cdbc4.png"
+    },
+    {
+      "slug": "elderwood-log",
+      "master": "elderwood-log-master.png",
+      "runtime": "/assets/items/resources/logs/elderwood-log-atlas-v1.png",
+      "generatedFile": "exec-7a07c886-c044-458b-b493-66d1c2915101.png"
+    },
+    {
+      "slug": "emberwood-log",
+      "master": "emberwood-log-master.png",
+      "runtime": "/assets/items/resources/logs/emberwood-log-atlas-v1.png",
+      "generatedFile": "exec-bcf7e195-a73e-45c6-8122-bcc8b107d08c.png"
+    },
+    {
+      "slug": "silver-minnow",
+      "master": "silver-minnow-master.png",
+      "runtime": "/assets/items/resources/fish/silver-minnow-atlas-v1.png",
+      "generatedFile": "exec-0d2692ab-b8d4-4a2e-94f9-f41e5784052d.png"
+    },
+    {
+      "slug": "river-trout",
+      "master": "river-trout-master.png",
+      "runtime": "/assets/items/resources/fish/river-trout-atlas-v1.png",
+      "generatedFile": "exec-421aa539-9c0a-4f35-bbed-fac5743c55ed.png"
+    },
+    {
+      "slug": "bog-pike",
+      "master": "bog-pike-master.png",
+      "runtime": "/assets/items/resources/fish/bog-pike-atlas-v1.png",
+      "generatedFile": "exec-00b1f85a-9e73-4b9a-b97b-7c460bfc8bfb.png"
+    },
+    {
+      "slug": "frostscale-char",
+      "master": "frostscale-char-master.png",
+      "runtime": "/assets/items/resources/fish/frostscale-char-atlas-v1.png",
+      "generatedFile": "exec-b285513f-527f-49c3-b412-d92ee486df8d.png"
+    },
+    {
+      "slug": "caldrath-eel",
+      "master": "caldrath-eel-master.png",
+      "runtime": "/assets/items/resources/fish/caldrath-eel-atlas-v1.png",
+      "generatedFile": "exec-2d96d8a8-849e-45b4-9019-eac55e45bbc3.png"
+    },
+    {
+      "slug": "blackfin-tuna",
+      "master": "blackfin-tuna-master.png",
+      "runtime": "/assets/items/resources/fish/blackfin-tuna-atlas-v1.png",
+      "generatedFile": "exec-697c4ec2-c034-4250-8058-f2fbf3cf7efa.png"
+    },
+    {
+      "slug": "copper-ingot",
+      "master": "copper-ingot-master.png",
+      "runtime": "/assets/items/resources/ingots/copper-ingot-atlas-v1.png",
+      "generatedFile": "exec-4b14c7e2-213a-46c5-a532-733cc9c68fdc.png"
+    },
+    {
+      "slug": "bronze-ingot",
+      "master": "bronze-ingot-master.png",
+      "runtime": "/assets/items/resources/ingots/bronze-ingot-atlas-v1.png",
+      "generatedFile": "exec-ed8622c1-957b-4465-8a1b-0fd5482b7da3.png"
+    },
+    {
+      "slug": "steel-ingot",
+      "master": "steel-ingot-master.png",
+      "runtime": "/assets/items/resources/ingots/steel-ingot-atlas-v1.png",
+      "generatedFile": "exec-204135df-08c9-4ab8-b58f-3bead2adbba8.png"
+    },
+    {
+      "slug": "frostsilver-ingot",
+      "master": "frostsilver-ingot-master.png",
+      "runtime": "/assets/items/resources/ingots/frostsilver-ingot-atlas-v1.png",
+      "generatedFile": "exec-df076f98-9403-4249-b403-c6580f649775.png"
+    },
+    {
+      "slug": "cobalt-ingot",
+      "master": "cobalt-ingot-master.png",
+      "runtime": "/assets/items/resources/ingots/cobalt-ingot-atlas-v1.png",
+      "generatedFile": "exec-030e39dc-c5c6-40d4-b633-c9cbc466fea3.png"
+    },
+    {
+      "slug": "doomsteel-ingot",
+      "master": "doomsteel-ingot-master.png",
+      "runtime": "/assets/items/resources/ingots/doomsteel-ingot-atlas-v1.png",
+      "generatedFile": "exec-805f4724-0686-4b63-b14b-88f204ac1dc3.png"
+    }
+  ],
+  "runtimeExport": "Masters normalized to roughly 190-215 pixels of occupied subject space with Lanczos resampling and centered on a transparent 256x256 RGBA canvas."
+}

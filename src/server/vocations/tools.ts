@@ -1,5 +1,11 @@
-import { StatType, VocationalActionType } from "~/generated/prisma/enums";
+import { VocationalActionType } from "~/generated/prisma/enums";
+import { getVocationalEfficiencyStatType } from "~/game/vocationStats";
 import { prisma } from "~/lib/prisma";
+import {
+  getCharacterStatSnapshot,
+  type CharacterStatSnapshot,
+  USABLE_EQUIPMENT_ITEM_STATUSES,
+} from "~/server/stats";
 
 function clampEfficiency(value: number): number {
   if (!Number.isFinite(value)) {
@@ -10,31 +16,22 @@ function clampEfficiency(value: number): number {
 
 // Centralized tool rules per vocation action.
 // - `requiredEquipmentField`: if set, the player must have a tool equipped in that Equipment.* field to start.
-// - `efficiencyStatType`: which UserItemStat stat contributes to tool efficiency for this action.
 const TOOL_RULES: Partial<
   Record<
     VocationalActionType,
     {
-      requiredEquipmentField?:
-        | "fellingAxeItemId"
-        | "pickaxeItemId";
-      efficiencyStatType?: StatType;
+      requiredEquipmentField?: "fellingAxeItemId" | "pickaxeItemId";
       requiredMessage?: string;
     }
   >
 > = {
   [VocationalActionType.WOODCUTTING]: {
     requiredEquipmentField: "fellingAxeItemId",
-    efficiencyStatType: StatType.WOODCUTTING_EFFICIENCY,
     requiredMessage: "You need to equip a Felling Axe to start woodcutting.",
   },
   [VocationalActionType.MINING]: {
     requiredEquipmentField: "pickaxeItemId",
-    efficiencyStatType: StatType.MINING_EFFICIENCY,
     requiredMessage: "You need to equip a Pickaxe to start mining.",
-  },
-  [VocationalActionType.FISHING]: {
-    efficiencyStatType: StatType.FISHING_EFFICIENCY,
   },
 };
 
@@ -52,19 +49,22 @@ async function getEquippedToolUserItemId(
     return null;
   }
 
-  if (requiredEquipmentField === "fellingAxeItemId") {
-    const equipment = await prisma.equipment.findUnique({
-      where: { userId },
-      select: { fellingAxeItemId: true },
-    });
-    return equipment?.fellingAxeItemId ?? null;
-  }
-
   const equipment = await prisma.equipment.findUnique({
     where: { userId },
-    select: { pickaxeItemId: true },
+    select: { fellingAxeItemId: true, pickaxeItemId: true },
   });
-  return equipment?.pickaxeItemId ?? null;
+  const userItemId = equipment?.[requiredEquipmentField] ?? null;
+  if (!userItemId) return null;
+
+  const usableItem = await prisma.userItem.findFirst({
+    where: {
+      id: userItemId,
+      userId,
+      status: { in: USABLE_EQUIPMENT_ITEM_STATUSES },
+    },
+    select: { id: true },
+  });
+  return usableItem?.id ?? null;
 }
 
 export async function assertRequiredToolEquipped(
@@ -87,30 +87,17 @@ export async function getToolEfficiencyForAction(
   userId: string,
   actionType: VocationalActionType,
 ): Promise<number> {
-  const rule = getToolRule(actionType);
-  const statType = rule?.efficiencyStatType;
-  if (!statType) {
-    return 0;
-  }
+  if (!getVocationalEfficiencyStatType(actionType)) return 0;
+  const character = await getCharacterStatSnapshot(userId);
+  return getEfficiencyFromCharacter(character, actionType);
+}
 
-  const toolItemId = await getEquippedToolUserItemId(userId, actionType);
-  if (!toolItemId) {
-    return 0;
-  }
-
-  const stats = await prisma.userItemStat.findMany({
-    where: {
-      userItemId: toolItemId,
-      statType,
-    },
-    select: { value: true },
-  });
-
-  const total = stats.reduce((sum, stat) => {
-    return sum + (Number.isFinite(stat.value) ? stat.value : 0);
-  }, 0);
-
-  return clampEfficiency(total);
+function getEfficiencyFromCharacter(
+  character: Pick<CharacterStatSnapshot, "totals">,
+  actionType: VocationalActionType,
+): number {
+  const statType = getVocationalEfficiencyStatType(actionType);
+  return statType ? clampEfficiency(character.totals[statType]) : 0;
 }
 
 export async function getToolEfficiencyMap(
@@ -123,11 +110,13 @@ export async function getToolEfficiencyMap(
     number
   >;
 
-  await Promise.all(
-    uniqueTypes.map(async (type) => {
-      result[type] = await getToolEfficiencyForAction(userId, type);
-    }),
-  );
+  for (const type of uniqueTypes) result[type] = 0;
+  if (!uniqueTypes.some(getVocationalEfficiencyStatType)) return result;
+
+  const character = await getCharacterStatSnapshot(userId);
+  for (const type of uniqueTypes) {
+    result[type] = getEfficiencyFromCharacter(character, type);
+  }
 
   return result;
 }

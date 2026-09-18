@@ -1,0 +1,29 @@
+-- Crafting skills use the existing timestamp-based production engine, but are
+-- categorized separately for player navigation and future profession growth.
+
+ALTER TABLE `skills`
+ADD COLUMN `category` ENUM('VOCATION','CRAFTING') NOT NULL DEFAULT 'VOCATION';
+
+UPDATE `skills`
+SET `category` = 'CRAFTING'
+WHERE UPPER(`skill_name`) IN ('ALCHEMY','COOKING','FORGE','SMELTING','TAILORING');
+
+ALTER TABLE `ToolEfficiency` MODIFY `actionType` ENUM(
+  'WOODCUTTING','MINING','FISHING','GARDENING','GATHERING','ALCHEMY','SMELTING','COOKING','TAILORING','FORGE'
+) NOT NULL;
+
+ALTER TABLE `VocationalResource` MODIFY `actionType` ENUM(
+  'WOODCUTTING','MINING','FISHING','GARDENING','GATHERING','ALCHEMY','SMELTING','COOKING','TAILORING','FORGE'
+) NOT NULL;
+
+ALTER TABLE `UserVocationalActivity` MODIFY `actionType` ENUM(
+  'WOODCUTTING','MINING','FISHING','GARDENING','GATHERING','ALCHEMY','SMELTING','COOKING','TAILORING','FORGE'
+) NOT NULL;
+
+ALTER TABLE `XpMultiplier` MODIFY `vocationalActionType` ENUM(
+  'WOODCUTTING','MINING','FISHING','GARDENING','GATHERING','ALCHEMY','SMELTING','COOKING','TAILORING','FORGE'
+) NULL;
+
+ALTER TABLE `XpTransaction` MODIFY `vocationalActionType` ENUM(
+  'WOODCUTTING','MINING','FISHING','GARDENING','GATHERING','ALCHEMY','SMELTING','COOKING','TAILORING','FORGE'
+) NULL;

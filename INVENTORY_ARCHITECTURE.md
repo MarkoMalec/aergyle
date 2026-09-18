@@ -1,5 +1,9 @@
 # Inventory System Architecture
 
+> Historical architecture notes. The current schema keeps slot positions in
+> inventory JSON and resolves item balance live from the shared definition.
+> See `docs/ITEM_BALANCE_SYSTEM.md` for current stat behavior.
+
 ## Overview
 
 The inventory system uses a **dual-storage approach** to balance performance and functionality:

@@ -67,6 +67,30 @@ export const EQUIPMENT_SLOTS = [
 export type EquipmentSlotKey = (typeof EQUIPMENT_SLOTS)[number]["slot"];
 export type EquipmentDbField = (typeof EQUIPMENT_SLOTS)[number]["dbField"];
 
+export type EquipmentItemReferences = Partial<
+  Record<EquipmentDbField, number | null>
+>;
+
+/**
+ * Resolve the unique UserItem instances referenced by the authoritative
+ * Equipment row. UserItem.status is marketplace/inventory lifecycle state and
+ * is not a second source of truth for which slots are equipped.
+ */
+export function getEquippedUserItemIds(
+  equipment: EquipmentItemReferences | null | undefined,
+): number[] {
+  if (!equipment) return [];
+
+  return [
+    ...new Set(
+      EQUIPMENT_SLOTS.map((definition) => equipment[definition.dbField]).filter(
+        (value): value is number =>
+          typeof value === "number" && Number.isSafeInteger(value) && value > 0,
+      ),
+    ),
+  ];
+}
+
 export const EQUIPMENT_SLOT_KEYS = EQUIPMENT_SLOTS.map(
   (s) => s.slot,
 ) as EquipmentSlotKey[];

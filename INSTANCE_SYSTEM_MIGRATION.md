@@ -1,5 +1,9 @@
 # Instance System Migration Plan
 
+> Historical migration notes. Effective base/rarity stats are now resolved live
+> from the shared item balance; `UserItemStat` is reserved for additive
+> per-instance modifiers. See `docs/ITEM_BALANCE_SYSTEM.md`.
+
 ## What Changed
 
 ### Before (Shared Items)

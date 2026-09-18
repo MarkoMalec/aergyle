@@ -11,7 +11,7 @@ import {
   FormControl,
   FormDescription,
 } from "~/components/ui/form";
-import { CardTitle, CardContent, CardHeader } from "~/components/ui/card";
+import { CardContent, CardHeader } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
 
@@ -26,7 +26,12 @@ const FormSchema = z.object({
 
 type FormData = z.infer<typeof FormSchema>;
 
-export default function SignInForm() {
+export default function SignInForm({
+  embedded = false,
+}: {
+  embedded?: boolean;
+}) {
+  const Heading = embedded ? "h2" : "h1";
   const router = useRouter();
 
   const form = useForm({
@@ -47,7 +52,7 @@ export default function SignInForm() {
     });
 
     if (result?.ok) {
-      router.push("/character");
+      router.push("/profile");
     } else {
       const message =
         result?.error === "CredentialsSignin"
@@ -64,7 +69,9 @@ export default function SignInForm() {
   return (
     <>
       <CardHeader>
-        <CardTitle className="text-center text-2xl">Sign in to play</CardTitle>
+        <Heading className="text-3xl font-semibold tracking-tight">
+          Welcome back
+        </Heading>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -77,14 +84,14 @@ export default function SignInForm() {
                   <FormLabel>Email</FormLabel>
                   <FormControl>
                     <Input
-                      className="text-black"
+                      className="text-foreground"
                       placeholder="Email"
                       {...field}
                       type="email"
                     />
                   </FormControl>
                   {form.formState.errors.email && (
-                    <p className="text-red-500">
+                    <p className="text-danger">
                       {form.formState.errors.email.message}
                     </p>
                   )}
@@ -99,22 +106,26 @@ export default function SignInForm() {
                   <FormLabel>Password</FormLabel>
                   <FormControl>
                     <Input
-                      className="text-black"
+                      className="text-foreground"
                       placeholder="Password"
                       {...field}
                       type="password"
                     />
                   </FormControl>
                   {form.formState.errors.password && (
-                    <p className="text-red-500">
+                    <p className="text-danger">
                       {form.formState.errors.password.message}
                     </p>
                   )}
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full">
-              Sign In
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={form.formState.isSubmitting}
+            >
+              {form.formState.isSubmitting ? "Signing in…" : "Sign in"}
             </Button>
           </form>
           <FormDescription className="mt-5 text-center">

@@ -1,0 +1,15 @@
+{
+  "generator": "Built-in image_gen",
+  "generatedOn": "2026-09-17",
+  "pack": "low-level-creatures-v1",
+  "artDirection": "Aergyle approachable early-dungeon bestiary",
+  "masterSize": "1254x1254 RGBA PNG",
+  "runtimeSize": "256x256 RGBA PNG",
+  "assets": [
+    { "slug": "pebbleback-beetle", "master": "pebbleback-beetle-master.png", "runtime": "/assets/creatures/monsters/low-level/pebbleback-beetle.png", "generatedFile": "exec-4ceedf84-6594-4c5b-8ee2-e4ce34057c18.png" },
+    { "slug": "glowcap-sprout", "master": "glowcap-sprout-master.png", "runtime": "/assets/creatures/monsters/low-level/glowcap-sprout.png", "generatedFile": "exec-dc14ac3f-bdb0-4f06-9624-e3dd74cdd799.png" },
+    { "slug": "mossbelly-toad", "master": "mossbelly-toad-master.png", "runtime": "/assets/creatures/monsters/low-level/mossbelly-toad.png", "generatedFile": "exec-d19f0ac0-ee51-43d4-b64d-afb575ab7943.png" },
+    { "slug": "lantern-moth", "master": "lantern-moth-master.png", "runtime": "/assets/creatures/monsters/low-level/lantern-moth.png", "generatedFile": "exec-f638a284-5f1d-4c84-a2ef-366eef87127a.png" },
+    { "slug": "puddle-slime", "master": "puddle-slime-master.png", "runtime": "/assets/creatures/monsters/low-level/puddle-slime.png", "generatedFile": "exec-fca0f6a1-f0f6-4524-9e90-68bf85f81f74.png" }
+  ]
+}

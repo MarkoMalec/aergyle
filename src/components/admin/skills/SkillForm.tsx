@@ -7,10 +7,19 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
+import { SkillCategory } from "~/generated/prisma/enums";
 
 const schema = z.object({
   skill_name: z.string().min(1),
   description: z.string().optional(),
+  category: z.nativeEnum(SkillCategory),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -27,6 +36,7 @@ export function SkillForm(props: {
   const defaults: FormValues = {
     skill_name: "",
     description: "",
+    category: SkillCategory.VOCATION,
     ...props.initialValues,
   };
 
@@ -39,7 +49,9 @@ export function SkillForm(props: {
     setIsSaving(true);
     try {
       const res = await fetch(
-        props.mode === "create" ? "/api/admin/skills" : `/api/admin/skills/${props.skillId}`,
+        props.mode === "create"
+          ? "/api/admin/skills"
+          : `/api/admin/skills/${props.skillId}`,
         {
           method: props.mode === "create" ? "POST" : "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -66,7 +78,9 @@ export function SkillForm(props: {
 
     setIsDeleting(true);
     try {
-      const res = await fetch(`/api/admin/skills/${props.skillId}`, { method: "DELETE" });
+      const res = await fetch(`/api/admin/skills/${props.skillId}`, {
+        method: "DELETE",
+      });
       const json = await res.json().catch(() => null);
       if (!res.ok) {
         alert(json?.error ?? "Failed to delete");
@@ -88,9 +102,28 @@ export function SkillForm(props: {
           <Input {...form.register("skill_name")} />
         </div>
         <div className="space-y-2">
+          <div className="text-sm text-white/80">Category</div>
+          <Select
+            value={form.watch("category")}
+            onValueChange={(value) =>
+              form.setValue("category", value as SkillCategory)
+            }
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={SkillCategory.VOCATION}>Vocation</SelectItem>
+              <SelectItem value={SkillCategory.CRAFTING}>Crafting</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
           <div className="text-sm text-white/80">Description</div>
           <Input placeholder="Optional" {...form.register("description")} />
-          <div className="text-xs text-white/50">Longer descriptions can be added later with a textarea.</div>
+          <div className="text-xs text-white/50">
+            Longer descriptions can be added later with a textarea.
+          </div>
         </div>
       </div>
 

@@ -1,14 +1,17 @@
 import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import PageHeading from "~/components/game/ui/PageHeading";
 import { DndProvider } from "~/components/dnd/DnDContext";
 import Portrait from "~/components/game/character/Portrait";
 import { getServerSession } from "next-auth";
 import { authOptions } from "~/server/auth";
-import { Prisma } from "~/generated/prisma/client";
+import type { Prisma } from "~/generated/prisma/client";
 import { prisma } from "~/lib/prisma";
 import Inventory from "~/components/game/character/Inventory/Inventory";
 import Equipment from "~/components/game/character/Equipment/Equipment";
-import { InventorySlotWithItem } from "~/types/inventory";
+import {
+  type EquipmentSlotsWithItems,
+  type InventorySlotWithItem,
+} from "~/types/inventory";
 import { fetchUserItemsByIds } from "~/utils/userItemInventory";
 import { CharacterStats } from "~/components/game/character/CharacterStats";
 import { AddItemTestForm } from "~/components/forms/AddItemTestForm";
@@ -17,6 +20,10 @@ import {
   getVocationalStatus,
   getVocationalStatusDebug,
 } from "~/server/vocations";
+import { getCharacterBaseStats } from "~/server/stats";
+import { getCharacterVitals } from "~/server/combat";
+import { ChevronDown, FlaskConical } from "lucide-react";
+import { EQUIPMENT_SLOTS, getEquippedUserItemIds } from "~/utils/itemEquipTo";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -41,50 +48,54 @@ const CharacterPage = async ({
     : await getVocationalStatus(session.user.id);
 
   // Parallelize all independent queries for better performance
-  const [userInventory, userEquipment, user, baseStatsFromDb, allItems] = await Promise.all([
-    prisma.inventory.findUnique({
-      where: { userId: session.user.id },
-    }),
-    prisma.equipment.upsert({
-      where: { userId: session.user.id },
-      create: {
-        userId: session.user.id,
-      },
-      update: {},
-    }),
-    prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { level: true },
-    }),
-    prisma.characterBaseStat.findMany({
-      where: { userId: session.user.id },
-    }),
-    prisma.item.findMany({
-      select: {
-        id: true,
-        name: true,
-        equipTo: true,
-      },
-      orderBy: {
-        name: "asc",
-      },
-    }),
-  ]);
+  const [userInventory, userEquipment, baseStatsFromDb, allItems, vitals] =
+    await Promise.all([
+      prisma.inventory.findUnique({
+        where: { userId: session.user.id },
+      }),
+      prisma.equipment.upsert({
+        where: { userId: session.user.id },
+        create: {
+          userId: session.user.id,
+        },
+        update: {},
+      }),
+      getCharacterBaseStats(session.user.id),
+      prisma.item.findMany({
+        select: {
+          id: true,
+          name: true,
+          sprite: true,
+          rarity: true,
+          itemType: true,
+          equipTo: true,
+          stackable: true,
+          maxStackSize: true,
+          requiredLevel: true,
+        },
+        orderBy: {
+          name: "asc",
+        },
+      }),
+      getCharacterVitals(session.user.id),
+    ]);
 
   // Convert to array format for CharacterStats component
-  const baseStats = baseStatsFromDb.map((stat) => ({
-    statType: stat.statType,
-    value: stat.value,
-  }));
+  const baseStats = Object.entries(baseStatsFromDb).map(
+    ([statType, value]) => ({
+      statType: statType as keyof typeof baseStatsFromDb,
+      value,
+    }),
+  );
 
-  const slots = (userInventory?.slots as Prisma.JsonArray) || [];
+  const slots = (userInventory?.slots as Prisma.JsonArray) ?? [];
 
   const inventoryItemIds: number[] = [];
   const slotStructure: { index: number; itemId: number | null }[] = [];
 
   slots.forEach((slot, index) => {
     if (typeof slot === "object" && slot !== null && "item" in slot) {
-      const slotObj = slot as Prisma.JsonObject;
+      const slotObj = slot;
       const slotItem = slotObj.item as Prisma.JsonObject;
       if (slotItem && "id" in slotItem) {
         const itemId = slotItem.id as number;
@@ -98,24 +109,7 @@ const CharacterPage = async ({
     }
   });
 
-  const equipmentItemIds = Object.values({
-    head: userEquipment?.headItemId,
-    necklace: userEquipment?.necklaceItemId,
-    chest: userEquipment?.chestItemId,
-    pauldrons: userEquipment?.pauldronsItemId,
-    bracers: userEquipment?.bracersItemId,
-    gloves: userEquipment?.glovesItemId,
-    belt: userEquipment?.beltItemId,
-    greaves: userEquipment?.greavesItemId,
-    boots: userEquipment?.bootsItemId,
-    ring1: userEquipment?.ring1ItemId,
-    ring2: userEquipment?.ring2ItemId,
-    amulet: userEquipment?.amuletItemId,
-    backpack: userEquipment?.backpackItemId,
-    weapon: userEquipment?.weaponItemId,
-    fellingAxe: userEquipment?.fellingAxeItemId,
-    pickaxe: userEquipment?.pickaxeItemId,
-  }).filter((id): id is number => id !== null);
+  const equipmentItemIds = getEquippedUserItemIds(userEquipment);
 
   const allItemIds = [...inventoryItemIds, ...equipmentItemIds];
 
@@ -126,69 +120,28 @@ const CharacterPage = async ({
   const slotsWithItems: InventorySlotWithItem[] = slotStructure.map(
     ({ index, itemId }) => ({
       slotIndex: index,
-      item: itemId ? itemMap.get(itemId) || null : null,
+      item: itemId ? itemMap.get(itemId) ?? null : null,
     }),
   );
 
-  const equipmentWithItems = {
-    head: userEquipment?.headItemId
-      ? itemMap.get(userEquipment.headItemId) || null
-      : null,
-    necklace: userEquipment?.necklaceItemId
-      ? itemMap.get(userEquipment.necklaceItemId) || null
-      : null,
-    chest: userEquipment?.chestItemId
-      ? itemMap.get(userEquipment.chestItemId) || null
-      : null,
-    pauldrons: userEquipment?.pauldronsItemId
-      ? itemMap.get(userEquipment.pauldronsItemId) || null
-      : null,
-    bracers: userEquipment?.bracersItemId
-      ? itemMap.get(userEquipment.bracersItemId) || null
-      : null,
-    gloves: userEquipment?.glovesItemId
-      ? itemMap.get(userEquipment.glovesItemId) || null
-      : null,
-    belt: userEquipment?.beltItemId
-      ? itemMap.get(userEquipment.beltItemId) || null
-      : null,
-    greaves: userEquipment?.greavesItemId
-      ? itemMap.get(userEquipment.greavesItemId) || null
-      : null,
-    boots: userEquipment?.bootsItemId
-      ? itemMap.get(userEquipment.bootsItemId) || null
-      : null,
-    ring1: userEquipment?.ring1ItemId
-      ? itemMap.get(userEquipment.ring1ItemId) || null
-      : null,
-    ring2: userEquipment?.ring2ItemId
-      ? itemMap.get(userEquipment.ring2ItemId) || null
-      : null,
-    backpack: userEquipment?.backpackItemId
-      ? itemMap.get(userEquipment.backpackItemId) || null
-      : null,
-    amulet: userEquipment?.amuletItemId
-      ? itemMap.get(userEquipment.amuletItemId) || null
-      : null,
-    weapon: userEquipment?.weaponItemId
-      ? itemMap.get(userEquipment.weaponItemId) || null
-      : null,
-    fellingAxe: userEquipment?.fellingAxeItemId
-      ? itemMap.get(userEquipment.fellingAxeItemId) || null
-      : null,
-    pickaxe: userEquipment?.pickaxeItemId
-      ? itemMap.get(userEquipment.pickaxeItemId) || null
-      : null,
-  };
+  const equipmentWithItems = EQUIPMENT_SLOTS.reduce((result, definition) => {
+    const userItemId = userEquipment[definition.dbField];
+    result[definition.slot] = userItemId
+      ? itemMap.get(userItemId) ?? null
+      : null;
+    return result;
+  }, {} as EquipmentSlotsWithItems);
 
   return (
     <main>
-      <h1 className="mb-12 text-center text-5xl font-bold text-black text-white">
-        Character
-      </h1>
+      <PageHeading
+        eyebrow="Your chronicle"
+        title="Character"
+        description="Prepare your kit. Tend your skills. Make your way through Aergyle."
+      />
 
       {debugEnabled ? (
-        <pre className="mb-6 overflow-auto rounded-md bg-black/40 p-3 text-xs text-white">
+        <pre className="mb-6 overflow-auto rounded-md bg-black/40 p-3 text-xs text-foreground">
           {JSON.stringify(vocationalDebug, null, 2)}
         </pre>
       ) : null}
@@ -197,18 +150,51 @@ const CharacterPage = async ({
         initialEquipment={equipmentWithItems}
         initialInventory={slotsWithItems}
       >
-        <div className="mb-10 flex gap-10">
-          <Portrait />
+        <Portrait
+          name={
+            session.user.name?.trim().length
+              ? session.user.name.trim()
+              : "Wayfarer"
+          }
+        >
+          <CharacterStats
+            baseStats={baseStats}
+            currentHealth={vitals.currentHealth}
+          />
+        </Portrait>
+        <div className="game-profile-dashboard">
           <Equipment />
+          <Inventory />
         </div>
-        <Inventory />
-        <CharacterStats baseStats={baseStats} />
       </DndProvider>
 
-      {/* Test Form */}
-      <div className="my-8 flex gap-4">
-        <AddItemTestForm items={allItems} />
-      </div>
+      <details className="game-panel group my-8 overflow-hidden">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-5 transition-colors hover:bg-secondary/30 [&::-webkit-details-marker]:hidden">
+          <span className="flex min-w-0 items-center gap-3">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-primary/25 bg-primary/10 text-primary">
+              <FlaskConical className="h-4 w-4" aria-hidden="true" />
+            </span>
+            <span className="min-w-0">
+              <span className="block font-display text-base font-semibold text-foreground">
+                Development tools
+              </span>
+              <span className="mt-0.5 block text-xs text-muted-foreground">
+                Search the item catalog and grant test inventory
+              </span>
+            </span>
+          </span>
+          <span className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
+            <span className="hidden sm:inline">Open console</span>
+            <ChevronDown
+              className="h-4 w-4 transition-transform group-open:rotate-180"
+              aria-hidden="true"
+            />
+          </span>
+        </summary>
+        <div className="border-t border-border">
+          <AddItemTestForm items={allItems} />
+        </div>
+      </details>
     </main>
   );
 };

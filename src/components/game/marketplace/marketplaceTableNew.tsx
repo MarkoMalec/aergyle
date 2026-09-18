@@ -1,35 +1,17 @@
 "use client";
 
-import { useState, useMemo, useRef, useEffect } from "react";
-import type { ItemRarity } from "~/generated/prisma/enums";
+import { useEffect, useState } from "react";
 import {
-  type ColumnDef,
-  flexRender,
-  getCoreRowModel,
-  useReactTable,
-  getSortedRowModel,
-  type SortingState,
-} from "@tanstack/react-table";
-import { useVirtualizer } from "@tanstack/react-virtual";
-import {
+  BarChart3,
+  PackageOpen,
   Search,
+  SlidersHorizontal,
   X,
-  ShoppingCart,
-  SortDesc,
-  SortAsc,
-  ArrowUpDown,
-  Loader2,
 } from "lucide-react";
-import { Input } from "~/components/ui/input";
+import { ItemArtwork } from "~/components/game/items/ItemArtwork";
+import { CoinsIcon } from "~/components/game/ui/coins-icon";
 import { Button } from "~/components/ui/button";
-import {
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "~/components/ui/table";
-import { Badge } from "~/components/ui/badge";
+import { Input } from "~/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -38,927 +20,340 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "~/components/ui/dialog";
-import { ItemFilters } from "./marketplaceFilters";
-import type { MarketplaceGroupedItem, MarketplaceListing } from "~/types/marketplace";
-import SingleItemTemplate from "../items/single-item-template";
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "~/components/ui/sheet";
 import { Skeleton } from "~/components/ui/skeleton";
-import { CoinsIcon } from "../ui/coins-icon";
-import { useRarityColors } from "~/hooks/use-rarity-colors";
-import { getRarityTailwindClass } from "~/utils/rarity-colors";
-import Image from "next/image";
-import { Separator } from "~/components/ui/separator";
-
-declare module "@tanstack/react-table" {
-  interface TableMeta<TData> {
-    currentUserId?: string;
-  }
-}
-
-type GroupedMarketplaceItem = MarketplaceGroupedItem;
+import type { ItemRarity, ItemType } from "~/generated/prisma/enums";
+import { MARKET_DEFAULT_MAX_PRICE } from "~/lib/marketplace";
+import type { MarketplaceGroupedItem } from "~/types/marketplace";
+import { RarityBadge } from "~/utils/ui/rarity-badge";
+import { MarketDetailPanel } from "./MarketDetailPanel";
+import { ItemFilters } from "./marketplaceFilters";
 
 interface DataTableProps {
   data: MarketplaceGroupedItem[];
-  onBuyItem: (payload: { id: number; name: string; price: number }) => void;
-  onFetchItemListings?: (
-    itemTemplateId: number,
-    cursor: string | null,
-    rarity?: string,
-  ) => Promise<{
-    listings: MarketplaceListing[];
-    hasMore: boolean;
-    nextCursor: string | null;
-    availableRarities?: string[];
-  }>;
   isLoading?: boolean;
-  currentUserId?: string; // Current logged-in user ID
-  // Controlled filters (lifted to page, persisted via URL)
-  searchValue?: string;
-  onSearchChange?: (v: string) => void;
-  equipToFilter?: string;
-  onEquipToFilterChange?: (v: string) => void;
-  rarityFilter?: string;
-  onRarityFilterChange?: (v: string) => void;
-  priceRange?: { min: number; max: number };
-  onPriceRangeChange?: (r: { min: number; max: number }) => void;
+  currentUserId?: string;
+  filterOptions?: { itemTypes: ItemType[]; rarities: ItemRarity[] };
+  searchValue: string;
+  onSearchChange: (value: string) => void;
+  itemTypeFilter: string;
+  onItemTypeFilterChange: (value: string) => void;
+  rarityFilter: string;
+  onRarityFilterChange: (value: string) => void;
+  priceRange: { min: number; max: number };
+  onPriceRangeChange: (range: { min: number; max: number }) => void;
+  sortValue: string;
+  onSortChange: (value: string) => void;
 }
 
-const createColumns = (
-  rarityColors: Record<ItemRarity, string>
-): ColumnDef<GroupedMarketplaceItem>[] => [
-  {
-    id: "item",
-    header: ({ column }) => (
-      <Button
-        variant="ghost"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        className="flex items-center gap-2"
-      >
-        Item
-        {column.getIsSorted() === "asc" ? (
-          <SortAsc className="h-4 w-4" />
-        ) : column.getIsSorted() === "desc" ? (
-          <SortDesc className="h-4 w-4" />
-        ) : (
-          <ArrowUpDown className="h-4 w-4" />
-        )}
-      </Button>
-    ),
-    accessorFn: (row) => row.itemName,
-    cell: ({ row }) => {
-      const rarity = row.original.lowestRarity;
-      return (
-        <div className="flex items-center gap-3">
-          <Image
-            src={row.original.sprite}
-            alt={row.original.itemName}
-            width={56}
-            height={56}
-          />
-          <div>
-            <div
-              className={`font-medium ${getRarityTailwindClass(
-                rarity,
-                rarityColors[rarity],
-                "text"
-              )}`}
-            >
-              {row.original.itemName}
-            </div>
-            <div className="text-xs text-muted-foreground">
-              {row.original.totalListings} listing
-              {row.original.totalListings !== 1 ? "s" : ""}
-            </div>
-          </div>
-        </div>
-      );
-    },
-  },
-  {
-    id: "priceRange",
-    header: ({ column }) => (
-      //   <Button
-      //     variant="ghost"
-      //     onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-      //     className="flex items-center gap-2"
-      //   >
-      //     Price Range
-      //     {column.getIsSorted() === "asc" ? (
-      //       <SortAsc className="h-4 w-4" />
-      //     ) : column.getIsSorted() === "desc" ? (
-      //       <SortDesc className="h-4 w-4" />
-      //     ) : (
-      //       <ArrowUpDown className="h-4 w-4" />
-      //     )}
-      //   </Button>
-      <></>
-    ),
-    accessorFn: (row) => row.minPrice,
-    cell: ({ row }) => {
-      const { minPrice, maxPrice } = row.original;
-      return (
-        <div className="flex items-center justify-end gap-2 font-semibold text-yellow-600">
-          {minPrice === maxPrice ? (
-            <span>
-              <CoinsIcon /> {minPrice.toLocaleString()}
-            </span>
-          ) : (
-            <span>
-              <CoinsIcon /> {minPrice.toLocaleString()} - <CoinsIcon />{" "}
-              {maxPrice.toLocaleString()}{" "}
-            </span>
-          )}
-        </div>
-      );
-    },
-  },
-];
+function labelEnum(value: string) {
+  return value.toLowerCase().replaceAll("_", " ");
+}
 
-export function MarketplaceDataTable({
-  data,
-  onBuyItem,
-  onFetchItemListings,
-  isLoading = false,
-  currentUserId,
-  searchValue: controlledSearchValue,
+function Filters({
+  filterOptions,
+  searchValue,
   onSearchChange,
-  equipToFilter: controlledEquipTo,
-  onEquipToFilterChange,
-  rarityFilter: controlledRarity,
+  itemTypeFilter,
+  onItemTypeFilterChange,
+  rarityFilter,
   onRarityFilterChange,
-  priceRange: controlledPriceRange,
+  priceRange,
   onPriceRangeChange,
-}: DataTableProps) {
-  const { colors: rarityColors } = useRarityColors();
-  const [sorting, setSorting] = useState<SortingState>([]);
-  const [internalSearchValue, setInternalSearchValue] = useState("");
-  const [internalEquipTo, setInternalEquipTo] = useState<string>("all");
-  const [internalRarity, setInternalRarity] = useState<string>("all");
-  const [internalPriceRange, setInternalPriceRange] = useState<{
-    min: number;
-    max: number;
-  }>({
-    min: 0,
-    max: 100000,
-  });
-
-  // Dialog states
-  const [selectedGroup, setSelectedGroup] =
-    useState<GroupedMarketplaceItem | null>(null);
-  const [selectedListing, setSelectedListing] =
-    useState<MarketplaceListing | null>(null);
-  const [purchaseQuantity, setPurchaseQuantity] = useState(1);
-
-  // Pagination state for listings
-  const [paginatedListings, setPaginatedListings] = useState<
-    MarketplaceListing[]
-  >([]);
-  const [hasMoreListings, setHasMoreListings] = useState(true);
-  const [isLoadingListings, setIsLoadingListings] = useState(false);
-  const [selectedRarity, setSelectedRarity] = useState<string | null>(null);
-  const [availableRarities, setAvailableRarities] = useState<string[]>([]);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const listingsScrollRef = useRef<HTMLDivElement>(null);
-
-  // Refs to track state in scroll handler
-  const isLoadingRef = useRef(false);
-  const hasMoreRef = useRef(true);
-  const nextCursorRef = useRef<string | null>(null);
-
-  // Keep refs in sync with state
-  useEffect(() => {
-    isLoadingRef.current = isLoadingListings;
-  }, [isLoadingListings]);
-
-  useEffect(() => {
-    hasMoreRef.current = hasMoreListings;
-  }, [hasMoreListings]);
-
-  useEffect(() => {
-    nextCursorRef.current = nextCursor;
-  }, [nextCursor]);
-
-  // Use controlled values if provided, otherwise fall back to internal state
-  const searchValue = controlledSearchValue ?? internalSearchValue;
-  const equipToFilter = controlledEquipTo ?? internalEquipTo;
-  const rarityFilter = controlledRarity ?? internalRarity;
-  const priceRange = controlledPriceRange ?? internalPriceRange;
-
-  const handleRowClick = async (group: GroupedMarketplaceItem) => {
-    setPaginatedListings([]);
-    setHasMoreListings(true);
-    hasMoreRef.current = true;
-    setSelectedGroup(group);
-    setSelectedRarity(null); // Reset rarity filter
-    setAvailableRarities([]); // Will be populated from API response
-    setNextCursor(null);
-    nextCursorRef.current = null;
-
-    if (onFetchItemListings) {
-      isLoadingRef.current = true;
-      setIsLoadingListings(true);
-      try {
-        const result = await onFetchItemListings(group.itemTemplateId, null);
-
-        setPaginatedListings(result.listings);
-        setHasMoreListings(result.hasMore);
-        hasMoreRef.current = result.hasMore;
-        setNextCursor(result.nextCursor);
-        nextCursorRef.current = result.nextCursor;
-        
-        // Capture available rarities from first page response
-        if (result.availableRarities) {
-          setAvailableRarities(result.availableRarities);
-        }
-      } catch (error) {
-        console.error("Error fetching listings:", error);
-      } finally {
-        setIsLoadingListings(false);
-        isLoadingRef.current = false;
-      }
-    } else {
-      // If the API fetcher isn't provided, we can't load listings.
-      setPaginatedListings([]);
-      setHasMoreListings(false);
-    }
-  };
-
-  const handleListingClick = (listing: MarketplaceListing) => {
-    setSelectedListing(listing);
-    setPurchaseQuantity(1);
-  };
-
-  const loadMoreListings = async () => {
-    if (
-      !selectedGroup ||
-      isLoadingRef.current ||
-      !hasMoreRef.current ||
-      !nextCursorRef.current
-    ) {
-      return;
-    }
-
-    if (onFetchItemListings) {
-      isLoadingRef.current = true;
-      setIsLoadingListings(true);
-      try {
-        const result = await onFetchItemListings(
-          selectedGroup.itemTemplateId,
-          nextCursorRef.current,
-          selectedRarity ?? undefined,
-        );
-        setPaginatedListings((prev) => [...prev, ...result.listings]);
-        setHasMoreListings(result.hasMore);
-        hasMoreRef.current = result.hasMore;
-        setNextCursor(result.nextCursor);
-        nextCursorRef.current = result.nextCursor;
-      } catch (error) {
-        console.error("Error loading more listings:", error);
-      } finally {
-        setIsLoadingListings(false);
-        isLoadingRef.current = false;
-      }
-    } else {
-      // No-op without API fetcher.
-    }
-  };
-
-  const handleRaritySelect = async (rarity: string | null) => {
-    if (!selectedGroup) return;
-    
-    setSelectedRarity(rarity);
-    setPaginatedListings([]);
-    setHasMoreListings(true);
-    hasMoreRef.current = true;
-    setNextCursor(null);
-    nextCursorRef.current = null;
-
-    if (onFetchItemListings) {
-      isLoadingRef.current = true;
-      setIsLoadingListings(true);
-      try {
-        const result = await onFetchItemListings(
-          selectedGroup.itemTemplateId,
-          null,
-          rarity ?? undefined,
-        );
-        setPaginatedListings(result.listings);
-        setHasMoreListings(result.hasMore);
-        hasMoreRef.current = result.hasMore;
-        setNextCursor(result.nextCursor);
-        nextCursorRef.current = result.nextCursor;
-      } catch (error) {
-        console.error("Error fetching filtered listings:", error);
-      } finally {
-        setIsLoadingListings(false);
-        isLoadingRef.current = false;
-      }
-    } else {
-      // No-op without API fetcher.
-    }
-  };
-
-  // Attach scroll listener to load more listings
-  useEffect(() => {
-    // Only attach listener when dialog is open
-    if (!selectedGroup) return;
-
-    const timeoutId = setTimeout(() => {
-      const scrollContainer = listingsScrollRef.current;
-      if (!scrollContainer) {
-        return;
-      }
-
-      const handleScroll = () => {
-        const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
-        const isNearBottom = scrollHeight - (scrollTop + clientHeight) < 50;
-
-        if (isLoadingRef.current || !hasMoreRef.current) {
-          return;
-        }
-
-        if (isNearBottom) {
-          void loadMoreListings();
-        }
-      };
-
-      scrollContainer.addEventListener("scroll", handleScroll);
-
-      return () => {
-        scrollContainer.removeEventListener("scroll", handleScroll);
-      };
-    }, 100);
-
-    return () => clearTimeout(timeoutId);
-  }, [selectedGroup]);
-
-  const handlePurchase = () => {
-    if (selectedListing) {
-      onBuyItem({
-        id: selectedListing.id,
-        name: selectedListing.itemTemplate.name,
-        price: selectedListing.listedPrice ?? 0,
-      });
-      setSelectedListing(null);
-      setSelectedGroup(null);
-    }
-  };
-
-  const columns = useMemo(() => createColumns(rarityColors), [rarityColors]);
-
-  const table = useReactTable({
-    data,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    state: {
-      sorting,
-    },
-    onSortingChange: setSorting,
-    meta: {
-      currentUserId,
-    },
-  });
-
-  const tableRef = useRef<HTMLTableElement>(null);
-
-  const rows = table.getRowModel().rows;
-  const rowVirtualizer = useVirtualizer({
-    count: rows.length,
-    getScrollElement: () => tableRef.current?.parentElement as HTMLElement | null,
-    estimateSize: () => 64,
-    overscan: 10,
-  });
-
-  const virtualItems = rowVirtualizer.getVirtualItems();
-  const totalSize = rowVirtualizer.getTotalSize();
-  const paddingTop = virtualItems.length > 0 ? virtualItems[0]!.start : 0;
-  const paddingBottom =
-    virtualItems.length > 0
-      ? totalSize - virtualItems[virtualItems.length - 1]!.end
-      : 0;
-
-  const equipToOptions = useMemo(() => {
-    const unique = new Set(
-      data.map((item) => item.equipTo).filter(Boolean),
-    );
-    return Array.from(unique).sort();
-  }, [data]);
-
-  const rarities = useMemo(() => {
-    const unique = new Set<string>();
-    return Array.from(unique).sort();
-  }, [data]);
-
-  const resetFilters = () => {
-    if (onSearchChange) onSearchChange("");
-    else setInternalSearchValue("");
-
-    if (onEquipToFilterChange) onEquipToFilterChange("all");
-    else setInternalEquipTo("all");
-
-    if (onRarityFilterChange) onRarityFilterChange("all");
-    else setInternalRarity("all");
-
-    if (onPriceRangeChange) onPriceRangeChange({ min: 0, max: 100000 });
-    else setInternalPriceRange({ min: 0, max: 100000 });
-
-    setSorting([]);
-  };
-
-  const hasActiveFilters =
-    !!searchValue ||
-    equipToFilter !== "all" ||
+  sortValue,
+  onSortChange,
+  vertical = false,
+}: Omit<DataTableProps, "data" | "isLoading" | "currentUserId"> & {
+  vertical?: boolean;
+}) {
+  const hasFilters =
+    searchValue.length > 0 ||
+    itemTypeFilter !== "all" ||
     rarityFilter !== "all" ||
-    sorting.length > 0;
+    priceRange.min > 0 ||
+    priceRange.max < MARKET_DEFAULT_MAX_PRICE ||
+    sortValue !== "price-asc";
+
+  const reset = () => {
+    onSearchChange("");
+    onItemTypeFilterChange("all");
+    onRarityFilterChange("all");
+    onPriceRangeChange({ min: 0, max: MARKET_DEFAULT_MAX_PRICE });
+    onSortChange("price-asc");
+  };
 
   return (
-    <>
-      <div className="flex gap-6">
-        {/* Table */}
-        <div className="relative flex-1 overflow-hidden rounded-lg border">
-          <div className="relative w-full overflow-auto max-h-[70vh]">
-            <table
-              ref={tableRef}
-              className="w-full caption-bottom text-sm"
-            >
-              <TableHeader>
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                      <TableHead key={header.id} className="font-semibold">
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext(),
-                            )}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableHeader>
-
-              {/* Virtualized rows */}
-              <TableBody>
-                {paddingTop > 0 && (
-                  <TableRow>
-                    <TableCell
-                      colSpan={columns.length}
-                      style={{ height: paddingTop }}
-                      className="p-0"
-                    />
-                  </TableRow>
-                )}
-
-                {rows.length > 0
-                  ? virtualItems.map((virtualRow) => {
-                      const row = rows[virtualRow.index]!;
-                      const idx = virtualRow.index;
-                      return (
-                        <TableRow
-                          key={row.id}
-                          onClick={() => {
-                            void handleRowClick(row.original);
-                          }}
-                          className={`${idx % 2 === 0 ? "bg-muted/5" : "bg-transparent"} cursor-pointer border-none text-white hover:bg-muted/10`}
-                        >
-                          {row.getVisibleCells().map((cell) => (
-                            <TableCell key={cell.id} className="text-white">
-                              {flexRender(
-                                cell.column.columnDef.cell,
-                                cell.getContext(),
-                              )}
-                            </TableCell>
-                          ))}
-                        </TableRow>
-                      );
-                    })
-                  : null}
-
-                {paddingBottom > 0 && (
-                  <TableRow>
-                    <TableCell
-                      colSpan={columns.length}
-                      style={{ height: paddingBottom }}
-                      className="p-0"
-                    />
-                  </TableRow>
-                )}
-              </TableBody>
-
-              {/* Loading skeleton rows */}
-              {isLoading && (
-                <tbody>
-                  {Array.from({ length: 8 }).map((_, i) => (
-                    <TableRow
-                      key={`skeleton-${i}`}
-                      className={`${i % 2 === 0 ? "bg-muted/5" : "bg-transparent"} border-none`}
-                    >
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Skeleton className="h-14 w-14 rounded" />
-                          <div className="space-y-2">
-                            <Skeleton className="h-5 w-32" />
-                            <Skeleton className="h-3 w-20" />
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Skeleton className="h-5 w-40" />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </tbody>
-              )}
-            </table>
-          </div>
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-sm font-semibold">
+          <SlidersHorizontal className="h-4 w-4 text-primary" /> Filters
         </div>
-
-        <div className="max-w-md">
-          {/* Search and Filter Controls */}
-          <div className="space-y-4">
-            {/* Search Bar */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-muted-foreground" />
-              <Input
-                placeholder="Search items by name..."
-                value={searchValue}
-                onChange={(e) =>
-                  onSearchChange
-                    ? onSearchChange(e.target.value)
-                    : setInternalSearchValue(e.target.value)
-                }
-                className="indent-5"
-              />
-            </div>
-
-            {/* Filter Row */}
-            <div className="flex flex-col gap-3 md:flex-row">
-              <Select
-                value={equipToFilter}
-                onValueChange={(v) =>
-                  onEquipToFilterChange
-                    ? onEquipToFilterChange(v)
-                    : setInternalEquipTo(v)
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="All Types" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  {equipToOptions.map((equipTo) => (
-                    <SelectItem key={equipTo} value={equipTo ?? "consumable"}>
-                      {equipTo ?? "Consumable"}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select
-                value={rarityFilter}
-                onValueChange={(v) =>
-                  onRarityFilterChange
-                    ? onRarityFilterChange(v)
-                    : setInternalRarity(v)
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="All Rarities" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Rarities</SelectItem>
-                  {rarities.map((rarity) => (
-                    <SelectItem key={rarity} value={rarity}>
-                      {rarity}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <ItemFilters
-                priceRange={priceRange}
-                onPriceRangeChange={(r) =>
-                  onPriceRangeChange
-                    ? onPriceRangeChange(r)
-                    : setInternalPriceRange(r)
-                }
-              />
-            </div>
-            {hasActiveFilters && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={resetFilters}
-                className="ml-auto flex gap-2"
-              >
-                <X className="h-4 w-4" />
-                Reset Filters
-              </Button>
-            )}
-          </div>
-
-          {/* Results Count */}
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>
-              Showing {table.getRowModel().rows.length} items
-            </span>
-            {isLoading && (
-              <span className="text-xs italic">Loading listings...</span>
-            )}
-          </div>
+        {hasFilters && (
+          <Button variant="ghost" size="sm" onClick={reset} className="gap-1">
+            <X className="h-3.5 w-3.5" /> Reset
+          </Button>
+        )}
+      </div>
+      <div
+        className={
+          vertical ? "space-y-3" : "grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
+        }
+      >
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            aria-label="Search marketplace"
+            placeholder="Search the exchange…"
+            value={searchValue}
+            onChange={(event) => onSearchChange(event.target.value)}
+            className="pl-9"
+          />
         </div>
+        <Select value={itemTypeFilter} onValueChange={onItemTypeFilterChange}>
+          <SelectTrigger aria-label="Filter by item type">
+            <SelectValue placeholder="All item types" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All item types</SelectItem>
+            {(filterOptions?.itemTypes ?? []).map((itemType) => (
+              <SelectItem
+                key={itemType}
+                value={itemType}
+                className="capitalize"
+              >
+                {labelEnum(itemType)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={rarityFilter} onValueChange={onRarityFilterChange}>
+          <SelectTrigger aria-label="Filter by rarity">
+            <SelectValue placeholder="All rarities" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All rarities</SelectItem>
+            {(filterOptions?.rarities ?? []).map((rarity) => (
+              <SelectItem key={rarity} value={rarity} className="capitalize">
+                {labelEnum(rarity)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={sortValue} onValueChange={onSortChange}>
+          <SelectTrigger aria-label="Sort marketplace">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="price-asc">Lowest ask first</SelectItem>
+            <SelectItem value="price-desc">Highest ask first</SelectItem>
+            <SelectItem value="supply-desc">Most supply</SelectItem>
+            <SelectItem value="listings-desc">Most listings</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <ItemFilters
+        priceRange={priceRange}
+        onPriceRangeChange={onPriceRangeChange}
+      />
+      {(priceRange.min > 0 || priceRange.max < MARKET_DEFAULT_MAX_PRICE) && (
+        <p className="text-xs text-muted-foreground">
+          Unit price: {priceRange.min.toLocaleString()}–
+          {priceRange.max.toLocaleString()} gold
+        </p>
+      )}
+    </div>
+  );
+}
+
+export function MarketplaceDataTable(props: DataTableProps) {
+  const { data, isLoading = false, currentUserId } = props;
+  const [selected, setSelected] = useState<MarketplaceGroupedItem | null>(null);
+  const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
+
+  useEffect(() => {
+    if (data.length === 0) {
+      setSelected(null);
+      return;
+    }
+    setSelected((current) =>
+      current &&
+      data.some(
+        (row) =>
+          row.itemTemplateId === current.itemTemplateId &&
+          row.rarity === current.rarity,
+      )
+        ? current
+        : data[0]!,
+    );
+  }, [data]);
+
+  const choose = (row: MarketplaceGroupedItem) => {
+    setSelected(row);
+    if (window.matchMedia("(max-width: 1023px)").matches) {
+      setMobileDetailOpen(true);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="game-panel p-4 xl:hidden">
+        <Filters {...props} />
       </div>
 
-      {/* Listings Dialog */}
-      <Dialog
-        open={!!selectedGroup}
-        onOpenChange={(open) => !open && setSelectedGroup(null)}
-      >
-        <DialogContent className="max-w-sm px-0 pb-0">
-          <DialogHeader>
-            <DialogTitle className="flex items-center justify-center gap-3">
-              {selectedGroup && (
-                <div className="flex flex-col items-center justify-center gap-2">
-                  {/* <SingleItemTemplate
-                    item={{
-                      ...selectedGroup.listings[0]!.itemTemplate,
-                      id: selectedGroup.listings[0]!.id,
-                      itemId: selectedGroup.listings[0]!.itemTemplate.id,
-                      rarity: selectedGroup.listings[0]!.rarity,
-                      stats: selectedGroup.listings[0]!.stats.map((stat) => ({
-                        id: stat.id,
-                        itemId: selectedGroup.listings[0]!.itemTemplate.id,
-                        statType: stat.statType,
-                        value: stat.value,
-                      })),
-                    }}
-                    sprite={selectedGroup.sprite}
-                    showEquipButton={false}
-                    showUnequipButton={false}
-                    showListButton={false}
-                    className="w-16 h-16"
-                  /> */}
-                  <Image
-                    src={selectedGroup.sprite}
-                    alt={selectedGroup.itemName}
-                    width={60}
-                    height={60}
-                  />
-                  <h3 className="text-sm">{selectedGroup.itemName}</h3>
-                </div>
-              )}
-            </DialogTitle>
-            <DialogDescription className="text-center text-xs text-muted-foreground">
-              {selectedGroup?.totalListings} listing
-              {selectedGroup?.totalListings !== 1 ? "s" : ""} available
-            </DialogDescription>
-          </DialogHeader>
+      <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(340px,0.9fr)] xl:grid-cols-[240px_minmax(420px,1fr)_minmax(350px,0.82fr)]">
+        <aside
+          className="game-panel hidden h-fit p-4 xl:block"
+          aria-label="Marketplace filters"
+        >
+          <Filters {...props} vertical />
+        </aside>
 
-          <Separator className="text-xs font-semibold text-gray-400">
-            FILTERS
-          </Separator>
-
-          {/* Rarity Filter Badges */}
-          {availableRarities.length > 0 && (
-            <div className="flex flex-wrap justify-center items-center gap-2 px-2">
-              <Badge
-                variant={selectedRarity === null ? "default" : "outline"}
-                className="cursor-pointer"
-                onClick={() => handleRaritySelect(null)}
-              >
-                All
-              </Badge>
-              {availableRarities.map((rarity) => {
-                const hexColor = rarityColors[rarity as keyof typeof rarityColors];
-                return (
-                  <Badge
-                    key={rarity}
-                    variant={selectedRarity === rarity ? "default" : "outline"}
-                    className="cursor-pointer"
-                    style={{
-                      backgroundColor:
-                        selectedRarity === rarity
-                          ? hexColor
-                          : "transparent",
-                      borderColor: hexColor,
-                      color:
-                        selectedRarity === rarity ? "white" : hexColor,
-                    }}
-                    onClick={() => handleRaritySelect(rarity)}
-                  >
-                    {rarity}
-                  </Badge>
-                );
-              })}
+        <section
+          className="game-panel min-w-0 overflow-hidden"
+          aria-label="Market results"
+        >
+          <div className="flex items-center justify-between border-b border-border px-4 py-3">
+            <div>
+              <h2 className="game-section-title">Goods for sale</h2>
+              <p className="text-xs text-muted-foreground">
+                One row per item and rarity · prices are per unit
+              </p>
             </div>
-          )}
+            <span className="text-xs tabular-nums text-muted-foreground">
+              {data.length} markets
+            </span>
+          </div>
 
-          <Separator className="text-xs font-semibold text-gray-400">
-            LISTINGS
-          </Separator>
+          <div className="hidden grid-cols-[minmax(0,1fr)_100px_88px_72px] gap-3 border-b border-border bg-surface-inset px-4 py-2 text-[11px] uppercase tracking-wide text-muted-foreground sm:grid">
+            <span>Item</span>
+            <span className="text-right">Lowest ask</span>
+            <span className="text-right">Supply</span>
+            <span className="text-right">24h sold</span>
+          </div>
 
-          <div
-            ref={listingsScrollRef}
-            className="h-[32vh] space-y-2 overflow-y-auto"
-          >
-            {paginatedListings.map((listing) => {
-              const isOwnListing = listing.user.id === currentUserId;
-              return (
-                <div
-                  key={listing.id}
-                  onClick={() => !isOwnListing && handleListingClick(listing)}
-                  className={`flex items-center justify-between border-b p-4 px-8 transition-colors ${
-                    isOwnListing
-                      ? "cursor-not-allowed opacity-50"
-                      : "cursor-pointer hover:bg-muted/10"
-                  }`}
-                >
-                  <div className="flex-1 text-sm">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{listing.quantity}x</span>
-                      <span
-                        className={`font-medium ${getRarityTailwindClass(listing.rarity, rarityColors[listing.rarity], "text")}`}
-                      >
-                        {listing.itemTemplate.name}
-                      </span>
-                      {/* <RarityBadge rarity={listing.rarity} className="text-[8px] px-1 h-4" /> */}
-                    </div>
-                    <Badge className="mt-1 bg-gray-700/60 text-xs font-medium text-gray-400 shadow-none">
-                      @{listing.user.name ?? "Unknown"}
-                    </Badge>
+          <div className="max-h-[68vh] overflow-y-auto">
+            {isLoading ? (
+              <div className="space-y-px">
+                {Array.from({ length: 7 }, (_, index) => (
+                  <div
+                    key={index}
+                    className="flex gap-3 border-b border-border p-3"
+                  >
+                    <Skeleton className="h-12 w-12" />
+                    <Skeleton className="h-12 flex-1" />
                   </div>
-                  <div className="text-right">
-                    <div className="text-sm font-semibold text-yellow-600">
-                      {listing.listedPrice?.toLocaleString() ?? "0"}{" "}
-                      <CoinsIcon size={18} />
-                    </div>
-                    {isOwnListing && (
-                      <div className="text-xs text-muted-foreground">
-                        Your listing
+                ))}
+              </div>
+            ) : data.length > 0 ? (
+              data.map((row) => {
+                const active =
+                  selected?.itemTemplateId === row.itemTemplateId &&
+                  selected.rarity === row.rarity;
+                return (
+                  <div
+                    key={`${row.itemTemplateId}:${row.rarity}`}
+                    className={`game-stretched-row grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border px-3 py-3 text-left transition-colors last:border-b-0 sm:grid-cols-[minmax(0,1fr)_100px_88px_72px] ${active ? "bg-primary/10 shadow-[inset_3px_0_0_hsl(var(--primary))]" : "hover:bg-secondary/50"}`}
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <ItemArtwork
+                        src={row.sprite}
+                        name={row.itemName}
+                        rarity={row.rarity}
+                        size={48}
+                        itemId={row.itemTemplateId}
+                      />
+                      <div className="min-w-0">
+                        <button
+                          type="button"
+                          onClick={() => choose(row)}
+                          aria-pressed={active}
+                          className="game-stretched-action block w-full truncate font-semibold"
+                        >
+                          {row.itemName}
+                        </button>
+                        <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                          <RarityBadge rarity={row.rarity} />
+                          <span className="text-[11px] text-muted-foreground sm:hidden">
+                            {row.totalUnits} for sale · {row.volume24h} sold 24h
+                          </span>
+                        </div>
                       </div>
-                    )}
+                    </div>
+                    <span className="text-right font-semibold tabular-nums text-currency">
+                      <CoinsIcon size={14} /> {row.minPrice.toLocaleString()}
+                      <span className="block text-[10px] font-normal text-muted-foreground sm:hidden">
+                        each
+                      </span>
+                    </span>
+                    <span className="hidden text-right text-sm tabular-nums sm:block">
+                      {row.totalUnits.toLocaleString()}
+                      <span className="block text-[10px] text-muted-foreground">
+                        {row.totalListings} offers
+                      </span>
+                    </span>
+                    <span className="hidden text-right text-sm tabular-nums sm:block">
+                      {row.volume24h.toLocaleString()}
+                    </span>
                   </div>
-                </div>
-              );
-            })}
-
-            {/* Loading indicator */}
-            {isLoadingListings && (
-              <div className="flex justify-center py-4">
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                );
+              })
+            ) : (
+              <div className="game-empty-state m-4">
+                <PackageOpen className="mx-auto mb-3 h-7 w-7" />
+                <p className="font-medium text-foreground">
+                  No matching offers
+                </p>
+                <p className="mt-1 text-sm">
+                  Try widening the price range or clearing a filter.
+                </p>
               </div>
             )}
-
-            {/* End of list indicator */}
-            {!isLoadingListings &&
-              hasMoreListings &&
-              paginatedListings.length > 0 && (
-                <div className="flex justify-center py-4 text-xs text-muted-foreground">
-                  Scroll for more...
-                </div>
-              )}
-
           </div>
-        </DialogContent>
-      </Dialog>
+        </section>
 
-      {/* Purchase Quantity Dialog */}
-      <Dialog
-        open={!!selectedListing}
-        onOpenChange={(open) => !open && setSelectedListing(null)}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Purchase Item</DialogTitle>
-            <DialogDescription>
-              Select the quantity you want to purchase
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedListing && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 rounded-lg border p-4">
-                <SingleItemTemplate
-                  item={{
-                    ...selectedListing.itemTemplate,
-                    id: selectedListing.id,
-                    itemId: selectedListing.itemTemplate.id,
-                    rarity: selectedListing.rarity,
-                    stats: selectedListing.stats.map((stat) => ({
-                      id: stat.id,
-                      itemId: selectedListing.itemTemplate.id,
-                      statType: stat.statType,
-                      value: stat.value,
-                    })),
-                  }}
-                  sprite={selectedListing.itemTemplate.sprite}
-                  showEquipButton={false}
-                  showUnequipButton={false}
-                  showListButton={false}
-                />
-                <div className="flex-1">
-                  <div
-                    className={`font-medium ${getRarityTailwindClass(selectedListing.rarity, rarityColors[selectedListing.rarity], "text")}`}
-                  >
-                    {selectedListing.itemTemplate.name}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    @{selectedListing.user.name ?? "Unknown"}
-                  </div>
-                  <div className="mt-1 text-sm">
-                    Available: {selectedListing.quantity}
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Quantity</label>
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() =>
-                      setPurchaseQuantity(Math.max(1, purchaseQuantity - 1))
-                    }
-                    disabled={purchaseQuantity <= 1}
-                  >
-                    -
-                  </Button>
-                  <Input
-                    type="number"
-                    min={1}
-                    max={selectedListing.quantity}
-                    value={purchaseQuantity}
-                    onChange={(e) => {
-                      const parsed = Number.parseInt(e.target.value, 10);
-                      const val = Number.isFinite(parsed) ? parsed : 1;
-                      setPurchaseQuantity(
-                        Math.min(Math.max(1, val), selectedListing.quantity),
-                      );
-                    }}
-                    className="text-center"
-                  />
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() =>
-                      setPurchaseQuantity(
-                        Math.min(
-                          selectedListing.quantity,
-                          purchaseQuantity + 1,
-                        ),
-                      )
-                    }
-                    disabled={purchaseQuantity >= selectedListing.quantity}
-                  >
-                    +
-                  </Button>
-                </div>
-              </div>
-
-              <div className="rounded-lg bg-muted/20 p-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Price per item:</span>
-                  <span className="font-semibold text-yellow-600">
-                    {selectedListing.listedPrice?.toLocaleString() ?? "0"}{" "}
-                    <CoinsIcon />
-                  </span>
-                </div>
-                <div className="mt-2 flex items-center justify-between border-t pt-2">
-                  <span className="font-medium">Total:</span>
-                  <span className="text-lg font-bold text-yellow-600">
-                    {(
-                      (selectedListing.listedPrice ?? 0) * purchaseQuantity
-                    ).toLocaleString()}{" "}
-                    <CoinsIcon />
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => setSelectedListing(null)}
-                >
-                  Cancel
-                </Button>
-                <Button className="flex-1 gap-2" onClick={handlePurchase}>
-                  <ShoppingCart className="h-4 w-4" />
-                  Purchase
-                </Button>
-              </div>
+        <aside
+          className="game-panel hidden h-[70vh] min-h-[580px] min-w-0 overflow-hidden lg:sticky lg:top-24 lg:block"
+          aria-label="Selected market"
+        >
+          {selected ? (
+            <MarketDetailPanel
+              market={selected}
+              currentUserId={currentUserId}
+            />
+          ) : (
+            <div className="game-empty-state m-4">
+              <BarChart3 className="mx-auto mb-3 h-7 w-7" />
+              Select a market to inspect its offers and completed-sale metrics.
             </div>
           )}
-        </DialogContent>
-      </Dialog>
-    </>
+        </aside>
+
+      </div>
+
+      <Sheet open={mobileDetailOpen} onOpenChange={setMobileDetailOpen}>
+        <SheetContent
+          side="bottom"
+          className="h-[90dvh] overflow-hidden rounded-t-xl border-primary/30 p-0 lg:hidden"
+        >
+          <SheetHeader className="sr-only">
+            <SheetTitle>{selected?.itemName ?? "Market details"}</SheetTitle>
+            <SheetDescription>
+              Offers, prices, and trade actions.
+            </SheetDescription>
+          </SheetHeader>
+          {selected && (
+            <MarketDetailPanel
+              market={selected}
+              currentUserId={currentUserId}
+            />
+          )}
+        </SheetContent>
+      </Sheet>
+    </div>
   );
 }

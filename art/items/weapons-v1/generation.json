@@ -1,0 +1,22 @@
+{
+  "generator": "Built-in image_gen",
+  "generatedOn": "2026-09-17",
+  "pack": "weapons-v1",
+  "artDirection": "Wayfarer's Atlas",
+  "masterSize": "1254x1254 RGBA PNG",
+  "runtimeSize": "256x256 RGBA PNG",
+  "assets": [
+    { "slug": "wooden-sword", "master": "wooden-sword-master.png", "runtime": "/assets/items/weapons/wooden-sword.png", "generatedFile": "exec-17fd6058-f2c3-4530-8666-ce722a8659a8.png" },
+    { "slug": "wooden-dagger", "master": "wooden-dagger-master.png", "runtime": "/assets/items/weapons/wooden-dagger.png", "generatedFile": "exec-c137b593-fc35-45e3-b2dd-03915bd3e161.png" },
+    { "slug": "wooden-axe", "master": "wooden-axe-master.png", "runtime": "/assets/items/weapons/wooden-axe.png", "generatedFile": "exec-d3d846d4-e091-49e6-ad50-2da18ed01053.png" },
+    { "slug": "wooden-mace", "master": "wooden-mace-master.png", "runtime": "/assets/items/weapons/wooden-mace.png", "generatedFile": "exec-f34d42d5-491e-45e9-8e7b-a5e940eb97f2.png" },
+    { "slug": "bronze-spear", "master": "bronze-spear-master.png", "runtime": "/assets/items/weapons/bronze-spear.png", "generatedFile": "exec-ca484c61-9c5a-4665-afe6-a200f9c26627.png" },
+    { "slug": "iron-longsword", "master": "iron-longsword-master.png", "runtime": "/assets/items/weapons/iron-longsword.png", "generatedFile": "exec-c593d849-9946-45dd-8de9-efc4f21152cd.png" },
+    { "slug": "steel-warhammer", "master": "steel-warhammer-master.png", "runtime": "/assets/items/weapons/steel-warhammer.png", "generatedFile": "exec-b9959c1e-1c92-4ef3-93bc-f31fff9b7afe.png" },
+    { "slug": "ashwood-shortbow", "master": "ashwood-shortbow-master.png", "runtime": "/assets/items/weapons/ashwood-shortbow.png", "generatedFile": "exec-8c69fd74-de1a-4b17-8649-d018497dea7e.png" },
+    { "slug": "silver-rapier", "master": "silver-rapier-master.png", "runtime": "/assets/items/weapons/silver-rapier.png", "generatedFile": "exec-746deaca-8b02-4006-a682-8ab37a6c152b.png" },
+    { "slug": "cobalt-halberd", "master": "cobalt-halberd-master.png", "runtime": "/assets/items/weapons/cobalt-halberd.png", "generatedFile": "exec-9739a239-e304-4100-87a8-b5b45a796823.png" },
+    { "slug": "obsidian-greatsword", "master": "obsidian-greatsword-master.png", "runtime": "/assets/items/weapons/obsidian-greatsword.png", "generatedFile": "exec-44217e24-5b1f-4131-a1d7-fd67c96ab45f.png" },
+    { "slug": "emberwood-staff", "master": "emberwood-staff-master.png", "runtime": "/assets/items/weapons/emberwood-staff.png", "generatedFile": "exec-33bef9ec-b85b-4237-9f3f-d5ad8157ccee.png" }
+  ]
+}

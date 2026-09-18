@@ -22,7 +22,7 @@ export default async function AdminEditItemPage(props: {
       },
       statRarityOverrides: {
         orderBy: [{ rarity: "asc" }, { statType: "asc" }],
-        select: { statType: true, rarity: true, value: true },
+        select: { statType: true, rarity: true, kind: true, value: true },
       },
       toolEfficiencies: {
         orderBy: { actionType: "asc" },
@@ -31,6 +31,10 @@ export default async function AdminEditItemPage(props: {
       statProgressions: {
         orderBy: [{ unlocksAtRarity: "asc" }, { statType: "asc" }],
         select: { statType: true, baseValue: true, unlocksAtRarity: true },
+      },
+      foodEffectStats: {
+        orderBy: { statType: "asc" },
+        select: { statType: true, value: true },
       },
     },
   });
@@ -66,39 +70,48 @@ export default async function AdminEditItemPage(props: {
   ].join("\n");
 
   const statRarityOverridesCsv = [
-    "statType,rarity,value",
+    "statType,rarity,kind,value",
     ...(item.statRarityOverrides ?? []).map(
-      (o: any) => `${o.statType},${o.rarity},${o.value}`,
+      (o: any) => `${o.statType},${o.rarity},${o.kind},${o.value}`,
     ),
   ].join("\n");
 
-  const initialValues: React.ComponentProps<typeof ItemForm>["initialValues"] = {
-    name: item.name,
-    sprite: item.sprite,
-    description: item.description ?? "",
-    price: item.price,
-    rarity: item.rarity,
-    itemType: item.itemType,
-    seedGrowSeconds: item.seedGrowSeconds ?? null,
-    seedYieldItemId: item.seedYieldItemId ?? null,
-    seedYieldMin: item.seedYieldMin ?? null,
-    seedYieldMax: item.seedYieldMax ?? null,
-    seedHarvestSeconds: item.seedHarvestSeconds ?? null,
-    equipTo: item.equipTo,
-    stackable: item.stackable,
-    maxStackSize: item.maxStackSize,
-    flipNegativeStatsWithRarity: item.flipNegativeStatsWithRarity,
-    minPhysicalDamage: item.minPhysicalDamage,
-    maxPhysicalDamage: item.maxPhysicalDamage,
-    minMagicDamage: item.minMagicDamage,
-    maxMagicDamage: item.maxMagicDamage,
-    armor: item.armor,
-    requiredLevel: item.requiredLevel ?? 1,
-    baseStatsCsv,
-    toolEfficienciesCsv,
-    statProgressionsCsv,
-    statRarityOverridesCsv,
-  };
+  const foodEffectStatsCsv = [
+    "statType,value",
+    ...item.foodEffectStats.map((stat) => `${stat.statType},${stat.value}`),
+  ].join("\n");
+
+  const initialValues: React.ComponentProps<typeof ItemForm>["initialValues"] =
+    {
+      name: item.name,
+      sprite: item.sprite,
+      description: item.description ?? "",
+      price: item.price,
+      rarity: item.rarity,
+      itemType: item.itemType,
+      seedGrowSeconds: item.seedGrowSeconds ?? null,
+      seedYieldItemId: item.seedYieldItemId ?? null,
+      seedYieldMin: item.seedYieldMin ?? null,
+      seedYieldMax: item.seedYieldMax ?? null,
+      seedHarvestSeconds: item.seedHarvestSeconds ?? null,
+      seedXp: item.seedXp ?? null,
+      foodEffectSeconds: item.foodEffectSeconds ?? null,
+      equipTo: item.equipTo,
+      stackable: item.stackable,
+      maxStackSize: item.maxStackSize,
+      flipNegativeStatsWithRarity: item.flipNegativeStatsWithRarity,
+      minPhysicalDamage: item.minPhysicalDamage,
+      maxPhysicalDamage: item.maxPhysicalDamage,
+      minMagicDamage: item.minMagicDamage,
+      maxMagicDamage: item.maxMagicDamage,
+      armor: item.armor,
+      requiredLevel: item.requiredLevel ?? 1,
+      baseStatsCsv,
+      toolEfficienciesCsv,
+      statProgressionsCsv,
+      statRarityOverridesCsv,
+      foodEffectStatsCsv,
+    };
 
   return (
     <div className="space-y-6">

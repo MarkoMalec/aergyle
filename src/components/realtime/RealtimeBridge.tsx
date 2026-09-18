@@ -1,14 +1,17 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 import { useUserContext } from "~/context/userContext";
-import { inventoryQueryKeys } from "~/lib/query-keys";
+import { gardenQueryKeys, inventoryQueryKeys } from "~/lib/query-keys";
+import { applyItemChanges, refreshProgress } from "~/lib/player-sync";
 import { dispatchActiveActionEvent } from "~/components/game/actions/activeActionEvents";
-
-type ServerEvent =
-  | { type: "vocational_tick"; userId: string }
-  | { type: "inventory_changed"; userId: string };
+import { setRealtimeConnected } from "~/components/realtime/realtimeConnection";
+import {
+  ACTIVITY_STOP_MESSAGES,
+  type RealtimeServerEvent,
+} from "~/realtime/events";
 
 async function fetchRealtimeToken() {
   const res = await fetch("/api/realtime/token", {
@@ -36,6 +39,39 @@ export function RealtimeBridge() {
     if (!wsBase) return;
 
     let cancelled = false;
+    let hasConnected = false;
+
+    const handleEvent = (event: RealtimeServerEvent) => {
+      if (event.type === "activity_tick") {
+        applyItemChanges(
+          queryClient,
+          userId,
+          event.itemChanges,
+          event.newStacks,
+        );
+        refreshProgress(queryClient, userId, event.skill);
+        if (event.activity === "GARDEN") {
+          void queryClient.invalidateQueries({
+            queryKey: gardenQueryKeys.all(),
+          });
+        }
+        if (event.stopReason) {
+          const message = `${event.label}: ${ACTIVITY_STOP_MESSAGES[event.stopReason]}`;
+          if (event.stopReason === "COMPLETED") toast.success(message);
+          else toast.error(message);
+          // The activity ended server-side; let the header drop it.
+          dispatchActiveActionEvent({ kind: "changed" });
+        }
+        return;
+      }
+
+      // The hello on connect (or an older daemon's per-tick messages): items may have
+      // changed without details, so refetch them.
+      void queryClient.invalidateQueries({
+        queryKey: inventoryQueryKeys.byUser(userId),
+      });
+      refreshProgress(queryClient, userId);
+    };
 
     async function connect() {
       try {
@@ -48,16 +84,18 @@ export function RealtimeBridge() {
         const ws = new WebSocket(url.toString());
         wsRef.current = ws;
 
+        ws.onopen = () => {
+          setRealtimeConnected(true);
+          // After a reconnect, activities may have moved on while we weren't listening.
+          if (hasConnected) dispatchActiveActionEvent({ kind: "changed" });
+          hasConnected = true;
+        };
+
         ws.onmessage = (msg) => {
           try {
-            const data = JSON.parse(String(msg.data)) as ServerEvent;
+            const data = JSON.parse(String(msg.data)) as RealtimeServerEvent;
             if (!data || data.userId !== userId) return;
-
-            // Inventory changed; refresh inventory + active action status.
-            queryClient.invalidateQueries({
-              queryKey: inventoryQueryKeys.byUser(userId),
-            });
-            dispatchActiveActionEvent({ kind: "changed" });
+            handleEvent(data);
           } catch {
             // ignore
           }
@@ -65,6 +103,7 @@ export function RealtimeBridge() {
 
         ws.onclose = () => {
           wsRef.current = null;
+          setRealtimeConnected(false);
           if (cancelled) return;
 
           // Simple reconnect with backoff.
@@ -94,6 +133,7 @@ export function RealtimeBridge() {
 
     return () => {
       cancelled = true;
+      setRealtimeConnected(false);
       if (reconnectTimerRef.current) {
         window.clearTimeout(reconnectTimerRef.current);
         reconnectTimerRef.current = null;

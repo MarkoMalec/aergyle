@@ -4,22 +4,55 @@ import { prisma } from "~/lib/prisma";
 import { notFound } from "next/navigation";
 import SkillVocationalResources from "~/components/game/vocations/SkillVocationalResources";
 import Garden from "~/components/game/garden/Garden";
+import GatheringExpedition from "~/components/game/gathering/GatheringExpedition";
+import HuntingExpedition from "~/components/game/hunting/HuntingExpedition";
 import { getServerAuthSession } from "~/server/auth";
 import { toVocationalActionTypeFromSkillName } from "~/utils/vocations";
 import {
   computeEffectiveUnitSeconds,
   getToolEfficiencyForAction,
 } from "~/server/vocations/tools";
+import { getCraftingRule } from "~/game/crafting";
+
+// Recipe visibility and location availability are character-specific.
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 function isGatheringSkillParam(name: string) {
   return name.trim().toLowerCase() === "gathering";
 }
 
-export async function generateMetadata({ params }: { params: { name: string } }) {
+function isGardeningSkillParam(name: string) {
+  return name.trim().toLowerCase() === "gardening";
+}
+
+function isHuntingSkillParam(name: string) {
+  return name.trim().toLowerCase() === "hunting";
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: { name: string };
+}) {
+  if (isGardeningSkillParam(params.name)) {
+    return {
+      title: "Gardening",
+      description: "Plant seeds, wait for crops to grow, and harvest them.",
+    };
+  }
   if (isGatheringSkillParam(params.name)) {
     return {
       title: "Gathering",
-      description: "Gathering",
+      description:
+        "Send your character on expeditions for a varied resource haul.",
+    };
+  }
+  if (isHuntingSkillParam(params.name)) {
+    return {
+      title: "Hunting",
+      description:
+        "Track animals through local grounds and return with useful materials.",
     };
   }
 
@@ -41,18 +74,27 @@ export async function generateMetadata({ params }: { params: { name: string } })
   };
 }
 
-export async function generateStaticParams() {
-  const skills = await prisma.skills.findMany();
-  return skills.map((skill) => ({
-    name: skill.skill_name,
-  }));
-}
-
 const SkillPage = async ({ params }: { params: { name: string } }) => {
-  if (isGatheringSkillParam(params.name)) {
+  if (isGardeningSkillParam(params.name)) {
     return (
       <main className="space-y-6">
         <Garden />
+      </main>
+    );
+  }
+
+  if (isGatheringSkillParam(params.name)) {
+    return (
+      <main className="space-y-6">
+        <GatheringExpedition />
+      </main>
+    );
+  }
+
+  if (isHuntingSkillParam(params.name)) {
+    return (
+      <main className="space-y-6">
+        <HuntingExpedition />
       </main>
     );
   }
@@ -68,8 +110,10 @@ const SkillPage = async ({ params }: { params: { name: string } }) => {
   }
 
   const actionType = toVocationalActionTypeFromSkillName(skill.skill_name);
+  const craftingRule = actionType ? getCraftingRule(actionType) : null;
 
   const session = await getServerAuthSession();
+  const userId = session?.user?.id ?? null;
   const currentLocationId = session?.user?.id
     ? (
         await prisma.user.findUnique({
@@ -79,20 +123,39 @@ const SkillPage = async ({ params }: { params: { name: string } }) => {
       )?.currentLocationId ?? null
     : null;
 
+  const learnedRecipeItemIds =
+    userId && craftingRule?.allowsLearnedRecipes
+      ? (
+          await prisma.userLearnedRecipe.findMany({
+            where: { userId },
+            select: { recipeItemId: true },
+          })
+        ).map((recipe) => recipe.recipeItemId)
+      : [];
+
   const resources = actionType
     ? await prisma.vocationalResource.findMany({
-        where:
-          currentLocationId === null
-            ? { actionType }
+        where: {
+          actionType,
+          ...(currentLocationId === null
+            ? {}
             : {
-                actionType,
                 locations: {
                   some: {
                     locationId: currentLocationId,
                     enabled: true,
                   },
                 },
-              },
+              }),
+          ...(craftingRule?.allowsLearnedRecipes
+            ? {
+                OR: [
+                  { requiredRecipeItemId: null },
+                  { requiredRecipeItemId: { in: learnedRecipeItemIds } },
+                ],
+              }
+            : {}),
+        },
         select: {
           id: true,
           actionType: true,
@@ -101,11 +164,20 @@ const SkillPage = async ({ params }: { params: { name: string } }) => {
           defaultSeconds: true,
           yieldPerUnit: true,
           xpPerUnit: true,
-          item: { select: { sprite: true } },
+          rarity: true,
+          item: { select: { id: true, sprite: true, itemType: true } },
           requirements: {
             select: {
               quantityPerUnit: true,
-              item: { select: { id: true, name: true, sprite: true } },
+              item: {
+                select: {
+                  id: true,
+                  name: true,
+                  sprite: true,
+                  itemType: true,
+                  rarity: true,
+                },
+              },
             },
             orderBy: [{ id: "asc" }],
           },
@@ -114,7 +186,6 @@ const SkillPage = async ({ params }: { params: { name: string } }) => {
       })
     : [];
 
-  const userId = session?.user?.id ?? null;
   const appliedEfficiency =
     userId && actionType
       ? await getToolEfficiencyForAction(userId, actionType)
@@ -135,17 +206,13 @@ const SkillPage = async ({ params }: { params: { name: string } }) => {
 
   return (
     <main className="space-y-6">
-      {/* <div>
-        <h1 className="text-2xl font-semibold">{skill.skill_name}</h1>
-        {skill.description ? (
-          <p className="text-sm text-white/70">{skill.description}</p>
-        ) : null}
-      </div> */}
-
       {actionType ? (
-        <SkillVocationalResources resources={resourcesWithEfficiency} />
+        <SkillVocationalResources
+          resources={resourcesWithEfficiency}
+          actionType={actionType}
+        />
       ) : (
-        <div className="text-sm text-white/70">
+        <div className="text-sm text-muted-foreground">
           No vocational actions for this skill yet.
         </div>
       )}

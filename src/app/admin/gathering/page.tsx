@@ -1,131 +1,153 @@
 import Link from "next/link";
-import React from "react";
-import Image from "next/image";
+import { ItemRarity, VocationalActionType } from "~/generated/prisma/enums";
+import { GatheringAdminClient } from "~/components/admin/gathering/GatheringAdminClient";
 import { prisma } from "~/lib/prisma";
-import { ItemType } from "~/generated/prisma/enums";
-import { GatheringSeedsTableClient } from "~/components/admin/gathering/GatheringSeedsTableClient";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function AdminGatheringPage() {
-  const seeds = await prisma.item.findMany({
-    where: { itemType: ItemType.SEED },
-    orderBy: { name: "asc" },
-    select: {
-      id: true,
-      name: true,
-      sprite: true,
-      seedGrowSeconds: true,
-      seedHarvestSeconds: true,
-      seedYieldItemId: true,
-      seedYieldMin: true,
-      seedYieldMax: true,
-      seedYieldItem: { select: { id: true, name: true, sprite: true } },
-    },
-  });
+  const [locations, resources, assignments, durations, rarityConfigs] =
+    await Promise.all([
+      prisma.location.findMany({ orderBy: { name: "asc" } }),
+      prisma.vocationalResource.findMany({
+        where: { actionType: VocationalActionType.GATHERING },
+        orderBy: [{ requiredSkillLevel: "asc" }, { name: "asc" }],
+        select: {
+          id: true,
+          name: true,
+          itemId: true,
+          requiredSkillLevel: true,
+          rarity: true,
+          item: { select: { name: true, sprite: true } },
+        },
+      }),
+      prisma.locationVocationalResource.findMany({
+        where: {
+          resource: { actionType: VocationalActionType.GATHERING },
+        },
+        select: {
+          locationId: true,
+          resourceId: true,
+          enabled: true,
+          gatheringBaseChance: true,
+          gatheringMinQuantity: true,
+          gatheringMaxQuantity: true,
+        },
+      }),
+      prisma.gatheringDuration.findMany({
+        orderBy: [{ sortOrder: "asc" }, { durationSeconds: "asc" }],
+      }),
+      prisma.rarityConfig.findMany({ orderBy: { sortOrder: "asc" } }),
+    ]);
 
-  const yieldedResources = new Map<
-    number,
-    { id: number; name: string; sprite: string; seedCount: number }
-  >();
-  for (const s of seeds) {
-    const yi = s.seedYieldItem;
-    if (!yi) continue;
-    const prev = yieldedResources.get(yi.id);
-    if (prev) prev.seedCount += 1;
-    else yieldedResources.set(yi.id, { ...yi, seedCount: 1 });
-  }
-
-  const resources = [...yieldedResources.values()].sort((a, b) =>
-    a.name.localeCompare(b.name),
+  const assignmentByKey = new Map(
+    assignments.map((assignment) => [
+      `${assignment.locationId}:${assignment.resourceId}`,
+      assignment,
+    ]),
   );
+  const locationRows = locations.map((location) => ({
+    id: location.id,
+    name: location.name,
+    requiredLevel: location.requiredLevel,
+    gatheringEnabled: location.gatheringEnabled,
+    gatheringRequiredLevel: location.gatheringRequiredLevel,
+    resources: resources.map((resource) => {
+      const assignment = assignmentByKey.get(`${location.id}:${resource.id}`);
+      return {
+        resourceId: resource.id,
+        enabled: assignment?.enabled ?? false,
+        baseChance: assignment?.gatheringBaseChance ?? 0.25,
+        minQuantity: assignment?.gatheringMinQuantity ?? 1,
+        maxQuantity: assignment?.gatheringMaxQuantity ?? 1,
+      };
+    }),
+  }));
 
-  const missingConfigCount = seeds.filter(
-    (s) =>
-      !s.seedGrowSeconds ||
-      !s.seedHarvestSeconds ||
-      !s.seedYieldItem ||
-      !s.seedYieldMin ||
-      !s.seedYieldMax ||
-      (typeof s.seedYieldMin === "number" &&
-        typeof s.seedYieldMax === "number" &&
-        s.seedYieldMax < s.seedYieldMin),
-  ).length;
+  const configuredRarities = new Map(
+    rarityConfigs.map((config) => [
+      config.rarity,
+      {
+        value: config.rarity,
+        label: config.displayName,
+        color: config.color,
+      },
+    ]),
+  );
+  const rarities = Object.values(ItemRarity).map(
+    (rarity) =>
+      configuredRarities.get(rarity) ?? {
+        value: rarity,
+        label: rarity
+          .toLowerCase()
+          .replaceAll("_", " ")
+          .replace(/^./, (letter) => letter.toUpperCase()),
+        color: "#ffffff",
+      },
+  );
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold">Gathering (Garden) Admin</h1>
-        <p className="mt-1 text-sm text-white/70">
-          Overview of seed items and their grow/harvest/yield configuration.
-        </p>
-        <p className="mt-1 text-sm text-white/70">Time fields are in seconds.</p>
-        <div className="mt-2 text-sm text-white/70">
-          Seeds: <span className="text-white">{seeds.length}</span>
-          {" · "}
-          Yield resources: <span className="text-white">{resources.length}</span>
-          {" · "}
-          Missing config: <span className="text-white">{missingConfigCount}</span>
+      <header className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">Gathering Admin</h1>
+          <p className="mt-1 max-w-3xl text-sm text-white/70">
+            Balance location availability, resource pools, find chances,
+            quantities, level gates, rarity, duration scaling, and rewards.
+          </p>
+          <p className="mt-2 text-xs text-white/50">
+            Player Luck, Gathering level, and active bonuses are applied by the
+            reward engine on top of these base values.
+          </p>
+        </div>
+        <Link
+          href="/skills/Gathering"
+          className="rounded-md border border-white/10 bg-gray-900/50 px-3 py-2 text-sm text-white/80 hover:bg-gray-800"
+        >
+          Open player page
+        </Link>
+      </header>
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="rounded-lg border border-white/10 bg-gray-900/35 p-3">
+          <div className="text-2xl font-semibold">{locations.length}</div>
+          <div className="text-xs text-white/50">World locations</div>
+        </div>
+        <div className="rounded-lg border border-white/10 bg-gray-900/35 p-3">
+          <div className="text-2xl font-semibold">
+            {locations.filter((location) => location.gatheringEnabled).length}
+          </div>
+          <div className="text-xs text-white/50">Gathering enabled</div>
+        </div>
+        <div className="rounded-lg border border-white/10 bg-gray-900/35 p-3">
+          <div className="text-2xl font-semibold">{resources.length}</div>
+          <div className="text-xs text-white/50">Gatherable resources</div>
+        </div>
+        <div className="rounded-lg border border-white/10 bg-gray-900/35 p-3">
+          <div className="text-2xl font-semibold">
+            {durations.filter((duration) => duration.enabled).length}
+          </div>
+          <div className="text-xs text-white/50">Active durations</div>
         </div>
       </div>
 
-      <div className="rounded-lg border border-gray-800/60 bg-gray-900/40 p-4">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <div className="text-sm font-semibold">Seeds</div>
-            <div className="mt-1 text-sm text-white/70">
-              Click a seed to open the full item editor. Use the pencil icons to
-              edit values inline.
-            </div>
-          </div>
-          <Link
-            href="/admin/items/new"
-            className="rounded-md bg-gray-800/70 px-3 py-2 text-sm text-white/90 hover:bg-gray-800"
-          >
-            New item
-          </Link>
-        </div>
-
-        <GatheringSeedsTableClient initialSeeds={seeds} />
-      </div>
-
-      <div className="rounded-lg border border-gray-800/60 bg-gray-900/40 p-4">
-        <div className="text-sm font-semibold">Yield resources</div>
-        <div className="mt-1 text-sm text-white/70">
-          Items that are yielded by at least one seed.
-        </div>
-
-        {resources.length === 0 ? (
-          <div className="mt-3 text-sm text-white/70">
-            No yield items configured yet.
-          </div>
-        ) : (
-          <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-2">
-            {resources.map((r) => (
-              <Link
-                key={r.id}
-                href={`/admin/items/${r.id}`}
-                className="flex items-center justify-between rounded-md border border-white/10 bg-gray-900/20 px-3 py-2 hover:bg-gray-900/40"
-              >
-                <span className="flex items-center gap-2">
-                  <Image
-                    src={r.sprite}
-                    alt=""
-                    width={24}
-                    height={24}
-                    className="h-6 w-6 object-contain"
-                  />
-                  <span className="text-sm font-medium text-white/90">
-                    {r.name}
-                  </span>
-                  <span className="text-sm text-white/50">#{r.id}</span>
-                </span>
-                <span className="text-sm text-white/70">
-                  used by {r.seedCount}
-                </span>
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
+      <GatheringAdminClient
+        locations={locationRows}
+        resources={resources}
+        durations={durations.map((duration) => ({
+          id: duration.id,
+          label: duration.label,
+          durationSeconds: duration.durationSeconds,
+          rewardRolls: duration.rewardRolls,
+          quantityMultiplier: Number(duration.quantityMultiplier),
+          xpReward: duration.xpReward,
+          requiredGatheringLevel: duration.requiredGatheringLevel,
+          enabled: duration.enabled,
+          sortOrder: duration.sortOrder,
+        }))}
+        rarities={rarities}
+      />
     </div>
   );
 }

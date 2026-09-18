@@ -1,0 +1,180 @@
+{
+  "generator": "Built-in image_gen",
+  "pack": "atlas-equipment-v1",
+  "artDirection": "Wayfarer's Atlas",
+  "assets": [
+    {
+      "slug": "trailwarden-jerkin",
+      "family": "trailwarden",
+      "master": "trailwarden-jerkin-master.png",
+      "prompt": "trailwarden-jerkin.prompt.txt",
+      "runtime": "/assets/items/armor/trailwarden-jerkin-atlas-v1.png",
+      "generatedFile": "exec-2654da78-78dd-41bc-b80e-56924033f329.png"
+    },
+    {
+      "slug": "duskwarden-cuirass",
+      "family": "duskwarden",
+      "master": "duskwarden-cuirass-master.png",
+      "prompt": "duskwarden-cuirass.prompt.txt",
+      "runtime": "/assets/items/armor/duskwarden-cuirass-atlas-v1.png",
+      "generatedFile": "exec-521c81cd-8ac8-4b2c-ab36-7eb658392b04.png"
+    },
+    {
+      "slug": "wayfarer-shortblade",
+      "family": "weapons",
+      "master": "wayfarer-shortblade-master.png",
+      "prompt": "wayfarer-shortblade.prompt.txt",
+      "runtime": "/assets/items/weapons/wayfarer-shortblade-atlas-v1.png",
+      "generatedFile": "exec-13343d12-3da7-4b72-bd36-7f3677a2c59e.png"
+    },
+    {
+      "slug": "trailwarden-helm",
+      "family": "trailwarden",
+      "master": "trailwarden-helm-master.png",
+      "prompt": "trailwarden-helm.prompt.txt",
+      "runtime": "/assets/items/armor/trailwarden-helm-atlas-v1.png",
+      "generatedFile": "exec-364deacf-47a5-465d-b045-73e4891fe797.png"
+    },
+    {
+      "slug": "trailwarden-pauldrons",
+      "family": "trailwarden",
+      "master": "trailwarden-pauldrons-master.png",
+      "prompt": "trailwarden-pauldrons.prompt.txt",
+      "runtime": "/assets/items/armor/trailwarden-pauldrons-atlas-v1.png",
+      "generatedFile": "exec-0af36a09-d878-4668-9235-79f89af3e847.png"
+    },
+    {
+      "slug": "trailwarden-bracers",
+      "family": "trailwarden",
+      "master": "trailwarden-bracers-master.png",
+      "prompt": "trailwarden-bracers.prompt.txt",
+      "runtime": "/assets/items/armor/trailwarden-bracers-atlas-v1.png",
+      "generatedFile": "exec-8ec92032-4d20-48b7-8e73-52ec164f4ad7.png"
+    },
+    {
+      "slug": "trailwarden-gloves",
+      "family": "trailwarden",
+      "master": "trailwarden-gloves-master.png",
+      "prompt": "trailwarden-gloves.prompt.txt",
+      "runtime": "/assets/items/armor/trailwarden-gloves-atlas-v1.png",
+      "generatedFile": "exec-c053efb3-d1da-49f4-8a01-82bc763097c8.png"
+    },
+    {
+      "slug": "trailwarden-belt",
+      "family": "trailwarden",
+      "master": "trailwarden-belt-master.png",
+      "prompt": "trailwarden-belt.prompt.txt",
+      "runtime": "/assets/items/armor/trailwarden-belt-atlas-v1.png",
+      "generatedFile": "exec-e226e565-70d4-4156-ba49-ba2827ffd56a.png"
+    },
+    {
+      "slug": "trailwarden-greaves",
+      "family": "trailwarden",
+      "master": "trailwarden-greaves-master.png",
+      "prompt": "trailwarden-greaves.prompt.txt",
+      "runtime": "/assets/items/armor/trailwarden-greaves-atlas-v1.png",
+      "generatedFile": "exec-557e265f-478b-444a-95d8-26bf0267e49b.png"
+    },
+    {
+      "slug": "trailwarden-boots",
+      "family": "trailwarden",
+      "master": "trailwarden-boots-master.png",
+      "prompt": "trailwarden-boots.prompt.txt",
+      "runtime": "/assets/items/armor/trailwarden-boots-atlas-v1.png",
+      "generatedFile": "exec-d5807a1c-d1ca-4aff-8acb-1812c293520a.png"
+    },
+    {
+      "slug": "duskwarden-helm",
+      "family": "duskwarden",
+      "master": "duskwarden-helm-master.png",
+      "prompt": "duskwarden-helm.prompt.txt",
+      "runtime": "/assets/items/armor/duskwarden-helm-atlas-v1.png",
+      "generatedFile": "exec-ec1f8668-77aa-4dd5-a884-f3cacc0e87f3.png"
+    },
+    {
+      "slug": "duskwarden-pauldrons",
+      "family": "duskwarden",
+      "master": "duskwarden-pauldrons-master.png",
+      "prompt": "duskwarden-pauldrons.prompt.txt",
+      "runtime": "/assets/items/armor/duskwarden-pauldrons-atlas-v1.png",
+      "generatedFile": "exec-0b4fd351-4e88-4d55-a6f3-c405478b318a.png"
+    },
+    {
+      "slug": "duskwarden-vambraces",
+      "family": "duskwarden",
+      "master": "duskwarden-vambraces-master.png",
+      "prompt": "duskwarden-vambraces.prompt.txt",
+      "runtime": "/assets/items/armor/duskwarden-vambraces-atlas-v1.png",
+      "generatedFile": "exec-c5529da2-19a3-4265-9a7a-45a9654b3f0d.png"
+    },
+    {
+      "slug": "duskwarden-gauntlets",
+      "family": "duskwarden",
+      "master": "duskwarden-gauntlets-master.png",
+      "prompt": "duskwarden-gauntlets.prompt.txt",
+      "runtime": "/assets/items/armor/duskwarden-gauntlets-atlas-v1.png",
+      "generatedFile": "exec-6fc58b1e-b6d4-46e8-8eaf-dda15b7776b9.png"
+    },
+    {
+      "slug": "duskwarden-girdle",
+      "family": "duskwarden",
+      "master": "duskwarden-girdle-master.png",
+      "prompt": "duskwarden-girdle.prompt.txt",
+      "runtime": "/assets/items/armor/duskwarden-girdle-atlas-v1.png",
+      "generatedFile": "exec-d5e6221c-3921-4806-8f8b-f79929aa2180.png"
+    },
+    {
+      "slug": "duskwarden-greaves",
+      "family": "duskwarden",
+      "master": "duskwarden-greaves-master.png",
+      "prompt": "duskwarden-greaves.prompt.txt",
+      "runtime": "/assets/items/armor/duskwarden-greaves-atlas-v1.png",
+      "generatedFile": "exec-cc57627a-c11a-43ae-84dc-b69664ed5422.png"
+    },
+    {
+      "slug": "duskwarden-sabatons",
+      "family": "duskwarden",
+      "master": "duskwarden-sabatons-master.png",
+      "prompt": "duskwarden-sabatons.prompt.txt",
+      "runtime": "/assets/items/armor/duskwarden-sabatons-atlas-v1.png",
+      "generatedFile": "exec-47120575-cf5e-4c4c-ae63-0dec18dda048.png"
+    },
+    {
+      "slug": "briarcleaver",
+      "family": "weapons",
+      "master": "briarcleaver-master.png",
+      "prompt": "briarcleaver.prompt.txt",
+      "runtime": "/assets/items/weapons/briarcleaver-atlas-v1.png",
+      "generatedFile": "exec-076c2ffa-9c1b-4c0c-961d-3e42f829b943.png"
+    },
+    {
+      "slug": "reedwind-bow",
+      "family": "weapons",
+      "master": "reedwind-bow-master.png",
+      "prompt": "reedwind-bow.prompt.txt",
+      "runtime": "/assets/items/weapons/reedwind-bow-atlas-v1.png",
+      "generatedFile": "exec-3ff46d16-bded-4a98-bb31-0428ed20879f.png"
+    },
+    {
+      "slug": "cindermaul",
+      "family": "weapons",
+      "master": "cindermaul-master.png",
+      "prompt": "cindermaul.prompt.txt",
+      "runtime": "/assets/items/weapons/cindermaul-atlas-v1.png",
+      "generatedFile": "exec-04353f0c-9c38-4ec3-aaff-ccf1a0df5743.png"
+    },
+    {
+      "slug": "duskglass-staff",
+      "family": "weapons",
+      "master": "duskglass-staff-master.png",
+      "prompt": "duskglass-staff.prompt.txt",
+      "runtime": "/assets/items/weapons/duskglass-staff-atlas-v1.png",
+      "generatedFile": "exec-0d383471-7452-4445-bf86-3d20994fb0d9.png"
+    }
+  ],
+  "notes": [
+    "One image per item; paired wearable pieces share one inventory sprite.",
+    "Seven earlier reference/edit outputs were rejected for painted checkerboard backgrounds. Final sprites were generated separately from the written family briefs.",
+    "Original generated masters are preserved; runtime PNGs are resized to 256×256 with alpha preserved."
+  ]
+}

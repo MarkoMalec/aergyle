@@ -8,6 +8,7 @@ export const revalidate = 0;
 
 const createSchema = z.object({
   name: z.string().min(1),
+  requiredLevel: z.number().int().min(1).max(500),
 });
 
 export async function GET(req: NextRequest) {
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const created = await prisma.location.create({
-      data: { name: parsed.data.name },
+      data: parsed.data,
     });
     return NextResponse.json(created);
   } catch {

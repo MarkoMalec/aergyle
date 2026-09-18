@@ -1,0 +1,3 @@
+ALTER TABLE `Location`
+ADD COLUMN `requiredLevel` INTEGER NOT NULL DEFAULT 1;
+
