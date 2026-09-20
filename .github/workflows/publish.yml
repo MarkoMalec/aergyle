@@ -7,6 +7,12 @@ name: publish
 on:
   push:
     branches: [main]
+    # Documentation-only commits do not change the image. GitHub skips the run
+    # only when *every* changed file matches, so a mixed commit still builds.
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - "LICENSE"
   workflow_dispatch:
     inputs:
       ws_url:
