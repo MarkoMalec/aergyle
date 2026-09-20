@@ -36,6 +36,14 @@ ssh malec.ddns.net 'cd ~/aergyle-deploy && docker compose logs -f app daemon'
 ssh malec.ddns.net 'cd ~/aergyle-deploy && docker compose ps'
 ```
 
+`deploy.sh` pulls the **image** only. When `deploy/docker-compose.yml` changes
+in the repo (a new volume, a new service), refresh the host's copy first:
+
+```bash
+cd ~/aergyle-deploy && curl -fsSLO \
+  https://raw.githubusercontent.com/MarkoMalec/aergyle/main/deploy/docker-compose.yml
+```
+
 SSH is on **port 6666**, not 22. The `malec.ddns.net` entry in `~/.ssh/config`
 already sets this. On the LAN, `ssh -p 6666 malec@192.168.1.67` is the same
 machine with far lower latency.
