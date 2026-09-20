@@ -8,6 +8,9 @@ export const revalidate = 0;
 
 const schema = z.object({
   locationIds: z.array(z.number().int().positive()).default([]),
+  // Shortcut for "available everywhere": the server resolves the location list,
+  // so the caller does not have to know every location id.
+  allLocations: z.boolean().default(false),
 });
 
 export async function PATCH(req: NextRequest, ctx: { params: { id: string } }) {
@@ -25,24 +28,39 @@ export async function PATCH(req: NextRequest, ctx: { params: { id: string } }) {
     return NextResponse.json({ error: parsed.error.message }, { status: 400 });
   }
 
-  const selected = new Set(parsed.data.locationIds);
+  const selected = parsed.data.allLocations
+    ? (await prisma.location.findMany({ select: { id: true } })).map(
+        (location) => location.id,
+      )
+    : Array.from(new Set(parsed.data.locationIds));
 
-  await prisma.$transaction(async (tx) => {
-    await tx.locationVocationalResource.updateMany({
-      where: { resourceId },
+  await prisma.$transaction([
+    prisma.locationVocationalResource.updateMany({
+      where:
+        selected.length > 0
+          ? { resourceId, locationId: { notIn: selected } }
+          : { resourceId },
       data: { enabled: false },
-    });
+    }),
+    ...(selected.length > 0
+      ? [
+          prisma.locationVocationalResource.updateMany({
+            where: { resourceId, locationId: { in: selected } },
+            data: { enabled: true },
+          }),
+          // Locations the resource has never been assigned to need a row;
+          // existing rows were just re-enabled above and are skipped here.
+          prisma.locationVocationalResource.createMany({
+            data: selected.map((locationId) => ({
+              locationId,
+              resourceId,
+              enabled: true,
+            })),
+            skipDuplicates: true,
+          }),
+        ]
+      : []),
+  ]);
 
-    for (const locationId of selected) {
-      await tx.locationVocationalResource.upsert({
-        where: {
-          locationId_resourceId: { locationId, resourceId },
-        },
-        create: { locationId, resourceId, enabled: true },
-        update: { enabled: true },
-      });
-    }
-  });
-
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, locationIds: selected });
 }

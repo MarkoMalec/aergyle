@@ -62,16 +62,38 @@ export function ResourceLocationsEditor(props: {
     }
   };
 
+  const allSelected =
+    locationsSorted.length > 0 && selected.size === locationsSorted.length;
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <div className="text-sm font-semibold text-white">Available locations</div>
-          <div className="text-xs text-white/60">Assign this resource to locations.</div>
+          <div className="text-xs text-white/60">
+            Assign this resource to locations. {selected.size} of {locationsSorted.length} selected.
+          </div>
         </div>
-        <Button type="button" onClick={onSave} disabled={isSaving}>
-          {isSaving ? "Saving..." : "Save locations"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              setSelected(
+                allSelected
+                  ? new Set<number>()
+                  : new Set(locationsSorted.map((loc) => loc.id)),
+              )
+            }
+            disabled={isSaving || locationsSorted.length === 0}
+          >
+            {allSelected ? "Clear all" : "Select every location"}
+          </Button>
+          <Button type="button" onClick={onSave} disabled={isSaving}>
+            {isSaving ? "Saving..." : "Save locations"}
+          </Button>
+        </div>
       </div>
 
       <div className="divide-y divide-gray-800/60 overflow-hidden rounded-md border border-gray-800/60">

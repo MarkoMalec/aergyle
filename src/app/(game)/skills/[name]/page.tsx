@@ -191,7 +191,8 @@ const SkillPage = async ({
             orderBy: [{ id: "asc" }],
           },
         },
-        orderBy: [{ id: "asc" }],
+        // Admin-set order from /admin/vocations.
+        orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
       })
     : [];
 

@@ -164,6 +164,13 @@ export async function POST(req: NextRequest) {
 
   try {
     const created = await prisma.$transaction(async (tx) => {
+      // New resources land at the bottom of their skill's list; /admin/vocations
+      // is where the order gets rearranged.
+      const lastInAction = await tx.vocationalResource.aggregate({
+        where: { actionType: v.actionType },
+        _max: { sortOrder: true },
+      });
+
       const resource = await tx.vocationalResource.create({
         data: {
           actionType: v.actionType,
@@ -175,6 +182,7 @@ export async function POST(req: NextRequest) {
           yieldPerUnit: v.yieldPerUnit,
           xpPerUnit: v.xpPerUnit,
           rarity: v.rarity,
+          sortOrder: (lastInAction._max.sortOrder ?? 0) + 10,
         },
       });
 

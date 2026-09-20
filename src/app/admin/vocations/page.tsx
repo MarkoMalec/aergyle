@@ -1,40 +1,65 @@
-import Image from "next/image";
 import Link from "next/link";
 import React from "react";
 import { ChevronDown } from "lucide-react";
 import { prisma } from "~/lib/prisma";
+import {
+  VocationResourcesTable,
+  type VocationResourceRow,
+} from "~/components/admin/vocations/VocationResourcesTable";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function AdminVocationsPage() {
-  const resources = await prisma.vocationalResource.findMany({
-    select: {
-      id: true,
-      actionType: true,
-      name: true,
-      itemId: true,
-      requiredSkillLevel: true,
-      defaultSeconds: true,
-      yieldPerUnit: true,
-      xpPerUnit: true,
-      rarity: true,
-      item: { select: { name: true, sprite: true } },
-      requiredRecipeItem: { select: { name: true } },
-      _count: { select: { requirements: true } },
-    },
-    orderBy: [{ id: "desc" }],
-    take: 300,
-  });
+  const [resources, locationCount] = await Promise.all([
+    prisma.vocationalResource.findMany({
+      select: {
+        id: true,
+        actionType: true,
+        name: true,
+        itemId: true,
+        requiredSkillLevel: true,
+        defaultSeconds: true,
+        yieldPerUnit: true,
+        xpPerUnit: true,
+        item: { select: { name: true, sprite: true } },
+        requiredRecipeItem: { select: { name: true } },
+        locations: {
+          where: { enabled: true },
+          select: { locationId: true },
+        },
+        _count: { select: { requirements: true } },
+      },
+      orderBy: [{ actionType: "asc" }, { sortOrder: "asc" }, { id: "asc" }],
+    }),
+    prisma.location.count(),
+  ]);
 
-  const groups = new Map<string, typeof resources>();
+  const groups = new Map<string, VocationResourceRow[]>();
   for (const resource of resources) {
     const key = String(resource.actionType);
+    const row: VocationResourceRow = {
+      id: resource.id,
+      name: resource.name,
+      itemId: resource.itemId,
+      itemName: resource.item?.name ?? null,
+      itemSprite: resource.item?.sprite ?? null,
+      requiredSkillLevel: resource.requiredSkillLevel,
+      defaultSeconds: resource.defaultSeconds,
+      yieldPerUnit: resource.yieldPerUnit,
+      xpPerUnit: resource.xpPerUnit,
+      recipeName: resource.requiredRecipeItem?.name ?? null,
+      requirementCount: resource._count.requirements,
+      enabledLocationIds: resource.locations.map(
+        (location) => location.locationId,
+      ),
+    };
+
     const existing = groups.get(key);
     if (existing) {
-      existing.push(resource);
+      existing.push(row);
     } else {
-      groups.set(key, [resource]);
+      groups.set(key, [row]);
     }
   }
 
@@ -47,7 +72,7 @@ export default async function AdminVocationsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Vocations</h1>
-          <p className="text-sm text-white/70">Create vocational resources and manage their per-unit requirements.</p>
+          <p className="text-sm text-white/70">Create vocational resources, order them per skill, and manage their per-unit requirements.</p>
         </div>
         <Link
           href="/admin/vocations/new"
@@ -74,69 +99,16 @@ export default async function AdminVocationsPage() {
               </div>
             </summary>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-900/50 text-white/80">
-                  <tr>
-                    <th className="w-0 p-3 text-left"></th>
-                    <th className="p-3 text-left">Name</th>
-                    <th className="p-3 text-left">Output Item</th>
-                    <th className="p-3 text-right">Req Lvl</th>
-                    <th className="p-3 text-right">Sec</th>
-                    <th className="p-3 text-right">Yield</th>
-                    <th className="p-3 text-right">XP</th>
-                    <th className="p-3 text-left">Recipe</th>
-                    <th className="p-3 text-right">Reqs</th>
-                    <th className="p-3 text-right">ID</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((r) => (
-                    <tr key={r.id} className="border-t border-gray-800/60">
-                      <td className="w-[56px]">
-                        {r.item?.sprite ? (
-                          <Image
-                            src={r.item.sprite}
-                            alt={r.item?.name ?? r.name}
-                            width={48}
-                            height={48}
-                            className="h-12 w-12 rounded-md object-contain ml-2"
-                          />
-                        ) : (
-                          <div className="h-10 w-10 rounded-md bg-gray-800/60" />
-                        )}
-                      </td>
-                      <td className="p-3">
-                        <Link
-                          href={`/admin/vocations/${r.id}`}
-                          className="font-semibold text-white hover:underline"
-                        >
-                          {r.name}
-                        </Link>
-                      </td>
-                      <td className="p-3 text-white/80">
-                        {r.item?.name ?? "—"}{" "}
-                        <span className="font-mono text-white/50">#{r.itemId}</span>
-                      </td>
-                      <td className="p-3 text-right text-white/80">{r.requiredSkillLevel}</td>
-                      <td className="p-3 text-right text-white/80">{r.defaultSeconds}</td>
-                      <td className="p-3 text-right text-white/80">{r.yieldPerUnit}</td>
-                      <td className="p-3 text-right text-white/80">{r.xpPerUnit}</td>
-                      <td className="p-3 text-left text-white/80">
-                        {r.requiredRecipeItem?.name ?? "—"}
-                      </td>
-                      <td className="p-3 text-right text-white/80">{r._count.requirements}</td>
-                      <td className="p-3 text-right font-mono text-white/60">{r.id}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <VocationResourcesTable
+              actionType={actionType}
+              resources={items}
+              locationCount={locationCount}
+            />
           </details>
         ))}
       </div>
 
-      <div className="text-xs text-white/60">Showing the latest {resources.length} resources.</div>
+      <div className="text-xs text-white/60">{resources.length} resources across {groupedResources.length} skills.</div>
     </div>
   );
 }

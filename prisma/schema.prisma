@@ -1089,6 +1089,9 @@ model VocationalResource {
   xpPerUnit      Int        @default(0) // XP granted per completed unit (1 action tick)
   rarity         ItemRarity @default(COMMON)
 
+  // Display order within the action type, lowest first. Admin-managed on /admin/vocations.
+  sortOrder Int @default(0)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -1098,7 +1101,7 @@ model VocationalResource {
   activities         UserVocationalActivity[]
   requirements       VocationalRequirement[]
 
-  @@index([actionType])
+  @@index([actionType, sortOrder])
   @@index([requiredRecipeItemId])
 }
 

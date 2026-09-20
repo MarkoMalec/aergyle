@@ -67,7 +67,7 @@ export async function GET() {
         orderBy: [{ id: "asc" }],
       },
     },
-    orderBy: [{ actionType: "asc" }, { id: "asc" }],
+    orderBy: [{ actionType: "asc" }, { sortOrder: "asc" }, { id: "asc" }],
   });
 
   const actionTypes = Array.from(
