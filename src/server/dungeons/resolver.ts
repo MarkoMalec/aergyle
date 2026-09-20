@@ -77,6 +77,8 @@ export type DungeonReport = {
 export type DungeonResolution = {
   rewards: CreatureLootReward[];
   report: DungeonReport;
+  /** Monsters slain per creature, for quests. Never part of the report. */
+  kills: Array<{ creatureId: number; count: number }>;
 };
 
 export type DungeonResolutionInput = {
@@ -232,6 +234,7 @@ export function resolveDungeonRun(
   }
 
   const tally = createLootTally();
+  const kills = new Map<number, number>();
   const encounters = new Map<number, DungeonEncounterReport>();
   const encounterFor = (monster: DungeonMonsterPoolEntry) => {
     let encounter = encounters.get(monster.creatureId);
@@ -305,6 +308,7 @@ export function resolveDungeonRun(
     }
     if (defeated) break;
     for (const monster of slain) {
+      kills.set(monster.creatureId, (kills.get(monster.creatureId) ?? 0) + 1);
       rollCreatureDrops(monster.drops, modifiers, random, tally);
     }
   }
@@ -336,5 +340,6 @@ export function resolveDungeonRun(
       blocked,
       criticalHits,
     },
+    kills: [...kills].map(([creatureId, count]) => ({ creatureId, count })),
   };
 }

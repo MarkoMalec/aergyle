@@ -1,32 +1,18 @@
 "use client";
 
-import { useState } from "react";
-import Image from "next/image";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  Anvil,
-  Axe,
-  Backpack,
-  Castle,
-  Compass,
-  Crosshair,
-  Fish,
-  Leaf,
-  Menu,
-  PawPrint,
-  Pickaxe,
-  Ruler,
-  Scissors,
-  ScrollText,
-  ShoppingBag,
-  Skull,
-  Sprout,
-  Swords,
-  UserRound,
-  type LucideIcon,
-} from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ChevronDown, Menu } from "lucide-react";
+import { NewQuestsDot } from "~/components/game/settlements/NewQuestsDot";
+import { addSkillProgressEventListener } from "~/components/game/skills/skillProgressEvents";
 import { Button } from "~/components/ui/button";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "~/components/ui/collapsible";
 import {
   Sheet,
   SheetContent,
@@ -34,132 +20,114 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "~/components/ui/sheet";
-
-const skillIcons: Record<string, LucideIcon> = {
-  woodcutting: Axe,
-  mining: Pickaxe,
-  fishing: Fish,
-  blacksmithing: Anvil,
-  weaponsmithing: Swords,
-  carpentry: Ruler,
-  gathering: Leaf,
-  hunting: Crosshair,
-  gardening: Sprout,
-  tailoring: Scissors,
-};
-
-type NavigationSkill = {
-  name: string;
-  category: "VOCATION" | "CRAFTING";
-};
+import type { SkillLevels } from "~/server/skills/levels";
+import { GameSearch } from "./GameSearch";
+import { SidebarHeader } from "./SidebarHeader";
+import {
+  buildNavigationGroups,
+  isLinkSelected,
+  type NavigationSkill,
+} from "./navigation-links";
 
 export default function GameNavigation({
   skills,
+  initialSkillLevels,
 }: {
   skills: NavigationSkill[];
+  initialSkillLevels: SkillLevels;
 }) {
   const pathname = usePathname();
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
-  const skillLinks = (category: NavigationSkill["category"]) =>
-    skills
-      .filter((skill) => skill.category === category)
-      .map(({ name }) => ({
-        label: name,
-        href: `/skills/${encodeURIComponent(name)}`,
-        icon: skillIcons[name.toLowerCase()] ?? Leaf,
-      }));
-  const groups = [
-    {
-      title: "Your adventure",
-      links: [
-        { label: "Character", href: "/profile", icon: UserRound },
-        { label: "Inventory", href: "/profile#inventory", icon: Backpack },
-        { label: "World atlas", href: "/map", icon: Compass },
-        { label: "Dungeons", href: "/dungeons", icon: Castle },
-      ],
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const groups = useMemo(() => buildNavigationGroups(skills), [skills]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key.toLowerCase() !== "k" || !(event.metaKey || event.ctrlKey)) {
+        return;
+      }
+      event.preventDefault();
+      setSearchOpen((wasOpen) => !wasOpen);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  // The same event the skill pages use when XP lands, so a level-up shows here.
+  useEffect(
+    () =>
+      addSkillProgressEventListener(() => {
+        void queryClient.invalidateQueries({ queryKey: ["skill-levels"] });
+      }),
+    [queryClient],
+  );
+
+  const levels = useQuery({
+    queryKey: ["skill-levels"],
+    queryFn: async (): Promise<SkillLevels> => {
+      const response = await fetch("/api/skills/levels", { cache: "no-store" });
+      if (!response.ok) throw new Error("Error fetching skill levels");
+      return (await response.json()) as SkillLevels;
     },
-    {
-      title: "Bestiary",
-      links: [
-        // Nested: creature profiles live below these pages.
-        { label: "Animals", href: "/animals", icon: PawPrint, nested: true },
-        { label: "Monsters", href: "/monsters", icon: Skull, nested: true },
-      ],
-    },
-    {
-      title: "Vocations",
-      links: skillLinks("VOCATION"),
-    },
-    {
-      title: "Crafting",
-      links: skillLinks("CRAFTING"),
-    },
-    {
-      title: "Trading",
-      links: [
-        { label: "Marketplace", href: "/marketplace", icon: ShoppingBag },
-        {
-          label: "My orders",
-          href: "/marketplace/my-listings",
-          icon: ScrollText,
-        },
-      ],
-    },
-  ];
+    initialData: initialSkillLevels,
+    staleTime: Infinity,
+  });
+
+  const close = () => setOpen(false);
 
   const contents = (
     <>
-      <Link
-        href="/profile"
-        className="game-brand"
-        onClick={() => setOpen(false)}
-        aria-label="Aergyle character"
-      >
-        <Image
-          src="/assets/logo/aergyle-logo.png"
-          alt=""
-          width={46}
-          height={38}
-        />
-        <span>
-          <span className="game-wordmark">Aergyle</span>
-        </span>
-      </Link>
+      <SidebarHeader
+        groups={groups}
+        onSearch={() => {
+          close();
+          setSearchOpen(true);
+        }}
+        onNavigate={close}
+      />
       <nav className="game-nav-scroll" aria-label="Game navigation">
-        {groups
-          .filter((group) => group.links.length > 0)
-          .map((group) => (
-            <div className="game-nav-group" key={group.title}>
-              <p className="game-nav-label">{group.title}</p>
+        {groups.map((group) => (
+          <Collapsible
+            className="game-nav-group"
+            key={group.title}
+            open={!collapsed[group.title]}
+            onOpenChange={(isOpen) =>
+              setCollapsed((state) => ({ ...state, [group.title]: !isOpen }))
+            }
+          >
+            <CollapsibleTrigger className="game-nav-label">
+              {group.title}
+              <ChevronDown aria-hidden="true" />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
               {group.links.map((link) => {
-                const { label, href, icon: Icon } = link;
-                const current = decodeURIComponent(pathname);
-                const target = decodeURIComponent(href);
-                const selected =
-                  current === target ||
-                  ("nested" in link &&
-                    link.nested &&
-                    current.startsWith(`${target}/`));
+                const { label, href, icon: Icon, trackKey } = link;
+                const level = trackKey ? levels.data?.[trackKey] : undefined;
                 return (
                   <Link
                     key={href}
                     href={href}
                     className="game-nav-link"
-                    onClick={() => setOpen(false)}
-                    aria-current={selected ? "page" : undefined}
+                    onClick={close}
+                    aria-current={
+                      isLinkSelected(link, pathname) ? "page" : undefined
+                    }
                   >
                     <Icon aria-hidden="true" />
-                    <span>{label}</span>
+                    <span className="game-nav-text">{label}</span>
+                    {trackKey ? (
+                      <span className="game-nav-level">Lv. {level ?? 1}</span>
+                    ) : null}
+                    {href === "/region" ? <NewQuestsDot /> : null}
                   </Link>
                 );
               })}
-            </div>
-          ))}
+            </CollapsibleContent>
+          </Collapsible>
+        ))}
       </nav>
-      <div className="game-sidebar-footer">
-        <Compass className="mb-3 h-5 w-5 text-primary" aria-hidden="true" />
-        One journey. Many callings.
-      </div>
     </>
   );
 
@@ -175,6 +143,8 @@ export default function GameNavigation({
             aria-label="Open navigation"
           >
             <Menu size={20} />
+            {/* The Region link's dot is out of sight in the closed menu. */}
+            <NewQuestsDot />
           </Button>
         </SheetTrigger>
         <SheetContent
@@ -183,12 +153,17 @@ export default function GameNavigation({
         >
           <SheetTitle className="sr-only">Aergyle navigation</SheetTitle>
           <SheetDescription className="sr-only">
-            Your character, world, dungeons, bestiary, vocations and
-            marketplace.
+            Your character, the world, settlements, dungeons, bestiary,
+            vocations and marketplace.
           </SheetDescription>
           {contents}
         </SheetContent>
       </Sheet>
+      <GameSearch
+        groups={groups}
+        open={searchOpen}
+        onOpenChange={setSearchOpen}
+      />
     </>
   );
 }

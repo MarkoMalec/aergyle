@@ -31,6 +31,31 @@ export async function adminRequest(
   return json;
 }
 
+/** A titled admin section with an explanation and an optional action. */
+export function Panel(props: {
+  title: React.ReactNode;
+  description: React.ReactNode;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="space-y-5 rounded-xl bg-gray-950/45 p-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h2 className="flex items-center gap-2 font-semibold">
+            {props.title}
+          </h2>
+          <div className="mt-1 max-w-3xl text-sm text-white/55">
+            {props.description}
+          </div>
+        </div>
+        {props.action}
+      </div>
+      {props.children}
+    </section>
+  );
+}
+
 /** A labelled control with an optional one-line explanation underneath. */
 export function Field(props: {
   label: string;

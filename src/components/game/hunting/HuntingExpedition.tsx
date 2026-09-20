@@ -529,10 +529,14 @@ function ExpeditionCard(props: {
   );
 }
 
-export default function HuntingExpedition() {
+export default function HuntingExpedition({
+  initialGroundId = null,
+}: {
+  initialGroundId?: number | null;
+}) {
   const queryClient = useQueryClient();
   const [now, setNow] = useState(() => Date.now());
-  const [selectedGroundId, setSelectedGroundId] = useState<number | null>(null);
+  const [selectedGroundId, setSelectedGroundId] = useState(initialGroundId);
   const [selectedDurationId, setSelectedDurationId] = useState<number | null>(
     null,
   );

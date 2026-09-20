@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import {
@@ -8,6 +9,7 @@ import {
   Hourglass,
   LoaderCircle,
   LockKeyhole,
+  MapIcon,
   MapPin,
   Navigation,
   Route,
@@ -329,29 +331,38 @@ export default function TravelLocationDialog({
                     : "Cancel current journey"}
                 </Button>
               ) : null}
-              <Button
-                type="button"
-                variant={isCurrent ? "secondary" : "default"}
-                onClick={onTravel}
-                disabled={
-                  !selectedLocation ||
-                  isCurrent ||
-                  isLocked ||
-                  isBusy ||
-                  !!activeTravel
-                }
-              >
-                {phase === "submitting" ? (
-                  <LoaderCircle className="animate-spin" aria-hidden="true" />
-                ) : isLocked ? (
-                  <LockKeyhole aria-hidden="true" />
-                ) : isCurrent ? (
-                  <MapPin aria-hidden="true" />
-                ) : (
-                  <Navigation aria-hidden="true" />
-                )}
-                {travelButtonLabel}
-              </Button>
+              {isCurrent && !activeTravel ? (
+                <Button asChild>
+                  <Link href="/region">
+                    <MapIcon aria-hidden="true" />
+                    Explore {selectedLocation?.name}
+                  </Link>
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant={isCurrent ? "secondary" : "default"}
+                  onClick={onTravel}
+                  disabled={
+                    !selectedLocation ||
+                    isCurrent ||
+                    isLocked ||
+                    isBusy ||
+                    !!activeTravel
+                  }
+                >
+                  {phase === "submitting" ? (
+                    <LoaderCircle className="animate-spin" aria-hidden="true" />
+                  ) : isLocked ? (
+                    <LockKeyhole aria-hidden="true" />
+                  ) : isCurrent ? (
+                    <MapPin aria-hidden="true" />
+                  ) : (
+                    <Navigation aria-hidden="true" />
+                  )}
+                  {travelButtonLabel}
+                </Button>
+              )}
             </DialogFooter>
           </>
         )}

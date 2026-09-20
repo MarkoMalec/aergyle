@@ -12,6 +12,10 @@ The [Tailoring system](docs/TAILORING_SYSTEM.md) adds blueprint-gated equipment 
 
 [Dungeons](docs/DUNGEONS_SYSTEM.md) are timed, lethal PvE runs resolved against the character's health and combat stats, with monster loot, a death penalty, admin balancing tools and an animal/monster bestiary.
 
+[Settlements](docs/SETTLEMENTS_SYSTEM.md) are each location's villages, towns and cities: NPCs with their own shops (including timed rare finds) and one-time, daily and weekly quests, plus community projects that every player builds together to unlock new content.
+
+[Notifications and Messages](docs/COMMUNICATION_SYSTEM.md) are the sidebar's bell and envelope: one-way notes the game sends any player, and private conversations between players — capped at ten each, deleted one side at a time, and reportable to the moderation queue in /admin.
+
 Crafting also separates general metalwork, combat weapons and woodwork into Blacksmithing, Weaponsmithing and Carpentry while keeping one shared vocational production engine.
 
 ## Project foundation

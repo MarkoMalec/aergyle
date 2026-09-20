@@ -36,9 +36,11 @@ import {
   parseLootRewards,
 } from "~/server/creatures/loot";
 import { createExpeditionRandom } from "~/server/expeditions/random";
+import { recordQuestProgress } from "~/server/settlements/quests";
 import { grantStackableItemToInventory } from "~/server/vocations/grantItem";
 import { awardXp } from "~/utils/leveling";
 import { awardTrackXp, getTrackXpProgress } from "~/utils/progression";
+import { recordSkillWork } from "~/server/skills/metrics";
 
 const MAX_EXPEDITION_SECONDS = 7 * 24 * 60 * 60;
 
@@ -760,6 +762,7 @@ export async function claimHuntingExpedition(userId: string) {
         lightningResistSnapshot: true,
         poisonResistSnapshot: true,
         resolutionSeed: true,
+        durationSeconds: true,
         creaturePool: true,
         riskConfig: true,
       },
@@ -878,6 +881,22 @@ export async function claimHuntingExpedition(userId: string) {
       currentHealth: health.currentHealth,
       at: claimedAt,
     });
+    // Every hunting encounter is a kill.
+    await recordQuestProgress({
+      db: tx,
+      userId,
+      kills: resolution.report.encounters,
+    });
+  });
+
+  await recordSkillWork({
+    userId,
+    actionType: VocationalActionType.HUNTING,
+    items: resolution.rewards.reduce(
+      (total, reward) => total + reward.quantity,
+      0,
+    ),
+    seconds: expedition.durationSeconds,
   });
 
   const [playerXp, huntingXp] = await Promise.all([

@@ -17,6 +17,7 @@ import { getCharacterStatSnapshot } from "~/server/stats";
 import { grantStackableItemToInventory } from "~/server/vocations/grantItem";
 import { awardXp } from "~/utils/leveling";
 import { awardTrackXp, getTrackXpProgress } from "~/utils/progression";
+import { recordSkillWork } from "~/server/skills/metrics";
 
 const MAX_EXPEDITION_SECONDS = 7 * 24 * 60 * 60;
 const FALLBACK_RARITY_ORDER = Object.fromEntries(
@@ -496,6 +497,7 @@ export async function claimGatheringExpedition(userId: string) {
       id: true,
       endsAt: true,
       claimedAt: true,
+      durationSeconds: true,
       rewardRolls: true,
       quantityMultiplier: true,
       xpReward: true,
@@ -558,6 +560,13 @@ export async function claimGatheringExpedition(userId: string) {
         );
       }
     }
+  });
+
+  await recordSkillWork({
+    userId,
+    actionType: VocationalActionType.GATHERING,
+    items: rewards.reduce((total, reward) => total + reward.quantity, 0),
+    seconds: expedition.durationSeconds,
   });
 
   const [playerXp, gatheringXp] = await Promise.all([

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { MARKET_MAX_GOLD_AMOUNT, calculateMarketSale } from "~/lib/marketplace";
 import { prisma } from "~/lib/prisma";
 import { getServerAuthSession } from "~/server/auth";
+import { notify } from "~/server/communication";
 import { grantStackableItemToInventory } from "~/server/vocations/grantItem";
 import {
   normalizeInventorySlots,
@@ -180,11 +181,20 @@ export async function POST(req: NextRequest) {
 
       return {
         itemName: listing.itemTemplate.name,
+        sellerId: listing.userId,
         seller: listing.user.name ?? "Unknown seller",
         quantity,
         unitPrice,
         ...sale,
       };
+    });
+
+    // The seller is rarely watching when it happens.
+    await notify(result.sellerId, {
+      category: "MARKET",
+      title: "Your listing sold",
+      body: `${result.quantity}× ${result.itemName} sold for ${result.net.toFixed(2)} gold after tax.`,
+      href: "/marketplace",
     });
 
     return NextResponse.json({

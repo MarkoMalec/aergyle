@@ -18,6 +18,7 @@ import {
 } from "~/server/vocations/grantItem";
 import { awardXp } from "~/utils/leveling";
 import { awardTrackXp } from "~/utils/progression";
+import { recordSkillWork } from "~/server/skills/metrics";
 import { normalizeInventorySlots } from "~/utils/inventorySlots";
 
 export type VocationalCompletionSummary = {
@@ -79,6 +80,7 @@ export async function claimVocationalRewards(params: {
         grantedQuantity: 0,
         remainingClaimableUnits: 0,
         xpToAward: 0,
+        unitSeconds: 0,
         vocationalActionType: null,
         resourceName: null,
         itemName: null,
@@ -96,6 +98,7 @@ export async function claimVocationalRewards(params: {
       grantedQuantity: 0,
       remainingClaimableUnits,
       xpToAward: 0,
+      unitSeconds: activity.unitSeconds,
       vocationalActionType: activity.actionType,
       resourceName: activity.resource.name,
       itemName: activity.resource.item.name,
@@ -419,6 +422,7 @@ export async function claimVocationalRewards(params: {
       grantedQuantity,
       remainingClaimableUnits,
       xpToAward,
+      unitSeconds: activity.unitSeconds,
       vocationalActionType: activity.actionType,
       resourceName: activity.resource.name,
       itemName: activity.resource.item.name,
@@ -434,6 +438,15 @@ export async function claimVocationalRewards(params: {
   const userXpGained =
     result.claimedUnits > 0 ? Math.max(0, result.xpToAward) : 0;
   const skillXpGained = userXpGained;
+
+  if (result.claimedUnits > 0 && result.vocationalActionType) {
+    await recordSkillWork({
+      userId,
+      actionType: result.vocationalActionType,
+      items: result.grantedQuantity,
+      seconds: result.claimedUnits * result.unitSeconds,
+    });
+  }
 
   if (
     result.claimedUnits > 0 &&

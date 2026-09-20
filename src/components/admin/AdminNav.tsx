@@ -11,10 +11,12 @@ export const adminNavItems: Array<{ href: string; label: string }> = [
   { href: "/admin/rarity", label: "Rarity" },
   { href: "/admin/vocations", label: "Vocation resources" },
   { href: "/admin/locations", label: "Locations" },
+  { href: "/admin/settlements", label: "Settlements" },
   { href: "/admin/travel", label: "Travel" },
   { href: "/admin/skills", label: "Skills" },
   { href: "/admin/leveling", label: "Leveling" },
   { href: "/admin/character-stats", label: "Character stats" },
+  { href: "/admin/moderation", label: "Moderation" },
 ];
 
 export function AdminNav(props: { className?: string }) {

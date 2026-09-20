@@ -4,7 +4,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { cn } from "~/lib/utils";
 
 function isInteractiveElement(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false;
+  // Element, not HTMLElement: an icon's SVG inside a button counts too.
+  if (!(target instanceof Element)) return false;
   return !!target.closest(
     "a,button,input,textarea,select,label,[role='button'],[role='link']",
   );
@@ -14,8 +15,11 @@ export default function DragScrollContainer(props: {
   className?: string;
   children: React.ReactNode;
   initialFocus?: { x: number; y: number } | null;
+  /** Where in the view the focus lands, as a fraction of its size. */
+  focusAt?: number;
+  label?: string;
 }) {
-  const { className, children, initialFocus } = props;
+  const { className, children, initialFocus, focusAt = 0.78 } = props;
   const ref = useRef<HTMLDivElement | null>(null);
   const hasPositionedRef = useRef(false);
 
@@ -36,15 +40,15 @@ export default function DragScrollContainer(props: {
     const positionMap = () => {
       if (hasPositionedRef.current || el.scrollWidth <= el.clientWidth) return;
 
-      // Keep the focus visible while preserving more map context toward the
-      // realm's centre, where most routes converge.
+      // By default, keep the focus visible while preserving more map context
+      // toward the realm's centre, where most routes converge.
       el.scrollLeft = Math.max(
         0,
-        el.scrollWidth * initialFocus.x - el.clientWidth * 0.78,
+        el.scrollWidth * initialFocus.x - el.clientWidth * focusAt,
       );
       el.scrollTop = Math.max(
         0,
-        el.scrollHeight * initialFocus.y - el.clientHeight * 0.78,
+        el.scrollHeight * initialFocus.y - el.clientHeight * focusAt,
       );
       hasPositionedRef.current = true;
     };
@@ -57,7 +61,7 @@ export default function DragScrollContainer(props: {
       window.cancelAnimationFrame(frame);
       image?.removeEventListener("load", positionMap);
     };
-  }, [initialFocus]);
+  }, [initialFocus, focusAt]);
 
   const endDrag = (pointerId?: number) => {
     pointerDownRef.current = false;
@@ -77,7 +81,7 @@ export default function DragScrollContainer(props: {
       ref={ref}
       tabIndex={0}
       role="region"
-      aria-label="World map. Use arrow keys to scroll."
+      aria-label={`${props.label ?? "World map"}. Use arrow keys to scroll.`}
       className={cn(
         "overflow-auto",
         dragging ? "cursor-grabbing select-none" : "cursor-grab",

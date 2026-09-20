@@ -228,6 +228,8 @@ export async function startVocationalActivity(params: {
   resourceId: number;
   locationId?: number | null;
   durationSeconds?: number | null;
+  /** Units to produce; the activity then lasts exactly that many units. */
+  quantity?: number | null;
   replace?: boolean;
   baitUserItemId?: number | null;
 }): Promise<VocationalStatus> {
@@ -477,12 +479,14 @@ export async function startVocationalActivity(params: {
     }
   }
 
+  const quantity =
+    params.quantity && params.quantity > 0 ? Math.floor(params.quantity) : null;
+  const requestedSeconds = quantity
+    ? quantity * unitSeconds
+    : params.durationSeconds ?? MAX_VOCATION_DURATION_SECONDS;
   const durationSeconds = Math.min(
     MAX_VOCATION_DURATION_SECONDS,
-    Math.max(
-      1,
-      Math.floor(params.durationSeconds ?? MAX_VOCATION_DURATION_SECONDS),
-    ),
+    Math.max(1, Math.floor(requestedSeconds)),
   );
 
   const now = new Date();

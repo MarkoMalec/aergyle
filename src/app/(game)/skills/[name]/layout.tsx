@@ -15,10 +15,10 @@ import {
   type SkillProgressResponse,
 } from "~/components/game/skills/SkillProgressContext";
 import { addSkillProgressEventListener } from "~/components/game/skills/skillProgressEvents";
-
-function formatInt(value: number) {
-  return new Intl.NumberFormat().format(Math.max(0, Math.floor(value)));
-}
+import { NearbyPlayers } from "~/components/game/skills/NearbyPlayers";
+import { SkillMetricsPanel } from "~/components/game/skills/SkillMetricsPanel";
+import { SkillProgressPanel } from "~/components/game/skills/SkillProgressPanel";
+import type { SkillMetrics } from "~/server/skills/metrics";
 
 const SkillsLayoutContent = ({
   children,
@@ -41,6 +41,7 @@ const SkillsLayoutContent = ({
 
   const [skillProgress, setSkillProgress] =
     useState<SkillProgressResponse | null>(null);
+  const [metrics, setMetrics] = useState<SkillMetrics | null>(null);
   const [progressLoading, setProgressLoading] = useState(true);
 
   useEffect(() => {
@@ -48,19 +49,27 @@ const SkillsLayoutContent = ({
 
     async function load() {
       setProgressLoading(true);
+      const skill = encodeURIComponent(decodedSkillName);
       try {
-        const res = await fetch(
-          `/api/skills/progress?skill=${encodeURIComponent(decodedSkillName)}`,
-          { cache: "no-store" },
-        );
-        if (!res.ok) {
-          if (!cancelled) setSkillProgress(null);
-          return;
+        const [progressRes, metricsRes] = await Promise.all([
+          fetch(`/api/skills/progress?skill=${skill}`, { cache: "no-store" }),
+          fetch(`/api/skills/metrics?skill=${skill}`, { cache: "no-store" }),
+        ]);
+        if (!cancelled) {
+          setSkillProgress(
+            progressRes.ok
+              ? ((await progressRes.json()) as SkillProgressResponse)
+              : null,
+          );
+          setMetrics(
+            metricsRes.ok ? ((await metricsRes.json()) as SkillMetrics) : null,
+          );
         }
-        const json = (await res.json()) as SkillProgressResponse;
-        if (!cancelled) setSkillProgress(json);
       } catch {
-        if (!cancelled) setSkillProgress(null);
+        if (!cancelled) {
+          setSkillProgress(null);
+          setMetrics(null);
+        }
       } finally {
         if (!cancelled) setProgressLoading(false);
       }
@@ -97,65 +106,28 @@ const SkillsLayoutContent = ({
             {children}
           </SkillProgressProvider>
         </div>
-        <div className="min-w-0">
-          <div className="game-panel mb-6">
-            <div className="space-y-1">
-              <h2 className="game-panel-header text-base font-semibold text-foreground">
-                {decodedSkillName} Progress
-              </h2>
-              {progressLoading ? (
-                <div className="game-panel-body space-y-3">
-                  <div className="game-progress-track"></div>
-                  <div className="flex flex-wrap justify-between gap-2">
-                    <Badge className="text-xs">Level </Badge>
-                    <span className="text-xs tabular-nums text-muted-foreground">
-                      XP to next level
-                    </span>
-                  </div>
-                </div>
-              ) : skillProgress ? (
-                <div className="game-panel-body space-y-3">
-                  <div
-                    className="game-progress-track"
-                    role="progressbar"
-                    aria-label={`${decodedSkillName} experience`}
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                    aria-valuenow={Math.floor(skillProgress.xpProgress)}
-                  >
-                    <div
-                      className="game-progress-fill"
-                      style={{
-                        width: `${Math.floor(skillProgress.xpProgress)}%`,
-                      }}
-                    />
-                  </div>
-                  <div className="flex flex-wrap justify-between gap-2">
-                    <Badge className="text-xs">
-                      Level {skillProgress.level}
-                    </Badge>
-                    <span className="text-xs tabular-nums text-muted-foreground">
-                      {formatInt(skillProgress.xpRemaining)} XP to next level
-                    </span>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-sm text-muted-foreground">
-                  No progression data yet.
-                </div>
-              )}
-            </div>
-          </div>
+        <div className="min-w-0 space-y-6">
+          <section>
+            <h2 className="game-section-label">Nearby</h2>
+            <NearbyPlayers />
+          </section>
+
+          <section>
+            <h2 className="game-section-label">Your progress</h2>
+            <SkillProgressPanel
+              skillName={decodedSkillName}
+              progress={skillProgress}
+              loading={progressLoading}
+            />
+          </section>
 
           {showActive ? (
-            <>
-              <h2 className="mb-3 text-sm font-semibold text-text-secondary">
-                Current activity
-              </h2>
-              <div className="relative rounded-lg border border-border bg-card p-4">
+            <section>
+              <h2 className="game-section-label">Current activity</h2>
+              <div className="game-panel-flat relative p-4">
                 <div className="absolute -top-2 right-1">
                   <div className="flex items-center gap-1">
-                    <Badge className="bg-secondary">
+                    <Badge className="border-transparent bg-secondary">
                       {formatDuration(viewModel.sessionRemainingSeconds)}
                     </Badge>
                     {viewModel.canStop ? (
@@ -201,16 +173,16 @@ const SkillsLayoutContent = ({
                     {activeActionType !== "GATHERING" &&
                     activeActionType !== "HUNTING" ? (
                       <div className="flex flex-wrap items-center gap-2">
-                        <Badge className="bg-secondary tabular-nums">
+                        <Badge className="border-transparent bg-secondary tabular-nums">
                           + {viewModel.sessionAmount}
                         </Badge>
                         {viewModel.nextItemInTime ? (
-                          <Badge className="bg-secondary tabular-nums">
+                          <Badge className="border-transparent bg-secondary tabular-nums">
                             Next item in: {viewModel.nextItemInTime}
                           </Badge>
                         ) : null}
                         {Number(viewModel.xpPerSecond) > 0 ? (
-                          <Badge className="bg-secondary">
+                          <Badge className="border-transparent bg-secondary">
                             {viewModel.xpPerSecond} XP/s
                           </Badge>
                         ) : null}
@@ -219,8 +191,13 @@ const SkillsLayoutContent = ({
                   </div>
                 </div>
               </div>
-            </>
+            </section>
           ) : null}
+
+          <section>
+            <h2 className="game-section-label">Metrics</h2>
+            <SkillMetricsPanel metrics={metrics} loading={progressLoading} />
+          </section>
         </div>
       </div>
       {decodedSkillName.toLowerCase() === "woodcutting" && (

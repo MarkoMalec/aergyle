@@ -509,10 +509,14 @@ function ActiveRunCard(props: {
   );
 }
 
-export default function DungeonExplorer() {
+export default function DungeonExplorer({
+  initialDungeonId = null,
+}: {
+  initialDungeonId?: number | null;
+}) {
   const queryClient = useQueryClient();
   const [now, setNow] = useState(() => Date.now());
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selectedId, setSelectedId] = useState(initialDungeonId);
 
   const dungeonQuery = useQuery({
     queryKey: ["dungeons"],

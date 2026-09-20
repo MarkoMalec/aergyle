@@ -11,13 +11,20 @@ import {
   SidebarTrigger,
 } from "~/components/ui/sidebar";
 
-export function AdminShell({ children }: { children: React.ReactNode }) {
+export function AdminShell({
+  children,
+  openReports,
+}: {
+  children: React.ReactNode;
+  /** Reported conversations waiting for review; badges the Moderation link. */
+  openReports: number;
+}) {
   return (
     <div className="admin-theme dark min-h-svh bg-background text-foreground">
       {/* Admin pages are outside the game Providers, so they mount their own. */}
       <AppToaster />
       <SidebarProvider>
-        <AdminSidebar />
+        <AdminSidebar openReports={openReports} />
         <SidebarInset className="min-h-svh">
           <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
             <SidebarTrigger className="-ml-1" />

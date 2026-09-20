@@ -17,7 +17,7 @@ import {
   DungeonCard,
   type AdminDungeon,
 } from "~/components/admin/dungeons/DungeonCard";
-import { adminRequest, NumberField } from "~/components/admin/fields";
+import { adminRequest, NumberField, Panel } from "~/components/admin/fields";
 import { Button } from "~/components/ui/button";
 import type { StatType } from "~/generated/prisma/enums";
 import type { StatGrowthRule } from "~/utils/stats";
@@ -29,30 +29,6 @@ type Config = {
 };
 
 type LocationOption = { id: number; name: string };
-
-function Panel(props: {
-  title: React.ReactNode;
-  description: React.ReactNode;
-  action?: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="space-y-5 rounded-xl bg-gray-950/45 p-5">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h2 className="flex items-center gap-2 font-semibold">
-            {props.title}
-          </h2>
-          <div className="mt-1 max-w-3xl text-sm text-white/55">
-            {props.description}
-          </div>
-        </div>
-        {props.action}
-      </div>
-      {props.children}
-    </section>
-  );
-}
 
 function DungeonRules(props: {
   initial: Config;

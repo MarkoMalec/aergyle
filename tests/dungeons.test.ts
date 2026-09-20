@@ -209,6 +209,25 @@ void test("a cleared run keeps every drop from defeated monsters", () => {
   ]);
 });
 
+void test("kills are counted per monster for quests, outside the report", () => {
+  const cleared = resolveDungeonRun(
+    input({ pool: [brute, { ...looter, minCount: 3, maxCount: 3 }] }),
+  );
+  assert.deepEqual(
+    [...cleared.kills].sort((a, b) => a.creatureId - b.creatureId),
+    [
+      { creatureId: 1, count: 1 },
+      { creatureId: 2, count: 3 },
+    ],
+  );
+  assert.equal("kills" in cleared.report, false);
+
+  // A monster slain in the round the character falls does not count.
+  const fell = resolveDungeonRun(input({ startingHealth: 25 }));
+  assert.equal(fell.report.outcome, "DEFEATED");
+  assert.deepEqual(fell.kills, []);
+});
+
 void test("defeat ends the run at zero health and heavily penalizes the loot", () => {
   const kept = resolveDungeonRun(
     input({ pool: [brute, looter], startingHealth: 25 }),

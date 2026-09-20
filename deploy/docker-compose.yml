@@ -1,0 +1,41 @@
+# Aergyle runtime. Nothing in this file is host specific: the only things that
+# change between the Pi and a VPS are the values in .env next to it.
+name: aergyle
+
+x-aergyle: &aergyle
+  image: ${AERGYLE_IMAGE:-ghcr.io/markomalec/aergyle}:${AERGYLE_TAG:-latest}
+  env_file:
+    - .env
+  restart: unless-stopped
+  # Lets the containers reach a MariaDB that runs as a *host* service, which is
+  # how the Pi is set up. On a host where the database is itself a container,
+  # delete this block and point DATABASE_URL at the service name instead.
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+services:
+  # One-shot, run by deploy.sh before the new containers start. The profile
+  # keeps it out of a plain `docker compose up`.
+  migrate:
+    <<: *aergyle
+    command: ["migrate"]
+    restart: "no"
+    profiles: ["tools"]
+
+  app:
+    <<: *aergyle
+    command: ["app"]
+    # Bound to loopback: Apache terminates TLS and proxies in.
+    ports:
+      - "${APP_BIND:-127.0.0.1:3000}:3000"
+
+  daemon:
+    <<: *aergyle
+    command: ["daemon"]
+    ports:
+      - "${WS_BIND:-127.0.0.1:3001}:3001"

@@ -10,7 +10,11 @@ export const metadata = {
     "Enter a dungeon, defeat its monsters, and live to claim the loot.",
 };
 
-export default function DungeonsPage() {
+export default function DungeonsPage({
+  searchParams,
+}: {
+  searchParams: { dungeon?: string };
+}) {
   return (
     <main className="space-y-6">
       <PageHeading
@@ -18,7 +22,10 @@ export default function DungeonsPage() {
         title="Dungeons"
         description="Fight through a dungeon with your current health and gear. Clear it for experience and whatever its monsters carried; fall, and you crawl out with scraps."
       />
-      <DungeonExplorer />
+      {/* The region map links a dungeon here with ?dungeon=<id>. */}
+      <DungeonExplorer
+        initialDungeonId={Number(searchParams.dungeon) || null}
+      />
     </main>
   );
 }

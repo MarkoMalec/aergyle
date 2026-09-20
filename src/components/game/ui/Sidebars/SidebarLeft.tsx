@@ -1,11 +1,19 @@
+import { getServerSession } from "next-auth";
 import { prisma } from "~/lib/prisma";
+import { authOptions } from "~/server/auth";
+import { getSkillLevels } from "~/server/skills/levels";
 import GameNavigation from "./GameNavigation";
 
 export default async function SidebarLeft() {
-  const skills = await prisma.skills.findMany({
-    select: { skill_name: true, category: true },
-    orderBy: [{ skill_name: "asc" }],
-  });
+  const session = await getServerSession(authOptions);
+  const [skills, skillLevels] = await Promise.all([
+    prisma.skills.findMany({
+      select: { skill_name: true, category: true },
+      orderBy: [{ skill_name: "asc" }],
+    }),
+    session?.user?.id ? getSkillLevels(session.user.id) : Promise.resolve({}),
+  ]);
+
   const entries = skills.map((skill) => ({
     name: skill.skill_name,
     category: skill.category,
@@ -17,5 +25,7 @@ export default async function SidebarLeft() {
       entries.push({ name: fallback, category: "VOCATION" });
     }
   }
-  return <GameNavigation skills={entries} />;
+  return (
+    <GameNavigation skills={entries} initialSkillLevels={skillLevels} />
+  );
 }

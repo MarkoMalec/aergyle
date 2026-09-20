@@ -118,7 +118,7 @@ Uppercase is limited to one short page eyebrow or a compact level label. Navigat
 
 ## 8. Shape Language
 
-Use **soft, confident rectangles**. The shared radius token is 14px: panels use `rounded-lg` (14px), standard buttons/inputs/dialogs use `rounded-md` (12px). Inventory cells are 12px, navigation entries 10px, resource cards 12px, item popovers 16px, small rarity symbols/badges 7px and quantity labels 4px. Progress tracks have rounded 7px ends. Avatar, level dial and currency capsule may be circular/pill-shaped.
+Use **soft, confident rectangles**. The shared radius token is 14px: panels use `rounded-lg` (14px), standard inputs/dialogs use `rounded-md` (12px), buttons 8px. Inventory cells are 12px, navigation entries 10px, resource cards 12px, item popovers 16px, small rarity symbols/badges 7px and quantity labels 4px. Progress tracks have rounded 7px ends. Avatar, level dial and currency capsule may be circular/pill-shaped.
 
 Rounded corners are functional comfort. Character comes from the art, restrained material tint, crest and rarity system, not from making every corner sharp. Do not add simulated screws, leather straps or nested ornamental frames.
 
@@ -128,13 +128,13 @@ The portrait has a fine outer brass edge, 14px corners and a very faint inner hi
 
 Use a 4px spacing base: 4, 8, 12, 16, 20, 24, 32, 48. The intentional 10px exception is dense inventory spacing.
 
-- Rail: 232px, fixed on desktop, its own vertical scrolling area.
+- Rail: 248px, fixed on desktop. A fixed header (mark, character card, utility row, search) above its own vertical scrolling navigation area.
 - Content: one shell inset; a maximum 1360px content wrapper including padding; 36px side gutters, 24px at narrower desktop/tablet, 16px on phones.
 - Top bar: minimum 76px desktop / 68px mobile; sticky, opaque enough to read; grows when an action must wrap.
 - Page heading: 28px below, no bottom rule. Short description only if it helps orient the player.
 - Major panels: 24px apart. Panel header: 22px top / 24px sides, no dividing line; body: 24px; mobile header: 18px top / 16px sides, body: 16px.
 - Profile: portrait plus wider equipment panel; inventory below; attributes below the collection, with Character open and other categories expandable. At 900px and below, stack the portrait above equipment so the body arrangement keeps enough room.
-- Vocation: resources plus progress; stack at 1100px. Keep the resource choice and its cost close together.
+- Vocation: resources plus a right column; stack at 1100px. Keep the resource choice and its cost close together. The right column reads Nearby, Your progress, Current activity (only while one runs) and Metrics, each under a centred `game-section-label` caption. Skill progress is a collapsible: closed it is one row (icon, name, level plaque, bar), open it adds the level, the XP still needed and the percentage. Metrics are lifetime totals — items gathered, total experience, time spent — from `UserSkillMetric` and `UserTrackProgress`.
 - Marketplace: table plus 260px filters; at 1100px filters move above the table in visual reading order.
 
 Do not nest Tailwind `container` inside `game-content`. Use `min-w-0` for shrinking grid/flex children. Tables and the atlas own their horizontal overflow; the page does not.
@@ -146,10 +146,13 @@ Do not nest Tailwind `container` inside `game-content`. Use `min-w-0` for shrink
 | Canvas          | Ink background; very low-strength green atmospheric light in one corner                     |
 | Recess          | Dark inset, fine edge, shallow inner shadow; reserved for objects and controls              |
 | Panel           | Card surface, 1px divider border, 14px radius, soft downward shadow and faint top highlight |
+| Flat panel      | `game-panel-flat`: the same card surface and shadow with no border; rows inside are separated by tint (`game-metric-row`) |
 | Interactive row | Panel-like surface; border strengthens on hover; native button                              |
 | Overlay         | Popover surface, stronger edge, opaque body, larger downward shadow                         |
 
 Panel shadow is `0 4px 20px #080F121F, inset 0 1px 0 #EEE5D207`. Overlay shadow is `0 18px 50px #060C10A6, inset 0 1px 0 #EEE5D215`. Shadows separate layers; they are not ambient magical glow.
+
+Prefer the flat panel for new surfaces: separate things with tint and spacing rather than outlines. Do not put a border on a panel, a row or a badge in new UI.
 
 Use an unruled header for equipment/inventory/progression; separate it from contents with spacing. Avoid wrapping every single statistic in a second card. Use rows and separators inside a section. A neutral panel does not brighten on hover unless it is actually interactive.
 
@@ -170,9 +173,11 @@ Default height is 40px; small buttons 32px are for compact auxiliary controls. P
 
 ## 12. Navigation
 
-Use `GameNavigation`; its server wrapper fetches the real skill names and keeps the Gardening and Gathering fallbacks. Icons identify actual vocations: axe, pickaxe, fish, flame, sprout and leaf. New skills without a mapping fall back to a leaf until a suitable icon is chosen.
+Use `GameNavigation`; its server wrapper fetches the real skill names and keeps the Gardening and Gathering fallbacks, plus the player's skill levels. Destinations live in `navigation-links.ts` so the rail and the search share one list. Icons identify actual vocations: axe, pickaxe, fish, flame, sprout and leaf. New skills without a mapping fall back to a leaf until a suitable icon is chosen.
 
-Selected state = darker green surface + softly rounded boundary + brass label/icon + `aria-current="page"`. Hover = raised dark surface. Neither state requires animation. Labels stay visible on desktop.
+Entries are compact: 32px rows, a 17px icon, a 13px label, and — for a skill — its mastery level in a small plaque at the right. **Navigation carries no borders.** Selected state = darker green surface + brass label/icon + `aria-current="page"`. Hover = a faint raised surface. Neither state requires animation. Labels stay visible on desktop. Groups (Character, World, Bestiary, Vocations, Crafting, Trade) are Radix collapsibles whose heading is a small muted caption with a chevron; the open/closed choice lasts for the session.
+
+The rail header holds, in order: the mark, a character card (avatar, name, level) that opens the profile, a six-button utility row, and the search box. Utility buttons are 32px and icon-only, each with a shadcn tooltip naming it; features that do not exist yet (notifications, messages, friends, settings) say "work in progress" in that tooltip and do nothing when pressed. Pins open a popover listing up to five player-chosen shortcuts and a button that pins or unpins the page they are on; pins are kept in the browser, not on the character. Search opens a cmdk dialog (Ctrl/Cmd + K) over pages, items, beasts, NPCs and settlements, served by `/api/search`. The rail has no footer.
 
 The mobile rail becomes a Radix Sheet, opened by a labelled menu button. Escape closes it, focus is trapped while open, and focus returns to the trigger. Link activation closes the sheet. Inventory links to `/profile#inventory`; it is a section shortcut, not a duplicate profile route. My listings has its own navigation destination.
 
@@ -496,7 +501,7 @@ Review the screen with the wordmark hidden: clear type, warm art, forest-dark su
 | Single font/document                             | `src/app/layout.tsx`                                                                                                             |
 | Game providers and shell                         | `src/app/(game)/layout.tsx`                                                                                                      |
 | Page heading                                     | `src/components/game/ui/PageHeading.tsx`                                                                                         |
-| Sidebar / mobile navigation                      | `src/components/game/ui/Sidebars/GameNavigation.tsx`                                                                             |
+| Sidebar / mobile navigation                      | `src/components/game/ui/Sidebars/` (`GameNavigation`, `SidebarHeader`, `GameSearch`, `navigation-links.ts`)                      |
 | Auth presentation                                | `src/components/game/ui/AuthShell.tsx`                                                                                           |
 | Buttons/dialogs/tooltip/popover                  | `src/components/ui/`                                                                                                             |
 | Slot, drag trigger, item details                 | `src/components/dnd/`, `src/components/game/items/`                                                                              |

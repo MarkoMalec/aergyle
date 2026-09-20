@@ -1,7 +1,5 @@
-import {
-  WORLD_ATLAS_LOCATION_MARKERS,
-  WORLD_ATLAS_MAP_SIZE,
-} from "../../src/game/world/atlasLocations";
+import { WORLD_ATLAS_LOCATION_MARKERS } from "../../src/game/world/atlasLocations";
+import { MAP_SIZE } from "../../src/game/world/maps";
 
 /** The farthest pair of atlas locations takes this long at 100% speed. */
 export const LONGEST_ATLAS_ROUTE_SECONDS = 4 * 60 * 60;
@@ -9,8 +7,8 @@ const ROUND_TO_SECONDS = 5 * 60;
 
 function markerPoint(marker: (typeof WORLD_ATLAS_LOCATION_MARKERS)[number]) {
   return {
-    x: (Number.parseFloat(marker.left) / 100) * WORLD_ATLAS_MAP_SIZE.width,
-    y: (Number.parseFloat(marker.top) / 100) * WORLD_ATLAS_MAP_SIZE.height,
+    x: (Number.parseFloat(marker.left) / 100) * MAP_SIZE.width,
+    y: (Number.parseFloat(marker.top) / 100) * MAP_SIZE.height,
   };
 }
 

@@ -1,6 +1,5 @@
 import { prisma } from "~/lib/prisma";
 import {
-  ItemStatus,
   ItemType,
   VocationalActionType,
   XpActionType,
@@ -12,9 +11,11 @@ import {
   parseHarvestSchedule,
   type HarvestScheduleTile,
 } from "~/server/garden/harvestSchedule";
+import { consumeInventoryItems } from "~/server/items/consumeItems";
 import { grantStackableItemToInventory } from "~/server/vocations/grantItem";
 import { awardXp } from "~/utils/leveling";
 import { awardTrackXp } from "~/utils/progression";
+import { recordSkillWork } from "~/server/skills/metrics";
 
 const GRID_SIZE = 6;
 const TILE_COUNT = GRID_SIZE * GRID_SIZE;
@@ -284,67 +285,11 @@ export async function plantSeeds(params: {
       throw new Error("Some selected tiles are not empty");
     }
 
-    // Consume seeds from inventory stacks.
-    const inventory = await tx.inventory.findUnique({
-      where: { userId },
-      select: { slots: true },
+    await consumeInventoryItems({
+      db: tx,
+      userId,
+      items: [{ itemId: seedItemId, quantity: tileIndices.length }],
     });
-    if (!inventory) throw new Error("Inventory not found");
-
-    const slots = (inventory.slots ?? []) as Array<{
-      slotIndex: number;
-      item: { id: number } | null;
-    }>;
-
-    const userItems = await tx.userItem.findMany({
-      where: { userId, status: ItemStatus.IN_INVENTORY },
-      select: { id: true, itemId: true, quantity: true },
-    });
-
-    const userItemById = new Map<number, (typeof userItems)[number]>();
-    for (const ui of userItems) userItemById.set(ui.id, { ...ui });
-
-    let remainingToConsume = tileIndices.length;
-    const updatedSlots = [...slots];
-    let slotsChanged = false;
-
-    for (let i = 0; i < updatedSlots.length && remainingToConsume > 0; i++) {
-      const userItemId = updatedSlots[i]?.item?.id;
-      if (typeof userItemId !== "number") continue;
-
-      const ui = userItemById.get(userItemId);
-      if (!ui) continue;
-      if (ui.itemId !== seedItemId) continue;
-
-      const take = Math.min(ui.quantity, remainingToConsume);
-      remainingToConsume -= take;
-
-      const newQty = ui.quantity - take;
-      if (newQty <= 0) {
-        await tx.userItem.delete({ where: { id: userItemId } });
-        userItemById.delete(userItemId);
-        const currentSlot = updatedSlots[i];
-        if (currentSlot) updatedSlots[i] = { ...currentSlot, item: null };
-        slotsChanged = true;
-      } else {
-        await tx.userItem.update({
-          where: { id: userItemId },
-          data: { quantity: newQty },
-        });
-        ui.quantity = newQty;
-      }
-    }
-
-    if (remainingToConsume > 0) {
-      throw new Error("Not enough seeds in inventory");
-    }
-
-    if (slotsChanged) {
-      await tx.inventory.update({
-        where: { userId },
-        data: { slots: updatedSlots },
-      });
-    }
 
     await tx.userGardenTile.createMany({
       data: tileIndices.map((tileIndex) => ({
@@ -461,6 +406,10 @@ function rollIntInclusive(min: number, max: number) {
 
 export type GardenSettlement = {
   harvestedTiles: number;
+  /** Crops added to the inventory, for the skill's lifetime metrics. */
+  cropsHarvested: number;
+  /** Growing time those crops represent, for the skill's lifetime metrics. */
+  secondsHarvested: number;
   xpGained: number;
   itemChanges: ItemQuantityChange[];
   newStacks: boolean;
@@ -488,6 +437,8 @@ export async function settleGardenHarvest(
     if (!activity) {
       return {
         harvestedTiles: 0,
+        cropsHarvested: 0,
+        secondsHarvested: 0,
         xpGained: 0,
         itemChanges: [] as ItemQuantityChange[],
         newStacks: false,
@@ -549,6 +500,8 @@ export async function settleGardenHarvest(
     let newStacks = false;
     let xpGained = 0;
     let harvestedTiles = 0;
+    let cropsHarvested = 0;
+    let secondsHarvested = 0;
     let stopReason: ActivityStopReason | null = null;
 
     for (const tile of schedule.slice(0, finished)) {
@@ -574,6 +527,8 @@ export async function settleGardenHarvest(
           itemChanges.set(change.userItemId, change.quantity);
         }
         newStacks ||= grant.newStacks;
+        cropsHarvested += quantity;
+        secondsHarvested += Math.max(0, tile.harvestSeconds);
         xpGained += Math.max(0, row.xpReward);
         await tx.userGardenTile.delete({ where: { id: row.id } });
       }
@@ -594,6 +549,8 @@ export async function settleGardenHarvest(
 
     return {
       harvestedTiles,
+      cropsHarvested,
+      secondsHarvested,
       xpGained,
       itemChanges: [...itemChanges].map(([userItemId, quantity]) => ({
         userItemId,
@@ -602,6 +559,13 @@ export async function settleGardenHarvest(
       newStacks,
       stopReason,
     };
+  });
+
+  await recordSkillWork({
+    userId,
+    actionType: VocationalActionType.GARDENING,
+    items: settlement.cropsHarvested,
+    seconds: settlement.secondsHarvested,
   });
 
   if (settlement.xpGained > 0) {

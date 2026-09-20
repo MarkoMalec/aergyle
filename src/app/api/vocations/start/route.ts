@@ -12,6 +12,10 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
   const resourceId = body?.resourceId;
   const durationSeconds = body?.durationSeconds ?? null;
+  const quantity =
+    typeof body?.quantity === "number" && Number.isFinite(body.quantity)
+      ? body.quantity
+      : null;
   const replace = body?.replace;
   const baitUserItemId = body?.baitUserItemId ?? null;
 
@@ -43,6 +47,7 @@ export async function POST(req: NextRequest) {
       resourceId,
       locationId: user?.currentLocationId ?? null,
       durationSeconds,
+      quantity,
       replace: replace === undefined ? true : Boolean(replace),
       baitUserItemId:
         baitUserItemId === null || baitUserItemId === undefined

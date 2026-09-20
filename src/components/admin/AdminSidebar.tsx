@@ -18,7 +18,10 @@ import {
   SidebarSeparator,
 } from "~/components/ui/sidebar";
 
-export function AdminSidebar(props: React.ComponentProps<typeof Sidebar>) {
+export function AdminSidebar({
+  openReports = 0,
+  ...props
+}: React.ComponentProps<typeof Sidebar> & { openReports?: number }) {
   const pathname = usePathname();
 
   return (
@@ -37,7 +40,14 @@ export function AdminSidebar(props: React.ComponentProps<typeof Sidebar>) {
               return (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
-                    <Link href={item.href}>{item.label}</Link>
+                    <Link href={item.href}>
+                      <span>{item.label}</span>
+                      {item.href === "/admin/moderation" && openReports > 0 ? (
+                        <span className="ml-auto rounded bg-amber-400/20 px-1.5 text-[11px] font-semibold tabular-nums text-amber-300">
+                          {openReports}
+                        </span>
+                      ) : null}
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               );

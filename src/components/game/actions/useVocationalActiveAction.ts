@@ -19,7 +19,11 @@ import {
 import { useRealtimeConnected } from "~/components/realtime/realtimeConnection";
 import { useUserContext } from "~/context/userContext";
 import { refreshProgress } from "~/lib/player-sync";
-import { gardenQueryKeys, inventoryQueryKeys } from "~/lib/query-keys";
+import {
+  gardenQueryKeys,
+  inventoryQueryKeys,
+  questQueryKeys,
+} from "~/lib/query-keys";
 import { toSkillNameFromActionType } from "~/utils/vocations";
 import toast from "react-hot-toast";
 
@@ -462,7 +466,10 @@ export function useVocationalActiveAction() {
       const msToEnd = Math.max(0, endsAtMs - Date.now()) + 75;
 
       const t = window.setTimeout(() => {
-        void refresh();
+        // Arriving brings the new location's quests into view.
+        void refresh().then(() =>
+          queryClient.invalidateQueries({ queryKey: questQueryKeys.unseen() }),
+        );
       }, msToEnd);
 
       return () => window.clearTimeout(t);
@@ -1137,6 +1144,12 @@ export function useVocationalActiveAction() {
       // Stopping a vocation or harvest pays out what it earned so far.
       if (kind === "vocation" || kind === "garden") {
         syncPlayerData(context?.skill ?? null);
+      }
+      // Turning back leaves the player among the quests where they set off.
+      if (kind === "travel") {
+        void queryClient.invalidateQueries({
+          queryKey: questQueryKeys.unseen(),
+        });
       }
 
       // Notify listeners of change (for other components)

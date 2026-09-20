@@ -10,9 +10,6 @@ export type AtlasLocationMarker = {
   knownFor: readonly string[];
 };
 
-/** Pixel size of the atlas artwork the marker percentages refer to. */
-export const WORLD_ATLAS_MAP_SIZE = { width: 1536, height: 1024 } as const;
-
 export const WORLD_ATLAS_LOCATION_MARKERS = [
   {
     name: "Crownhold",

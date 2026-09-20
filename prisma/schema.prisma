@@ -38,21 +38,21 @@ model Session {
 }
 
 model User {
-  id                    String                     @id @unique(map: "user_Id") @default(cuid())
+  id                    String                         @id @unique(map: "user_Id") @default(cuid())
   name                  String?
-  email                 String?                    @unique
+  email                 String?                        @unique
   emailVerified         DateTime?
-  password              String?                    @db.VarChar(999)
+  password              String?                        @db.VarChar(999)
   image                 String?
-  last_online           DateTime                   @default(now()) @db.Timestamp(0)
+  last_online           DateTime                       @default(now()) @db.Timestamp(0)
   last_action           String?
   // The user's current location in the world (one at a time).
   currentLocationId     Int?
-  level                 Int                        @default(1)
+  level                 Int                            @default(1)
   // Total (lifetime) XP. Level is derived from `LevelXpThreshold`.
   // NOTE: existing DBs may have legacy "XP within level" values; code normalizes lazily.
-  experience            BigInt                     @default(0)
-  gold                  Decimal                    @default(0) @db.Decimal(10, 2)
+  experience            BigInt                         @default(0)
+  gold                  Decimal                        @default(0) @db.Decimal(10, 2)
   accounts              Account[]
   equipment             Equipment?
   inventory             Inventory?
@@ -62,6 +62,7 @@ model User {
   xpMultipliers         XpMultiplier[]
   userItems             UserItem[]
   trackProgress         UserTrackProgress[]
+  skillMetrics          UserSkillMetric[]
   vocationalActivity    UserVocationalActivity?
   travelActivity        UserTravelActivity?
   gardenTiles           UserGardenTile[]
@@ -73,8 +74,17 @@ model User {
   learnedRecipes        UserLearnedRecipe[]
   activeFoodEffect      UserActiveFoodEffect?
   marketBuyOrders       MarketBuyOrder[]
-  marketPurchases       MarketTransaction[]        @relation("MarketTransactionBuyer")
-  marketSales           MarketTransaction[]        @relation("MarketTransactionSeller")
+  marketPurchases       MarketTransaction[]            @relation("MarketTransactionBuyer")
+  marketSales           MarketTransaction[]            @relation("MarketTransactionSeller")
+  quests                UserQuest[]
+  seenQuests            UserSeenQuest[]
+  projectContributions  CommunityProjectContribution[]
+  notifications         Notification[]
+  conversations         ConversationParticipant[]
+  messagesSent          Message[]
+  reportsFiled          MessageReport[]                @relation("MessageReportReporter")
+  reportsAgainst        MessageReport[]                @relation("MessageReportReported")
+  reportsReviewed       MessageReport[]                @relation("MessageReportReviewer")
 
   currentLocation Location? @relation("UserCurrentLocation", fields: [currentLocationId], references: [id], onDelete: SetNull)
 
@@ -335,11 +345,15 @@ model Item {
   userItems            UserItem[] // Item instances owned by players
   marketBuyOrders      MarketBuyOrder[]
   marketTransactions   MarketTransaction[]
-  vocationalResource   VocationalResource?      @relation("VocationalOutputItem")
-  requiredByRecipes    VocationalResource[]     @relation("RequiredRecipeItem")
+  vocationalResource   VocationalResource?           @relation("VocationalOutputItem")
+  requiredByRecipes    VocationalResource[]          @relation("RequiredRecipeItem")
   learnedRecipeRecords UserLearnedRecipe[]
   foodEffectStats      FoodEffectStat[]
   activeFoodEffects    UserActiveFoodEffect[]
+  npcOffers            NpcOffer[]
+  questObjectives      QuestObjective[]
+  questRewards         QuestRewardItem[]
+  projectRequirements  CommunityProjectRequirement[]
 
   seedYieldItem Item?  @relation("SeedYieldItem", fields: [seedYieldItemId], references: [id], onDelete: SetNull)
   seedYieldedBy Item[] @relation("SeedYieldItem")
@@ -940,6 +954,21 @@ model UserTrackProgress {
   @@index([userId, trackType])
 }
 
+// Lifetime totals shown on a skill page. Experience is not duplicated here: it
+// is read from UserTrackProgress. Counting starts when a skill is first used.
+model UserSkillMetric {
+  userId     String
+  actionType VocationalActionType
+
+  itemsGathered BigInt   @default(0)
+  secondsSpent  BigInt   @default(0)
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, actionType])
+}
+
 // ============================================
 // VOCATIONAL (OFFLINE) ACTIONS
 // ============================================
@@ -966,6 +995,8 @@ model Location {
   requiredLevel          Int      @default(1)
   gatheringEnabled       Boolean  @default(false)
   gatheringRequiredLevel Int      @default(1)
+  // Region map artwork (1536x1024) with its places pinned on it.
+  mapImage               String?
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 
@@ -974,6 +1005,7 @@ model Location {
   gatheringExpeditions UserGatheringExpedition[]
   huntingGrounds       HuntingGround[]
   dungeons             Dungeon[]
+  settlements          Settlement[]
   users                User[]                       @relation("UserCurrentLocation")
 
   travelFrom UserTravelActivity[] @relation("TravelFrom")
@@ -1208,9 +1240,10 @@ model Creature {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  drops          CreatureDrop[]
-  huntingGrounds HuntingGroundCreature[]
-  dungeons       DungeonMonster[]
+  drops           CreatureDrop[]
+  huntingGrounds  HuntingGroundCreature[]
+  dungeons        DungeonMonster[]
+  questObjectives QuestObjective[]
 
   @@index([kind, enabled])
 }
@@ -1248,6 +1281,9 @@ model HuntingGround {
   requiredHuntingLevel Int     @default(1)
   enabled              Boolean @default(true)
   sortOrder            Int     @default(0)
+  // Pin on the location's region map, in percent; unplaced when null.
+  mapX                 Float?
+  mapY                 Float?
 
   // Non-creature mishaps such as falls or weapon-handling accidents. This is
   // rolled once per encounter, so longer expeditions naturally carry more risk.
@@ -1395,13 +1431,17 @@ model Dungeon {
   xpReward        Int               @default(0)
   enabled         Boolean           @default(true)
   sortOrder       Int               @default(0)
+  // Pin on the location's region map, in percent; unplaced when null.
+  mapX            Float?
+  mapY            Float?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  location Location         @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  monsters DungeonMonster[]
-  runs     UserDungeonRun[]
+  location        Location         @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  monsters        DungeonMonster[]
+  runs            UserDungeonRun[]
+  questObjectives QuestObjective[]
 
   @@unique([locationId, name])
   @@index([locationId, enabled, sortOrder])
@@ -1515,4 +1555,395 @@ model UserVocationalActivity {
   @@index([endsAt])
   @@index([userId, endsAt])
   @@index([baitUserItemId])
+}
+
+// ============================================
+// SETTLEMENTS, NPCS, QUESTS & COMMUNITY PROJECTS
+// ============================================
+
+enum SettlementKind {
+  VILLAGE
+  TOWN
+  CITY
+}
+
+// A location's common ground: its NPCs (shops and quests) and community
+// projects. A location can hold any number of settlements, and players must
+// be at the location to use them.
+model Settlement {
+  id          Int            @id @default(autoincrement())
+  locationId  Int
+  name        String
+  kind        SettlementKind @default(VILLAGE)
+  description String?        @db.Text
+  image       String?
+  // Settlement map artwork (1536x1024) with its NPCs pinned on it.
+  mapImage    String?
+  // Pin on the location's region map, in percent; unplaced when null.
+  mapX        Float?
+  mapY        Float?
+  enabled     Boolean        @default(true)
+  sortOrder   Int            @default(0)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  location Location           @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  npcs     Npc[]
+  projects CommunityProject[]
+
+  @@unique([locationId, name])
+  @@index([locationId, enabled, sortOrder])
+}
+
+// Optional role that will grant an NPC services: blacksmiths offer rarity
+// upgrades (and later repairs). The services themselves come later.
+enum NpcProfession {
+  BLACKSMITH
+}
+
+// NPCs are identified by name; a profession is optional.
+model Npc {
+  id                Int            @id @default(autoincrement())
+  settlementId      Int
+  name              String
+  description       String?        @db.Text
+  portrait          String?
+  // The square of the portrait shown as the NPC's head on the settlement
+  // map: its top-left corner (x of the width, y of the height) and its side
+  // (of the width), as fractions. The default crop is used while unset.
+  headX             Float?
+  headY             Float?
+  headSize          Float?
+  // Pin on the settlement map, in percent; unplaced when null.
+  mapX              Float?
+  mapY              Float?
+  profession        NpcProfession?
+  // Hidden from players until this community project is completed.
+  requiredProjectId Int?
+  enabled           Boolean        @default(true)
+  sortOrder         Int            @default(0)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  settlement      Settlement        @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+  requiredProject CommunityProject? @relation("NpcUnlock", fields: [requiredProjectId], references: [id], onDelete: SetNull)
+  offers          NpcOffer[]
+  quests          Quest[]
+
+  @@index([settlementId, enabled, sortOrder])
+  @@index([requiredProjectId])
+}
+
+// An item an NPC sells at this NPC's own price, granted at the item's rarity.
+// A rare find has an availability window and is hidden outside it.
+model NpcOffer {
+  id                Int       @id @default(autoincrement())
+  npcId             Int
+  itemId            Int
+  price             Decimal   @db.Decimal(10, 2)
+  availableFrom     DateTime?
+  availableUntil    DateTime?
+  requiredProjectId Int?
+  enabled           Boolean   @default(true)
+  sortOrder         Int       @default(0)
+
+  npc             Npc               @relation(fields: [npcId], references: [id], onDelete: Cascade)
+  item            Item              @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  requiredProject CommunityProject? @relation("NpcOfferUnlock", fields: [requiredProjectId], references: [id], onDelete: SetNull)
+
+  @@index([npcId, enabled, sortOrder])
+  @@index([itemId])
+  @@index([requiredProjectId])
+}
+
+enum QuestRepeat {
+  ONCE
+  DAILY
+  WEEKLY
+}
+
+enum QuestObjectiveType {
+  // Hand in items (any rarity) when completing the quest.
+  DELIVER
+  // Defeat a creature, in hunting grounds or dungeons, after accepting.
+  HUNT
+  // Clear a dungeon after accepting.
+  CLEAR
+}
+
+model Quest {
+  id                Int         @id @default(autoincrement())
+  npcId             Int
+  name              String
+  description       String?     @db.Text
+  repeat            QuestRepeat @default(ONCE)
+  requiredLevel     Int         @default(1)
+  rewardGold        Decimal     @default(0) @db.Decimal(10, 2)
+  rewardXp          Int         @default(0)
+  // Hidden from players until this community project is completed.
+  requiredProjectId Int?
+  enabled           Boolean     @default(true)
+  sortOrder         Int         @default(0)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  npc             Npc               @relation(fields: [npcId], references: [id], onDelete: Cascade)
+  requiredProject CommunityProject? @relation("QuestUnlock", fields: [requiredProjectId], references: [id], onDelete: SetNull)
+  objectives      QuestObjective[]
+  rewardItems     QuestRewardItem[]
+  userQuests      UserQuest[]
+  seenBy          UserSeenQuest[]
+
+  @@index([npcId, enabled, sortOrder])
+  @@index([requiredProjectId])
+}
+
+// The target column matches the type: itemId (DELIVER), creatureId (HUNT) or
+// dungeonId (CLEAR).
+model QuestObjective {
+  id         Int                @id @default(autoincrement())
+  questId    Int
+  type       QuestObjectiveType
+  itemId     Int?
+  creatureId Int?
+  dungeonId  Int?
+  quantity   Int                @default(1)
+
+  quest    Quest     @relation(fields: [questId], references: [id], onDelete: Cascade)
+  item     Item?     @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  creature Creature? @relation(fields: [creatureId], references: [id], onDelete: Cascade)
+  dungeon  Dungeon?  @relation(fields: [dungeonId], references: [id], onDelete: Cascade)
+
+  @@index([questId])
+  @@index([itemId])
+  @@index([creatureId])
+  @@index([dungeonId])
+}
+
+// Items granted at their own rarity when the quest is completed.
+model QuestRewardItem {
+  id       Int @id @default(autoincrement())
+  questId  Int
+  itemId   Int
+  quantity Int @default(1)
+
+  quest Quest @relation(fields: [questId], references: [id], onDelete: Cascade)
+  item  Item  @relation(fields: [itemId], references: [id], onDelete: Restrict)
+
+  @@unique([questId, itemId])
+  @@index([itemId])
+}
+
+// A player's quest in one period: "ONCE" for one-time quests, the UTC day
+// (2026-09-19) for daily quests and the UTC week's Monday (W2026-09-14) for
+// weekly quests, so repeatable quests reset without a job.
+model UserQuest {
+  id          Int       @id @default(autoincrement())
+  userId      String
+  questId     Int
+  period      String    @db.VarChar(16)
+  // Kills and dungeon clears since accepting, keyed "creature:<id>" and
+  // "dungeon:<id>", so editing objectives never orphans progress.
+  progress    Json?
+  acceptedAt  DateTime  @default(now())
+  completedAt DateTime?
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quest Quest @relation(fields: [questId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, questId, period])
+  @@index([questId])
+  @@index([userId, completedAt])
+}
+
+// One-time quests a player has had on screen at their NPC. Available ones
+// without a row light up the new-quest dots (Settlements menu, settlement and
+// NPC cards) where the player stands.
+model UserSeenQuest {
+  userId  String
+  questId Int
+  seenAt  DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quest Quest @relation(fields: [questId], references: [id], onDelete: Cascade)
+
+  @@id([userId, questId])
+  @@index([questId])
+}
+
+// A settlement-wide goal every player contributes items to. Completing it
+// reveals the NPCs, shop offers and quests that require it.
+model CommunityProject {
+  id           Int       @id @default(autoincrement())
+  settlementId Int
+  name         String
+  description  String?   @db.Text
+  image        String?
+  enabled      Boolean   @default(true)
+  sortOrder    Int       @default(0)
+  completedAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  settlement    Settlement                    @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+  requirements  CommunityProjectRequirement[]
+  unlocksNpcs   Npc[]                         @relation("NpcUnlock")
+  unlocksOffers NpcOffer[]                    @relation("NpcOfferUnlock")
+  unlocksQuests Quest[]                       @relation("QuestUnlock")
+
+  @@index([settlementId, enabled, sortOrder])
+}
+
+model CommunityProjectRequirement {
+  id          Int @id @default(autoincrement())
+  projectId   Int
+  itemId      Int
+  quantity    Int
+  // Total contributed by every player; contributions stop at quantity.
+  contributed Int @default(0)
+
+  project       CommunityProject               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  item          Item                           @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  contributions CommunityProjectContribution[]
+
+  @@unique([projectId, itemId])
+  @@index([itemId])
+}
+
+// One row per player and requirement, summing their contributions.
+model CommunityProjectContribution {
+  id            Int      @id @default(autoincrement())
+  requirementId Int
+  userId        String
+  quantity      Int
+  updatedAt     DateTime @updatedAt
+
+  requirement CommunityProjectRequirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  user        User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([requirementId, userId])
+  @@index([userId])
+}
+
+// ============================================
+// NOTIFICATIONS & MESSAGES
+// ============================================
+
+// What a notification is about; players filter their list by it.
+enum NotificationCategory {
+  GENERAL
+  SETTLEMENT
+  QUEST
+  MARKET
+  COMBAT
+  SYSTEM
+}
+
+// A one-way note from the game to one player. Only the newest
+// `NOTIFICATIONS_KEPT` per player are held; older ones are pruned when the
+// player opens their list.
+model Notification {
+  id        Int                  @id @default(autoincrement())
+  userId    String
+  category  NotificationCategory @default(GENERAL)
+  title     String
+  body      String               @db.Text
+  // Optional "Read more" target, e.g. /settlements/3.
+  href      String?
+  readAt    DateTime?
+  createdAt DateTime             @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, id])
+  @@index([userId, readAt])
+}
+
+// A private thread. Player threads hold exactly two participants; a system
+// thread holds one, and its messages have no sender.
+model Conversation {
+  id Int @id @default(autoincrement())
+  // One row per pair: the two user ids sorted and joined ("a|b"), or
+  // "system|<userId>" for the game's own thread with a player.
+  pairKey       String   @unique @db.VarChar(191)
+  system        Boolean  @default(false)
+  lastMessageAt DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  participants ConversationParticipant[]
+  messages     Message[]
+  reports      MessageReport[]
+
+  @@index([lastMessageAt])
+}
+
+// One player's side of a thread. Deleting a conversation only hides this row,
+// so the other player keeps theirs.
+model ConversationParticipant {
+  conversationId Int
+  userId         String
+  // Hidden after this player deleted the thread, or while they are at their
+  // conversation limit and this one is waiting for a free slot.
+  hidden         Boolean   @default(false)
+  // New messages this player has not opened yet. Hidden + unread is a thread
+  // waiting for room.
+  unread         Boolean   @default(false)
+  // Messages up to here stay hidden from this player after a delete.
+  clearedAt      DateTime?
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([conversationId, userId])
+  @@index([userId, hidden, unread])
+}
+
+model Message {
+  id             Int      @id @default(autoincrement())
+  conversationId Int
+  // Null when the game itself wrote it (a system message).
+  senderId       String?
+  body           String   @db.Text
+  createdAt      DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User?        @relation(fields: [senderId], references: [id], onDelete: SetNull)
+
+  @@index([conversationId, id])
+  @@index([senderId])
+}
+
+enum MessageReportStatus {
+  OPEN
+  RESOLVED
+  DISMISSED
+}
+
+// A reported thread, with the transcript copied in as it stood, so neither
+// player can erase what moderators review.
+model MessageReport {
+  id             Int                 @id @default(autoincrement())
+  conversationId Int?
+  reporterId     String?
+  reportedId     String?
+  reason         String?             @db.Text
+  // [{ at, sender, body }] at the moment of the report.
+  transcript     Json
+  status         MessageReportStatus @default(OPEN)
+  reviewNote     String?             @db.Text
+  reviewedById   String?
+  reviewedAt     DateTime?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  conversation Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  reporter     User?         @relation("MessageReportReporter", fields: [reporterId], references: [id], onDelete: SetNull)
+  reported     User?         @relation("MessageReportReported", fields: [reportedId], references: [id], onDelete: SetNull)
+  reviewedBy   User?         @relation("MessageReportReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([status, id])
+  @@index([conversationId])
+  @@index([reporterId])
+  @@index([reportedId])
+  @@index([reviewedById])
 }

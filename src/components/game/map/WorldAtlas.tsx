@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import {
   BookOpen,
   Compass,
@@ -9,11 +8,9 @@ import {
   Navigation,
 } from "lucide-react";
 import { useMemo, useState } from "react";
-import {
-  getAtlasLocationMarker,
-  WORLD_ATLAS_MAP_SIZE,
-} from "~/game/world/atlasLocations";
+import { getAtlasLocationMarker } from "~/game/world/atlasLocations";
 import DragScrollContainer from "~/components/game/map/DragScrollContainer";
+import { MapCanvas } from "~/components/game/map/PlaceMap";
 import TravelLocationDialog from "~/components/game/map/TravelLocationDialog";
 
 export type AtlasLocationRow = {
@@ -106,55 +103,46 @@ export default function WorldAtlas({
           className="game-atlas-viewport"
           initialFocus={initialFocus}
         >
-          <div className="atlas-map-canvas">
-            <Image
-              src="/assets/world/world-map-v1.png"
-              alt="Illustrated terrain map of Aergyle"
-              width={WORLD_ATLAS_MAP_SIZE.width}
-              height={WORLD_ATLAS_MAP_SIZE.height}
-              priority
-              className="atlas-map-image"
-            />
+          <MapCanvas
+            image="/assets/world/world-map-v1.png"
+            alt="Illustrated terrain map of Aergyle"
+          >
+            {locatedDestinations.map(({ location, marker }) => {
+              const isCurrent = location.id === currentLocationId;
+              const isLocked = userLevel < Math.max(1, location.requiredLevel);
+              const isSelected = location.id === selectedLocationId;
+              const accessLabel = isCurrent
+                ? "You are here"
+                : isLocked
+                  ? `Level ${location.requiredLevel}`
+                  : location.requiredLevel <= 1
+                    ? "Open route"
+                    : `Level ${location.requiredLevel}`;
 
-            <div className="atlas-location-layer">
-              {locatedDestinations.map(({ location, marker }) => {
-                const isCurrent = location.id === currentLocationId;
-                const isLocked =
-                  userLevel < Math.max(1, location.requiredLevel);
-                const isSelected = location.id === selectedLocationId;
-                const accessLabel = isCurrent
-                  ? "You are here"
-                  : isLocked
-                    ? `Level ${location.requiredLevel}`
-                    : location.requiredLevel <= 1
-                      ? "Open route"
-                      : `Level ${location.requiredLevel}`;
-
-                return (
-                  <button
-                    key={location.id}
-                    type="button"
-                    className="atlas-marker"
-                    style={{ left: marker.left, top: marker.top }}
-                    data-current={isCurrent}
-                    data-locked={isLocked}
-                    data-selected={isSelected}
-                    aria-current={isCurrent ? "location" : undefined}
-                    aria-label={`${location.name}. ${accessLabel}. Open atlas entry.`}
-                    onClick={() => setSelectedLocationId(location.id)}
-                  >
-                    <span className="atlas-marker-pin" aria-hidden="true">
-                      {isLocked ? <LockKeyhole /> : <MapPin />}
-                    </span>
-                    <span className="atlas-marker-plaque">
-                      <strong>{location.name}</strong>
-                      <small>{accessLabel}</small>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+              return (
+                <button
+                  key={location.id}
+                  type="button"
+                  className="atlas-marker"
+                  style={{ left: marker.left, top: marker.top }}
+                  data-current={isCurrent}
+                  data-locked={isLocked}
+                  data-selected={isSelected}
+                  aria-current={isCurrent ? "location" : undefined}
+                  aria-label={`${location.name}. ${accessLabel}. Open atlas entry.`}
+                  onClick={() => setSelectedLocationId(location.id)}
+                >
+                  <span className="atlas-marker-pin" aria-hidden="true">
+                    {isLocked ? <LockKeyhole /> : <MapPin />}
+                  </span>
+                  <span className="atlas-marker-plaque">
+                    <strong>{location.name}</strong>
+                    <small>{accessLabel}</small>
+                  </span>
+                </button>
+              );
+            })}
+          </MapCanvas>
         </DragScrollContainer>
       </div>
 

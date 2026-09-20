@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import type React from "react";
 import type { ItemRarity } from "~/generated/prisma/enums";
 import { useRarityColors } from "~/hooks/use-rarity-colors";
 import { rarityStyle } from "~/utils/rarity-colors";
@@ -13,6 +14,7 @@ export function ItemArtwork({
   rarity,
   size = 68,
   itemId,
+  quantity,
 }: {
   src: string;
   name: string;
@@ -20,6 +22,8 @@ export function ItemArtwork({
   size?: number;
   /** Item template id: clicking the artwork then opens the item's details card. */
   itemId?: number;
+  /** Shown over the bottom-right corner, like an inventory stack count. */
+  quantity?: React.ReactNode;
 }) {
   const { colors } = useRarityColors();
   const artwork = (
@@ -40,6 +44,9 @@ export function ItemArtwork({
         className="h-full w-full rounded-lg object-contain"
       />
       <ItemRarityMark rarity={rarity} />
+      {quantity !== undefined ? (
+        <span className="game-item-quantity">{quantity}</span>
+      ) : null}
     </div>
   );
 

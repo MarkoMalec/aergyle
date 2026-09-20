@@ -74,7 +74,13 @@ export async function generateMetadata({
   };
 }
 
-const SkillPage = async ({ params }: { params: { name: string } }) => {
+const SkillPage = async ({
+  params,
+  searchParams,
+}: {
+  params: { name: string };
+  searchParams: { ground?: string };
+}) => {
   if (isGardeningSkillParam(params.name)) {
     return (
       <main className="space-y-6">
@@ -94,7 +100,10 @@ const SkillPage = async ({ params }: { params: { name: string } }) => {
   if (isHuntingSkillParam(params.name)) {
     return (
       <main className="space-y-6">
-        <HuntingExpedition />
+        {/* The region map links a ground here with ?ground=<id>. */}
+        <HuntingExpedition
+          initialGroundId={Number(searchParams.ground) || null}
+        />
       </main>
     );
   }

@@ -1,8 +1,13 @@
 import Link from "next/link";
 import React from "react";
 import ItemImportForm from "~/components/admin/ItemImportForm";
+import { countOpenReports } from "~/server/communication";
 
-export default function AdminPage() {
+export const dynamic = "force-dynamic";
+
+export default async function AdminPage() {
+  const openReports = await countOpenReports();
+
   return (
     <div className="space-y-8">
       <div>
@@ -64,6 +69,16 @@ export default function AdminPage() {
         </Link>
 
         <Link
+          href="/admin/settlements"
+          className="rounded-lg border border-gray-800/60 bg-gray-900/40 p-4 hover:bg-gray-900/60"
+        >
+          <div className="text-sm font-semibold">Settlements</div>
+          <div className="mt-1 text-sm text-white/70">
+            NPCs, their shops and quests, and community projects
+          </div>
+        </Link>
+
+        <Link
           href="/admin/travel"
           className="rounded-lg border border-gray-800/60 bg-gray-900/40 p-4 hover:bg-gray-900/60"
         >
@@ -100,6 +115,23 @@ export default function AdminPage() {
           <div className="text-sm font-semibold">Character stats</div>
           <div className="mt-1 text-sm text-white/70">
             Base stats and how they grow with level
+          </div>
+        </Link>
+
+        <Link
+          href="/admin/moderation"
+          className="rounded-lg border border-gray-800/60 bg-gray-900/40 p-4 hover:bg-gray-900/60"
+        >
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            Moderation
+            {openReports > 0 ? (
+              <span className="rounded bg-amber-400/20 px-1.5 text-[11px] font-semibold tabular-nums text-amber-300">
+                {openReports} new
+              </span>
+            ) : null}
+          </div>
+          <div className="mt-1 text-sm text-white/70">
+            Reported conversations, and writing to players
           </div>
         </Link>
       </div>

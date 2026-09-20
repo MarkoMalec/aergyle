@@ -24,6 +24,7 @@ import {
   type CreatureLootReward,
 } from "~/server/creatures/loot";
 import { createExpeditionRandom } from "~/server/expeditions/random";
+import { recordQuestProgress } from "~/server/settlements/quests";
 import { getCharacterStatSnapshot } from "~/server/stats";
 import { grantStackableItemToInventory } from "~/server/vocations/grantItem";
 import { awardXp } from "~/utils/leveling";
@@ -586,6 +587,7 @@ export async function claimDungeonRun(userId: string) {
       monsterPool: true,
       deathRules: true,
       resolutionSeed: true,
+      dungeonId: true,
       dungeon: { select: { name: true } },
     },
   });
@@ -673,6 +675,12 @@ export async function claimDungeonRun(userId: string) {
       userId,
       currentHealth: healthAfter,
       at: claimedAt,
+    });
+    await recordQuestProgress({
+      db: tx,
+      userId,
+      kills: resolution.kills,
+      clearedDungeonId: cleared ? run.dungeonId : null,
     });
   });
 
