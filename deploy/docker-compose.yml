@@ -33,9 +33,16 @@ services:
     # Bound to loopback: Apache terminates TLS and proxies in.
     ports:
       - "${APP_BIND:-127.0.0.1:3000}:3000"
+    volumes:
+      # Optimized images live here. Without a volume every deploy throws the
+      # cache away and the host re-optimizes all 200+ assets from scratch.
+      - image-cache:/app/.next/cache
 
   daemon:
     <<: *aergyle
     command: ["daemon"]
     ports:
       - "${WS_BIND:-127.0.0.1:3001}:3001"
+
+volumes:
+  image-cache:
