@@ -166,12 +166,20 @@ function startTickLoop(
   clientsByUserId: Map<string, Set<Client>>,
   tickers: Ticker[],
 ) {
-  // Simple loop: every 250ms settle whatever came due.
+  // Simple loop: every VOCATION_TICK_LOOP_MS settle whatever came due.
   // Later: schedule each player's next tick precisely (min-heap) instead of polling.
   const intervalMs = Number(process.env.VOCATION_TICK_LOOP_MS ?? 250);
 
   // Prevent overlapping iterations if settling takes longer than the interval.
   let running = false;
+
+  // A settlement that throws rolls its transaction back, which leaves the
+  // player still due. Without a backoff the loop retries that same failure on
+  // every iteration forever, paying for a full transaction each time - one
+  // wedged player is enough to load the database indefinitely.
+  const failures = new Map<string, { count: number; nextAttemptAt: number }>();
+  const FAILURES_BEFORE_BACKOFF = 3;
+  const MAX_BACKOFF_MS = 5 * 60_000;
 
   const settleDueTicks = async () => {
     if (running) return;
@@ -193,9 +201,14 @@ function startTickLoop(
         }
 
         for (const userId of userIds) {
+          const failureKey = `${ticker.activity}:${userId}`;
+          const failure = failures.get(failureKey);
+          if (failure && Date.now() < failure.nextAttemptAt) continue;
+
           // Each player settles on their own: one failure must not hold up everyone else.
           try {
             const tick = await ticker.settle(userId);
+            if (failure) failures.delete(failureKey);
             if (!tick) continue;
 
             console.log(
@@ -210,8 +223,21 @@ function startTickLoop(
               at: new Date().toISOString(),
             });
           } catch (err) {
+            const count = (failure?.count ?? 0) + 1;
+            const backoffMs =
+              count <= FAILURES_BEFORE_BACKOFF
+                ? 0
+                : Math.min(
+                    MAX_BACKOFF_MS,
+                    1_000 * 2 ** (count - FAILURES_BEFORE_BACKOFF - 1),
+                  );
+            failures.set(failureKey, {
+              count,
+              nextAttemptAt: Date.now() + backoffMs,
+            });
+
             console.error(
-              `[realtime-daemon] ${ticker.activity} tick failed user=${userId}`,
+              `[realtime-daemon] ${ticker.activity} tick failed user=${userId} (failure ${count}${backoffMs > 0 ? `, retrying in ${Math.round(backoffMs / 1000)}s` : ""})`,
               err,
             );
           }

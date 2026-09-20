@@ -28,11 +28,11 @@ env:
   REGISTRY: ghcr.io
 
 jobs:
-  # Advisory only. next.config.js sets ignoreBuildErrors, so a broken type
-  # would otherwise ship silently. This surfaces it without blocking a deploy.
+  # A real gate. next.config.js sets ignoreBuildErrors, so `next build` will
+  # happily compile and ship broken TypeScript; this is the only thing standing
+  # between a type error and the Pi.
   typecheck:
     runs-on: ubuntu-24.04
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -46,6 +46,7 @@ jobs:
       - run: npx tsc --noEmit
 
   build:
+    needs: typecheck
     runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
