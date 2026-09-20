@@ -417,6 +417,44 @@ export async function claimVocationalRewards(params: {
       }
     }
 
+    // XP, skill metrics and track progress commit with the loot that earned
+    // them. These used to run after the transaction, so anything interrupting
+    // in between (a daemon restart on deploy, a dropped connection) left the
+    // player holding the items with the tick already marked claimed and the XP
+    // silently, unrecoverably lost.
+    if (claimedUnits > 0) {
+      await recordSkillWork({
+        db: tx,
+        userId,
+        actionType: activity.actionType,
+        items: grantedQuantity,
+        seconds: claimedUnits * activity.unitSeconds,
+      });
+
+      if (xpToAward > 0) {
+        await awardXp(
+          userId,
+          xpToAward,
+          XpActionType.VOCATION,
+          activity.actionType,
+          "Vocational activity",
+          undefined,
+          // Ticks fire every few seconds per player; only a level-up is worth
+          // an audit row.
+          { db: tx, log: "levelUpOnly" },
+        );
+
+        await awardTrackXp({
+          db: tx,
+          userId,
+          trackType: "SKILL",
+          trackKey: String(activity.actionType),
+          amount: xpToAward,
+          description: "Vocational activity (skill XP)",
+        });
+      }
+    }
+
     return {
       claimedUnits,
       grantedQuantity,
@@ -438,37 +476,6 @@ export async function claimVocationalRewards(params: {
   const userXpGained =
     result.claimedUnits > 0 ? Math.max(0, result.xpToAward) : 0;
   const skillXpGained = userXpGained;
-
-  if (result.claimedUnits > 0 && result.vocationalActionType) {
-    await recordSkillWork({
-      userId,
-      actionType: result.vocationalActionType,
-      items: result.grantedQuantity,
-      seconds: result.claimedUnits * result.unitSeconds,
-    });
-  }
-
-  if (
-    result.claimedUnits > 0 &&
-    result.xpToAward > 0 &&
-    result.vocationalActionType
-  ) {
-    await awardXp(
-      userId,
-      result.xpToAward,
-      XpActionType.VOCATION,
-      result.vocationalActionType,
-      "Vocational activity",
-    );
-
-    await awardTrackXp({
-      userId,
-      trackType: "SKILL",
-      trackKey: String(result.vocationalActionType),
-      amount: result.xpToAward,
-      description: "Vocational activity (skill XP)",
-    });
-  }
 
   const summary: VocationalCompletionSummary | null =
     result.vocationalActionType && result.resourceName && result.itemName

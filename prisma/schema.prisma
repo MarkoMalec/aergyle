@@ -909,10 +909,10 @@ model XpTransaction {
 
   createdAt DateTime @default(now())
 
+  // Nothing queries this table - it is a write-only audit log - so it carried
+  // 92% index overhead purely as insert cost. Only the per-player lookup is
+  // kept, for a future history view.
   @@index([userId, createdAt])
-  @@index([actionType])
-  @@index([vocationalActionType])
-  @@index([createdAt])
 }
 
 // Defines the cumulative total XP required to reach each level.

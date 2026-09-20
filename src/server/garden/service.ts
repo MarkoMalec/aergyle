@@ -547,6 +547,40 @@ export async function settleGardenHarvest(
       });
     }
 
+    // Commit XP and metrics with the harvest itself: running them after the
+    // transaction left a window where the tiles were marked harvested but the
+    // XP was lost.
+    if (cropsHarvested > 0 || secondsHarvested > 0) {
+      await recordSkillWork({
+        db: tx,
+        userId,
+        actionType: VocationalActionType.GARDENING,
+        items: cropsHarvested,
+        seconds: secondsHarvested,
+      });
+    }
+
+    if (xpGained > 0) {
+      await awardXp(
+        userId,
+        xpGained,
+        XpActionType.VOCATION,
+        VocationalActionType.GARDENING,
+        "Gardening harvest",
+        undefined,
+        // Harvest ticks are high frequency; only a level-up earns an audit row.
+        { db: tx, log: "levelUpOnly" },
+      );
+      await awardTrackXp({
+        db: tx,
+        userId,
+        trackType: "SKILL",
+        trackKey: VocationalActionType.GARDENING,
+        amount: xpGained,
+        description: "Gardening harvest",
+      });
+    }
+
     return {
       harvestedTiles,
       cropsHarvested,
@@ -560,30 +594,6 @@ export async function settleGardenHarvest(
       stopReason,
     };
   });
-
-  await recordSkillWork({
-    userId,
-    actionType: VocationalActionType.GARDENING,
-    items: settlement.cropsHarvested,
-    seconds: settlement.secondsHarvested,
-  });
-
-  if (settlement.xpGained > 0) {
-    await awardXp(
-      userId,
-      settlement.xpGained,
-      XpActionType.VOCATION,
-      VocationalActionType.GARDENING,
-      "Gardening harvest",
-    );
-    await awardTrackXp({
-      userId,
-      trackType: "SKILL",
-      trackKey: VocationalActionType.GARDENING,
-      amount: settlement.xpGained,
-      description: "Gardening harvest",
-    });
-  }
 
   return settlement;
 }

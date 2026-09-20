@@ -530,7 +530,7 @@ export async function claimGatheringExpedition(userId: string) {
     throw new Error("The expedition returned no rewards");
 
   const claimedAt = new Date();
-  await prisma.$transaction(async (tx) => {
+  const awarded = await prisma.$transaction(async (tx) => {
     const claimed = await tx.userGatheringExpedition.updateMany({
       where: {
         id: expedition.id,
@@ -560,38 +560,43 @@ export async function claimGatheringExpedition(userId: string) {
         );
       }
     }
-  });
 
-  await recordSkillWork({
-    userId,
-    actionType: VocationalActionType.GATHERING,
-    items: rewards.reduce((total, reward) => total + reward.quantity, 0),
-    seconds: expedition.durationSeconds,
-  });
+    // XP and metrics commit with the loot. Sequential rather than Promise.all:
+    // they share one transaction client, which runs on a single connection.
+    await recordSkillWork({
+      db: tx,
+      userId,
+      actionType: VocationalActionType.GATHERING,
+      items: rewards.reduce((total, reward) => total + reward.quantity, 0),
+      seconds: expedition.durationSeconds,
+    });
 
-  const [playerXp, gatheringXp] = await Promise.all([
-    awardXp(
+    const playerXp = await awardXp(
       userId,
       expedition.xpReward,
       XpActionType.VOCATION,
       VocationalActionType.GATHERING,
       "Gathering expedition",
       { expeditionId: expedition.id },
-    ),
-    awardTrackXp({
+      { db: tx },
+    );
+    const gatheringXp = await awardTrackXp({
+      db: tx,
       userId,
       trackType: "SKILL",
       trackKey: VocationalActionType.GATHERING,
       amount: expedition.xpReward,
       description: "Gathering expedition",
-    }),
-  ]);
+    });
+
+    return { playerXp, gatheringXp };
+  });
 
   return {
     rewards,
     xp: {
-      character: playerXp.xpGained,
-      gathering: gatheringXp.xpGained,
+      character: awarded.playerXp.xpGained,
+      gathering: awarded.gatheringXp.xpGained,
     },
     ...(await getGatheringExpeditionStatus(userId)),
   };

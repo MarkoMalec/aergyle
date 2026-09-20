@@ -382,7 +382,7 @@ export async function completeQuest(userId: string, questId: number) {
   );
   const gold = Number(quest.rewardGold);
 
-  await prisma.$transaction(async (tx) => {
+  const xp = await prisma.$transaction(async (tx) => {
     const completed = await tx.userQuest.updateMany({
       where: { id: userQuest.id, completedAt: null },
       data: { completedAt: now },
@@ -411,10 +411,10 @@ export async function completeQuest(userId: string, questId: number) {
         data: { gold: { increment: gold } },
       });
     }
-  });
 
-  const xp =
-    quest.rewardXp > 0
+    // XP commits with the items and gold, so a crash cannot mark the quest
+    // completed while the reward goes unpaid.
+    return quest.rewardXp > 0
       ? await awardXp(
           userId,
           quest.rewardXp,
@@ -422,8 +422,10 @@ export async function completeQuest(userId: string, questId: number) {
           undefined,
           `Quest completed: ${quest.name}`,
           { questId },
+          { db: tx },
         )
       : null;
+  });
 
   return { name: quest.name, gold, xp: xp?.xpGained ?? 0 };
 }

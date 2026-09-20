@@ -638,7 +638,7 @@ export async function claimDungeonRun(userId: string) {
     },
   };
 
-  await prisma.$transaction(async (tx) => {
+  const playerXp = await prisma.$transaction(async (tx) => {
     const claimed = await tx.userDungeonRun.updateMany({
       where: {
         id: run.id,
@@ -682,10 +682,10 @@ export async function claimDungeonRun(userId: string) {
       kills: resolution.kills,
       clearedDungeonId: cleared ? run.dungeonId : null,
     });
-  });
 
-  const playerXp =
-    xpReward > 0
+    // XP commits with the loot, so a crash cannot leave the run claimed and
+    // the reward unpaid.
+    return xpReward > 0
       ? await awardXp(
           userId,
           xpReward,
@@ -693,8 +693,10 @@ export async function claimDungeonRun(userId: string) {
           undefined,
           `Dungeon cleared: ${run.dungeon.name}`,
           { dungeonRunId: run.id },
+          { db: tx },
         )
       : null;
+  });
 
   return {
     outcome: resolution.report.outcome,

@@ -844,7 +844,7 @@ export async function claimHuntingExpedition(userId: string) {
     },
   };
 
-  await prisma.$transaction(async (tx) => {
+  const awarded = await prisma.$transaction(async (tx) => {
     const claimed = await tx.userHuntingExpedition.updateMany({
       where: {
         id: expedition.id,
@@ -887,35 +887,40 @@ export async function claimHuntingExpedition(userId: string) {
       userId,
       kills: resolution.report.encounters,
     });
-  });
 
-  await recordSkillWork({
-    userId,
-    actionType: VocationalActionType.HUNTING,
-    items: resolution.rewards.reduce(
-      (total, reward) => total + reward.quantity,
-      0,
-    ),
-    seconds: expedition.durationSeconds,
-  });
+    // XP and metrics commit with the loot. Sequential rather than Promise.all:
+    // they share one transaction client, which runs on a single connection.
+    await recordSkillWork({
+      db: tx,
+      userId,
+      actionType: VocationalActionType.HUNTING,
+      items: resolution.rewards.reduce(
+        (total, reward) => total + reward.quantity,
+        0,
+      ),
+      seconds: expedition.durationSeconds,
+    });
 
-  const [playerXp, huntingXp] = await Promise.all([
-    awardXp(
+    const playerXp = await awardXp(
       userId,
       expedition.xpReward,
       XpActionType.VOCATION,
       VocationalActionType.HUNTING,
       "Hunting expedition",
       { expeditionId: expedition.id },
-    ),
-    awardTrackXp({
+      { db: tx },
+    );
+    const huntingXp = await awardTrackXp({
+      db: tx,
       userId,
       trackType: "SKILL",
       trackKey: VocationalActionType.HUNTING,
       amount: expedition.xpReward,
       description: "Hunting expedition",
-    }),
-  ]);
+    });
+
+    return { playerXp, huntingXp };
+  });
 
   return {
     rewards: resolution.rewards,
@@ -926,7 +931,10 @@ export async function claimHuntingExpedition(userId: string) {
       percent: (health.currentHealth / vitals.maxHealth) * 100,
       regeneratedAt: claimedAt.toISOString(),
     },
-    xp: { character: playerXp.xpGained, hunting: huntingXp.xpGained },
+    xp: {
+      character: awarded.playerXp.xpGained,
+      hunting: awarded.huntingXp.xpGained,
+    },
     ...(await getHuntingExpeditionStatus(userId)),
   };
 }
