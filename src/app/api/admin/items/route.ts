@@ -29,6 +29,7 @@ const itemSchema = z.object({
   seedXp: z.number().int().nullable().optional(),
   foodEffectSeconds: z.number().int().nullable().optional(),
   equipTo: z.string().nullable().optional(),
+  twoHanded: z.boolean().optional(),
   stackable: z.boolean(),
   maxStackSize: z.number().int().min(1),
   flipNegativeStatsWithRarity: z.boolean().optional(),
@@ -403,6 +404,10 @@ export async function POST(req: NextRequest) {
         seedXp,
         foodEffectSeconds,
         equipTo: normalizeItemEquipTo(v.equipTo ?? null),
+        // Only weapons can be two-handed.
+        twoHanded:
+          normalizeItemEquipTo(v.equipTo ?? null) === "weapon" &&
+          (v.twoHanded ?? false),
         stackable: v.stackable,
         maxStackSize: v.stackable ? v.maxStackSize : 1,
         flipNegativeStatsWithRarity: v.flipNegativeStatsWithRarity ?? false,

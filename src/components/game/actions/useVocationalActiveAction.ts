@@ -11,6 +11,7 @@ import type {
   ItemRarity,
   VocationalActionType,
 } from "~/generated/prisma/enums";
+import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   addActiveActionEventListener,
@@ -316,6 +317,9 @@ export function useVocationalActiveAction() {
 
   const prevActivityIdRef = useRef<number | null>(null);
   const prevUnitsTotalRef = useRef<number | null>(null);
+  const prevTravelRef = useRef<{ endsAtMs: number; name: string } | null>(null);
+
+  const router = useRouter();
 
   const queryClient = useQueryClient();
   const { user } = useUserContext();
@@ -455,6 +459,32 @@ export function useVocationalActiveAction() {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  // A journey that ended moves the character, and every page renders its location
+  // on the server. Pull the server components through again when travel clears, so
+  // the atlas and the rest of the page stop showing the journey without a reload.
+  useEffect(() => {
+    if (!travelStatus) return;
+
+    const travel = travelStatus.travel;
+    if (travel) {
+      prevTravelRef.current = {
+        endsAtMs: new Date(travel.endsAt).getTime(),
+        name: travel.toLocation.name,
+      };
+      return;
+    }
+
+    const previous = prevTravelRef.current;
+    prevTravelRef.current = null;
+
+    // Cancelling clears travel too, but it refreshes from its own handler once the
+    // server has confirmed it; only an ended journey is picked up here.
+    if (!previous || Date.now() < previous.endsAtMs) return;
+
+    toast.success(`You have arrived at ${previous.name}`);
+    router.refresh();
+  }, [travelStatus, router]);
 
   useEffect(() => {
     const travel = travelStatus?.travel;
@@ -933,16 +963,15 @@ export function useVocationalActiveAction() {
             : unitElapsedSeconds / unitSeconds;
 
     // Visual helper bar: always 1 UI-tick (1 second) ahead.
-    // Example (unitSeconds=5): real 0%,20%,40%,60%,80%,100%,20%...
-    // preview 20%,40%,60%,80%,100%,20%,40%...
+    // Example (unitSeconds=5): real 20%,40%,60%,80%,100%,(0%),20%...
+    // preview 40%,60%,80%,100%,20%,40%...
+    // When the real bar hits 100% (resource gathered), the preview wraps to one tick
+    // into the next unit; ActionFillBar empties the real bar to 0% alongside it.
     const previewProgress =
-      unitSeconds <= 1
+      unitSeconds <= 1 || remainingSeconds === 0
         ? 1
-        : // When the real bar hits 100% (resource gathered), keep the preview at 100%
-          // for that moment. This prevents the preview bar from appearing "behind"
-          // due to wrapping to the next unit immediately.
-          completedSecondBoundary
-          ? 1
+        : completedSecondBoundary
+          ? 1 / unitSeconds
           : Math.min(1, progress + 1 / unitSeconds);
 
     const label = `${activity.resource.name}`;
@@ -1145,11 +1174,13 @@ export function useVocationalActiveAction() {
       if (kind === "vocation" || kind === "garden") {
         syncPlayerData(context?.skill ?? null);
       }
-      // Turning back leaves the player among the quests where they set off.
+      // Turning back leaves the player among the quests where they set off, and
+      // the pages that render the journey have to drop it.
       if (kind === "travel") {
         void queryClient.invalidateQueries({
           queryKey: questQueryKeys.unseen(),
         });
+        router.refresh();
       }
 
       // Notify listeners of change (for other components)

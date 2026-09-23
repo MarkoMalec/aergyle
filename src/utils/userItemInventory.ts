@@ -56,6 +56,7 @@ export async function fetchUserItemsByIds(userItemIds: number[]) {
     sprite: userItem.itemTemplate.sprite,
     itemType: userItem.itemTemplate.itemType,
     equipTo: userItem.itemTemplate.equipTo,
+    twoHanded: userItem.itemTemplate.twoHanded,
     rarity: userItem.rarity, // UserItem's rarity (player-specific)
     minPhysicalDamage: userItem.itemTemplate.minPhysicalDamage,
     maxPhysicalDamage: userItem.itemTemplate.maxPhysicalDamage,

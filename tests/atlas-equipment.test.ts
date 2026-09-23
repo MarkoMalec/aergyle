@@ -8,6 +8,8 @@ import {
   atlasSpritePath,
 } from "../prisma/content/atlasEquipment";
 import {
+  canEquipToSlot,
+  getDisplacedHand,
   getEquipmentValidationError,
   meetsItemLevelRequirement,
 } from "../src/utils/inventoryClient";
@@ -132,6 +134,78 @@ void test("equipping validates owned instance availability, slots and duplicate 
   assert.equal(getEquipmentValidationError({ ring2: 103 }, [ring], 1), null);
   assert.equal(
     getEquipmentValidationError({ head: null, chest: null }, [], 1),
+    null,
+  );
+});
+
+void test("the off hand takes shields and one-handed weapons; two-handed weapons need both hands", () => {
+  const sword = {
+    id: 201,
+    name: "Sword",
+    equipTo: "weapon",
+    twoHanded: false,
+    requiredLevel: 1,
+  };
+  const dagger = {
+    id: 202,
+    name: "Dagger",
+    equipTo: "weapon",
+    requiredLevel: 1,
+  };
+  const shield = {
+    id: 203,
+    name: "Shield",
+    equipTo: "offhand",
+    requiredLevel: 1,
+  };
+  const greatsword = {
+    id: 204,
+    name: "Greatsword",
+    equipTo: "weapon",
+    twoHanded: true,
+    requiredLevel: 1,
+  };
+  const owned = [sword, dagger, shield, greatsword];
+
+  assert.equal(canEquipToSlot(sword, "weapon"), true);
+  assert.equal(canEquipToSlot(sword, "offhand"), true);
+  assert.equal(canEquipToSlot(shield, "offhand"), true);
+  assert.equal(canEquipToSlot(shield, "weapon"), false);
+  assert.equal(canEquipToSlot(greatsword, "weapon"), true);
+  assert.equal(canEquipToSlot(greatsword, "offhand"), false);
+
+  assert.equal(
+    getEquipmentValidationError({ weapon: 201, offhand: 202 }, owned, 1),
+    null,
+  );
+  assert.equal(
+    getEquipmentValidationError({ weapon: 201, offhand: 203 }, owned, 1),
+    null,
+  );
+  assert.equal(
+    getEquipmentValidationError({ weapon: 204, offhand: null }, owned, 1),
+    null,
+  );
+  assert.match(
+    getEquipmentValidationError({ weapon: 204, offhand: 203 }, owned, 1) ?? "",
+    /two-handed/,
+  );
+
+  // The hand that just changed keeps its item; the other goes to the bags.
+  assert.equal(
+    getDisplacedHand({ weapon: greatsword, offhand: shield }, "weapon"),
+    "offhand",
+  );
+  assert.equal(
+    getDisplacedHand({ weapon: greatsword, offhand: shield }, "offhand"),
+    "weapon",
+  );
+  assert.equal(
+    getDisplacedHand({ weapon: sword, offhand: shield }, "weapon"),
+    null,
+  );
+  assert.equal(
+    getDisplacedHand({ weapon: greatsword, offhand: null }, "weapon"),
     null,
   );
 });

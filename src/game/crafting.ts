@@ -17,9 +17,13 @@ export type CraftingCategory = {
 
 const ITEM_TYPE_CATEGORY_LABELS: Partial<Record<ItemType, string>> = {
   [ItemType.SWORD]: "Swords",
+  [ItemType.GREATSWORD]: "Greatswords",
   [ItemType.AXE]: "Axes",
+  [ItemType.GREATAXE]: "Greataxes",
   [ItemType.FELLING_AXE]: "Felling Axes",
   [ItemType.PICKAXE]: "Pickaxes",
+  [ItemType.FISHING_ROD]: "Fishing Rods",
+  [ItemType.HOE]: "Hoes",
   [ItemType.BOW]: "Bows",
   [ItemType.CROSSBOW]: "Crossbows",
   [ItemType.STAFF]: "Staves",
@@ -28,6 +32,7 @@ const ITEM_TYPE_CATEGORY_LABELS: Partial<Record<ItemType, string>> = {
   [ItemType.MACE]: "Maces",
   [ItemType.SPEAR]: "Spears",
   [ItemType.FLAIL]: "Flails",
+  [ItemType.SHIELD]: "Shields",
   [ItemType.HELMET]: "Headwear",
   [ItemType.CHESTPLATE]: "Chestwear",
   [ItemType.GREAVES]: "Legwear",
@@ -68,6 +73,8 @@ export const CRAFTING_RULES: Partial<
       ItemType.MATERIAL,
       ItemType.FELLING_AXE,
       ItemType.PICKAXE,
+      ItemType.HOE,
+      ItemType.SHIELD,
       ItemType.HELMET,
       ItemType.CHESTPLATE,
       ItemType.GREAVES,
@@ -96,7 +103,9 @@ export const CRAFTING_RULES: Partial<
     catalogNoun: "weapons",
     outputTypes: [
       ItemType.SWORD,
+      ItemType.GREATSWORD,
       ItemType.AXE,
+      ItemType.GREATAXE,
       ItemType.DAGGER,
       ItemType.MACE,
       ItemType.SPEAR,
@@ -120,6 +129,7 @@ export const CRAFTING_RULES: Partial<
       ItemType.MATERIAL,
       ItemType.BOW,
       ItemType.CROSSBOW,
+      ItemType.FISHING_ROD,
       ItemType.OTHER,
     ],
     inputTypes: [
@@ -131,7 +141,7 @@ export const CRAFTING_RULES: Partial<
     ],
     allowsLearnedRecipes: false,
     outputError:
-      "Carpentry output must be a wooden component, bow or wooden item template",
+      "Carpentry output must be a wooden component, bow, fishing rod or wooden item template",
     inputError:
       "Carpentry requirements must be LOG, MATERIAL, INGOT, HIDE or BLUEPRINT items",
   },

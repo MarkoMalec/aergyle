@@ -7,12 +7,15 @@ import { normalizeItemEquipTo } from "~/utils/itemEquipTo";
  * Import items from CSV data with stat progressions
  * 
  * Expected CSV format (one row per stat progression):
- * name,price,sprite,equipTo,rarity,itemType,stackable,maxStackSize,minPhysicalDamage,maxPhysicalDamage,minMagicDamage,maxMagicDamage,armor,requiredLevel,statType,baseValue,unlocksAtRarity
+ * name,price,sprite,equipTo,twoHanded,rarity,itemType,stackable,maxStackSize,minPhysicalDamage,maxPhysicalDamage,minMagicDamage,maxMagicDamage,armor,requiredLevel,statType,baseValue,unlocksAtRarity
  * 
  * Example:
- * Iron Sword,100,/assets/items/weapons/iron-sword.jpg,weapon,COMMON,SWORD,false,1,5,10,0,0,0,5,STRENGTH,5,BASE
- * Iron Sword,100,/assets/items/weapons/iron-sword.jpg,weapon,COMMON,SWORD,false,1,5,10,0,0,0,5,CRITICAL_CHANCE,2,RARE
- * Health Potion,25,/assets/items/consumables/potions/health-potion.jpg,,,POTION,true,99,0,0,0,0,0,1,,,
+ * Iron Sword,100,/assets/items/weapons/iron-sword.jpg,weapon,false,COMMON,SWORD,false,1,5,10,0,0,0,5,STRENGTH,5,BASE
+ * Iron Sword,100,/assets/items/weapons/iron-sword.jpg,weapon,false,COMMON,SWORD,false,1,5,10,0,0,0,5,CRITICAL_CHANCE,2,RARE
+ * Health Potion,25,/assets/items/consumables/potions/health-potion.jpg,,false,,POTION,true,99,0,0,0,0,0,1,,,
+ *
+ * twoHanded (true/false) only applies to equipTo = weapon. When the column is
+ * missing, existing items keep their current setting and new ones are one-handed.
  * 
  * Items with multiple stats will have multiple rows with the same name
  */
@@ -122,12 +125,21 @@ export async function POST(req: NextRequest) {
         const isStackable = firstRow.stackable?.toLowerCase() === "true";
         const maxStack = isStackable ? parseInt(firstRow.maxStackSize || "99") : 1;
 
+        const equipTo = normalizeItemEquipTo(firstRow.equipTo);
+
         // Prepare item base data
         const itemData = {
           name: itemName,
           price: parseInt(firstRow.price || "0"),
           sprite: firstRow.sprite,
-          equipTo: normalizeItemEquipTo(firstRow.equipTo),
+          equipTo,
+          // Only weapons can be two-handed; an older CSV without the column
+          // leaves existing items as they are.
+          ...(headers.includes("twoHanded") && {
+            twoHanded:
+              equipTo === "weapon" &&
+              firstRow.twoHanded?.toLowerCase() === "true",
+          }),
           rarity: (firstRow.rarity as ItemRarity) || "COMMON",
           itemType: firstRow.itemType ? (firstRow.itemType as ItemType) : null,
           stackable: isStackable,

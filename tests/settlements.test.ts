@@ -6,6 +6,7 @@ import {
   isOfferAvailable,
   objectiveProgress,
   parseQuestProgress,
+  planStackFill,
   questPeriod,
   questResetsAt,
 } from "../src/server/settlements/rules";
@@ -191,4 +192,75 @@ void test("a head crop stays square and inside the portrait", () => {
     y: 0,
     size: 0.5,
   });
+});
+
+void test("a stored stack fills the stacks already there before opening one", () => {
+  const plan = planStackFill({
+    quantity: 30,
+    stackable: true,
+    maxStackSize: 20,
+    targets: [
+      { id: 1, quantity: 18 },
+      { id: 2, quantity: 20 },
+      { id: 3, quantity: 5 },
+    ],
+    freeSlots: 1,
+  });
+  // The full stack is skipped, the others take their room, the rest opens one.
+  assert.deepEqual(plan, {
+    topUps: [
+      { id: 1, quantity: 2 },
+      { id: 3, quantity: 15 },
+    ],
+    newStacks: [13],
+  });
+});
+
+void test("a whole stack with nothing to merge into becomes one new stack", () => {
+  assert.deepEqual(
+    planStackFill({
+      quantity: 40,
+      stackable: true,
+      maxStackSize: 99,
+      targets: [],
+      freeSlots: 10,
+    }),
+    { topUps: [], newStacks: [40] },
+  );
+});
+
+void test("unstackable items take a slot each, however many are moved", () => {
+  assert.deepEqual(
+    planStackFill({
+      quantity: 3,
+      stackable: false,
+      maxStackSize: 99,
+      targets: [{ id: 1, quantity: 1 }],
+      freeSlots: 5,
+    }),
+    { topUps: [], newStacks: [1, 1, 1] },
+  );
+});
+
+void test("a move that does not fit is refused before anything is written", () => {
+  assert.equal(
+    planStackFill({
+      quantity: 25,
+      stackable: true,
+      maxStackSize: 10,
+      targets: [{ id: 1, quantity: 8 }],
+      freeSlots: 1,
+    }),
+    null,
+  );
+  assert.equal(
+    planStackFill({
+      quantity: 1,
+      stackable: false,
+      maxStackSize: 1,
+      targets: [],
+      freeSlots: 0,
+    }),
+    null,
+  );
 });

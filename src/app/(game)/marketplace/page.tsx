@@ -92,7 +92,7 @@ export default function MarketplacePage() {
     };
 
   return (
-    <div className="min-w-0 space-y-6">
+    <div className="min-w-0 space-y-4">
       <PageHeading
         eyebrow="The exchange"
         title="Marketplace"
@@ -101,60 +101,36 @@ export default function MarketplacePage() {
       <MarketplaceNav />
 
       {query.error ? (
-        <div className="game-empty-state text-danger">
+        <div className="game-empty-state game-panel-flat border-0 text-danger">
           <p className="font-semibold">Could not load the marketplace</p>
           <p className="mt-1 text-sm">{query.error.message}</p>
           <Button
             className="mt-4"
-            variant="outline"
+            variant="secondary"
             onClick={() => query.refetch()}
           >
             Try again
           </Button>
         </div>
       ) : (
-        <>
-          <MarketplaceDataTable
-            data={query.data?.items ?? []}
-            isLoading={query.isLoading}
-            currentUserId={session?.user?.id}
-            filterOptions={query.data?.filterOptions}
-            searchValue={search}
-            onSearchChange={resetPage(setSearch)}
-            itemTypeFilter={itemType}
-            onItemTypeFilterChange={resetPage(setItemType)}
-            rarityFilter={rarity}
-            onRarityFilterChange={resetPage(setRarity)}
-            priceRange={priceRange}
-            onPriceRangeChange={resetPage(setPriceRange)}
-            sortValue={sort}
-            onSortChange={resetPage(setSort)}
-          />
-
-          {query.data?.pagination && (
-            <div className="flex items-center justify-between px-1">
-              <span className="text-sm text-muted-foreground">
-                Page {query.data.pagination.page}
-              </span>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setPage((current) => Math.max(1, current - 1))}
-                  disabled={!query.data.pagination.hasPreviousPage}
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setPage((current) => current + 1)}
-                  disabled={!query.data.pagination.hasNextPage}
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
-          )}
-        </>
+        <MarketplaceDataTable
+          data={query.data?.items ?? []}
+          isLoading={query.isLoading}
+          currentUserId={session?.user?.id}
+          pagination={query.data?.pagination}
+          onPageChange={(next) => setPage(Math.max(1, next))}
+          filterOptions={query.data?.filterOptions}
+          searchValue={search}
+          onSearchChange={resetPage(setSearch)}
+          itemTypeFilter={itemType}
+          onItemTypeFilterChange={resetPage(setItemType)}
+          rarityFilter={rarity}
+          onRarityFilterChange={resetPage(setRarity)}
+          priceRange={priceRange}
+          onPriceRangeChange={resetPage(setPriceRange)}
+          sortValue={sort}
+          onSortChange={resetPage(setSort)}
+        />
       )}
     </div>
   );

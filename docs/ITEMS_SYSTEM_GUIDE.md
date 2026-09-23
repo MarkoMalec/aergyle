@@ -315,6 +315,18 @@ See `scripts/setupStatProgressions.ts` for examples.
 
 ---
 
+#### Hands and Required Tools
+
+- `equipTo = weapon` items fit the main hand. They also fit the off hand unless
+  `Item.twoHanded` is set (the "Two-handed" checkbox in the admin item form).
+- `equipTo = offhand` items (shields) fit the off hand only.
+- A two-handed weapon keeps the off hand empty. Equipping one sends the
+  off-hand item to the bags, and equipping an off-hand item sends the
+  two-handed weapon there; `/api/equipment` rejects both at once.
+- Tool slots: `fellingAxe`, `pickaxe`, `fishingRod`, `hoe`. `TOOL_RULES` in
+  `src/server/vocations/tools.ts` requires the matching tool to start
+  woodcutting, mining or fishing and to plant seeds in the garden.
+
 #### Vocational Tool Efficiencies
 
 Some equipment pieces (felling axes, pickaxes, fishing rods, etc.) boost offline skill actions via **ToolEfficiency** records:

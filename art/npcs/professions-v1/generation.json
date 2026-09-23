@@ -66,6 +66,93 @@
       "generatedFile": "exec-df25ef2a-f6e5-419d-b424-258d685b1131.png",
       "sourceGeneratedFile": "exec-2ca20402-af2a-49ce-888a-5704c7f0080c.png",
       "revision": "Redesigned primarily around a light-skinned Caucasian face and added a modestly larger rounded belly while preserving the original visual story."
+    },
+    {
+      "slug": "tovin-ashclamp-blacksmith",
+      "name": "Tovin Ashclamp",
+      "gender": "male",
+      "profession": "Blacksmith and farrier",
+      "pose": "heavy, nearly front-facing municipal work stance, inspecting a bent hinge",
+      "master": "tovin-ashclamp-blacksmith-master.png",
+      "runtime": "/assets/npcs/tovin-ashclamp-blacksmith-v1.png",
+      "generatedFile": "exec-9f1c6eb6-ad84-40f5-90db-b54c4ac7f643.png",
+      "revision": "Completely rebuilt as an unglamorous, stooped municipal smith in his mid-sixties: light weathered complexion, broken nose, burn-scarred forearms, thinning grey hair, soot-black patched workwear, a bent hinge, and battered hammer."
+    },
+    {
+      "slug": "sella-pikebriar-hunter",
+      "name": "Sella Pikebriar",
+      "gender": "male",
+      "profession": "Hunter and upland guide",
+      "pose": "cautious, heavy trail stance braced on an ash walking staff",
+      "master": "sella-pikebriar-hunter-master.png",
+      "runtime": "/assets/npcs/sella-pikebriar-hunter-v1.png",
+      "generatedFile": "exec-5665e4b7-f5db-4166-9873-0b1dcfa42307.png",
+      "revision": "Completely rebuilt as an unsentimental early-sixties frontier guide with a clouded eye, iron-grey hair, cold-weather repair gear, a staff, and only three repaired arrows."
+    },
+    {
+      "slug": "brogan-leek-chef",
+      "name": "Brogan Leek",
+      "gender": "female",
+      "profession": "Chef, baker, and soup seller",
+      "pose": "slightly hunched, holding a dented iron cooking pot low with both hands",
+      "master": "brogan-leek-chef-master.png",
+      "runtime": "/assets/npcs/brogan-leek-chef-v1.png",
+      "generatedFile": "exec-d65d2a95-c048-4c29-9237-337f0d340abd.png",
+      "revision": "Completely rebuilt as a stern late-sixties market cook with a dented pot, smoke-stained workwear, cloth cap, repaired apron, and lean-winter discipline."
+    },
+    {
+      "slug": "maelin-copperspoon-chef",
+      "name": "Maelin Copperspoon",
+      "gender": "female",
+      "profession": "Chef",
+      "pose": "open, stable work stance with a heavy black iron pot and lid",
+      "master": "maelin-copperspoon-chef-master.png",
+      "runtime": "/assets/npcs/maelin-copperspoon-chef-v1.png",
+      "generatedFile": "exec-29d12a8b-bb8d-475a-a63a-b40912d3631d.png",
+      "description": "A happy, capable redheaded cook in her early forties, with an onion, carrot, turnip, and herb bundles held in practical apron loops."
+    },
+    {
+      "slug": "halden-barleyfold-farmer",
+      "name": "Halden Barleyfold",
+      "gender": "male",
+      "profession": "Farmer",
+      "pose": "wide, weight-shifted stance with a hoe across his shoulders",
+      "master": "halden-barleyfold-farmer-master.png",
+      "runtime": "/assets/npcs/halden-barleyfold-farmer-v1.png",
+      "generatedFile": "exec-e050ece3-6c84-46b6-8775-0667f38b0d49.png",
+      "revision": "Completely rebuilt as a powerful but work-worn farmer in his early forties, carrying a hoe and only repaired field tools."
+    },
+    {
+      "slug": "orrin-quill-alchemist",
+      "name": "Orrin Quill",
+      "gender": "male",
+      "profession": "Alchemist and apothecary",
+      "pose": "side-facing profile, applying a plain wax seal to a brown-glass vial",
+      "master": "orrin-quill-alchemist-master.png",
+      "runtime": "/assets/npcs/orrin-quill-alchemist-v1.png",
+      "generatedFile": "exec-aec5feaa-5a92-4db3-a2ab-0d4d18bf3aab.png",
+      "revision": "Completely rebuilt as an austere early-fifties poison-cutter and apothecary with plain brown-glass samples and stained, practical kit."
+    },
+    {
+      "slug": "marek-driftwater-angler",
+      "name": "Marek Driftwater",
+      "gender": "male",
+      "profession": "Angler and net mender",
+      "pose": "narrow right-facing profile with closed creel and half-mended net",
+      "master": "marek-driftwater-angler-master.png",
+      "runtime": "/assets/npcs/marek-driftwater-angler-v1.png",
+      "generatedFile": "exec-b7dad999-8fc0-42ff-a851-7145c157df1c.png",
+      "revision": "Completely rebuilt as a wary late-forties tidal-flat angler with a closed creel, mended net, salt-bleached workwear, and a broken-handled rod."
+    },
+    {
+      "slug": "dain-nettlework-tailor",
+      "name": "Dain Nettlework",
+      "gender": "male",
+      "profession": "Tailor and mender",
+      "pose": "front-facing, arms outstretched measuring a fabric strip",
+      "master": "dain-nettlework-tailor-master.png",
+      "runtime": "/assets/npcs/dain-nettlework-tailor-v1.png",
+      "generatedFile": "exec-6ca85f8f-6a09-44fa-aa66-1500c0e1b121.png"
     }
   ],
   "runtimeExport": "ffmpeg Lanczos resize from 1024x1536 to 512x768 with RGBA preserved",

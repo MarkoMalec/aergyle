@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import {
@@ -15,6 +16,7 @@ import {
   Route,
   X,
 } from "lucide-react";
+import { dispatchActiveActionEvent } from "~/components/game/actions/activeActionEvents";
 import { Button } from "~/components/ui/button";
 import {
   Dialog,
@@ -66,7 +68,8 @@ export default function TravelLocationDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const [phase, setPhase] = useState<TravelPhase>("idle");
-  const reloadTimerRef = useRef<number | null>(null);
+  const departureTimerRef = useRef<number | null>(null);
+  const router = useRouter();
 
   const requestedLocation = useMemo(() => {
     if (selectedLocationId === null) return null;
@@ -101,8 +104,8 @@ export default function TravelLocationDialog({
 
   useEffect(
     () => () => {
-      if (reloadTimerRef.current !== null) {
-        window.clearTimeout(reloadTimerRef.current);
+      if (departureTimerRef.current !== null) {
+        window.clearTimeout(departureTimerRef.current);
       }
     },
     [],
@@ -144,8 +147,13 @@ export default function TravelLocationDialog({
       const reduceMotion = window.matchMedia(
         "(prefers-reduced-motion: reduce)",
       ).matches;
-      reloadTimerRef.current = window.setTimeout(
-        () => window.location.reload(),
+      departureTimerRef.current = window.setTimeout(
+        () => {
+          dispatchActiveActionEvent({ kind: "changed" });
+          router.refresh();
+          setPhase("idle");
+          onOpenChange(false);
+        },
         reduceMotion ? 120 : 1050,
       );
     } catch {
@@ -166,7 +174,10 @@ export default function TravelLocationDialog({
         return;
       }
 
-      window.location.reload();
+      dispatchActiveActionEvent({ kind: "changed" });
+      router.refresh();
+      setPhase("idle");
+      onOpenChange(false);
     } catch {
       setPhase("idle");
       toast.error("Failed to cancel travel");

@@ -174,10 +174,36 @@ export function calculateLevelBaseStats(
 }
 
 /**
+ * A weapon's Attack Speed is how fast that weapon strikes, so it takes the
+ * place of the unarmed speed (the level 1 base value) instead of adding to
+ * it. The main hand sets the pace: a weapon in the off hand adds its damage
+ * but not its own speed. Returns what to add to equipment bonuses; level
+ * growth, other gear (shields included) and food still add on top.
+ */
+export function weaponAttackSpeedAdjustment(
+  weaponStats: ReadonlyArray<StatValue> | undefined,
+  unarmedAttackSpeed: number,
+  offhand?: {
+    equipTo: string | null;
+    stats?: ReadonlyArray<StatValue>;
+  } | null,
+): number {
+  const speedOf = (stats: ReadonlyArray<StatValue> | undefined) =>
+    stats?.find((stat) => stat.statType === StatType.ATTACK_SPEED)?.value ??
+    0;
+  const offhandWeaponSpeed =
+    offhand?.equipTo === "weapon" ? speedOf(offhand.stats) : 0;
+  return (
+    (speedOf(weaponStats) > 0 ? -unarmedAttackSpeed : 0) - offhandWeaponSpeed
+  );
+}
+
+/**
  * Calculate equipment bonuses from equipped items
  */
 export function calculateEquipmentBonuses(
   equipment: EquipmentSlotsWithItems,
+  unarmedAttackSpeed: number,
 ): Record<StatType, number> {
   const seenUserItemIds = new Set<number>();
   const stats: StatValue[] = [];
@@ -190,7 +216,13 @@ export function calculateEquipmentBonuses(
     stats.push(...(item.stats ?? []));
   }
 
-  return aggregateStatValues(stats);
+  const totals = aggregateStatValues(stats);
+  totals[StatType.ATTACK_SPEED] += weaponAttackSpeedAdjustment(
+    equipment.weapon?.stats,
+    unarmedAttackSpeed,
+    equipment.offhand,
+  );
+  return totals;
 }
 
 /**

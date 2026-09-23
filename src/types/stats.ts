@@ -14,6 +14,7 @@ export interface ItemWithStats {
   sprite: string;
   itemType?: ItemType | null;
   equipTo: string | null;
+  twoHanded?: boolean;
   rarity: ItemRarity;
   minPhysicalDamage: number | null;
   maxPhysicalDamage: number | null;

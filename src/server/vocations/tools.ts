@@ -7,11 +7,14 @@ import {
   USABLE_EQUIPMENT_ITEM_STATUSES,
 } from "~/server/stats";
 
+export { computeEffectiveUnitSeconds } from "~/game/vocationStats";
+
+// No upper bound: the time curve never reaches zero, so every point counts.
 function clampEfficiency(value: number): number {
   if (!Number.isFinite(value)) {
     return 0;
   }
-  return Math.max(0, Math.min(100, value));
+  return Math.max(0, value);
 }
 
 // Centralized tool rules per vocation action.
@@ -20,7 +23,11 @@ const TOOL_RULES: Partial<
   Record<
     VocationalActionType,
     {
-      requiredEquipmentField?: "fellingAxeItemId" | "pickaxeItemId";
+      requiredEquipmentField?:
+        | "fellingAxeItemId"
+        | "pickaxeItemId"
+        | "fishingRodItemId"
+        | "hoeItemId";
       requiredMessage?: string;
     }
   >
@@ -32,6 +39,14 @@ const TOOL_RULES: Partial<
   [VocationalActionType.MINING]: {
     requiredEquipmentField: "pickaxeItemId",
     requiredMessage: "You need to equip a Pickaxe to start mining.",
+  },
+  [VocationalActionType.FISHING]: {
+    requiredEquipmentField: "fishingRodItemId",
+    requiredMessage: "You need to equip a Fishing Rod to start fishing.",
+  },
+  [VocationalActionType.GARDENING]: {
+    requiredEquipmentField: "hoeItemId",
+    requiredMessage: "You need to equip a Hoe to plant seeds.",
   },
 };
 
@@ -51,7 +66,12 @@ async function getEquippedToolUserItemId(
 
   const equipment = await prisma.equipment.findUnique({
     where: { userId },
-    select: { fellingAxeItemId: true, pickaxeItemId: true },
+    select: {
+      fellingAxeItemId: true,
+      pickaxeItemId: true,
+      fishingRodItemId: true,
+      hoeItemId: true,
+    },
   });
   const userItemId = equipment?.[requiredEquipmentField] ?? null;
   if (!userItemId) return null;
@@ -119,24 +139,4 @@ export async function getToolEfficiencyMap(
   }
 
   return result;
-}
-
-export function computeEffectiveUnitSeconds(
-  baseSeconds: number,
-  efficiencyPercent: number,
-): {
-  unitSeconds: number;
-  rawSeconds: number;
-  appliedEfficiency: number;
-} {
-  const appliedEfficiency = clampEfficiency(efficiencyPercent);
-  const multiplier = 1 - appliedEfficiency / 100;
-  const rawSeconds = Math.max(0, baseSeconds * multiplier);
-  const unitSeconds = Math.max(1, Math.floor(rawSeconds));
-
-  return {
-    unitSeconds,
-    rawSeconds,
-    appliedEfficiency,
-  };
 }

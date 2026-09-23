@@ -36,3 +36,8 @@ export function settlementHref(settlementId: number) {
 export function npcHref(settlementId: number, npcId: number) {
   return `/settlements/${settlementId}/npcs/${npcId}`;
 }
+
+// A settlement has one storage, so its page needs no id of its own.
+export function storageHref(settlementId: number) {
+  return `/settlements/${settlementId}/storage`;
+}

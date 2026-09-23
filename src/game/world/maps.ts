@@ -54,11 +54,29 @@ export function clampHeadCrop(crop: HeadCrop, aspect: number): HeadCrop {
   };
 }
 
-/** What can be pinned: on region maps, and (NPCs) on settlement maps. */
+/**
+ * What can be pinned: locations on the world atlas, places on region maps,
+ * and NPCs and the storage on settlement maps.
+ */
 export const MAP_PIN_KINDS = [
+  "location",
   "settlement",
   "dungeon",
   "ground",
   "npc",
+  "storage",
 ] as const;
 export type MapPinKind = (typeof MAP_PIN_KINDS)[number];
+
+/** The maps a pin can be placed on. */
+export type MapKind = "world" | "location" | "settlement";
+
+/** The map each kind of pin belongs to. */
+export const MAP_OF_PIN_KIND: Record<MapPinKind, MapKind> = {
+  location: "world",
+  settlement: "location",
+  dungeon: "location",
+  ground: "location",
+  npc: "settlement",
+  storage: "settlement",
+};

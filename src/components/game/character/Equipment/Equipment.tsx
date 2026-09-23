@@ -42,9 +42,14 @@ export default function Equipment() {
                 index={definition.index}
                 slot={{ slotIndex: definition.index, item: equipment[slot] }}
                 container="equipment"
-                equipmentSlotType={definition.equipTo}
+                equipmentSlotType={slot}
                 label={side ? `${side} ${label.toLowerCase()}` : label}
                 emptyIcon={<EquipmentSlotIcon slot={slot} />}
+                twoHandedItem={
+                  slot === "offhand" && equipment.weapon?.twoHanded
+                    ? equipment.weapon
+                    : null
+                }
               />
             );
           }}

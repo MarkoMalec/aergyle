@@ -10,16 +10,19 @@ import { CoinsIcon } from "~/components/game/ui/coins-icon";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Skeleton } from "~/components/ui/skeleton";
+import { useRarityColors } from "~/hooks/use-rarity-colors";
 import {
   inventoryQueryKeys,
   marketplaceQueryKeys,
   userQueryKeys,
 } from "~/lib/query-keys";
+import { cn } from "~/lib/utils";
 import type {
   MarketStatsData,
   MarketplaceGroupedItem,
   MarketplaceListing,
 } from "~/types/marketplace";
+import { rarityStyle } from "~/utils/rarity-colors";
 import { RarityBadge } from "~/utils/ui/rarity-badge";
 import { fetchMarketStats } from "./MarketStats";
 
@@ -48,7 +51,7 @@ async function fetchListings(market: MarketplaceGroupedItem) {
 
 function Metric({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="rounded-md border border-border bg-surface-inset p-2.5">
+    <div className="rounded-[10px] bg-surface-inset px-3 py-2.5">
       <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
         {label}
       </dt>
@@ -65,6 +68,7 @@ export function MarketDetailPanel({
   currentUserId?: string;
 }) {
   const queryClient = useQueryClient();
+  const { colors } = useRarityColors();
   const [actionMode, setActionMode] = useState<ActionMode>("BUY_NOW");
   const [viewMode, setViewMode] = useState<ViewMode>("SIMPLE");
   const [selectedListingId, setSelectedListingId] = useState<number | null>(
@@ -201,8 +205,11 @@ export function MarketDetailPanel({
   const stats = statsQuery.data;
 
   return (
-    <div className="flex min-h-0 flex-col">
-      <header className="flex items-start gap-3 border-b border-border p-4">
+    <div className="flex h-full min-h-0 flex-col">
+      <header
+        className="game-market-detail-header flex items-start gap-3 p-4 pb-2"
+        style={rarityStyle(market.rarity, colors[market.rarity])}
+      >
         <ItemArtwork
           src={market.sprite}
           name={market.itemName}
@@ -212,10 +219,13 @@ export function MarketDetailPanel({
         />
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
-            <div>
+            <div className="min-w-0">
               <h2 className="game-section-title truncate">{market.itemName}</h2>
               <div className="mt-1 flex flex-wrap items-center gap-2">
-                <RarityBadge rarity={market.rarity} />
+                <RarityBadge
+                  rarity={market.rarity}
+                  className="border-0 px-1.5 py-0.5 text-[11px]"
+                />
                 <span className="text-xs capitalize text-muted-foreground">
                   {(market.itemType ?? market.equipTo ?? "item")
                     .toLowerCase()
@@ -293,7 +303,7 @@ export function MarketDetailPanel({
         ) : null}
 
         {viewMode === "TRADER" && stats && (
-          <div className="rounded-md border border-border bg-surface-inset p-3">
+          <div className="rounded-[10px] bg-surface-inset p-3">
             <div className="flex items-center justify-between text-xs">
               <span className="font-semibold uppercase tracking-wide">
                 Bid ladder
@@ -317,7 +327,7 @@ export function MarketDetailPanel({
                 <p className="text-muted-foreground">No open buy orders.</p>
               )}
             </div>
-            <p className="mt-3 border-t border-border pt-2 text-[11px] text-muted-foreground">
+            <p className="mt-3 text-[11px] text-muted-foreground">
               {stats.sales.completedTransactions30d > 0
                 ? `${stats.sales.completedTransactions30d} completed trades in 30 days${stats.sales.priceChange7d == null ? "" : ` · ${stats.sales.priceChange7d > 0 ? "+" : ""}${stats.sales.priceChange7d}% over 7 days`}`
                 : "No completed sales in the last 30 days. Active offers are not counted as sales."}
@@ -372,7 +382,12 @@ export function MarketDetailPanel({
                         setSelectedListingId(listing.id);
                         setQuantity(1);
                       }}
-                      className={`w-full rounded-md border px-3 py-2 text-left transition-colors ${selected ? "border-primary bg-primary/10" : "border-border bg-surface-inset hover:border-primary/50"} disabled:cursor-not-allowed disabled:opacity-60`}
+                      className={cn(
+                        "w-full rounded-[10px] px-3 py-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+                        selected
+                          ? "bg-sidebar-accent"
+                          : "bg-surface-inset hover:bg-secondary/60",
+                      )}
                     >
                       <div className="flex items-center justify-between gap-3 text-sm">
                         <span className="font-semibold tabular-nums text-currency">
@@ -394,10 +409,10 @@ export function MarketDetailPanel({
                         )}
                       </div>
                       {selected && listing.stats.length > 0 && (
-                        <div className="mt-2 flex flex-wrap gap-1 border-t border-border pt-2">
+                        <div className="mt-2 flex flex-wrap gap-1">
                           {listing.stats.map((stat) => (
                             <span
-                              key={stat.id}
+                              key={stat.statType}
                               className="rounded bg-background px-1.5 py-1 text-[10px]"
                             >
                               {stat.statType.replaceAll("_", " ")}{" "}
@@ -412,7 +427,7 @@ export function MarketDetailPanel({
                 })}
               </div>
             ) : (
-              <p className="rounded-md border border-dashed border-border p-3 text-sm text-muted-foreground">
+              <p className="rounded-[10px] bg-surface-inset p-3 text-sm text-muted-foreground">
                 No active offers remain for this rarity.
               </p>
             )}
@@ -433,7 +448,7 @@ export function MarketDetailPanel({
                 step="0.01"
                 value={orderPrice}
                 onChange={(event) => setOrderPrice(event.target.value)}
-                className="pr-16"
+                className="border-0 pr-16 shadow-none"
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                 gold
@@ -448,7 +463,7 @@ export function MarketDetailPanel({
         )}
 
         {actionMode === "BUY_NOW" && !selectedListing ? (
-          <p className="rounded-md border border-dashed border-border p-3 text-sm text-muted-foreground">
+          <p className="rounded-[10px] bg-surface-inset p-3 text-sm text-muted-foreground">
             {purchasableListings.length === 0 && listings.length > 0
               ? "Only your own offer is available, so there is nothing here you can buy."
               : "There is no offer you can buy right now."}
@@ -457,7 +472,7 @@ export function MarketDetailPanel({
               : " Check back when another wayfarer lists one."}
           </p>
         ) : (
-          <div className="space-y-2 border-t border-border pt-4">
+          <div className="space-y-2 pt-2">
             <div className="flex items-center justify-between gap-3">
               <label htmlFor="market-quantity" className="text-sm font-medium">
                 Quantity
@@ -467,7 +482,8 @@ export function MarketDetailPanel({
                   <Button
                     key={value}
                     size="sm"
-                    variant="outline"
+                    variant="secondary"
+                    className="h-7 px-2.5"
                     onClick={() => setQuantity(Math.min(value, maxQuantity))}
                     disabled={value > maxQuantity}
                   >
@@ -477,7 +493,8 @@ export function MarketDetailPanel({
                 {actionMode === "BUY_NOW" && (
                   <Button
                     size="sm"
-                    variant="outline"
+                    variant="secondary"
+                    className="h-7 px-2.5"
                     onClick={() => setQuantity(maxQuantity)}
                   >
                     All
@@ -500,8 +517,9 @@ export function MarketDetailPanel({
                   ),
                 );
               }}
+              className="border-0 shadow-none"
             />
-            <div className="rounded-md bg-surface-inset p-3 text-sm">
+            <div className="rounded-[10px] bg-surface-inset p-3 text-sm">
               <div className="flex justify-between text-muted-foreground">
                 <span>
                   {quantity} × {unitPrice.toLocaleString()} gold
@@ -512,7 +530,7 @@ export function MarketDetailPanel({
                   })}
                 </span>
               </div>
-              <div className="mt-2 flex justify-between border-t border-border pt-2 font-semibold">
+              <div className="mt-1.5 flex justify-between font-semibold">
                 <span>
                   {actionMode === "BUY_NOW" ? "You pay" : "Gold reserved"}
                 </span>

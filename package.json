@@ -21,7 +21,7 @@
     "db:seed:accessories": "node --import tsx scripts/seedWayfarerAccessories.ts",
     "db:seed:travel": "node --import tsx scripts/seedTravel.ts",
     "test:atlas": "node --import tsx --test tests/atlas-equipment.test.ts tests/item-rarity-defaults.test.ts",
-    "test:vocations": "node --import tsx --test tests/vocation-expansion.test.ts",
+    "test:vocations": "node --import tsx --test tests/vocation-expansion.test.ts tests/vocation-speed.test.ts",
     "test:cooking": "node --import tsx --test tests/cooking.test.ts",
     "test:gathering": "node --import tsx --test tests/gathering.test.ts",
     "test:hunting": "node --import tsx --test tests/hunting.test.ts",

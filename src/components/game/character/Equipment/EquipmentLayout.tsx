@@ -33,6 +33,13 @@ const bodyPositions: readonly EquipmentPosition[] = [
   { slot: "boots", position: "feet", label: "Feet" },
 ];
 
+const tools: readonly EquipmentPosition[] = [
+  { slot: "fellingAxe", position: "fellingAxe", label: "Felling axe" },
+  { slot: "pickaxe", position: "pickaxe", label: "Pickaxe" },
+  { slot: "fishingRod", position: "fishingRod", label: "Fishing rod" },
+  { slot: "hoe", position: "hoe", label: "Hoe" },
+];
+
 const accessories: readonly EquipmentPosition[] = [
   { slot: "amulet", position: "amulet", label: "Amulet" },
   { slot: "ring1", position: "ring1", label: "Ring I" },
@@ -62,17 +69,25 @@ export function EquipmentLayout({
       <div
         className="game-equipment-armaments"
         role="group"
-        aria-label="Weapon and tools"
+        aria-label="Weapons and tools"
       >
-        {cell({ slot: "weapon", position: "weapon", label: "Weapon" })}
+        <div className="game-equipment-hands">
+          {cell({ slot: "weapon", position: "weapon", label: "Main hand" })}
+          {cell({ slot: "offhand", position: "offhand", label: "Off hand" })}
+        </div>
         <div className="game-equipment-tools">
-          <h3 className="game-equipment-group-label">Tools</h3>
-          {cell({
-            slot: "fellingAxe",
-            position: "fellingAxe",
-            label: "Felling axe",
-          })}
-          {cell({ slot: "pickaxe", position: "pickaxe", label: "Pickaxe" })}
+          <h3 className="game-equipment-group-label" id="equipment-tools-label">
+            Tools
+          </h3>
+          {/* Two tools in view; the rest scroll, so new tools never grow the panel. */}
+          <div
+            className="game-equipment-tool-list"
+            role="group"
+            aria-labelledby="equipment-tools-label"
+            tabIndex={0}
+          >
+            {tools.map(cell)}
+          </div>
         </div>
       </div>
 

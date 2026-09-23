@@ -18,7 +18,12 @@ import {
   type MapPinVariant,
 } from "~/components/game/map/PlaceMap";
 import { Button } from "~/components/ui/button";
-import { MAP_SIZE, type MapPinKind, type MapPoint } from "~/game/world/maps";
+import {
+  MAP_SIZE,
+  type MapKind,
+  type MapPinKind,
+  type MapPoint,
+} from "~/game/world/maps";
 import { cn } from "~/lib/utils";
 
 export type EditorPin = {
@@ -45,7 +50,8 @@ const samePoint = (a: MapPoint | null, b: MapPoint | null) =>
  * pin to move it; drag the map itself to look around.
  */
 export function MapEditor(props: {
-  map: "location" | "settlement";
+  map: MapKind;
+  /** The location or settlement being edited; the world atlas is 1. */
   id: number;
   title: string;
   description: React.ReactNode;

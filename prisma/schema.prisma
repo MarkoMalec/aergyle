@@ -78,6 +78,7 @@ model User {
   marketSales           MarketTransaction[]            @relation("MarketTransactionSeller")
   quests                UserQuest[]
   seenQuests            UserSeenQuest[]
+  storages              UserStorage[]
   projectContributions  CommunityProjectContribution[]
   notifications         Notification[]
   conversations         ConversationParticipant[]
@@ -141,9 +142,13 @@ enum ItemRarity {
 enum ItemType {
   // Weapon Types
   SWORD
+  GREATSWORD
   AXE
+  GREATAXE
   FELLING_AXE
   PICKAXE
+  FISHING_ROD
+  HOE
   BOW
   CROSSBOW
   STAFF
@@ -152,6 +157,7 @@ enum ItemType {
   MACE
   SPEAR
   FLAIL
+  SHIELD
 
   // Armor Types
   HELMET
@@ -290,8 +296,11 @@ enum ItemEquipTo {
   amulet
   backpack
   weapon
+  offhand
   fellingAxe
   pickaxe
+  fishingRod
+  hoe
 }
 
 model Item {
@@ -304,6 +313,9 @@ model Item {
   // Item categorization
   itemType ItemType? // Specific type (SWORD, ORE, POTION, etc) - nullable for now
   equipTo  ItemEquipTo? // Equipment slot (weapon, chest, etc) - nullable
+
+  // Weapons only: a two-handed weapon takes the main hand and keeps the off hand empty.
+  twoHanded Boolean @default(false)
 
   // Stacking system
   stackable    Boolean @default(false)
@@ -498,6 +510,7 @@ model ToolEfficiency {
 
 enum ItemStatus {
   IN_INVENTORY // In player's inventory
+  IN_STORAGE // In one of the player's settlement storages
   EQUIPPED // Currently equipped
   LISTED // On marketplace
   SOLD // Sold (historical record)
@@ -533,6 +546,9 @@ model UserItem {
   listedPrice Float? // Listing price in gold
   listedAt    DateTime? // When listed
 
+  // The player's settlement storage holding it, while status = IN_STORAGE.
+  userStorageId Int?
+
   // Metadata
   acquiredAt  DateTime @default(now())
   isTradeable Boolean  @default(true)
@@ -544,6 +560,8 @@ model UserItem {
   // Template and rarity-derived stats are resolved live and are never copied here.
   statModifiers UserItemStatModifier[]
 
+  storage UserStorage? @relation(fields: [userStorageId], references: [id], onDelete: Cascade)
+
   baitForActivities UserVocationalActivity[] @relation("BaitUserItem")
 
   @@index([userId])
@@ -551,6 +569,7 @@ model UserItem {
   @@index([status])
   @@index([status, listedAt])
   @@index([userId, status])
+  @@index([userStorageId])
 }
 
 // Gold is reserved when an order is created and refunded if its remainder is cancelled.
@@ -672,8 +691,11 @@ model Equipment {
   glovesItemId     Int?
   backpackItemId   Int?
   weaponItemId     Int?
+  offhandItemId    Int?
   fellingAxeItemId Int?
   pickaxeItemId    Int?
+  fishingRodItemId Int?
+  hoeItemId        Int?
 
   User User @relation(fields: [userId], references: [id])
 }
@@ -997,6 +1019,9 @@ model Location {
   gatheringRequiredLevel Int      @default(1)
   // Region map artwork (1536x1024) with its places pinned on it.
   mapImage               String?
+  // Pin on the world atlas, in percent; unplaced when null.
+  mapX                   Float?
+  mapY                   Float?
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 
@@ -1013,6 +1038,15 @@ model Location {
 
   travelRoutesA TravelRoute[] @relation("TravelRouteA")
   travelRoutesB TravelRoute[] @relation("TravelRouteB")
+}
+
+// The world atlas artwork (1536x1024) every player sees on /map; one row
+// (id 1). Locations are pinned on it with their mapX/mapY.
+model AtlasConfig {
+  id        Int      @id @default(1)
+  mapImage  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // ============================================
@@ -1593,6 +1627,7 @@ model Settlement {
   location Location           @relation(fields: [locationId], references: [id], onDelete: Cascade)
   npcs     Npc[]
   projects CommunityProject[]
+  storage  SettlementStorage?
 
   @@unique([locationId, name])
   @@index([locationId, enabled, sortOrder])
@@ -1829,6 +1864,58 @@ model CommunityProjectContribution {
 }
 
 // ============================================
+// SETTLEMENT STORAGE
+// ============================================
+
+// How every storage looks; one row (id 1). The chest artwork is shared by
+// all of them, so a new settlement's storage needs no art of its own.
+model StorageConfig {
+  id        Int      @id @default(1)
+  icon      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// A settlement's storage: a pin on its map that a player rents once, with
+// gold, and then keeps items in. Storage is never shared between
+// settlements, and only reachable while the player is at its location.
+model SettlementStorage {
+  id           Int      @id @default(autoincrement())
+  settlementId Int      @unique
+  name         String   @default("Storage")
+  description  String?  @db.Text
+  // What renting it costs each player, once.
+  unlockCost   Decimal  @default(0) @db.Decimal(10, 2)
+  // How many stacks it holds. Extra slots per player come later.
+  slots        Int      @default(10)
+  // Pin on the settlement map, in percent; unplaced when null.
+  mapX         Float?
+  mapY         Float?
+  enabled      Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  settlement Settlement    @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+  players    UserStorage[]
+}
+
+// One player's storage in one settlement, created when they rent it. Its
+// items are UserItem rows with status IN_STORAGE, one per slot in use.
+model UserStorage {
+  id         Int      @id @default(autoincrement())
+  userId     String
+  storageId  Int
+  unlockedAt DateTime @default(now())
+
+  user    User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  storage SettlementStorage @relation(fields: [storageId], references: [id], onDelete: Cascade)
+  items   UserItem[]
+
+  @@unique([userId, storageId])
+  @@index([storageId])
+}
+
+// ============================================
 // NOTIFICATIONS & MESSAGES
 // ============================================
 
@@ -1865,7 +1952,7 @@ model Notification {
 // A private thread. Player threads hold exactly two participants; a system
 // thread holds one, and its messages have no sender.
 model Conversation {
-  id Int @id @default(autoincrement())
+  id            Int      @id @default(autoincrement())
   // One row per pair: the two user ids sorted and joined ("a|b"), or
   // "system|<userId>" for the game's own thread with a player.
   pairKey       String   @unique @db.VarChar(191)

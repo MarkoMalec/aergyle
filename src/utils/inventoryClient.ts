@@ -8,10 +8,10 @@ import type { ItemWithStats } from "~/types/stats";
 
 /**
  * Check if an item can be equipped to a specific slot.
- * Handles special cases like rings.
+ * Handles special cases like rings and the off hand.
  */
 export function canEquipToSlot(
-  item: Pick<ItemWithStats, "equipTo">,
+  item: Pick<ItemWithStats, "equipTo" | "twoHanded">,
   slotType: string,
 ): boolean {
   if (!item.equipTo) return false;
@@ -20,7 +20,31 @@ export function canEquipToSlot(
     return item.equipTo === "ring";
   }
 
+  // The off hand takes shields and any one-handed weapon.
+  if (slotType === "offhand") {
+    return (
+      item.equipTo === "offhand" ||
+      (item.equipTo === "weapon" && !item.twoHanded)
+    );
+  }
+
   return item.equipTo === slotType;
+}
+
+/**
+ * A two-handed weapon and an off-hand item can't be held together. The hand
+ * that just changed keeps its item; returns the other hand, whose item has to
+ * go back to the bags, or null when both hands fit.
+ */
+export function getDisplacedHand(
+  equipment: {
+    weapon?: Pick<ItemWithStats, "twoHanded"> | null;
+    offhand?: unknown;
+  },
+  changedSlot: string,
+): "weapon" | "offhand" | null {
+  if (!equipment.weapon?.twoHanded || !equipment.offhand) return null;
+  return changedSlot === "offhand" ? "weapon" : "offhand";
 }
 
 export function meetsItemLevelRequirement(
@@ -34,7 +58,7 @@ export function meetsItemLevelRequirement(
 
 type EquipmentCandidate = Pick<
   ItemWithStats,
-  "id" | "name" | "equipTo" | "requiredLevel"
+  "id" | "name" | "equipTo" | "twoHanded" | "requiredLevel"
 >;
 
 /** Call with the authenticated player's available instances, never template IDs. */
@@ -58,6 +82,10 @@ export function getEquipmentValidationError(
       return `Requires level ${item.requiredLevel ?? 1} to equip ${item.name}.`;
     }
     used.add(id);
+  }
+  const weapon = byId.get(selection.weapon ?? 0);
+  if (weapon?.twoHanded && selection.offhand != null) {
+    return `${weapon.name} is two-handed, so the off hand must be empty.`;
   }
   return null;
 }

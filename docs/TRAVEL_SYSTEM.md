@@ -33,7 +33,9 @@ admin route times do not affect journeys already underway.
 
 `prisma/content/travel.ts` derives starting times from straight-line distance
 between atlas markers (`src/game/world/atlasLocations.ts`), scaled so the
-farthest pair takes 4 hours and rounded to 5 minutes.
+farthest pair takes 4 hours and rounded to 5 minutes. Those are the starting
+coordinates only: moving a pin in /admin/locations changes where the location
+is drawn, not a route time that has already been seeded.
 
 ```
 npm run db:seed:travel             # --check: list missing pairs

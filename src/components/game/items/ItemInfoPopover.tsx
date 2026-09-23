@@ -32,8 +32,15 @@ function itemDetailsQuery(itemId: number, rarity: ItemRarity) {
   });
 }
 
-// Mounted only while the popup is open, so closed triggers never fetch.
-function LoadedItemDetails(props: { itemId: number; rarity: ItemRarity }) {
+/**
+ * The item's details card, loaded when it is first opened. Exported for the
+ * few places that build their own trigger, such as a draggable inventory
+ * slot, and want the same card behind it.
+ */
+export function LoadedItemDetails(props: {
+  itemId: number;
+  rarity: ItemRarity;
+}) {
   const query = useQuery(itemDetailsQuery(props.itemId, props.rarity));
 
   if (query.data) return <ItemDetails item={query.data} />;

@@ -55,11 +55,16 @@ export function ActionFillBar({
     return () => window.clearTimeout(t);
   }, [previewClamped, lagMs]);
 
+  // Once the ahead bar has wrapped into the next unit, the following bar empties to 0%
+  // with it instead of jumping straight from 100% to one tick into the next unit.
+  const fillPercent =
+    toPercent(laggedPreview) < toPercent(clamped) ? 0 : toPercent(clamped);
+
   const Wrapper: React.ElementType = href ? Link : "div";
   const wrapperProps = href
     ? ({
         href,
-        "aria-label": `${title}, ${toPercent(clamped)} percent${remainingTravelTime != null ? `, ${formatDuration(remainingTravelTime)} remaining` : `, ${sessionAmount} collected`}`,
+        "aria-label": `${title}, ${fillPercent} percent${remainingTravelTime != null ? `, ${formatDuration(remainingTravelTime)} remaining` : `, ${sessionAmount} collected`}`,
         className: "relative block min-w-0 max-w-full",
       } as const)
     : ({ className: "relative min-w-0 max-w-full" } as const);
@@ -72,7 +77,7 @@ export function ActionFillBar({
           aria-label={title}
           aria-valuemin={0}
           aria-valuemax={100}
-          aria-valuenow={toPercent(clamped)}
+          aria-valuenow={fillPercent}
           className={cn(
             "relative overflow-hidden rounded-lg bg-surface-inset",
             className,
@@ -85,7 +90,7 @@ export function ActionFillBar({
               fillClassName ?? "bg-xp",
             )}
             style={{
-              width: `${toPercent(clamped)}%`,
+              width: `${fillPercent}%`,
             }}
           />
 
@@ -110,7 +115,7 @@ export function ActionFillBar({
         aria-label={title}
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-valuenow={toPercent(clamped)}
+        aria-valuenow={fillPercent}
         className={cn(
           "relative overflow-hidden rounded-lg bg-surface-inset",
           className,
@@ -128,8 +133,8 @@ export function ActionFillBar({
             />
           ) : null}
           <span className="max-w-32 truncate">{title}</span>
-          <span className="shrink-0 text-xs tabular-nums text-xp">
-            {toPercent(clamped)}%
+          <span className="shrink-0 w-7 text-xs tabular-nums text-xp">
+            {fillPercent}%
           </span>
           <span className="shrink-0 border-l border-border pl-2 text-xs tabular-nums text-muted-foreground">
             {remainingTravelTime != null
@@ -144,7 +149,7 @@ export function ActionFillBar({
               fillClassName ?? "bg-xp/25",
             )}
             style={{
-              width: `${toPercent(clamped)}%`,
+              width: `${fillPercent}%`,
             }}
           />
 

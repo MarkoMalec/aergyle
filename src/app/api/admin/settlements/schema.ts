@@ -148,6 +148,19 @@ export const projectSchema = z.object({
     }),
 });
 
+// One storage per settlement; its slots are the stacks it holds.
+export const storageSchema = z.object({
+  settlementId: id,
+  name,
+  description,
+  unlockCost: gold,
+  slots: z.number().int().min(1).max(500),
+  enabled: z.boolean(),
+});
+
+// The chest artwork every storage shares.
+export const storageConfigSchema = z.object({ icon: assetPath.nullable() });
+
 export function parseId(value: string) {
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null;

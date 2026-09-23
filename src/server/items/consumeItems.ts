@@ -78,7 +78,12 @@ async function takeFromStack(
   return { userItemId: stack.id, quantity };
 }
 
-async function saveSlots(db: DbClient, userId: string, slots: InventorySlot[]) {
+/** Writes the slot layout back; only the positions change, not the stacks. */
+export async function saveInventorySlots(
+  db: DbClient,
+  userId: string,
+  slots: InventorySlot[],
+) {
   await db.inventory.update({
     where: { userId },
     data: { slots: slotsToInputJson(slots) },
@@ -120,7 +125,7 @@ export async function consumeInventoryItems(params: {
   }
 
   if (changes.some((change) => change.quantity === 0)) {
-    await saveSlots(db, userId, slots);
+    await saveInventorySlots(db, userId, slots);
   }
   return changes;
 }
@@ -143,6 +148,6 @@ export async function removeFromStack(params: {
     throw new Error(`You only have ${stack.quantity}`);
   }
   const change = await takeFromStack(db, slots, stack, params.quantity);
-  if (change.quantity === 0) await saveSlots(db, userId, slots);
+  if (change.quantity === 0) await saveInventorySlots(db, userId, slots);
   return change;
 }

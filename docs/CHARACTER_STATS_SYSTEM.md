@@ -56,6 +56,22 @@ unsaved values, so the size of each step can be checked before saving. The
 dungeon admin's test character starts from the same rules, and its reset
 button builds a character of the entered level without gear.
 
+## Attack speed
+
+A weapon's Attack Speed is how fast that weapon strikes. It replaces the
+unarmed speed (the level 1 Attack Speed value, 1.0 by default) instead of
+adding to it, so a 0.55 mace makes a character slower than fighting unarmed.
+Level growth, Attack Speed on other gear and food still add on top. A weapon
+without its own Attack Speed keeps the unarmed speed. The main hand sets the
+pace: a one-handed weapon in the off hand adds its damage and other stats but
+not its own Attack Speed. A shield's Attack Speed is a bonus like other gear.
+
+Rarity scales a weapon's damage but not its Attack Speed. A per-item rarity
+override still applies when an admin sets one. Attack Speed on other gear is a
+bonus and scales with rarity like any stat. The rules are
+`weaponAttackSpeedAdjustment` (`src/utils/stats.ts`) and `statScalesWithRarity`
+(`src/utils/itemInstanceStats.ts`).
+
 ## Current consumers
 
 - Gathering snapshots Luck and Gathering Efficiency at departure.

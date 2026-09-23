@@ -83,10 +83,13 @@ export interface MarketplaceGroupedResponse {
     hasNextPage: boolean;
     hasPreviousPage: boolean;
   };
-  filterOptions: {
-    itemTypes: ItemType[];
-    rarities: ItemRarity[];
-  };
+  filterOptions: MarketplaceFilterOptions;
+}
+
+export interface MarketplaceFilterOptions {
+  /** Item types on sale, each with the sprite of one listed item of that type. */
+  itemTypes: { itemType: ItemType; sprite: string }[];
+  rarities: ItemRarity[];
 }
 
 export interface MarketStatsData {

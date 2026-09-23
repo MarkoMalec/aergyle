@@ -1,0 +1,1035 @@
+<title>Aergyle Stat Curves</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --ground: #edf0ea;
+    --surface: #f8f9f5;
+    --inset: #e2e8e0;
+    --ink: #172023;
+    --ink-2: #394849;
+    --muted: #5d6b67;
+    --rule: #cbd3cb;
+    --rule-strong: #96a59f;
+    --brass: #83601d;
+    --brass-tint: #f0e5cc;
+    --c-current: #a5473a;
+    --c-proposed: #83601d;
+    --c-alt: #2d6680;
+    --v-strong-fg: #7a5616;
+    --v-strong-bg: #f0e5cc;
+    --v-possible-fg: #285d75;
+    --v-possible-bg: #dbe8ee;
+    --v-keep-fg: #336646;
+    --v-keep-bg: #d9eadf;
+    --v-skip-fg: #56625f;
+    --v-skip-bg: #e2e8e0;
+    --v-bug-fg: #9a3d31;
+    --v-bug-bg: #f4dcd7;
+    --v-implemented-fg: #4a4a4a;
+    --v-implemented-bg: #dcdcdc;
+    --focus: #b88a36;
+    --sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --ground: #111b1e;
+      --surface: #1b292d;
+      --inset: #142125;
+      --ink: #eee5d2;
+      --ink-2: #c1c8bd;
+      --muted: #a9b5b1;
+      --rule: #2d3d41;
+      --rule-strong: #4a5c5f;
+      --brass: #d2af70;
+      --brass-tint: #2e2a1d;
+      --c-current: #ed9c8f;
+      --c-proposed: #d2af70;
+      --c-alt: #96bdd0;
+      --v-strong-fg: #e2bc73;
+      --v-strong-bg: #342d1b;
+      --v-possible-fg: #a4c8da;
+      --v-possible-bg: #1d3340;
+      --v-keep-fg: #9fcaae;
+      --v-keep-bg: #1d3328;
+      --v-skip-fg: #b5c0bc;
+      --v-skip-bg: #243438;
+      --v-bug-fg: #f0a89c;
+      --v-bug-bg: #3b2320;
+      --focus: #e4c58b;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --ground: #111b1e;
+    --surface: #1b292d;
+    --inset: #142125;
+    --ink: #eee5d2;
+    --ink-2: #c1c8bd;
+    --muted: #a9b5b1;
+    --rule: #2d3d41;
+    --rule-strong: #4a5c5f;
+    --brass: #d2af70;
+    --brass-tint: #2e2a1d;
+    --c-current: #ed9c8f;
+    --c-proposed: #d2af70;
+    --c-alt: #96bdd0;
+    --v-strong-fg: #e2bc73;
+    --v-strong-bg: #342d1b;
+    --v-possible-fg: #a4c8da;
+    --v-possible-bg: #1d3340;
+    --v-keep-fg: #9fcaae;
+    --v-keep-bg: #1d3328;
+    --v-skip-fg: #b5c0bc;
+    --v-skip-bg: #243438;
+    --v-bug-fg: #f0a89c;
+    --v-bug-bg: #3b2320;
+    --focus: #e4c58b;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 24px; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--brass); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+  a:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 3px; }
+  code, .mono { font-family: var(--mono); font-size: 0.86em; }
+  code { background: var(--inset); padding: 0.08em 0.36em; border-radius: 4px; overflow-wrap: anywhere; }
+  strong { font-weight: 600; }
+
+  .wrap {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding-inline: 20px;
+    padding-block: 40px 96px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 40px;
+  }
+  @media (min-width: 1060px) {
+    .wrap { grid-template-columns: 230px minmax(0, 1fr); gap: 56px; }
+    .toc {
+      position: sticky;
+      top: calc(env(safe-area-inset-top, 0px) + 24px);
+      align-self: start;
+      max-height: calc(100vh - 48px);
+      overflow: auto;
+    }
+  }
+  main { min-width: 0; max-width: 800px; }
+
+  /* Table of contents */
+  .toc { font-size: 14px; }
+  .toc-title { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin: 0 0 10px; }
+  .toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+  .toc ol ol { padding-left: 12px; margin: 2px 0 6px; border-left: 1px solid var(--rule); }
+  .toc a { color: var(--ink-2); text-decoration: none; display: block; padding: 3px 8px; border-radius: 6px; line-height: 1.35; }
+  .toc a:hover { background: var(--inset); color: var(--ink); }
+  @media (max-width: 1059px) {
+    .toc { background: var(--surface); border-radius: 12px; padding: 16px; }
+    .toc > ol { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); column-gap: 12px; }
+  }
+
+  /* Header */
+  .eyebrow { font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--brass); font-weight: 600; margin: 0 0 12px; }
+  h1 { font-size: clamp(32px, 5vw, 46px); line-height: 1.06; letter-spacing: -0.025em; font-weight: 650; margin: 0 0 18px; text-wrap: balance; }
+  h1 .formula-inline { font-family: var(--mono); font-weight: 500; color: var(--brass); letter-spacing: -0.02em; }
+  .lede { font-size: 18px; color: var(--ink-2); margin: 0 0 12px; max-width: 64ch; }
+  .meta { font-size: 13px; color: var(--muted); margin: 0; }
+
+  h2 { font-size: 27px; line-height: 1.2; letter-spacing: -0.015em; font-weight: 650; margin: 72px 0 14px; text-wrap: balance; }
+  h2 .num { color: var(--muted); font-weight: 500; margin-right: 10px; font-variant-numeric: tabular-nums; }
+  h3 { font-size: 21px; line-height: 1.25; letter-spacing: -0.01em; font-weight: 650; margin: 0; text-wrap: balance; }
+  h4 { font-size: 12px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin: 28px 0 8px; }
+  p { margin: 0 0 14px; max-width: 68ch; }
+  ul, ol { margin: 0 0 14px; padding-left: 22px; max-width: 68ch; }
+  li { margin: 4px 0; }
+  .section-intro { color: var(--ink-2); }
+
+  /* Key findings */
+  .findings { background: var(--surface); border-radius: 14px; padding: 24px 26px; margin-top: 32px; }
+  .findings h2 { margin: 0 0 14px; font-size: 20px; }
+  .findings ol { margin: 0; padding-left: 20px; display: grid; gap: 8px; max-width: none; }
+  .findings li { margin: 0; }
+
+  /* Verdict chips */
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; padding: 3px 10px; border-radius: 999px; line-height: 1.5; white-space: nowrap; }
+  .chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .v-strong { color: var(--v-strong-fg); background: var(--v-strong-bg); }
+  .v-possible { color: var(--v-possible-fg); background: var(--v-possible-bg); }
+  .v-keep { color: var(--v-keep-fg); background: var(--v-keep-bg); }
+  .v-skip { color: var(--v-skip-fg); background: var(--v-skip-bg); }
+  .v-bug { color: var(--v-bug-fg); background: var(--v-bug-bg); }
+  .v-done { color: var(--v-keep-fg); background: var(--v-keep-bg); }
+  .chip.plain { color: var(--ink-2); background: transparent; box-shadow: inset 0 0 0 1px var(--rule-strong); }
+  .chip.plain::before { display: none; }
+
+  /* System blocks */
+  .system { margin: 44px 0 0; padding-top: 28px; border-top: 1px solid var(--rule); }
+  .system:first-of-type { border-top: 0; padding-top: 4px; }
+  .system .verdict { font-size: 17px; color: var(--ink); margin: 14px 0 0; max-width: 68ch; }
+
+  /* Pipeline trace */
+  .trace { list-style: none; margin: 8px 0 16px; padding: 0; max-width: none; position: relative; }
+  .trace li { position: relative; margin: 0; padding: 7px 0 7px 26px; }
+  .trace li::before { content: ""; position: absolute; left: 6px; top: 16px; width: 9px; height: 9px; border-radius: 50%; background: var(--surface); box-shadow: inset 0 0 0 2px var(--rule-strong); }
+  .trace li::after { content: ""; position: absolute; left: 10px; top: 27px; bottom: -9px; width: 1px; background: var(--rule-strong); }
+  .trace li:last-child::after { display: none; }
+  .trace .step { font-weight: 600; font-size: 13px; letter-spacing: 0.02em; color: var(--muted); display: block; line-height: 1.4; }
+  .trace .what { display: block; }
+  .trace li.hot::before { background: var(--c-current); box-shadow: none; }
+  .trace li.hot .step { color: var(--c-current); }
+
+  /* Formula blocks */
+  .formula { font-family: var(--mono); font-size: 14px; background: var(--inset); border-radius: 10px; padding: 14px 16px; margin: 6px 0 16px; overflow-x: auto; white-space: pre; line-height: 1.7; color: var(--ink); max-width: 100%; }
+  .formula .c { color: var(--muted); }
+  .formula .hl { color: var(--c-current); }
+  .formula .ok { color: var(--brass); }
+
+  /* Note blocks */
+  .note { background: var(--brass-tint); border-radius: 10px; padding: 14px 16px; margin: 12px 0 18px; max-width: 68ch; }
+  .note p:last-child { margin-bottom: 0; }
+  .note .label { display: block; font-size: 11.5px; letter-spacing: 0.09em; text-transform: uppercase; font-weight: 700; color: var(--brass); margin-bottom: 4px; }
+  .note.bug { background: var(--v-bug-bg); }
+  .note.bug .label { color: var(--v-bug-fg); }
+
+  /* Tables */
+  .tbl { overflow-x: auto; margin: 8px 0 18px; border-radius: 10px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 9px 12px; vertical-align: top; border-bottom: 1px solid var(--rule); }
+  th { font-size: 11.5px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); font-weight: 600; background: var(--surface); white-space: nowrap; }
+  tr:last-child td { border-bottom: 0; }
+  td.n, th.n { text-align: right; }
+  td .hl { color: var(--c-current); font-weight: 600; }
+  td .ok { color: var(--brass); font-weight: 600; }
+  table.summary { font-size: 13.5px; min-width: 980px; }
+  table.summary td:first-child { font-weight: 600; white-space: nowrap; }
+  table.summary .chip { font-size: 11.5px; }
+
+  /* Charts */
+  figure { margin: 10px 0 22px; background: var(--surface); border-radius: 14px; padding: 16px 16px 14px; }
+  figure svg { display: block; width: 100%; height: auto; max-width: 100%; }
+  figcaption { font-size: 14px; color: var(--ink-2); margin-top: 8px; }
+  figcaption strong { color: var(--ink); }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--ink-2); margin: 0 0 6px; }
+  .legend span { display: inline-flex; align-items: center; gap: 8px; }
+  .legend i { display: inline-block; width: 22px; height: 0; border-top: 2.5px solid; }
+  .legend i.cur { border-color: var(--c-current); }
+  .legend i.new { border-color: var(--c-proposed); }
+  .legend i.alt { border-color: var(--c-alt); border-top-style: dashed; }
+  .key { list-style: none; padding: 0; margin: 8px 0 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 4px 16px; font-size: 13px; color: var(--ink-2); max-width: none; }
+  .key li { margin: 0; }
+  .key b { font-family: var(--mono); font-weight: 500; display: inline-block; min-width: 18px; }
+  .key b.cur { color: var(--c-current); }
+  .key b.new { color: var(--c-proposed); }
+  svg .grid { stroke: var(--rule); stroke-width: 1; }
+  svg .axis { stroke: var(--rule-strong); stroke-width: 1; }
+  svg .tick { fill: var(--muted); font: 11.5px var(--mono); }
+  svg .alabel { fill: var(--ink-2); font: 500 12px var(--sans); }
+  svg .line { fill: none; stroke-width: 2.4; stroke-linejoin: round; stroke-linecap: round; }
+  svg .line.cur { stroke: var(--c-current); }
+  svg .line.new { stroke: var(--c-proposed); }
+  svg .line.alt { stroke: var(--c-alt); stroke-dasharray: 6 5; }
+  svg .pt { stroke: var(--surface); stroke-width: 2; }
+  svg .pt.cur { fill: var(--c-current); }
+  svg .pt.new { fill: var(--c-proposed); }
+  svg .plabel { font: 600 12px var(--mono); }
+  svg .plabel.cur { fill: var(--c-current); }
+  svg .plabel.new { fill: var(--c-proposed); }
+  svg .ref { stroke: var(--rule-strong); stroke-dasharray: 3 4; stroke-width: 1; }
+  svg .reftext { fill: var(--muted); font: 11px var(--sans); }
+
+  /* Compact grid of keep-as-is items */
+  .keep-list { display: grid; gap: 0; margin: 10px 0 0; }
+  .keep-item { padding: 18px 0; border-top: 1px solid var(--rule); display: grid; gap: 6px; }
+  .keep-item:first-child { border-top: 0; }
+  .keep-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+  .keep-head h3 { font-size: 17px; }
+  .keep-item p { margin: 0; }
+
+  /* Groups */
+  .groups { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); margin: 12px 0 0; }
+  .group { background: var(--surface); border-radius: 12px; padding: 18px 18px 8px; }
+  .group h3 { font-size: 16px; margin-bottom: 10px; }
+  .group ul { padding-left: 18px; font-size: 14.5px; }
+
+  .firsts { counter-reset: first; list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 14px; max-width: none; }
+  .firsts > li { background: var(--surface); border-radius: 12px; padding: 18px 20px 6px 58px; position: relative; margin: 0; }
+  .firsts > li::before { counter-increment: first; content: counter(first); position: absolute; left: 18px; top: 16px; width: 28px; height: 28px; border-radius: 50%; background: var(--brass); color: var(--surface); font-weight: 700; font-size: 14px; display: grid; place-items: center; }
+  .firsts h3 { font-size: 18px; margin-bottom: 8px; }
+  .firsts ol, .firsts ul { font-size: 15px; }
+
+  footer { margin-top: 72px; padding-top: 18px; border-top: 1px solid var(--rule); font-size: 13px; color: var(--muted); }
+</style>
+
+<div class="wrap">
+  <nav class="toc" aria-label="Contents">
+    <p class="toc-title">Contents</p>
+    <ol>
+      <li><a href="#findings">Key findings</a></li>
+      <li><a href="#framework">What a percentage buys</a></li>
+      <li><a href="#pipeline">How a stat reaches gameplay</a></li>
+      <li><a href="#strong">Strong candidates</a>
+        <ol>
+          <li><a href="#vocation">Vocation efficiency</a></li>
+          <li><a href="#armor">Armor and magic resist</a></li>
+          <li><a href="#expedition">Find and quantity bonuses</a></li>
+        </ol>
+      </li>
+      <li><a href="#possible">Possible later</a></li>
+      <li><a href="#keep">Keep as-is</a></li>
+      <li><a href="#absent">Not in the game yet</a></li>
+      <li><a href="#architecture">Architecture proposal</a></li>
+      <li><a href="#table">Summary table</a></li>
+      <li><a href="#groups">The three groups</a></li>
+      <li><a href="#first">Where to start</a></li>
+      <li><a href="#side">Side findings</a></li>
+      <li><a href="#decisions">Decisions for you</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <header>
+      <p class="eyebrow">Balance design · vocation efficiency implemented, the rest is proposal</p>
+      <h1>Where <span class="formula-inline">X/(X+K)</span> belongs in Aergyle</h1>
+      <p class="lede">A review of every stat the game computes, traced from its source to what the player sees, with a verdict on whether a saturation curve would help it, hurt it, or is already there.</p>
+      <p class="meta">Based on the repository as of 23 September 2026: <code>src/</code>, <code>prisma/</code> content packs, seeds and <code>docs/</code>. Balance numbers come from content packs in the repo, not from the live database. Vocation efficiency has since been implemented as described in <a href="#vocation">its section</a>.</p>
+    </header>
+
+    <section class="findings" id="findings" aria-labelledby="findings-h">
+      <h2 id="findings-h">Key findings</h2>
+      <ol>
+        <li><strong>The formula is already live.</strong> Armor and magic resist use <code>100 / (100 + armor)</code> as a damage multiplier (<code>src/server/combat/rules.ts:50</code>), which is exactly <code>reduction = armor / (armor + 100)</code>. K is hard-coded at 100, and the same formula applies when you hit monsters and when monsters hit you. For armor, the open question is <em>what K should be</em>, not whether to use the curve.</li>
+        <li><strong>One system had the opposite problem, and it's now fixed.</strong> Vocation efficiency used <code>time × (1 − efficiency/100)</code>, so each point was worth more than the last: 50 gave ×2 output, 90 gave ×10, and 100 hit a 1-second floor. <a href="#vocation">It now uses <code>time × 100 / (100 + efficiency)</code></a>, the same shape as travel, so each point adds the same output.</li>
+        <li><strong>The shared find/quantity modifier adds sources linearly and then hard-clamps them.</strong> Skill level alone reaches the +150% find cap at skill 301, after which Luck and Efficiency gear do nothing. It isn't urgent yet (hunting content tops out around skill 66), but it will become a problem as players reach higher skill levels.</li>
+        <li><strong>For reductions, X/(X+K) doesn't actually give diminishing returns.</strong> On damage taken or time spent, it makes every point worth the same amount of survivability or output. It is only truly diminishing on chances and bonuses. This decides where it belongs, and it's explained in the next section.</li>
+        <li><strong>Many of the listed systems don't exist or aren't read.</strong> Accuracy, Lifesteal, Thorns, Mana, Prayer, Gold Find and the Experience Gain stat are defined and appear on gear, but no gameplay code reads them. There are no cooldowns, crafting success or crafting quality systems. They need no curve yet.</li>
+        <li><strong>Two non-curve problems came up</strong> that matter more than any curve. Weapon attack speed was added to the character's base speed and scaled by rarity; that's now fixed. Three routes let any signed-in player grant themselves XP, stackable XP multipliers or items. See <a href="#side">side findings</a>.</li>
+      </ol>
+    </section>
+
+    <section id="framework" aria-labelledby="framework-h">
+      <h2 id="framework-h"><span class="num">1</span>Read this first: what a percentage actually buys</h2>
+      <p class="section-intro">Whether X/(X+K) is diminishing depends on what the resulting percentage does. The game has three kinds of scaling stats, and the curve behaves differently for each.</p>
+
+      <h4>Reductions of a cost: damage taken, time spent</h4>
+      <p>If one point of a stat removes one percentage point of damage or time (as resistances and evasion do, and vocation efficiency did until its fix), the value of each point <em>grows</em>. Going from 0 to 10% cuts damage by 10%, but going from 80 to 90% halves it. Survivability or output is <code>1 / (1 − p)</code>, which is infinite at 100%. Applying X/(X+K) to the reduction gives <code>1 + X/K</code>, which is a straight line. Each point adds the same survivability or output, and the displayed percentage can never reach 100%. <strong>This is where the curve belongs.</strong> Armor already works this way, and so do travel (<code>base × 100 / speed</code> is the same formula) and now vocation efficiency.</p>
+
+      <h4>Chances and bonuses on a gain: find chance, quantity, crit chance</h4>
+      <p>A linear percentage already has a linear value here: +10% find is worth the same at any point. Applying X/(X+K) makes each point genuinely worth less. That only helps when sources pile into a hard cap and later points become worthless, or when several sources multiply together.</p>
+
+      <h4>Flat amounts: health, damage, regen, inventory slots</h4>
+      <p>These are linear by nature and players read them directly. A curve would only make upgrades feel weaker. Keep them linear.</p>
+
+      <figure>
+        <div class="legend">
+          <span><i class="cur"></i>Linear %: 1 point = 1% off (resistances, evasion, old vocation efficiency)</span>
+          <span><i class="new"></i>X/(X+K), K = 100 (armor, travel speed, vocation efficiency)</span>
+        </div>
+        <svg id="chart-framework" role="img" aria-label="Survivability or output multiplier against stat points. The linear-percentage line curves upward to 4 times at 75 and 10 times at 90 points. The X over X plus 100 line is straight, reaching 2 times at 100 and 4 times at 300 points."></svg>
+        <figcaption><strong>Survivability or output per stat point.</strong> For a reduction, the linear percentage accelerates and breaks at 100. The saturation curve on the same axis is a straight line. It is "diminishing" only in the displayed percentage.</figcaption>
+      </figure>
+
+      <p>The reference points you listed, including what they mean when the percentage is a reduction:</p>
+      <div class="tbl">
+        <table>
+          <thead><tr><th>X</th><th class="n">X/(X+K)</th><th class="n">Damage or time left</th><th class="n">Survivability / output</th><th class="n">Linear % at the same points (K = 100)</th></tr></thead>
+          <tbody>
+            <tr><td>0.25K</td><td class="n">20.0%</td><td class="n">80.0%</td><td class="n">×1.25</td><td class="n">×1.33</td></tr>
+            <tr><td>0.5K</td><td class="n">33.3%</td><td class="n">66.7%</td><td class="n">×1.5</td><td class="n">×2</td></tr>
+            <tr><td>1K</td><td class="n">50.0%</td><td class="n">50.0%</td><td class="n">×2</td><td class="n"><span class="hl">×∞ at 100</span></td></tr>
+            <tr><td>2K</td><td class="n">66.7%</td><td class="n">33.3%</td><td class="n">×3</td><td class="n">capped</td></tr>
+            <tr><td>4K</td><td class="n">80.0%</td><td class="n">20.0%</td><td class="n">×5</td><td class="n">capped</td></tr>
+            <tr><td>9K</td><td class="n">90.0%</td><td class="n">10.0%</td><td class="n">×10</td><td class="n">capped</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>So on reductions the curve prevents two broken states (a 100% reduction and accelerating value per point), but <strong>it doesn't stop stat inflation</strong>. Survivability still grows linearly with the rating. Inflation is controlled by how K relates to the ratings content hands out, which is why most of the armor section is about K.</p>
+    </section>
+
+    <section id="pipeline" aria-labelledby="pipeline-h">
+      <h2 id="pipeline-h"><span class="num">2</span>How a stat reaches gameplay today</h2>
+      <p class="section-intro">Every system shares one aggregation pipeline, described in <code>docs/CHARACTER_STATS_SYSTEM.md</code>. Knowing it tells you where a curve can go.</p>
+      <ol class="trace">
+        <li><span class="step">Base value</span><span class="what"><code>CharacterStatGrowth</code> rule per stat: <code>level-1 value + min(cap, perLevel × (level − 1))</code>, with defaults in <code>DEFAULT_LEVEL_GROWTH</code> (<code>src/utils/stats.ts:118</code>). Chance stats have a capped growth. Armor, health and damage grow forever. Economy and vocation stats don't grow. Per-character <code>CharacterBaseStat</code> rows are added on top, but nothing writes them yet.</span></li>
+        <li><span class="step">Equipment</span><span class="what"><code>resolveEffectiveItemStats</code> (<code>src/utils/itemInstanceStats.ts:77</code>): <code>ItemStat</code> + unlocked <code>ItemStatProgression</code> + <code>ToolEfficiency</code> → × <code>RarityConfig.statMultiplier</code> (Worthless 0.5 … Common 1.0 … Epic 1.7 … Divine 3.0) or a per-item override → capped by <code>ItemStat.maxValue</code> → + <code>UserItemStatModifier</code>.</span></li>
+        <li><span class="step">Temporary effects</span><span class="what">One active food, potion or elixir per character (<code>userActiveFoodEffect.upsert</code>, <code>src/server/food-effects/service.ts:93</code>). Its <code>FoodEffectStat</code> rows are flat.</span></li>
+        <li><span class="step">Aggregation</span><span class="what"><code>getCharacterStatSnapshot</code> (<code>src/server/stats.ts:85</code>) sums base + equipment + effect with <code>combineStatRecords</code>. <strong>Every source is flat and additive. There are no percentage modifiers anywhere yet.</strong></span></li>
+        <li><span class="step">Caps and floors</span><span class="what"><code>calculateFinalStatsFromTotals</code> (<code>src/utils/stats.ts:213</code>): crit chance ≤ 100, evasion/block ≤ 75, resistances between −100 and 75, attack speed ≥ 0.1, and most others ≥ 0. Armor, damage and health are uncapped.</span></li>
+        <li><span class="step">Activity snapshot</span><span class="what">Taken at start: hunting uses scalar columns (<code>armorSnapshot</code>, <code>luckSnapshot</code> …) plus a <code>riskConfig</code> JSON; dungeons use a <code>combatSnapshot</code> JSON; gathering uses scalar columns; vocations use <code>unitSeconds</code>; travel uses <code>endsAt</code>.</span></li>
+        <li><span class="step">Gameplay rule</span><span class="what">Pure resolvers at claim time: <code>src/server/combat/rules.ts</code>, <code>src/server/dungeons/resolver.ts</code>, <code>src/server/hunting/resolver.ts</code>, <code>src/server/expeditions/rewards.ts</code>, <code>src/game/world/travel.ts</code>. The first four also run in the browser in the admin simulators.</span></li>
+        <li><span class="step">Display</span><span class="what">Raw ratings only. No converted percentage for armor, find bonus or efficiency is shown anywhere.</span></li>
+      </ol>
+      <p>Because every source is flat and summed, the stacking order today is just "sum, then cap". Any curve goes <strong>between the final total (step 5) and the gameplay rule (step 7)</strong>, and it has to be applied to the snapshotted value, not the live one.</p>
+    </section>
+
+    <section id="strong" aria-labelledby="strong-h">
+      <h2 id="strong-h"><span class="num">3</span>Strong candidates</h2>
+
+      <article class="system" id="vocation" aria-labelledby="vocation-h">
+        <h3 id="vocation-h">Vocation efficiency → action time</h3>
+        <div class="chips"><span class="chip v-done">Implemented</span><span class="chip plain">23 September 2026</span><span class="chip plain">Woodcutting · Mining · Fishing</span></div>
+        <p class="verdict">Action time now uses X/(X+K) on time saved, so output grows linearly with efficiency. It no longer accelerates towards a 1-second floor.</p>
+
+        <h4>How it works now</h4>
+        <ol class="trace">
+          <li><span class="step">Base value</span><span class="what"><code>VocationalResource.defaultSeconds</code> per resource (9 to 120 s in the content packs). The efficiency base stat is 0 and doesn't grow with level.</span></li>
+          <li><span class="step">Equipment</span><span class="what">Each tool's <code>ToolEfficiency.baseEfficiency</code> becomes the <code>WOODCUTTING/MINING/FISHING_EFFICIENCY</code> stat, multiplied by rarity (up to ×3.0). Any other equipped item with the stat also adds to it, as does a food effect.</span></li>
+          <li><span class="step">Aggregation</span><span class="what"><code>getToolEfficiencyForAction</code> reads <code>snapshot.totals[stat]</code>. <code>clampEfficiency</code> now only floors it at 0. The old upper cap of 100 is gone, because the new curve never reaches zero time (<code>src/server/vocations/tools.ts</code>).</span></li>
+          <li><span class="step">Gameplay rule</span><span class="what"><code>computeEffectiveUnitSeconds</code> in <code>src/game/vocationStats.ts</code>: <code>unitSeconds = max(1, round(base × 100 / (100 + e)))</code>. The 100 is the constant <code>VOCATION_EFFICIENCY_HALF_TIME</code>. <code>tools.ts</code> re-exports the function, so the start service, the resources route and the skills page call it unchanged.</span></li>
+          <li><span class="step">Snapshot</span><span class="what">Stored as <code>UserVocationalActivity.unitSeconds</code> at start. Activities that were already running keep the speed they started with. The realtime daemon settles one unit each time <code>unitSeconds</code> elapses.</span></li>
+          <li><span class="step">Display</span><span class="what">Unchanged. The skills page shows only the time an action takes. There's no base time and no formula.</span></li>
+        </ol>
+
+        <h4>Before and after</h4>
+        <p>The old rule, <code>max(1, floor(base × (1 − e/100)))</code> with efficiency capped at 100, made output <code>1 / (1 − e/100)</code>, so every point was worth more than the one before:</p>
+        <div class="tbl">
+          <table>
+            <thead><tr><th class="n">Efficiency</th><th class="n">Before: time</th><th class="n">Before: output</th><th class="n">Now: time</th><th class="n">Now: output</th></tr></thead>
+            <tbody>
+              <tr><td class="n">10</td><td class="n">90%</td><td class="n">×1.11</td><td class="n">90.9%</td><td class="n">×1.10</td></tr>
+              <tr><td class="n">25</td><td class="n">75%</td><td class="n">×1.33</td><td class="n">80%</td><td class="n">×1.25</td></tr>
+              <tr><td class="n">50</td><td class="n">50%</td><td class="n">×2</td><td class="n">66.7%</td><td class="n">×1.5</td></tr>
+              <tr><td class="n">75</td><td class="n">25%</td><td class="n"><span class="hl">×4</span></td><td class="n">57.1%</td><td class="n">×1.75</td></tr>
+              <tr><td class="n">90</td><td class="n">10%</td><td class="n"><span class="hl">×10</span></td><td class="n">52.6%</td><td class="n">×1.9</td></tr>
+              <tr><td class="n">100</td><td class="n">1 s floor</td><td class="n"><span class="hl">×9 to ×120</span></td><td class="n">50%</td><td class="n"><span class="ok">×2</span></td></tr>
+              <tr><td class="n">200</td><td class="n">capped at 100</td><td class="n">as above</td><td class="n">33.3%</td><td class="n"><span class="ok">×3</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Rarity made the old extremes reachable. A tool with <code>baseEfficiency</code> 30 was 90% at Divine, ten times the output, and 34 or above hit the cap and the 1-second floor. Every unit is a daemon settlement, so 1-second units meant one database transaction per player per second on the Pi. Both risks are gone.</p>
+
+        <h4>Choices made</h4>
+        <ul>
+          <li><strong>X</strong> is the final efficiency total from the snapshot, <code>totals[efficiencyStat]</code>: tool, other gear and food, after the rarity multiplier and <code>maxValue</code>. Floored at 0, with no upper cap.</li>
+          <li><strong>K = 100</strong>, the efficiency that halves the time. It's the same shape as travel, where +100 speed halves a journey. It's a code constant rather than an <code>/admin</code> setting, which keeps the change to one function with no table or migration. To keep a particular tool at its old speed, set it to <code>100 − that tool's efficiency</code>.</li>
+          <li><strong>Not level-dependent</strong>, because resources are already gated by vocation level.</li>
+          <li><strong>Rounding</strong> is now <code>round</code>, as in <code>applyMovementSpeed</code>. The old <code>floor</code> gave a small hidden bonus on short actions.</li>
+        </ul>
+
+        <h4>Stacking order</h4>
+        <div class="formula"><span class="c">// flat sources, summed exactly as before</span>
+e = tool baseEfficiency × rarity  +  other gear efficiency × rarity  +  food effect
+<span class="c">// future "+x% efficiency" bonuses would multiply e here, before the curve</span>
+<span class="ok">unitSeconds = max(1, round(defaultSeconds × 100 / (100 + e)))</span>
+<span class="c">// snapshot at start → daemon ticks</span></div>
+
+        <h4>Player-facing</h4>
+        <p>Unchanged. Players see the time a resource takes to gather and nothing else. From their side output is linear, so there's no diminishing return to explain.</p>
+
+        <h4>Tests and docs</h4>
+        <p><code>tests/vocation-speed.test.ts</code> runs with <code>npm run test:vocations</code>. The formula is also noted in <code>docs/VOCATIONS_SYSTEM.md</code>.</p>
+        <div class="note"><span class="label">Tradeoff</span><p>High-efficiency tools are slower than before: 50 efficiency now gives ×1.5 output instead of ×2. The repo's content packs author no Woodcutting, Mining or Fishing efficiency. The only <code>ToolEfficiency</code> row (12, on the Reedwind Bow in <code>scripts/seedHunting.ts</code>) is for Hunting, which uses efficiency for finds and quantity, not time. Live tool values weren't checked.</p></div>
+      </article>
+
+      <article class="system" id="armor" aria-labelledby="armor-h">
+        <h3 id="armor-h">Armor and magic resist → damage reduction</h3>
+        <div class="chips"><span class="chip v-strong">Strong candidate: change K, the curve is already there</span><span class="chip plain">Priority 1</span><span class="chip plain">Dungeons · Hunting retaliation</span></div>
+        <p class="verdict">The formula is already in place with K = 100 hard-coded. With the gear already authored, a level-50 Epic set gives 86% physical reduction, and every future tier pushes this closer to immunity.</p>
+
+        <h4>Current implementation</h4>
+        <ol class="trace">
+          <li><span class="step">Base value</span><span class="what">Armor 0 + 0.5 per level, uncapped. Magic resist 0 + 0.3 per level, uncapped.</span></li>
+          <li><span class="step">Equipment</span><span class="what">Flat armor per piece × rarity. Trailwarden (level 1) totals 44 base armor across 8 pieces, and Duskwarden (level 50) totals 340 base armor and 36 base magic resist. One dish gives +5 magic resist.</span></li>
+          <li><span class="step">Caps</span><span class="what"><code>armor = max(0, total)</code>, with no ceiling.</span></li>
+          <li><span class="step">Snapshot</span><span class="what">Hunting: <code>armorSnapshot</code>/<code>magicResistSnapshot</code> columns. Dungeons: the <code>combatSnapshot</code> JSON, built by <code>combatSnapshotFromStats</code>.</span></li>
+          <li class="hot"><span class="step">Gameplay rule</span><span class="what"><code>resolveCreatureStrike</code> (<code>rules.ts:83</code>): physical × <code>protectionMultiplier(armor)</code> + magic × <code>protectionMultiplier(magicResist)</code> + elemental × (1 − resist%), then × crit, then × 0.5 on block. <code>protectionMultiplier(p) = 100 / (100 + max(0, p))</code>.</span></li>
+          <li><span class="step">Reverse direction</span><span class="what"><code>characterStrike</code> (<code>dungeons/resolver.ts:145</code>) applies the same function to <code>Creature.armor</code>/<code>magicResist</code> when the character attacks. The Goblin has 2 armor.</span></li>
+          <li><span class="step">Display</span><span class="what">Raw only: "Armor / magic resist" in the dungeon planner (<code>DungeonExplorer.tsx:760</code>). The armor row is commented out on the character sheet (<code>CharacterStats.tsx:233</code>). The formula is documented in <code>docs/DUNGEONS_SYSTEM.md</code>.</span></li>
+        </ol>
+
+        <h4>Would diminishing returns make sense?</h4>
+        <p><strong>Yes, and it already does.</strong> The curve is the right family for mitigation. The problem is that K is fixed, while the two authored sets, 49 levels apart, differ almost eightfold in base armor (44 vs 340):</p>
+        <div class="tbl">
+          <table>
+            <thead><tr><th>Character</th><th class="n">Armor</th><th class="n">Today (K = 100)</th><th class="n">Level-scaled K (example)</th></tr></thead>
+            <tbody>
+              <tr><td>Level 1, Trailwarden set (Rare ×1.35)</td><td class="n">59</td><td class="n">37.3%</td><td class="n">44.2% (K = 75)</td></tr>
+              <tr><td>Level 50, still in Trailwarden</td><td class="n">84</td><td class="n">45.6%</td><td class="n">11.2% (K = 663)</td></tr>
+              <tr><td>Level 50, Duskwarden set (Epic ×1.7)</td><td class="n">603</td><td class="n"><span class="hl">85.8%</span></td><td class="n">47.6% (K = 663)</td></tr>
+              <tr><td>Level 50, Duskwarden set (Divine ×3.0)</td><td class="n">1,045</td><td class="n"><span class="hl">91.3%</span></td><td class="n">61.2% (K = 663)</td></tr>
+              <tr><td>Level 300, no gear (base growth only)</td><td class="n">150</td><td class="n">59.9%</td><td class="n">3.9% (K = 3,663)</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <figure>
+          <div class="legend">
+            <span><i class="cur"></i>Today: K = 100 at every level</span>
+            <span><i class="new"></i>Example: K = 663 for level-50 attackers</span>
+          </div>
+          <svg id="chart-armor" role="img" aria-label="Physical damage reduction against armor rating. With K 100 the Duskwarden Epic set at 603 armor reaches 86 percent and Divine reaches 91 percent. With K 663 the same sets give 48 and 61 percent."></svg>
+          <ul class="key">
+            <li><b class="cur">1</b> Trailwarden Rare, level 1: 37%</li>
+            <li><b class="cur">2</b> Duskwarden Epic, level 50: 86%</li>
+            <li><b class="cur">3</b> Duskwarden Divine, level 50: 91%</li>
+            <li><b class="new">4</b> Trailwarden worn at level 50: 11%</li>
+            <li><b class="new">5</b> Duskwarden Epic, level 50: 48%</li>
+            <li><b class="new">6</b> Duskwarden Divine, level 50: 61%</li>
+          </ul>
+          <figcaption><strong>Same gear, two K strategies.</strong> A fixed K lets each new tier approach immunity. A K that grows with the attacker's level keeps on-level gear near a chosen target.</figcaption>
+        </figure>
+
+        <p>At level 50 with today's K, the Epic set takes 14% of physical damage and the Rare set takes 54%, a ×3.8 gap. Creature damage is a flat authored range, so any creature built to threaten the Epic player will be very hard on the Rare player at the same level. Hunting hides this with its 30% health-loss budget. Dungeons don't, and only a level-1 Goblin exists so far. <strong>Settle this before authoring higher-level dungeons.</strong></p>
+
+        <h4>What X should be</h4>
+        <p>The <strong>final armor rating</strong>: <code>finalStats.armor</code> after all flat sources and any future percentage bonuses or debuffs, floored at 0. Not equipment armor alone, because base armor also grows forever (level 300 alone is 150) and has to go through the same conversion. Magic resist works the same way with its own K.</p>
+
+        <h4>What K should be</h4>
+        <ul>
+          <li><strong>Global fixed (today).</strong> Simplest, but only works if each gear tier adds little armor. The authored sets don't.</li>
+          <li><strong>Attacker-level-dependent (recommended):</strong> <code>K = K₀ + K₁ × attackerLevel</code>. On-level gear stays near a target reduction at every level, and old gear's percentage falls as content levels rise. This is the standard MMO approach.</li>
+          <li><strong>Per stat: yes.</strong> Armor and magic resist grow at different rates (340 vs 36 base on Duskwarden), so each gets its own K₀/K₁.</li>
+          <li><strong>Where the attacker level comes from.</strong> <code>Creature</code> has no level field. What already exists: in dungeons, <code>max(dungeon.requiredLevel, location.requiredLevel)</code>, which <code>startDungeonRun</code> already computes (<code>service.ts:507</code>). In hunting, the location's <code>requiredLevel</code> (<code>requiredHuntingLevel</code> is a skill level on a different scale). When the character attacks a monster, the character's level. A <code>Creature.level</code> column would only be needed if one creature should hit differently in different places.</li>
+          <li><strong>How to pick numbers.</strong> Choose the target reduction <em>r</em> for on-level, on-tier, full-set gear. Then <code>K(L) = expectedArmor(L) × (1 − r) / r</code>. With the two authored sets and r ≈ 45–48%, that gives K ≈ 75 at level 1 and ≈ 663 at level 50, so roughly <code>75 + 12 × (level − 1)</code>. This is an illustration from the content, not a number to ship.</li>
+          <li><strong>Authoring aid.</strong> The creature editor can show the armor a monster needs for r% against on-level characters: <code>K(L) × r / (1 − r)</code>.</li>
+        </ul>
+
+        <h4>Where the formula goes</h4>
+        <p>Keep it in <code>src/server/combat/rules.ts</code>, which is pure and imported by the in-browser admin simulators. Give <code>protectionMultiplier(protection, k)</code> an explicit K and add <code>armorConstant(level, curve)</code>. Resolve K when the run or hunt starts and store it in <code>combatSnapshot</code> / <code>riskConfig</code>, both JSON so no migration is needed. A missing key means K = 100, so runs already in flight resolve exactly as they started.</p>
+
+        <h4>Stacking order</h4>
+        <div class="formula">base armor (level rule)
++ flat gear armor (× rarity, ≤ maxValue, + instance modifiers)
++ flat food/potion armor
+<span class="c">→ × (1 + Σ "% armor" bonuses)        // none exist yet; would go here</span>
+<span class="c">→ − armor shred / debuffs, floor 0      // rating level, never on the %</span>
+= final armor rating A                  <span class="c">// snapshotted at start</span>
+<span class="ok">K = K₀ + K₁ × attacker level           // resolved at start, snapshotted</span>
+<span class="ok">reduction = A / (A + K)</span>
+physical hit × (1 − reduction) × crit × (block ? 0.5 : 1)</div>
+        <p>Never add a "+x% damage reduction" item directly to the converted percentage, because that brings back linear stacking. If such a stat appears, multiply it as a separate layer: <code>(1 − r<sub>armor</sub>)(1 − r<sub>other</sub>)</code>.</p>
+
+        <h4>Example behavior (K from the attacker's level)</h4>
+        <div class="tbl">
+          <table>
+            <thead><tr><th>Armor vs K</th><th class="n">Reduction</th><th>What it means in a dungeon</th></tr></thead>
+            <tbody>
+              <tr><td>0.25K</td><td class="n">20%</td><td>Off-tier or light gear: hits land nearly in full.</td></tr>
+              <tr><td>0.5K</td><td class="n">33%</td><td>Partial on-level set.</td></tr>
+              <tr><td>1K</td><td class="n">50%</td><td>Full on-level, on-tier set: the design target.</td></tr>
+              <tr><td>2K</td><td class="n">67%</td><td>High rarity or out-levelled content: takes a third of the damage.</td></tr>
+              <tr><td>4K</td><td class="n">80%</td><td>Farming content far below you.</td></tr>
+              <tr><td>9K</td><td class="n">90%</td><td>Trivial content. Physical hits barely register, but the percentage never reaches 100.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h4>Player-facing</h4>
+        <p>Show both, in context. Dungeon planner: <em>"Armor 603 · 48% physical reduction here"</em> (against that dungeon's level, where the number matters). Character sheet tooltip: <em>"Armor 603: 48% against level-50 enemies. Each point adds the same survivability. The percentage rises more slowly as armor grows and against stronger enemies."</em></p>
+        <div class="note"><span class="label">Tradeoff</span><p>With a level-scaled K, armor from old gear loses percentage as players level. That's intended in most MMOs, but it is a visible nerf to anyone staying in old gear, and every monster's armor has to be authored on the new scale.</p></div>
+      </article>
+
+      <article class="system" id="expedition" aria-labelledby="expedition-h">
+        <h3 id="expedition-h">Expedition find and quantity bonuses</h3>
+        <div class="chips"><span class="chip v-strong">Strong candidate, lower urgency</span><span class="chip plain">Priority 2</span><span class="chip plain">Gathering · Hunting · Dungeon loot (Luck)</span></div>
+        <p class="verdict">Linear sources summed into hard clamps. Skill level alone eventually fills the cap and makes Luck and Efficiency gear worthless.</p>
+
+        <h4>Current implementation</h4>
+        <ol class="trace">
+          <li><span class="step">Sources</span><span class="what">Vocation skill level (grows with play). Luck: base 0 and no level growth, from gear and food (+5 dishes). Gathering/Hunting Efficiency: tailored gear +2 to +5 and tools, × rarity, plus food. All snapshotted at departure.</span></li>
+          <li class="hot"><span class="step">Gameplay rule</span><span class="what"><code>calculateExpeditionRewardModifiers</code> (<code>src/server/expeditions/rewards.ts:16</code>) clamps luck to −100…250 and efficiency to 0…250, then:<br><code>find% = clamp(0.5·(skill−1) + 0.4·luck + efficiency, −50, 150)</code><br><code>quantity% = clamp(0.2·(skill−1) + 0.1·max(0, luck) + 0.5·efficiency, 0, 100)</code></span></li>
+          <li><span class="step">Per drop</span><span class="what"><code>calculateExpeditionEffectiveFindChance</code>: <code>chance = clamp(base × (1 + find%), 0.001, 0.95)</code>. Quantity: <code>roll × durationMultiplier × (1 + quantity%)</code>.</span></li>
+          <li><span class="step">Consumers</span><span class="what">Gathering (<code>calculateGatheringRewards</code>), Hunting and dungeons (<code>rollCreatureDrops</code>). Dungeons pass skill 1 and efficiency 0, so only Luck counts.</span></li>
+          <li><span class="step">Display</span><span class="what">The reports store <code>modifiers</code>. The Hunting and Gathering screens show Luck and Efficiency with their sources. The admin simulators run the same function in the browser.</span></li>
+        </ol>
+
+        <h4>Would diminishing returns make sense?</h4>
+        <p><strong>Yes</strong>, for three reasons found in the code:</p>
+        <ul>
+          <li><strong>Dead stats at the cap.</strong> Once the sum passes 150, each extra point of Luck or Efficiency is worth nothing, and nothing tells the player.</li>
+          <li><strong>Skill fills the cap by itself.</strong> Find from skill is 0.5 per level: +49.5% at skill 100, +99.5% at 200, and the full +150% at skill 301. The XP table in <code>docs/</code> runs to level 353.</li>
+          <li><strong>It double-counts progression.</strong> <code>CHARACTER_STATS_SYSTEM.md</code> keeps economy stats from growing with level because higher levels already unlock better content. Skill already does that here too, through <code>CreatureDrop.requiredLevel</code> and resource <code>requiredSkillLevel</code>.</li>
+        </ul>
+        <p>It isn't urgent: hunting content peaks around skill 66, which is +32.5% from skill.</p>
+
+        <h4>What X should be</h4>
+        <p>The <strong>weighted rating before the clamp</strong>, keeping today's weights because they already define one: <code>X<sub>find</sub> = 0.5·(skill−1) + 0.4·luck + efficiency</code>, and the same for quantity with its own weights. Keep skill inside X, because that's what makes the curve rein it in. Negative X (luck below zero) stays linear with the existing −50 floor, since X/(X+K) misbehaves near X = −K.</p>
+
+        <h4>What K should be, and why not a plain X/(X+K)</h4>
+        <p>This is where the proposed formula needs adjusting. Any curve that starts at today's slope of 1 sits <em>below</em> today's line everywhere, so a plain <code>M·X/(X+K)</code> either cuts mid-game values (M = K = 150 gives +60% at X = 100, where today gives +100%) or boosts early-game ones (M = 200, K = 100 gives +40% at X = 25, where today gives +25%). Early drop tables are tuned against today's line, so neither is free.</p>
+        <p><strong>Recommendation: keep it linear up to a knee, then apply X/(X+K) to the part above it.</strong></p>
+        <div class="formula">bonus = X                                          <span class="c">if X ≤ knee</span>
+bonus = knee + (M − knee) · E / (E + K),  E = X − knee   <span class="c">otherwise</span>
+<span class="ok">K = M − knee</span>   <span class="c">// keeps the slope continuous: no visible kink at the knee</span></div>
+        <p>That's two admin numbers per modifier (knee and ceiling M), global, with no level or region dependence, because skill is already in X and drop tables are already regional. Players below the knee, which covers everyone today, see exactly the same numbers.</p>
+
+        <figure>
+          <div class="legend">
+            <span><i class="cur"></i>Today: linear, clamped at +150%</span>
+            <span><i class="new"></i>Knee 75, ceiling 200</span>
+            <span><i class="alt"></i>Plain 150·X/(X+150)</span>
+          </div>
+          <svg id="chart-find" role="img" aria-label="Find bonus against find rating. Today's line rises one to one and flattens at 150 percent from rating 150. The knee curve matches it up to 75 then bends smoothly towards 200 percent. The plain saturation curve sits below both from the start."></svg>
+          <ul class="key">
+            <li><b class="cur">1</b> Skill 100, no gear: +49.5%</li>
+            <li><b class="cur">2</b> Skill 200, no gear: +99.5%</li>
+            <li><b class="cur">3</b> Skill 301, no gear: cap reached</li>
+            <li><b class="new">4</b> Same rating, knee curve: +122%, and gear still adds</li>
+          </ul>
+          <figcaption><strong>Find bonus by rating.</strong> The knee version leaves every current player's numbers unchanged and only takes over where today's hard cap would.</figcaption>
+        </figure>
+
+        <div class="tbl">
+          <table>
+            <thead><tr><th class="n">Find rating X</th><th class="n">Today</th><th class="n">Knee 75 / M 200</th><th class="n">Plain M = K = 150</th></tr></thead>
+            <tbody>
+              <tr><td class="n">25</td><td class="n">+25%</td><td class="n">+25%</td><td class="n">+21.4%</td></tr>
+              <tr><td class="n">50</td><td class="n">+50%</td><td class="n">+50%</td><td class="n">+37.5%</td></tr>
+              <tr><td class="n">100</td><td class="n">+100%</td><td class="n">+95.8%</td><td class="n">+60%</td></tr>
+              <tr><td class="n">150</td><td class="n">+150%</td><td class="n">+121.9%</td><td class="n">+75%</td></tr>
+              <tr><td class="n">300</td><td class="n"><span class="hl">+150% (capped)</span></td><td class="n">+155.4%</td><td class="n">+100%</td></tr>
+              <tr><td class="n">600</td><td class="n"><span class="hl">+150% (capped)</span></td><td class="n">+176%</td><td class="n">+120%</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h4>Where the formula goes</h4>
+        <p>Keep <code>src/server/expeditions/rewards.ts</code> as the single home, taking the curve parameters as an argument, since the admin <code>GatheringSimulator</code> and <code>HuntingAdminClient</code> run it in the browser. Snapshot the parameters: hunting in <code>riskConfig</code>, dungeons in <code>combatSnapshot</code>. Gathering has no config JSON, so it needs one nullable JSON column, where <code>null</code> means today's formula for expeditions already under way.</p>
+
+        <h4>Stacking order</h4>
+        <div class="formula">X = 0.5·(skill − 1) + 0.4·luck + efficiency      <span class="c">// luck and efficiency already include gear × rarity and food</span>
+<span class="ok">find% = X &lt; 0 ? max(−50, X) : softCap(X, knee, M)</span>
+chance per drop = f(base chance, find%)           <span class="c">// see "drop chance conversion" below</span>
+quantity = roll × duration quantityMultiplier × (1 + quantity%)   <span class="c">// duration multiplier stays outside the curve</span></div>
+
+        <h4>Player-facing</h4>
+        <p>Show the resulting bonus: <em>"Find bonus +96%"</em>, with a tooltip: <em>"Skill, Luck and Efficiency add up to a find rating of 100. Above 75, each point adds a little less."</em> Only mention the curve when it's actually in effect. Also fix Luck's description, which currently reads "Increases item drop quality". It actually raises find chance and quantity.</p>
+      </article>
+    </section>
+
+    <section id="possible" aria-labelledby="possible-h">
+      <h2 id="possible-h"><span class="num">4</span>Possible later candidates</h2>
+
+      <article class="system" id="dropchance" aria-labelledby="dropchance-h">
+        <h3 id="dropchance-h">Drop chance conversion</h3>
+        <div class="chips"><span class="chip v-possible">Possible: a different curve</span></div>
+        <p class="verdict">Today: <code>min(0.95, base × (1 + find%))</code>. Most hunting drops are authored at 0.72–0.95 base, so even small find bonuses push them into the 0.95 clamp, and only rare drops really benefit.</p>
+        <p>X/(X+K) is the wrong tool here. The natural curve for a probability treats the bonus as extra attempts: <code>chance = 1 − (1 − base)<sup>1 + find</sup></code>. Rare drops are nearly unchanged, and common drops approach certainty smoothly instead of hitting a clamp.</p>
+        <div class="tbl">
+          <table>
+            <thead><tr><th class="n">Base</th><th class="n">Find</th><th class="n">Today</th><th class="n">Extra-attempts curve</th></tr></thead>
+            <tbody>
+              <tr><td class="n">0.01</td><td class="n">+150%</td><td class="n">0.025</td><td class="n">0.0248</td></tr>
+              <tr><td class="n">0.05</td><td class="n">+100%</td><td class="n">0.100</td><td class="n">0.0975</td></tr>
+              <tr><td class="n">0.20</td><td class="n">+100%</td><td class="n">0.400</td><td class="n">0.360</td></tr>
+              <tr><td class="n">0.50</td><td class="n">+100%</td><td class="n"><span class="hl">0.950 (clamped)</span></td><td class="n">0.750</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>It lowers common-drop yields at high bonuses, so it's a deliberate reward decision rather than a free fix. Revisit it together with the knee curve.</p>
+      </article>
+
+      <article class="system" id="evasion" aria-labelledby="evasion-h">
+        <h3 id="evasion-h">Evasion, paired with Accuracy</h3>
+        <div class="chips"><span class="chip v-possible">Possible later</span></div>
+        <p class="verdict">Today: flat percentage per attack style. Base 5 + 0.1 per level (growth capped at +10), gear × rarity, capped at 75%. Monsters have a flat <code>evasion</code> percentage. <strong>Accuracy is on gear (Trailwarden gloves +2, Duskwarden +8, a Wayfarer accessory +3) and grows with level, but no resolver reads it.</strong></p>
+        <p>This is the natural place for a contested curve: <code>evade chance = E / (E + c · attacker accuracy)</code>, where K is the attacker's accuracy. Accuracy would get a purpose, and rarity-scaled evasion couldn't reach silly values. But it changes the meaning of every authored evasion value from a percentage to a rating, and creatures would need accuracy. Do it when combat content grows. Realistic evasion today is about 20% at level 50, far from the cap.</p>
+      </article>
+
+      <article class="system" id="layers" aria-labelledby="layers-h">
+        <h3 id="layers-h">Stacked defensive layers</h3>
+        <div class="chips"><span class="chip v-possible">Watch</span></div>
+        <p class="verdict">Evasion (≤ 75%), block (≤ 75%, halves the hit, so at most 37.5% expected), armor (uncapped percentage) and elemental resistance (≤ 75%) multiply. Each layer is capped on its own, but together they compound.</p>
+        <p>Worst case today: 75% evasion × 75% block × Divine Duskwarden armor at K = 100 lets through 1.4% of physical damage, which is 73 times the survivability. A realistic level-50 Epic character (22% evasion, no block, 86% armor) takes 11%. Layering is not a curve target in itself. It's the reason to fix armor's K first and to keep the evasion and block caps under review when shields and evasion gear expand.</p>
+      </article>
+
+      <article class="system" id="goldfind" aria-labelledby="goldfind-h">
+        <h3 id="goldfind-h">Gold Find</h3>
+        <div class="chips"><span class="chip v-possible">Possible later</span><span class="chip plain">Not read yet</span></div>
+        <p class="verdict">Defined and formatted as a percentage, but nothing reads it: creatures don't drop gold, and settlements pay fixed quest rewards.</p>
+        <p>If it gets wired in, it becomes the most inflation-sensitive stat in the game, because gold is the only currency. Start it with a low hard cap or the same knee curve used for find, decided when the gold sources are designed.</p>
+      </article>
+    </section>
+
+    <section id="keep" aria-labelledby="keep-h">
+      <h2 id="keep-h"><span class="num">5</span>Keep as-is</h2>
+      <p class="section-intro">A curve on these would add complexity or make upgrades feel worse, without fixing a real problem.</p>
+      <div class="keep-list">
+        <div class="keep-item">
+          <div class="keep-head"><h3>Elemental resistances</h3><span class="chip v-keep">Linear + hard cap</span></div>
+          <p>Fire, Cold, Lightning and Poison are flat percentages clamped between −100 and 75 (<code>stats.ts:241</code>), applied as <code>× (1 − resist/100)</code>. They're authored directly as percentages (gear 8–15, a dish +10, level growth up to +10). The 75 cap already rules out immunity and limits the value to ×4. A readable hard cap on resistances is the genre norm. Convert to a rating only if resistance gear becomes common enough to sit at the cap.</p>
+        </div>
+        <div class="keep-item">
+          <div class="keep-head"><h3>Block</h3><span class="chip v-keep">Linear + hard cap</span></div>
+          <p>A flat percentage capped at 75 that halves damage, so the expected reduction is at most 37.5%. Bounded and easy to read. Only the layering note above applies.</p>
+        </div>
+        <div class="keep-item">
+          <div class="keep-head"><h3>Critical chance</h3><span class="chip v-keep">Linear</span></div>
+          <p>A flat percentage clamped at 100, which is a natural cap (you can't crit more than always). Base 5 + up to +10 from level, with gear on top. Each point adds the same expected damage. A curve would only make crit gear feel weak. The thing to watch is rarity tripling crit chance on items; limit that per item with <code>maxValue</code>.</p>
+        </div>
+        <div class="keep-item">
+          <div class="keep-head"><h3>Critical damage</h3><span class="chip v-keep">Linear</span></div>
+          <p>A multiplier of <code>critDamage / 100</code> (base 150, +0.5 per level up to +50). It's worth <em>crit chance × points</em>, so the crit chance cap already bounds it.</p>
+        </div>
+        <div class="keep-item">
+          <div class="keep-head"><h3>Attack speed</h3><span class="chip v-keep">Linear</span><span class="chip v-done">Stacking fixed</span></div>
+          <p>Attacks per dungeon round, clamped between 0.1 and 10. A curve isn't the answer. The problem was that weapon speed was added to base speed and scaled by rarity, and that's now fixed (see <a href="#side">side findings</a>). Speed on other gear stays a flat bonus.</p>
+        </div>
+        <div class="keep-item">
+          <div class="keep-head"><h3>Health and damage</h3><span class="chip v-keep">Linear</span></div>
+          <p>Flat, uncapped, and read directly by players. Level growth is flat per level on purpose, so each level is a smaller share of the total.</p>
+        </div>
+        <div class="keep-item">
+          <div class="keep-head"><h3>Health regeneration</h3><span class="chip v-keep">Linear</span></div>
+          <p>Flat health per second (<code>healthMath.ts</code>), growing in proportion to health so a full heal takes equally long at every level. It only affects downtime between activities, not combat. A flat +2 food bonus is a big boost at level 1 and fades naturally as base regen grows.</p>
+        </div>
+        <div class="keep-item">
+          <div class="keep-head"><h3>Movement speed and travel</h3><span class="chip v-keep">Already the right curve</span></div>
+          <p><code>travelSeconds = base × 100 / speed</code>, with speed floored at 10 (<code>src/game/world/travel.ts:22</code>). Time saved is <code>bonus / (bonus + 100)</code>, so it's already the X/(X+K) family with linear journeys per hour. Vocation efficiency now uses the same shape.</p>
+        </div>
+        <div class="keep-item">
+          <div class="keep-head"><h3>Hunting mishaps and movement speed</h3><span class="chip v-skip">Probably unnecessary</span></div>
+          <p><code>clamp(1 − (speed − 100) × 0.005, 0.5, 1.5)</code> (<code>hunting/resolver.ts:234</code>), linear with a clamp. If you ever touch it, <code>100 / speed</code> gives the same 0.5 at speed 200 without the clamp and matches travel.</p>
+        </div>
+        <div class="keep-item">
+          <div class="keep-head"><h3>Carrying capacity</h3><span class="chip v-keep">Linear</span></div>
+          <p><code>25 + floor(total)</code> slots, uncapped (<code>src/utils/inventoryCapacity.ts</code>). Slots are discrete, readable and satisfying to upgrade. Add a hard cap only for UI or performance reasons.</p>
+        </div>
+        <div class="keep-item">
+          <div class="keep-head"><h3>XP bonuses</h3><span class="chip v-keep">Linear</span><span class="chip v-bug">Fix the stacking order</span></div>
+          <p>The <code>EXPERIENCE_GAIN</code> stat (base 100) isn't read. <code>XpMultiplier</code> rows <em>multiply</em> when stackable (<code>combineMultipliers</code>, <code>leveling.ts:218</code>): five ×1.5 boosts give ×7.6. The settlements roadmap plans event XP bonuses on top. Sum the bonuses instead (<code>1 + Σ(m − 1)</code>) rather than adding a curve. If <code>EXPERIENCE_GAIN</code> is ever wired in, remember that its base is 100, meaning ×1.</p>
+        </div>
+        <div class="keep-item">
+          <div class="keep-head"><h3>Food, potion and elixir buffs</h3><span class="chip v-keep">Already non-stacking</span></div>
+          <p>One active effect per character (an upsert), and a new one replaces the old. The single-slot design already solves buff stacking. Any Luck or Efficiency a buff gives passes through the find curve automatically, because it's inside X.</p>
+        </div>
+        <div class="keep-item">
+          <div class="keep-head"><h3>Base stat growth by level</h3><span class="chip v-keep">Already piecewise</span></div>
+          <p><code>min(cap, perLevel × (level − 1))</code>: chance stats are capped, while health, damage and armor are uncapped. It's a considered, admin-tunable design. Armor's uncapped growth is handled by a level-scaled K, not by changing this rule.</p>
+        </div>
+        <div class="keep-item">
+          <div class="keep-head"><h3>Rarity multipliers</h3><span class="chip v-skip">Not a curve target</span></div>
+          <p>×0.5 to ×3.0 applies to <em>every</em> stat, percentage stats included. This is where inflation comes from, but the controls already exist per item: <code>ItemStat.maxValue</code> and <code>StatRarityOverride</code> (<code>MULTIPLIER</code>/<code>ABSOLUTE</code>). Rating stats can scale freely once their conversion saturates. Percentage stats should be capped per item.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="absent" aria-labelledby="absent-h">
+      <h2 id="absent-h"><span class="num">6</span>Not in the game yet: no action</h2>
+      <div class="tbl">
+        <table>
+          <thead><tr><th>System you asked about</th><th>What the code has</th></tr></thead>
+          <tbody>
+            <tr><td>Cooldown reduction</td><td>No cooldowns exist.</td></tr>
+            <tr><td>Crafting success and quality</td><td>None. Every crafting unit produces a fixed <code>yieldPerUnit</code> at the resource's rarity.</td></tr>
+            <tr><td>Crafting and garden yield bonuses</td><td>No stat affects them. Garden yield is a fixed <code>yieldMin</code>–<code>yieldMax</code> range.</td></tr>
+            <tr><td>Lifesteal, Thorns</td><td>Defined (lifesteal clamped to 100), never read.</td></tr>
+            <tr><td>Mana, Mana Regen, Prayer Points</td><td>Defined, some on gear (a Wayfarer accessory has +5 Prayer), never read.</td></tr>
+            <tr><td>Passive bonuses</td><td><code>CharacterBaseStat</code> exists, but nothing writes it.</td></tr>
+            <tr><td>Dungeon modifiers</td><td><code>packSize</code> and the death rules. <code>difficulty</code> is display-only. Nothing stat-based to curve.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Decide the curve for each of these when the system is designed. That's also when its UI copy gets written.</p>
+    </section>
+
+    <section id="architecture" aria-labelledby="architecture-h">
+      <h2 id="architecture-h"><span class="num">7</span>Architecture proposal</h2>
+      <p class="section-intro">One small pure primitive, with system-specific wrappers living where each rule already lives. No stat-curve registry and no per-stat config table: the codebase keeps rules close to their systems, and only three systems need a curve.</p>
+
+      <h4>The primitive</h4>
+      <div class="formula"><span class="c">// src/game/balance/curves.ts: pure, client-safe (src/game already holds shared pure rules)</span>
+saturation(x, k)           → x ≤ 0 ? 0 : x / (x + k)
+softCap(x, knee, ceiling)  → x ≤ knee ? x : knee + (ceiling − knee) · saturation(x − knee, ceiling − knee)</div>
+
+      <h4>The wrappers, where they already live</h4>
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Wrapper</th><th>Module</th><th>Called by</th></tr></thead>
+          <tbody>
+            <tr><td><code>protectionMultiplier(protection, k)</code>, <code>armorConstant(level, curve)</code></td><td><code>src/server/combat/rules.ts</code></td><td>Dungeon and hunting resolvers, admin <code>BalancePreview</code>, dungeon planner</td></tr>
+            <tr><td><code>calculateExpeditionRewardModifiers(input, curve)</code></td><td><code>src/server/expeditions/rewards.ts</code></td><td>Gathering, hunting and dungeon loot, admin simulators</td></tr>
+            <tr><td><code>computeEffectiveUnitSeconds(base, efficiency)</code> <span class="chip v-done">Implemented</span></td><td><code>src/game/vocationStats.ts</code>, re-exported from <code>server/vocations/tools.ts</code></td><td>Vocation start, resources route, skills page</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h4>Where K lives</h4>
+      <p>Follow the existing singleton pattern (<code>HuntingConfig</code>, <code>DungeonConfig</code>, <code>TravelConfig</code>): one row with id 1, code defaults that reproduce today's behavior when no row exists, and editing in <code>/admin</code>. That's eight numbers in total: armor K₀/K₁, magic resist K₀/K₁, and find/quantity knee and ceiling. Vocation efficiency's K is a code constant for now (<code>VOCATION_EFFICIENCY_HALF_TIME</code>). It could join this row if it ever needs changing without a deploy. The natural home is <code>/admin/character-stats</code>, which already previews levels 48 and 50 side by side. It could show "on-level full set: 47% reduction" next to those columns.</p>
+
+      <h4>Server and client</h4>
+      <ul>
+        <li><strong>Server is authoritative:</strong> curve parameters are resolved at activity start, snapshotted, and applied at claim time by the pure resolvers.</li>
+        <li><strong>The client reuses the same functions</strong> for previews and tooltips, with parameters passed in page data. It never recomputes an outcome.</li>
+        <li><strong>Keep raw ratings in <code>ComputedStats</code>.</strong> The converted percentage depends on context (attacker level, activity), so it's computed where it's used and returned in page data and reports. Don't store it on the character.</li>
+        <li><strong>Persistence:</strong> item data doesn't change, because ratings stay what gear authors wrote. New pieces are the config row plus curve data in activity snapshots (JSON keys, and one nullable column for gathering). A snapshot without curve data resolves with today's constants.</li>
+        <li><strong>Tests:</strong> the <code>node:test</code> style in <code>tests/travel.test.ts</code> covers this: curve values at 0, K and 9K, negative input, the knee's continuity, and resolver outcomes with a fixed K.</li>
+      </ul>
+    </section>
+
+    <section id="table" aria-labelledby="table-h">
+      <h2 id="table-h"><span class="num">8</span>Summary table</h2>
+      <div class="tbl">
+        <table class="summary">
+          <thead><tr><th>System</th><th>Current scaling</th><th>DR candidate?</th><th>X should be</th><th>K strategy</th><th>Formula location</th><th>Priority</th></tr></thead>
+          <tbody>
+            <tr><td>Vocation efficiency → time</td><td>Now <code>base × 100 / (100 + e)</code>, min 1 s. Was <code>base × (1 − e/100)</code></td><td><span class="chip v-done">Implemented</span></td><td>Final efficiency total (gear × rarity + food)</td><td>Code constant 100, the efficiency that halves the time</td><td><code>src/game/vocationStats.ts</code></td><td>Done</td></tr>
+            <tr><td>Armor → physical reduction</td><td><code>A/(A+100)</code>, already the curve</td><td><span class="chip v-strong">Strong (change K)</span></td><td>Final armor rating</td><td>Per stat, <code>K₀ + K₁ × attacker level</code>, snapshotted</td><td><code>combat/rules.ts</code></td><td>P1</td></tr>
+            <tr><td>Magic resist → magic reduction</td><td>Same as armor</td><td><span class="chip v-strong">Strong (with armor)</span></td><td>Final magic resist rating</td><td>Own K₀/K₁</td><td><code>combat/rules.ts</code></td><td>P1</td></tr>
+            <tr><td>Expedition find bonus</td><td>Linear sum, clamp −50…150</td><td><span class="chip v-strong">Strong</span></td><td><code>0.5·(skill−1) + 0.4·luck + eff</code></td><td>Knee + ceiling, global, admin</td><td><code>expeditions/rewards.ts</code></td><td>P2</td></tr>
+            <tr><td>Expedition quantity bonus</td><td>Linear sum, clamp 0…100</td><td><span class="chip v-strong">Strong (with find)</span></td><td><code>0.2·(skill−1) + 0.1·luck + 0.5·eff</code></td><td>Own knee + ceiling</td><td><code>expeditions/rewards.ts</code></td><td>P2</td></tr>
+            <tr><td>Drop chance conversion</td><td><code>base × (1 + f)</code>, clamp 0.95</td><td><span class="chip v-possible">Possible (other curve)</span></td><td>n/a</td><td><code>1 − (1 − p)<sup>1+f</sup></code>, no K</td><td><code>expeditions/rewards.ts</code></td><td>Later</td></tr>
+            <tr><td>Evasion (+ Accuracy)</td><td>Flat %, cap 75. Accuracy unread</td><td><span class="chip v-possible">Possible later</span></td><td>Evasion rating</td><td>Attacker's accuracy (contested)</td><td><code>combat/rules.ts</code></td><td>Later</td></tr>
+            <tr><td>Gold Find</td><td>Not read</td><td><span class="chip v-possible">Possible later</span></td><td>Total gold find</td><td>Knee + ceiling or hard cap</td><td>When designed</td><td>Later</td></tr>
+            <tr><td>Elemental resistances</td><td>Flat %, −100…75</td><td><span class="chip v-keep">Keep linear</span></td><td>n/a</td><td>n/a</td><td><code>combat/rules.ts</code></td><td>n/a</td></tr>
+            <tr><td>Block</td><td>Flat %, cap 75, ×0.5</td><td><span class="chip v-keep">Keep linear</span></td><td>n/a</td><td>n/a</td><td><code>combat/rules.ts</code></td><td>n/a</td></tr>
+            <tr><td>Critical chance</td><td>Flat %, cap 100</td><td><span class="chip v-keep">Keep linear</span></td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td></tr>
+            <tr><td>Critical damage</td><td><code>× critDamage/100</code></td><td><span class="chip v-keep">Keep linear</span></td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td></tr>
+            <tr><td>Attack speed</td><td>Weapon speed replaces unarmed, flat bonuses add. Clamp 0.1…10</td><td><span class="chip v-done">Stacking fixed</span></td><td>n/a</td><td>n/a</td><td>stat pipeline</td><td>Done</td></tr>
+            <tr><td>Health, damage</td><td>Flat</td><td><span class="chip v-keep">Keep linear</span></td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td></tr>
+            <tr><td>Health regen</td><td>Flat per second</td><td><span class="chip v-keep">Keep linear</span></td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td></tr>
+            <tr><td>Movement speed / travel</td><td><code>base × 100 / speed</code></td><td><span class="chip v-keep">Already right</span></td><td>n/a</td><td>Fixed 100</td><td><code>world/travel.ts</code></td><td>n/a</td></tr>
+            <tr><td>Hunting mishap factor</td><td>Linear, clamp 0.5…1.5</td><td><span class="chip v-skip">Probably unnecessary</span></td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td></tr>
+            <tr><td>Carrying capacity</td><td><code>25 + floor(total)</code></td><td><span class="chip v-keep">Keep linear</span></td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td></tr>
+            <tr><td>XP multipliers</td><td>Product of stackables</td><td><span class="chip v-bug">Fix stacking</span></td><td>n/a</td><td>Additive sum</td><td><code>utils/leveling.ts</code></td><td>Later</td></tr>
+            <tr><td>Food / potion / elixir</td><td>One active effect</td><td><span class="chip v-keep">Keep</span></td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td></tr>
+            <tr><td>Rarity multiplier</td><td>×0.5…3.0 on every stat</td><td><span class="chip v-skip">Not a curve target</span></td><td>n/a</td><td>Per item <code>maxValue</code>/overrides</td><td>item balance</td><td>n/a</td></tr>
+            <tr><td>Base stat level growth</td><td>Linear, capped per stat</td><td><span class="chip v-keep">Keep</span></td><td>n/a</td><td>n/a</td><td><code>utils/stats.ts</code></td><td>n/a</td></tr>
+            <tr><td>CDR, crafting success/quality, lifesteal, thorns, mana, prayer</td><td>Not implemented or not read</td><td><span class="chip v-skip">n/a</span></td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="groups" aria-labelledby="groups-h">
+      <h2 id="groups-h"><span class="num">9</span>The three groups</h2>
+      <div class="groups">
+        <div class="group">
+          <h3>Strongest candidates</h3>
+          <ul>
+            <li><strong>Vocation efficiency → action time.</strong> <span class="chip v-done">Implemented</span> Output is now linear in efficiency, with no 1-second ticks.</li>
+            <li><strong>Armor and magic resist K.</strong> The curve exists, but a fixed K lets each gear tier approach immunity.</li>
+            <li><strong>Find and quantity bonuses.</strong> Hard caps that skill fills on its own, leaving gear stats dead.</li>
+          </ul>
+        </div>
+        <div class="group">
+          <h3>Possible later</h3>
+          <ul>
+            <li><strong>Drop chance conversion</strong>, using the extra-attempts curve rather than X/(X+K).</li>
+            <li><strong>Evasion vs Accuracy</strong>, a contested curve once creatures have accuracy.</li>
+            <li><strong>Gold Find</strong>, once it's read.</li>
+            <li><strong>Defense layering</strong>: review the evasion and block caps when shields expand.</li>
+          </ul>
+        </div>
+        <div class="group">
+          <h3>Keep as-is</h3>
+          <ul>
+            <li>Elemental resistances and block (linear with a hard cap)</li>
+            <li>Crit chance and crit damage, health, damage, regen</li>
+            <li>Travel speed (already the right curve), carrying capacity</li>
+            <li>Food and potion buffs (single slot), base stat growth</li>
+            <li>XP multipliers: <em>fix their stacking</em>, no curve. Attack speed stacking is fixed.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="first" aria-labelledby="first-h">
+      <h2 id="first-h"><span class="num">10</span>Where to start</h2>
+      <ol class="firsts">
+        <li>
+          <h3>Vocation efficiency → action time <span class="chip v-done">Done</span></h3>
+          <p>It was the only curve that could break with today's content, and the smallest change. <a href="#vocation">Implemented</a> as one pure function with no migration and no UI change.</p>
+          <ul>
+            <li><code>computeEffectiveUnitSeconds</code> moved to <code>src/game/vocationStats.ts</code>, with K = 100 as a code constant and <code>round</code> instead of <code>floor</code>.</li>
+            <li>The efficiency cap of 100 is removed. The floor at 0 stays.</li>
+            <li>Tests are in <code>tests/vocation-speed.test.ts</code>, and the skills page still shows only the required time.</li>
+          </ul>
+        </li>
+        <li>
+          <h3>Armor and magic resist: make K tunable and level-aware</h3>
+          <p>Do this before authoring dungeons above level 1. Every monster's damage and armor will be tuned against K, and changing it afterwards means re-authoring all of them.</p>
+          <ol>
+            <li>Add a K parameter to <code>protectionMultiplier</code> and add <code>armorConstant(level, curve)</code>.</li>
+            <li>Resolve K at start from the content level and store it in <code>combatSnapshot</code> / <code>riskConfig</code>. A missing key means 100.</li>
+            <li>Show the reduction against the dungeon's level in the planner, and "armor needed for r%" in the creature editor.</li>
+            <li>Re-author monster armor on the new scale. Only the Goblin exists today.</li>
+          </ol>
+        </li>
+        <li>
+          <h3>Find and quantity: knee curve</h3>
+          <p>Do this before adding more Luck or Efficiency sources, or before skill levels climb past about 150. With the knee above today's content, current players see no change.</p>
+          <ol>
+            <li>Add <code>softCap</code> to the curves module. <code>calculateExpeditionRewardModifiers</code> takes the curve as an argument.</li>
+            <li>Snapshot it in hunting <code>riskConfig</code>, dungeon <code>combatSnapshot</code>, and a new nullable JSON column on gathering.</li>
+            <li>Let the admin simulators pass the live config, and show the resulting bonus in the expedition UI.</li>
+          </ol>
+        </li>
+      </ol>
+    </section>
+
+    <section id="side" aria-labelledby="side-h">
+      <h2 id="side-h"><span class="num">11</span>Side findings</h2>
+      <p class="section-intro">These aren't curve problems, but they came up while tracing the pipelines and they affect balance more than any curve would.</p>
+
+      <div class="note bug"><span class="label">Security · fix before any balance work</span>
+        <p><code>POST /api/leveling/add-multiplier</code>, <code>POST /api/leveling/award-xp</code> and <code>POST /api/test/add-item</code> only check that the request has a signed-in session. None of them uses <code>requireAdminApiAccess</code> or an environment guard. Any player can grant themselves an arbitrary stackable XP multiplier, any amount of XP, or any item at any rarity. While these are open, every balance decision in this document can be bypassed. Gate them behind admin access or remove them.</p>
+      </div>
+
+      <div class="note"><span class="label">Attack speed stacking · fixed</span>
+        <p>Weapons author <code>ATTACK_SPEED</code> as a weapon base speed: Cindermaul 0.55 (a heavy mace), Reedwind Bow 1.0. The pipeline used to <em>add</em> it to the character's base 1.0 and multiply it by rarity. An Epic Cindermaul at level 35 gave 2.07 attacks per round, and a Divine Wayfarer Shortblade at level 50 gave 4.05. A slow weapon still made you faster, and damage per round grew with roughly rarity squared.</p>
+        <p>Now a weapon's speed replaces the unarmed speed (<code>weaponAttackSpeedAdjustment</code>, <code>src/utils/stats.ts</code>), and rarity doesn't scale it (<code>statScalesWithRarity</code>, <code>src/utils/itemInstanceStats.ts</code>). A per-item override still can. Level growth and speed on other gear add on top as flat bonuses. The same two weapons now give 0.69 and 1.15 attacks per round.</p>
+      </div>
+
+      <ul>
+        <li><strong>Unread stats on gear:</strong> Accuracy, Lifesteal, Thorns, Mana, Mana Regen, Prayer Points, Gold Find and Experience Gain can be equipped but do nothing. Either hide them in item tooltips or mark them as inactive until they're wired in.</li>
+        <li><strong>Luck's description</strong> says "Increases item drop quality" (<code>src/types/stats.ts:376</code>). It actually raises find chance and quantity.</li>
+        <li><strong>Armor isn't shown</strong> on the character sheet (commented out at <code>CharacterStats.tsx:233</code>). The dungeon planner shows it raw, with no percentage.</li>
+              </ul>
+    </section>
+
+    <section id="decisions" aria-labelledby="decisions-h">
+      <h2 id="decisions-h"><span class="num">12</span>Decisions for you</h2>
+      <ol>
+        <li><strong>Armor target:</strong> what reduction should a full, on-level, on-tier set give? This document used about 45–48% as an illustration. It's the anchor that sets K.</li>
+        <li><strong>Where creature level comes from:</strong> the content level (dungeon or location <code>requiredLevel</code>, no schema change), or a new <code>Creature.level</code>?</li>
+        <li><strong>Vocation K:</strong> it's 100 in code. After testing with live tools, keep it, lower it to <code>100 − e</code> so a specific tool keeps its old speed, or move it into <code>/admin</code>.</li>
+        <li><strong>Find curve:</strong> keep the early game identical with a knee, or accept a simpler plain curve that changes current numbers?</li>
+        <li><strong>Visible nerfs:</strong> is it acceptable that existing high-armor gear gets weaker in percentage terms? High-efficiency tools already did with the vocation change.</li>
+      </ol>
+    </section>
+
+    <footer>
+      Exploration document. The only code change since is vocation efficiency (<code>src/game/vocationStats.ts</code>, <code>src/server/vocations/tools.ts</code>). No schema or data was changed. Gear and creature numbers come from <code>prisma/content/*.ts</code>, <code>prisma/seed.ts</code> and <code>scripts/seedHunting.ts</code>. Rarity multipliers come from <code>src/utils/rarity.ts</code> defaults. Live database values may differ.
+    </footer>
+  </main>
+</div>
+
+<script>
+(function () {
+  var NS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs, parent) {
+    var e = document.createElementNS(NS, tag);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  function chart(id, o) {
+    var svg = document.getElementById(id);
+    if (!svg) return;
+    var W = 680, H = 320, m = { l: 58, r: 26, t: 18, b: 52 };
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    var pw = W - m.l - m.r, ph = H - m.t - m.b;
+    function sx(x) { return m.l + (x - o.x0) / (o.x1 - o.x0) * pw; }
+    function sy(y) { return m.t + ph - (y - o.y0) / (o.y1 - o.y0) * ph; }
+    var g = el("g", {}, svg);
+    o.yt.forEach(function (t) {
+      el("line", { x1: m.l, x2: m.l + pw, y1: sy(t), y2: sy(t), "class": "grid" }, g);
+      var tx = el("text", { x: m.l - 8, y: sy(t) + 4, "class": "tick", "text-anchor": "end" }, g);
+      tx.textContent = o.yf ? o.yf(t) : t;
+    });
+    o.xt.forEach(function (t) {
+      var tx = el("text", { x: sx(t), y: m.t + ph + 18, "class": "tick", "text-anchor": "middle" }, g);
+      tx.textContent = o.xf ? o.xf(t) : t;
+    });
+    el("line", { x1: m.l, x2: m.l + pw, y1: sy(o.y0), y2: sy(o.y0), "class": "axis" }, g);
+    var xl = el("text", { x: m.l + pw / 2, y: H - 8, "class": "alabel", "text-anchor": "middle" }, g);
+    xl.textContent = o.xl;
+    var yc = m.t + ph / 2;
+    var yl = el("text", { x: 14, y: yc, "class": "alabel", "text-anchor": "middle", transform: "rotate(-90 14 " + yc + ")" }, g);
+    yl.textContent = o.yl;
+    (o.refs || []).forEach(function (r) {
+      el("line", { x1: sx(r.x), x2: sx(r.x), y1: m.t, y2: m.t + ph, "class": "ref" }, g);
+      var rt = el("text", { x: sx(r.x) + 6, y: m.t + 12, "class": "reftext" }, g);
+      rt.textContent = r.label;
+    });
+    var defs = el("defs", {}, svg);
+    var cid = id + "-clip";
+    var cp = el("clipPath", { id: cid }, defs);
+    el("rect", { x: m.l, y: m.t - 2, width: pw, height: ph + 2 }, cp);
+    var sg = el("g", { "clip-path": "url(#" + cid + ")" }, svg);
+    var span = o.y1 - o.y0;
+    o.series.forEach(function (s) {
+      var d = "", n = 480, pen = false;
+      for (var i = 0; i <= n; i++) {
+        var x = o.x0 + (o.x1 - o.x0) * i / n;
+        var y = s.f(x);
+        if (!isFinite(y)) { pen = false; continue; }
+        y = Math.min(y, o.y1 + span);
+        d += (pen ? "L" : "M") + sx(x).toFixed(1) + " " + sy(y).toFixed(1);
+        pen = true;
+      }
+      el("path", { d: d, "class": "line " + s.cls }, sg);
+    });
+    (o.points || []).forEach(function (p) {
+      el("circle", { cx: sx(p.x), cy: sy(p.y), r: 4.5, "class": "pt " + p.cls }, svg);
+      if (p.label) {
+        var t = el("text", {
+          x: sx(p.x) + (p.dx == null ? 8 : p.dx),
+          y: sy(p.y) + (p.dy == null ? -8 : p.dy),
+          "class": "plabel " + p.cls,
+          "text-anchor": p.anchor || "start"
+        }, svg);
+        t.textContent = p.label;
+      }
+    });
+  }
+
+  chart("chart-framework", {
+    x0: 0, x1: 300, y0: 1, y1: 10,
+    xt: [0, 50, 100, 150, 200, 250, 300], yt: [1, 2, 4, 6, 8, 10],
+    yf: function (t) { return "×" + t; },
+    xl: "Stat points", yl: "Survivability or output",
+    series: [
+      { cls: "cur", f: function (x) { return x < 100 ? 1 / (1 - x / 100) : Infinity; } },
+      { cls: "new", f: function (x) { return 1 + x / 100; } }
+    ],
+    points: [
+      { x: 75, y: 4, cls: "cur", label: "75 → ×4", dx: 10, dy: 4 },
+      { x: 90, y: 10, cls: "cur", label: "90 → ×10", dx: 10, dy: 16 },
+      { x: 100, y: 2, cls: "new", label: "100 → ×2", dx: 8, dy: 18 },
+      { x: 300, y: 4, cls: "new", label: "300 → ×4", dx: -10, dy: -10, anchor: "end" }
+    ]
+  });
+
+  chart("chart-armor", {
+    x0: 0, x1: 1200, y0: 0, y1: 100,
+    xt: [0, 200, 400, 600, 800, 1000, 1200], yt: [0, 20, 40, 60, 80, 100],
+    yf: function (t) { return t + "%"; },
+    xl: "Armor rating", yl: "Physical reduction",
+    series: [
+      { cls: "cur", f: function (x) { return 100 * x / (x + 100); } },
+      { cls: "new", f: function (x) { return 100 * x / (x + 663); } }
+    ],
+    points: [
+      { x: 59.4, y: 37.3, cls: "cur", label: "1", dx: -12, dy: -2, anchor: "middle" },
+      { x: 602.5, y: 85.8, cls: "cur", label: "2", dx: 0, dy: -10, anchor: "middle" },
+      { x: 1044.5, y: 91.3, cls: "cur", label: "3", dx: 0, dy: -10, anchor: "middle" },
+      { x: 83.9, y: 11.2, cls: "new", label: "4", dx: 0, dy: 20, anchor: "middle" },
+      { x: 602.5, y: 47.6, cls: "new", label: "5", dx: 0, dy: 20, anchor: "middle" },
+      { x: 1044.5, y: 61.2, cls: "new", label: "6", dx: 0, dy: 20, anchor: "middle" }
+    ]
+  });
+
+  function knee(x, k, M) { return x <= k ? x : k + (M - k) * (x - k) / ((x - k) + (M - k)); }
+  chart("chart-find", {
+    x0: 0, x1: 600, y0: 0, y1: 200,
+    xt: [0, 100, 200, 300, 400, 500, 600], yt: [0, 50, 100, 150, 200],
+    yf: function (t) { return "+" + t + "%"; },
+    xl: "Find rating (skill + luck + efficiency terms)", yl: "Find bonus",
+    series: [
+      { cls: "alt", f: function (x) { return 150 * x / (x + 150); } },
+      { cls: "cur", f: function (x) { return Math.min(150, x); } },
+      { cls: "new", f: function (x) { return knee(x, 75, 200); } }
+    ],
+    points: [
+      { x: 49.5, y: 49.5, cls: "cur", label: "1", dx: -10, dy: -4, anchor: "end" },
+      { x: 99.5, y: 99.5, cls: "cur", label: "2", dx: -10, dy: -4, anchor: "end" },
+      { x: 150, y: 150, cls: "cur", label: "3", dx: 0, dy: -12, anchor: "middle" },
+      { x: 150, y: 121.9, cls: "new", label: "4", dx: 10, dy: 16, anchor: "start" }
+    ]
+  });
+})();
+</script>

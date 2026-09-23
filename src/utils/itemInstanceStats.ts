@@ -1,4 +1,5 @@
 import {
+  ItemEquipTo,
   ItemRarity,
   StatType,
   VocationalActionType,
@@ -68,6 +69,19 @@ export function scaleItemStat(
 }
 
 /**
+ * A weapon's Attack Speed is how fast that weapon strikes, so rarity improves
+ * its other stats but not its speed. A per-item rarity override still applies.
+ */
+export function statScalesWithRarity(
+  statType: StatType,
+  equipTo: ItemEquipTo | null | undefined,
+) {
+  return !(
+    equipTo === ItemEquipTo.weapon && statType === StatType.ATTACK_SPEED
+  );
+}
+
+/**
  * Resolves current effective stats for one item template + rarity.
  *
  * Template-derived values remain live balance data. `instanceModifiers` are
@@ -78,6 +92,7 @@ export function resolveEffectiveItemStats(params: {
   rarity: ItemRarity;
   rarityMultiplier: number;
   flipNegativeStatsWithRarity?: boolean;
+  equipTo?: ItemEquipTo | null;
   stats: readonly StatTemplate[];
   statProgressions?: readonly StatProgressionTemplate[];
   statRarityOverrides?: readonly StatOverrideTemplate[];
@@ -145,7 +160,9 @@ export function resolveEffectiveItemStats(params: {
             baseValue,
             override?.kind === "MULTIPLIER"
               ? override.value
-              : params.rarityMultiplier,
+              : statScalesWithRarity(statType, params.equipTo)
+                ? params.rarityMultiplier
+                : 1,
             flip,
             maxCaps.get(statType),
           );

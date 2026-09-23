@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
+  type ItemEquipTo,
   ItemRarity,
   ItemStatRarityOverrideKind,
   ItemType,
@@ -14,6 +15,8 @@ import {
   VocationalActionType,
 } from "~/generated/prisma/enums";
 import { getVocationalEfficiencyStatType } from "~/game/vocationStats";
+import { statScalesWithRarity } from "~/utils/itemInstanceStats";
+import { normalizeItemEquipTo } from "~/utils/itemEquipTo";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import {
@@ -361,6 +364,7 @@ const schema = z.object({
   seedXp: z.coerce.number().int().nullable().optional(),
   foodEffectSeconds: z.coerce.number().int().nullable().optional(),
   equipTo: z.string().nullable().optional(),
+  twoHanded: z.coerce.boolean().default(false),
   stackable: z.coerce.boolean().default(false),
   maxStackSize: z.coerce.number().int().min(1).default(1),
   flipNegativeStatsWithRarity: z.coerce.boolean().default(false),
@@ -416,6 +420,7 @@ export function ItemForm(props: {
     seedXp: null,
     foodEffectSeconds: null,
     equipTo: null,
+    twoHanded: false,
     stackable: false,
     maxStackSize: 1,
     minPhysicalDamage: null,
@@ -455,6 +460,8 @@ export function ItemForm(props: {
   const watchedMaxMagicDamage = form.watch("maxMagicDamage");
   const watchedArmor = form.watch("armor");
   const watchedItemType = form.watch("itemType");
+  const watchedEquipTo = form.watch("equipTo") as ItemEquipTo | null;
+  const isWeapon = normalizeItemEquipTo(watchedEquipTo) === "weapon";
 
   const isSeedItem = watchedItemType === ItemType.SEED;
   const supportsTimedEffect =
@@ -986,11 +993,35 @@ export function ItemForm(props: {
         <div className="space-y-2">
           <div className="text-sm text-white/80">Equip To</div>
           <Input
-            placeholder="weapon, chest, fellingAxe, ..."
+            placeholder="weapon, offhand, chest, fellingAxe, ..."
             {...form.register("equipTo")}
           />
           <div className="text-xs text-white/50">
-            Note: equipTo is a schema enum; enter a valid value.
+            Note: equipTo is a schema enum; enter a valid value. Shields use
+            offhand; one-handed weapons fit either hand.
+          </div>
+        </div>
+        <div className="space-y-2">
+          <div className="text-sm text-white/80">Handedness</div>
+          <Select
+            value={isWeapon && form.watch("twoHanded") ? "two" : "one"}
+            onValueChange={(v) =>
+              form.setValue("twoHanded", v === "two", { shouldDirty: true })
+            }
+            disabled={!isWeapon}
+          >
+            <SelectTrigger aria-label="Handedness">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="one">One-handed</SelectItem>
+              <SelectItem value="two">Two-handed</SelectItem>
+            </SelectContent>
+          </Select>
+          <div className="text-xs text-white/50">
+            {isWeapon
+              ? "Two-handed weapons take the main hand and keep the off hand empty."
+              : "Weapons only: set Equip To to weapon to choose."}
           </div>
         </div>
 
@@ -2172,7 +2203,12 @@ export function ItemForm(props: {
 
                           const hasAny =
                             row.baseValue !== 0 || unlockedSum !== 0;
-                          const mult = previewMultipliers.get(rarity) ?? 1;
+                          const mult = statScalesWithRarity(
+                            row.statType,
+                            watchedEquipTo,
+                          )
+                            ? previewMultipliers.get(rarity) ?? 1
+                            : 1;
                           const baseTotal = row.baseValue + unlockedSum;
                           const override = row.overrides?.find(
                             (o) => o.rarity === rarity,

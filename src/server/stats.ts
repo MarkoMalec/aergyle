@@ -1,6 +1,6 @@
 import "server-only";
 
-import { ItemStatus, type StatType } from "~/generated/prisma/enums";
+import { ItemStatus, StatType } from "~/generated/prisma/enums";
 import { prisma } from "~/lib/prisma";
 import type { ComputedStats } from "~/types/stats";
 import {
@@ -10,6 +10,7 @@ import {
   combineStatRecords,
   getDefaultStatGrowthRules,
   LEVEL_SCALED_STAT_TYPES,
+  weaponAttackSpeedAdjustment,
   type StatGrowthRule,
 } from "~/utils/stats";
 import { getActiveFoodEffect } from "~/server/food-effects";
@@ -58,6 +59,10 @@ export async function getStatGrowthRules(): Promise<
 export async function getCharacterBaseStats(
   userId: string,
 ): Promise<Record<StatType, number>> {
+  return (await loadCharacterBase(userId)).baseStats;
+}
+
+async function loadCharacterBase(userId: string) {
   const [user, rules] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
@@ -69,10 +74,13 @@ export async function getCharacterBaseStats(
     getStatGrowthRules(),
   ]);
 
-  return combineStatRecords(
-    calculateLevelBaseStats(user?.level ?? 1, rules),
-    aggregateStatValues(user?.baseStats ?? []),
-  );
+  return {
+    rules,
+    baseStats: combineStatRecords(
+      calculateLevelBaseStats(user?.level ?? 1, rules),
+      aggregateStatValues(user?.baseStats ?? []),
+    ),
+  };
 }
 
 /**
@@ -85,8 +93,8 @@ export async function getCharacterBaseStats(
 export async function getCharacterStatSnapshot(
   userId: string,
 ): Promise<CharacterStatSnapshot> {
-  const [baseStats, equipment, activeEffect] = await Promise.all([
-    getCharacterBaseStats(userId),
+  const [{ baseStats, rules }, equipment, activeEffect] = await Promise.all([
+    loadCharacterBase(userId),
     prisma.equipment.findUnique({ where: { userId } }),
     getActiveFoodEffect(userId),
   ]);
@@ -115,6 +123,18 @@ export async function getCharacterStatSnapshot(
 
   const equipmentBonuses = aggregateStatValues(
     effectiveEquippedItems.flatMap((item) => item.stats),
+  );
+  const offhand = effectiveEquippedItems.find(
+    (item) => item.id === equipment?.offhandItemId,
+  );
+  equipmentBonuses[StatType.ATTACK_SPEED] += weaponAttackSpeedAdjustment(
+    effectiveEquippedItems.find((item) => item.id === equipment?.weaponItemId)
+      ?.stats,
+    rules[StatType.ATTACK_SPEED].baseValue,
+    offhand && {
+      equipTo: offhand.itemTemplate.equipTo,
+      stats: offhand.stats,
+    },
   );
   const temporaryBonuses = aggregateStatValues(
     activeEffect?.item.foodEffectStats ?? [],

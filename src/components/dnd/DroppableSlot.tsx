@@ -1,12 +1,16 @@
 "use client";
 
 import { useDroppable } from "@dnd-kit/core";
+import Image from "next/image";
 import { DraggableItem } from "./DraggableItem";
 import type { InventorySlot } from "./DnDContext";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { useRarityColors } from "~/hooks/use-rarity-colors";
 import { rarityStyle } from "~/utils/rarity-colors";
+import { canEquipToSlot } from "~/utils/inventoryClient";
+import { ItemRarityMark } from "~/utils/ui/rarity-mark";
+import type { ItemWithStats } from "~/types/stats";
 import { Plus } from "lucide-react";
 import { SplitStackDialog } from "../game/items/SplitStackDialog";
 
@@ -18,6 +22,7 @@ export const DroppableSlot = ({
   equipmentSlotType,
   label,
   emptyIcon,
+  twoHandedItem,
 }: {
   id: string;
   index: number;
@@ -26,6 +31,8 @@ export const DroppableSlot = ({
   equipmentSlotType?: string;
   label?: string;
   emptyIcon?: ReactNode;
+  /** The main hand's two-handed weapon, shown dimmed in the empty off hand. */
+  twoHandedItem?: ItemWithStats | null;
 }) => {
   const { isOver, setNodeRef, active } = useDroppable({
     id,
@@ -39,11 +46,20 @@ export const DroppableSlot = ({
   const activeEquipType: unknown = active?.data.current?.equipType;
   const highlight =
     typeof activeEquipType === "string" &&
-    activeEquipType === equipmentSlotType;
+    !!equipmentSlotType &&
+    canEquipToSlot(
+      {
+        equipTo: activeEquipType,
+        twoHanded: active?.data.current?.twoHanded === true,
+      },
+      equipmentSlotType,
+    );
 
   const { colors } = useRarityColors();
-  const style = slot.item
-    ? rarityStyle(slot.item.rarity, colors[slot.item.rarity])
+  const ghost = slot.item ? null : twoHandedItem;
+  const shown = slot.item ?? ghost;
+  const style = shown
+    ? rarityStyle(shown.rarity, colors[shown.rarity])
     : undefined;
 
   const handleRightClick = (e: React.MouseEvent) => {
@@ -63,18 +79,21 @@ export const DroppableSlot = ({
       <div
         ref={setNodeRef}
         style={style}
-        className={`game-slot${slot.item ? " rarity-frame" : ""}`}
-        data-rarity={slot.item?.rarity}
-        data-equipped={container === "equipment" && !!slot.item}
+        className={`game-slot${shown ? " rarity-frame" : ""}`}
+        data-rarity={shown?.rarity}
+        data-equipped={container === "equipment" && !!shown}
+        data-two-handed-copy={!!ghost}
         data-delete={container === "delete"}
         data-over={isOver}
         data-highlight={highlight}
         aria-label={
-          !slot.item
-            ? container === "delete"
-              ? "Discard slot"
-              : `Empty ${label ?? "inventory"} slot`
-            : undefined
+          ghost
+            ? `${label ?? "Off hand"}: held by two-handed ${ghost.name}`
+            : !slot.item
+              ? container === "delete"
+                ? "Discard slot"
+                : `Empty ${label ?? "inventory"} slot`
+              : undefined
         }
         onContextMenu={handleRightClick}
       >
@@ -89,6 +108,17 @@ export const DroppableSlot = ({
               slotLabel={container === "equipment" ? label : undefined}
             />
           </>
+        ) : ghost ? (
+          <span className="game-item-trigger" aria-hidden="true">
+            <Image
+              alt=""
+              src={ghost.sprite}
+              width={102}
+              height={102}
+              className="object-contain"
+            />
+            <ItemRarityMark rarity={ghost.rarity} />
+          </span>
         ) : container === "equipment" ? (
           emptyIcon ?? (
             <Plus

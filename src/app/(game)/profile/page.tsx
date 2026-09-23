@@ -20,7 +20,7 @@ import {
   getVocationalStatus,
   getVocationalStatusDebug,
 } from "~/server/vocations";
-import { getCharacterBaseStats } from "~/server/stats";
+import { getCharacterBaseStats, getStatGrowthRules } from "~/server/stats";
 import { getCharacterVitals } from "~/server/combat";
 import { ChevronDown, FlaskConical } from "lucide-react";
 import { EQUIPMENT_SLOTS, getEquippedUserItemIds } from "~/utils/itemEquipTo";
@@ -48,37 +48,44 @@ const CharacterPage = async ({
     : await getVocationalStatus(session.user.id);
 
   // Parallelize all independent queries for better performance
-  const [userInventory, userEquipment, baseStatsFromDb, allItems, vitals] =
-    await Promise.all([
-      prisma.inventory.findUnique({
-        where: { userId: session.user.id },
-      }),
-      prisma.equipment.upsert({
-        where: { userId: session.user.id },
-        create: {
-          userId: session.user.id,
-        },
-        update: {},
-      }),
-      getCharacterBaseStats(session.user.id),
-      prisma.item.findMany({
-        select: {
-          id: true,
-          name: true,
-          sprite: true,
-          rarity: true,
-          itemType: true,
-          equipTo: true,
-          stackable: true,
-          maxStackSize: true,
-          requiredLevel: true,
-        },
-        orderBy: {
-          name: "asc",
-        },
-      }),
-      getCharacterVitals(session.user.id),
-    ]);
+  const [
+    userInventory,
+    userEquipment,
+    baseStatsFromDb,
+    allItems,
+    vitals,
+    growthRules,
+  ] = await Promise.all([
+    prisma.inventory.findUnique({
+      where: { userId: session.user.id },
+    }),
+    prisma.equipment.upsert({
+      where: { userId: session.user.id },
+      create: {
+        userId: session.user.id,
+      },
+      update: {},
+    }),
+    getCharacterBaseStats(session.user.id),
+    prisma.item.findMany({
+      select: {
+        id: true,
+        name: true,
+        sprite: true,
+        rarity: true,
+        itemType: true,
+        equipTo: true,
+        stackable: true,
+        maxStackSize: true,
+        requiredLevel: true,
+      },
+      orderBy: {
+        name: "asc",
+      },
+    }),
+    getCharacterVitals(session.user.id),
+    getStatGrowthRules(),
+  ]);
 
   // Convert to array format for CharacterStats component
   const baseStats = Object.entries(baseStatsFromDb).map(
@@ -159,6 +166,7 @@ const CharacterPage = async ({
         >
           <CharacterStats
             baseStats={baseStats}
+            unarmedAttackSpeed={growthRules.ATTACK_SPEED.baseValue}
             currentHealth={vitals.currentHealth}
           />
         </Portrait>

@@ -148,3 +148,39 @@ export function contributionShare(
   );
   return total / requirements.length;
 }
+
+/**
+ * How `quantity` of one item lands in a container: what each stack already
+ * there takes (`topUps`) and the stacks it opens (`newStacks`, one per free
+ * slot it uses). Null when it does not fit. Unstackable items always open a
+ * stack of one per slot, like everywhere else in the game.
+ */
+export function planStackFill(params: {
+  quantity: number;
+  stackable: boolean;
+  maxStackSize: number;
+  targets: ReadonlyArray<{ id: number; quantity: number }>;
+  freeSlots: number;
+}) {
+  const maxStackSize = params.stackable ? Math.max(1, params.maxStackSize) : 1;
+  const topUps: Array<{ id: number; quantity: number }> = [];
+  const newStacks: number[] = [];
+  let remaining = Math.max(0, Math.floor(params.quantity));
+
+  if (params.stackable) {
+    for (const target of params.targets) {
+      if (remaining <= 0) break;
+      const room = Math.min(maxStackSize - target.quantity, remaining);
+      if (room <= 0) continue;
+      topUps.push({ id: target.id, quantity: room });
+      remaining -= room;
+    }
+  }
+  for (let slot = 0; slot < params.freeSlots && remaining > 0; slot += 1) {
+    const size = Math.min(maxStackSize, remaining);
+    newStacks.push(size);
+    remaining -= size;
+  }
+
+  return remaining > 0 ? null : { topUps, newStacks };
+}

@@ -8,15 +8,17 @@ import {
   Navigation,
 } from "lucide-react";
 import { useMemo, useState } from "react";
-import { getAtlasLocationMarker } from "~/game/world/atlasLocations";
 import DragScrollContainer from "~/components/game/map/DragScrollContainer";
-import { MapCanvas } from "~/components/game/map/PlaceMap";
+import { MapCanvas, pinStyle } from "~/components/game/map/PlaceMap";
 import TravelLocationDialog from "~/components/game/map/TravelLocationDialog";
+import type { MapPoint } from "~/game/world/maps";
 
 export type AtlasLocationRow = {
   id: number;
   name: string;
   requiredLevel: number;
+  /** Where it sits on the atlas; a location without a pin is not shown. */
+  point: MapPoint | null;
 };
 
 export type AtlasActiveTravel = {
@@ -24,17 +26,16 @@ export type AtlasActiveTravel = {
   toLocation: { id: number; name: string };
 };
 
-function percentageToUnit(value: `${number}%`) {
-  return Number.parseFloat(value) / 100;
-}
-
 export default function WorldAtlas({
+  image,
   locations,
   currentLocationId,
   userLevel,
   activeTravel,
   journeySeconds,
 }: {
+  /** The atlas artwork, set in /admin/locations. */
+  image: string | null;
   locations: AtlasLocationRow[];
   currentLocationId: number | null;
   userLevel: number;
@@ -48,23 +49,17 @@ export default function WorldAtlas({
 
   const locatedDestinations = useMemo(
     () =>
-      locations.flatMap((location) => {
-        const marker = getAtlasLocationMarker(location.name);
-        return marker ? [{ location, marker }] : [];
-      }),
+      locations.flatMap((location) =>
+        location.point ? [{ location, point: location.point }] : [],
+      ),
     [locations],
   );
 
   const currentLocation =
     locations.find((location) => location.id === currentLocationId) ?? null;
-  const currentMarker = currentLocation
-    ? getAtlasLocationMarker(currentLocation.name)
-    : null;
-  const initialFocus = currentMarker
-    ? {
-        x: percentageToUnit(currentMarker.left),
-        y: percentageToUnit(currentMarker.top),
-      }
+  const currentPoint = currentLocation?.point ?? null;
+  const initialFocus = currentPoint
+    ? { x: currentPoint.x / 100, y: currentPoint.y / 100 }
     : { x: 0.43, y: 0.48 };
   const reachableCount = locations.filter(
     (location) => userLevel >= Math.max(1, location.requiredLevel),
@@ -99,51 +94,55 @@ export default function WorldAtlas({
       </header>
 
       <div className="game-atlas">
-        <DragScrollContainer
-          className="game-atlas-viewport"
-          initialFocus={initialFocus}
-        >
-          <MapCanvas
-            image="/assets/world/world-map-v1.png"
-            alt="Illustrated terrain map of Aergyle"
+        {image ? (
+          <DragScrollContainer
+            className="game-atlas-viewport"
+            initialFocus={initialFocus}
           >
-            {locatedDestinations.map(({ location, marker }) => {
-              const isCurrent = location.id === currentLocationId;
-              const isLocked = userLevel < Math.max(1, location.requiredLevel);
-              const isSelected = location.id === selectedLocationId;
-              const accessLabel = isCurrent
-                ? "You are here"
-                : isLocked
-                  ? `Level ${location.requiredLevel}`
-                  : location.requiredLevel <= 1
-                    ? "Open route"
-                    : `Level ${location.requiredLevel}`;
+            <MapCanvas image={image} alt="Illustrated terrain map of Aergyle">
+              {locatedDestinations.map(({ location, point }) => {
+                const isCurrent = location.id === currentLocationId;
+                const isLocked =
+                  userLevel < Math.max(1, location.requiredLevel);
+                const isSelected = location.id === selectedLocationId;
+                const accessLabel = isCurrent
+                  ? "You are here"
+                  : isLocked
+                    ? `Level ${location.requiredLevel}`
+                    : location.requiredLevel <= 1
+                      ? "Open route"
+                      : `Level ${location.requiredLevel}`;
 
-              return (
-                <button
-                  key={location.id}
-                  type="button"
-                  className="atlas-marker"
-                  style={{ left: marker.left, top: marker.top }}
-                  data-current={isCurrent}
-                  data-locked={isLocked}
-                  data-selected={isSelected}
-                  aria-current={isCurrent ? "location" : undefined}
-                  aria-label={`${location.name}. ${accessLabel}. Open atlas entry.`}
-                  onClick={() => setSelectedLocationId(location.id)}
-                >
-                  <span className="atlas-marker-pin" aria-hidden="true">
-                    {isLocked ? <LockKeyhole /> : <MapPin />}
-                  </span>
-                  <span className="atlas-marker-plaque">
-                    <strong>{location.name}</strong>
-                    <small>{accessLabel}</small>
-                  </span>
-                </button>
-              );
-            })}
-          </MapCanvas>
-        </DragScrollContainer>
+                return (
+                  <button
+                    key={location.id}
+                    type="button"
+                    className="atlas-marker"
+                    style={pinStyle(point)}
+                    data-current={isCurrent}
+                    data-locked={isLocked}
+                    data-selected={isSelected}
+                    aria-current={isCurrent ? "location" : undefined}
+                    aria-label={`${location.name}. ${accessLabel}. Open atlas entry.`}
+                    onClick={() => setSelectedLocationId(location.id)}
+                  >
+                    <span className="atlas-marker-pin" aria-hidden="true">
+                      {isLocked ? <LockKeyhole /> : <MapPin />}
+                    </span>
+                    <span className="atlas-marker-plaque">
+                      <strong>{location.name}</strong>
+                      <small>{accessLabel}</small>
+                    </span>
+                  </button>
+                );
+              })}
+            </MapCanvas>
+          </DragScrollContainer>
+        ) : (
+          <p className="game-empty-state">
+            The realm is being redrawn. No chart is available right now.
+          </p>
+        )}
       </div>
 
       <footer className="atlas-footer">

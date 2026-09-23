@@ -1,21 +1,32 @@
 import Link from "next/link";
 import React from "react";
+import { MapEditor } from "~/components/admin/MapEditor";
+import { PLACE_ICONS } from "~/components/game/map/placeIcons";
+import { mapPoint } from "~/game/world/maps";
 import { prisma } from "~/lib/prisma";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function AdminLocationsPage() {
-  const locations = await prisma.location.findMany({
-    select: {
-      id: true,
-      name: true,
-      requiredLevel: true,
-      _count: { select: { resources: true } },
-    },
-    orderBy: [{ id: "desc" }],
-    take: 500,
-  });
+  const [locations, atlas] = await Promise.all([
+    prisma.location.findMany({
+      select: {
+        id: true,
+        name: true,
+        requiredLevel: true,
+        mapX: true,
+        mapY: true,
+        _count: { select: { resources: true } },
+      },
+      orderBy: [{ id: "desc" }],
+      take: 500,
+    }),
+    prisma.atlasConfig.findUnique({
+      where: { id: 1 },
+      select: { mapImage: true },
+    }),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -33,6 +44,24 @@ export default async function AdminLocationsPage() {
           New Location
         </Link>
       </div>
+
+      <MapEditor
+        map="world"
+        id={1}
+        title="World atlas"
+        description="The map players open from the Map menu. Drag a location where it belongs; a location that is not on the atlas cannot be travelled to from it. Changing the artwork keeps every pin where it is."
+        imageHint="1536×1024, e.g. /assets/world/world-map-v1.png"
+        image={atlas?.mapImage ?? null}
+        pins={locations.map((location) => ({
+          kind: "location" as const,
+          id: location.id,
+          name: location.name,
+          detail: `Level ${location.requiredLevel}`,
+          variant: "place" as const,
+          face: <PLACE_ICONS.location />,
+          point: mapPoint(location),
+        }))}
+      />
 
       <div className="overflow-hidden rounded-lg border border-gray-800/60">
         <table className="w-full text-sm">

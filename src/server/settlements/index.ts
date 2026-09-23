@@ -17,3 +17,12 @@ export {
   type UnseenQuest,
 } from "./quests";
 export { buyNpcOffer, sellToNpc } from "./shop";
+export {
+  getStorageIcon,
+  getStoragePage,
+  moveStorageItem,
+  unlockStorage,
+  type StorageSlot,
+  type StorageStack,
+  type StorageView,
+} from "./storage";

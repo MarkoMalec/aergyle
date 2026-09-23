@@ -5,6 +5,7 @@ import { prisma } from "~/lib/prisma";
 import { getServerAuthSession } from "~/server/auth";
 import { getJourneySeconds, getTravelStatus } from "~/server/travel/service";
 import WorldAtlas from "~/components/game/map/WorldAtlas";
+import { mapPoint } from "~/game/world/maps";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -15,14 +16,24 @@ const MapPage = async () => {
     redirect("/signin");
   }
 
-  const [locations, user] = await Promise.all([
+  const [locations, user, atlas] = await Promise.all([
     prisma.location.findMany({
-      select: { id: true, name: true, requiredLevel: true },
+      select: {
+        id: true,
+        name: true,
+        requiredLevel: true,
+        mapX: true,
+        mapY: true,
+      },
       orderBy: [{ requiredLevel: "asc" }, { id: "asc" }],
     }),
     prisma.user.findUnique({
       where: { id: session.user.id },
       select: { currentLocationId: true, level: true },
+    }),
+    prisma.atlasConfig.findUnique({
+      where: { id: 1 },
+      select: { mapImage: true },
     }),
   ]);
 
@@ -43,7 +54,13 @@ const MapPage = async () => {
       />
 
       <WorldAtlas
-        locations={locations}
+        image={atlas?.mapImage ?? null}
+        locations={locations.map((location) => ({
+          id: location.id,
+          name: location.name,
+          requiredLevel: location.requiredLevel,
+          point: mapPoint(location),
+        }))}
         currentLocationId={user?.currentLocationId ?? null}
         userLevel={user?.level ?? 1}
         activeTravel={travelStatus.travel}

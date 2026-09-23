@@ -9,10 +9,13 @@ import {
   NewNpcButton,
   SettlementForm,
 } from "~/components/admin/settlements/SettlementForm";
+import { StorageEditor } from "~/components/admin/settlements/StorageEditor";
 import { NpcHead } from "~/components/game/map/NpcHead";
+import { StorageFace } from "~/components/game/map/StorageFace";
 import { NPC_PROFESSION_LABELS, settlementHref } from "~/game/settlements";
 import { headCrop, mapPoint } from "~/game/world/maps";
 import { prisma } from "~/lib/prisma";
+import { getStorageIcon } from "~/server/settlements";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -25,11 +28,24 @@ export default async function AdminSettlementPage({
   const id = Number(params.id);
   if (!Number.isInteger(id) || id < 1) notFound();
 
-  const [settlement, locations, items] = await Promise.all([
+  const [settlement, locations, items, storageIcon] = await Promise.all([
     prisma.settlement.findUnique({
       where: { id },
       include: {
         location: { select: { name: true } },
+        storage: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            unlockCost: true,
+            slots: true,
+            enabled: true,
+            mapX: true,
+            mapY: true,
+            _count: { select: { players: true } },
+          },
+        },
         npcs: {
           orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
           select: {
@@ -89,6 +105,7 @@ export default async function AdminSettlementPage({
       orderBy: { name: "asc" },
       select: { id: true, name: true, sprite: true, rarity: true },
     }),
+    getStorageIcon(),
   ]);
   if (!settlement) notFound();
 
@@ -135,22 +152,56 @@ export default async function AdminSettlementPage({
         map="settlement"
         id={settlement.id}
         title="Settlement map"
-        description="Players see this map on the settlement page. Drag each NPC to where they stand; an NPC off the map is still listed beside it. Choose an NPC's head on its page."
+        description="Players see this map on the settlement page. Drag each NPC, and the storage, to where they stand; anything off the map is still listed beside it. Choose an NPC's head on its page."
         imageHint="1536×1024, e.g. /assets/world/tenreed-settlement-map-v1.png"
         image={settlement.mapImage}
-        pins={settlement.npcs.map((npc) => ({
-          kind: "npc" as const,
-          id: npc.id,
-          name: npc.name,
-          detail: npc.enabled
-            ? npc.profession
-              ? NPC_PROFESSION_LABELS[npc.profession]
-              : "NPC"
-            : "Disabled",
-          variant: "person" as const,
-          face: <NpcHead portrait={npc.portrait} crop={headCrop(npc)} />,
-          point: mapPoint(npc),
-        }))}
+        pins={[
+          ...settlement.npcs.map((npc) => ({
+            kind: "npc" as const,
+            id: npc.id,
+            name: npc.name,
+            detail: npc.enabled
+              ? npc.profession
+                ? NPC_PROFESSION_LABELS[npc.profession]
+                : "NPC"
+              : "Disabled",
+            variant: "person" as const,
+            face: <NpcHead portrait={npc.portrait} crop={headCrop(npc)} />,
+            point: mapPoint(npc),
+          })),
+          ...(settlement.storage
+            ? [
+                {
+                  kind: "storage" as const,
+                  id: settlement.storage.id,
+                  name: settlement.storage.name,
+                  detail: settlement.storage.enabled
+                    ? `${settlement.storage.slots} slots`
+                    : "Disabled",
+                  variant: "place" as const,
+                  face: <StorageFace icon={storageIcon} />,
+                  point: mapPoint(settlement.storage),
+                },
+              ]
+            : []),
+        ]}
+      />
+
+      <StorageEditor
+        settlementId={settlement.id}
+        renters={settlement.storage?._count.players ?? 0}
+        storage={
+          settlement.storage
+            ? {
+                id: settlement.storage.id,
+                name: settlement.storage.name,
+                description: settlement.storage.description,
+                unlockCost: Number(settlement.storage.unlockCost),
+                slots: settlement.storage.slots,
+                enabled: settlement.storage.enabled,
+              }
+            : null
+        }
       />
 
       <Panel

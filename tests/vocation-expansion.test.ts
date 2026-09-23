@@ -138,14 +138,20 @@ void test("the pack contains six distinct resources for every requested vocation
 });
 
 void test("atlas locations retain the map names and exact access thresholds", () => {
-  assert.deepEqual(VOCATION_EXPANSION_LOCATIONS, [
-    { name: "Citadel", requiredLevel: 1 },
-    { name: "Goblins Camp", requiredLevel: 40 },
-    { name: "Frostcrown Peaks", requiredLevel: 50 },
-    { name: "Ruins of Caldrath", requiredLevel: 80 },
-    { name: "Mount Doom", requiredLevel: 150 },
-    { name: "Pirate Island", requiredLevel: 200 },
-  ]);
+  assert.deepEqual(
+    VOCATION_EXPANSION_LOCATIONS.map(({ name, requiredLevel }) => ({
+      name,
+      requiredLevel,
+    })),
+    [
+      { name: "Citadel", requiredLevel: 1 },
+      { name: "Goblins Camp", requiredLevel: 40 },
+      { name: "Frostcrown Peaks", requiredLevel: 50 },
+      { name: "Ruins of Caldrath", requiredLevel: 80 },
+      { name: "Mount Doom", requiredLevel: 150 },
+      { name: "Pirate Island", requiredLevel: 200 },
+    ],
+  );
   const levels = new Map(
     VOCATION_EXPANSION_LOCATIONS.map((location) => [
       location.name,

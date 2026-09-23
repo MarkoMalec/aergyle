@@ -1,7 +1,6 @@
 "use client";
 
 import { useDraggable } from "@dnd-kit/core";
-import { CSS } from "@dnd-kit/utilities";
 import { PopoverTrigger } from "~/components/ui/popover";
 import Image from "next/image";
 import { Skeleton } from "~/components/ui/skeleton";
@@ -27,24 +26,21 @@ export const DraggableItem = ({
   container: string;
   slotLabel?: string;
 }) => {
-  const { attributes, listeners, setNodeRef, transform, isDragging } =
-    useDraggable({
-      id,
-      data: {
-        index,
-        container,
-        equipType: item.equipTo,
-      },
-    });
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id,
+    data: {
+      index,
+      container,
+      item,
+      equipType: item.equipTo,
+      twoHanded: item.twoHanded,
+    },
+  });
 
   const { inventory, equipment } = useDndContext();
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    // boxShadow: isDragging ? "0px 3px 10px rgba(0, 0, 0, 0.64)" : undefined,
-    zIndex: isDragging ? "var(--z-drag)" : undefined,
-    filter: isDragging ? "brightness(0.8)" : undefined,
-  };
+  // DnDContext draws the moving copy in its DragOverlay.
+  const style = { opacity: isDragging ? 0 : undefined };
 
   if (!item) {
     return <Skeleton className="h-[62px] w-[62px] rounded"></Skeleton>;
@@ -52,8 +48,17 @@ export const DraggableItem = ({
 
   const handleEquip = () => {
     if (container === "inventory" && item.equipTo) {
-      // Find the equipment slot based on item type
-      const targetSlot = item.equipTo as keyof typeof EQUIPMENT_SLOT_TO_INDEX;
+      // A second one-handed weapon goes to a free off hand, like the second
+      // ring slot; otherwise the item's own slot.
+      const dualWield =
+        item.equipTo === "weapon" &&
+        !item.twoHanded &&
+        !!equipment.weapon &&
+        !equipment.weapon.twoHanded &&
+        !equipment.offhand;
+      const targetSlot = (
+        dualWield ? "offhand" : item.equipTo
+      ) as keyof typeof EQUIPMENT_SLOT_TO_INDEX;
 
       // For rings, find first available ring slot
       if (item.equipTo === "ring") {

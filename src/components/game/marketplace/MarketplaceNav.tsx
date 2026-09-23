@@ -14,10 +14,7 @@ const links = [
 export function MarketplaceNav() {
   const pathname = usePathname();
   return (
-    <nav
-      aria-label="Marketplace pages"
-      className="flex gap-1 overflow-x-auto border-b border-border"
-    >
+    <nav aria-label="Marketplace pages" className="flex gap-1 overflow-x-auto">
       {links.map((link) => {
         const active = link.exact
           ? pathname === link.href
@@ -28,16 +25,13 @@ export function MarketplaceNav() {
             href={link.href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "relative shrink-0 px-3 py-3 text-sm transition-colors",
+              "shrink-0 rounded-[9px] px-3 py-1.5 text-sm font-medium transition-colors",
               active
-                ? "text-primary"
-                : "text-muted-foreground hover:text-foreground",
+                ? "bg-sidebar-accent text-primary"
+                : "text-muted-foreground hover:bg-secondary/55 hover:text-foreground",
             )}
           >
             {link.label}
-            {active && (
-              <span className="absolute inset-x-3 bottom-0 h-0.5 bg-primary" />
-            )}
           </Link>
         );
       })}

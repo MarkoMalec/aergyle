@@ -18,8 +18,11 @@ const paths: Record<EquipmentSlotKey, string> = {
   backpack:
     "M8 5V3h8v2M5 11V8c0-4 14-4 14 0v3M5 11h14l1 10H4l1-10Zm0 0 7 4 7-4M10 15v3h4v-3",
   weapon: "m14 3 7-1-1 7L9 18l-3-3L14 3Zm-9 9 7 7M8 16l-5 5m-1-3 4 4",
+  offhand: "M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5l-8-3Zm0 0v20M4 11h16",
   fellingAxe: "m4 22 13-18M10 5l3-3c2 3 5 5 9 5l-2 7c-5-1-8-4-10-9Z",
   pickaxe: "M4 22 15 6M4 6C10 0 19 2 22 13L12 7 4 6Z",
+  fishingRod: "M3 21 20 3M20 3v13m0 0a2 2 0 1 1-4 0m-9-1 3 3",
+  hoe: "M3 21 16 8M14 6l2 2 5 1-1 5-2-4-4-4Z",
 };
 
 export function EquipmentSlotIcon({ slot }: { slot: EquipmentSlotKey }) {

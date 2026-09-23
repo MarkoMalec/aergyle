@@ -65,11 +65,18 @@ export function ItemDetails({ item }: { item: ItemDetailsData }) {
           <h3 className="game-item-name mt-2 text-lg font-semibold leading-tight">
             {item.name}
           </h3>
-          {item.equipTo && (
+          {/* {item.equipTo && (
             <p className="mt-1 text-xs capitalize text-muted-foreground">
-              {item.equipTo}
+              {item.equipTo.replace(/([a-z])([A-Z])/g, "$1 $2")}
             </p>
-          )}
+          )} */}
+          <p className="mt-1 text-xs capitalize text-muted-foreground">
+          {item.itemType
+            ?.replace(/_/g, " ")
+            .replace(/([a-z])([A-Z])/g, "$1 $2")
+            .toLowerCase()
+            .replace(/\b\w/g, (char) => char.toUpperCase())}
+          </p>
         </div>
       </div>
       {item.equipTo && (

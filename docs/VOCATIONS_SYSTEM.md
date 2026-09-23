@@ -62,7 +62,12 @@ There is no manual claim: `POST /api/vocations/claim` intentionally returns 404.
 
 1. Create/choose an `Item` template for the resource reward.
 2. Create a `VocationalResource` row pointing at that `itemId`.
-3. Tune speed by editing `defaultSeconds`.
+3. Tune speed by editing `defaultSeconds`. Woodcutting, Mining and Fishing
+   shorten it with the character's matching efficiency stat:
+   `unitSeconds = round(defaultSeconds × 100 / (100 + efficiency))`, minimum 1
+   (`computeEffectiveUnitSeconds` in `src/game/vocationStats.ts`). Each point
+   adds the same output: 100 efficiency halves the time, 200 cuts it to a
+   third. The time is fixed when the activity starts.
 4. Add `VocationalRequirement` rows for bait or crafting inputs.
 5. Assign the resource only to destinations whose player-level requirement matches its complexity.
 

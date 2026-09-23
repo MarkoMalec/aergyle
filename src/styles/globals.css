@@ -876,14 +876,48 @@
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    padding-top: calc(2 * (var(--equipment-slot-size) + 26px));
+    /* Main hand level with the shoulders, off hand with the arms. */
+    padding-top: calc(var(--equipment-slot-size) + 26px);
   }
+  .game-equipment-hands,
   .game-equipment-tools,
+  .game-equipment-tool-list,
   .game-equipment-accessories {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 12px;
+  }
+  /* Two tools in view (a cell is the slot plus its 18px label); the rest
+     scroll, so adding tools never makes the panel taller. */
+  .game-equipment-tool-list {
+    /* The padding keeps outlines and rarity marks clear of the clip edge. */
+    margin: -6px;
+    padding: 6px;
+    max-height: calc(2 * (var(--equipment-slot-size) + 18px) + 12px + 12px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+    border-radius: 8px;
+  }
+  /* One-line labels keep every tool cell the height the list budgets for. */
+  .game-equipment-armaments .game-equipment-label {
+    white-space: nowrap;
+  }
+  .game-equipment-tool-list:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+  /* The off hand's copy of a two-handed main-hand weapon. */
+  .game-slot[data-two-handed-copy="true"] {
+    opacity: 0.45;
+    border-style: dashed;
+  }
+  .game-drag-overlay {
+    filter: brightness(0.8);
+    cursor: grabbing;
   }
   .game-equipment-tools {
     padding-top: 14px;
@@ -2989,22 +3023,68 @@
       opacity: 1;
     }
   }
-  .game-market-layout {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 260px;
-    grid-template-areas: "results filters";
-    gap: 24px;
-  }
+  /* Market rows take their layout from the width the results panel actually
+     gets (it shares the row with the selected market), not the viewport. */
   .game-market-results {
-    grid-area: results;
+    container-type: inline-size;
   }
-  .game-market-filters {
-    grid-area: filters;
-  }
-  .game-market-filter-row {
-    display: flex;
-    flex-direction: column;
+  .game-market-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
     gap: 12px;
+  }
+  .game-market-columns,
+  .game-market-wide {
+    display: none;
+  }
+  @container (min-width: 520px) {
+    .game-market-row,
+    .game-market-columns {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 96px 80px 64px;
+      gap: 12px;
+    }
+    .game-market-wide {
+      display: block;
+    }
+    .game-market-narrow {
+      display: none;
+    }
+  }
+  .game-market-detail-header {
+    background: linear-gradient(
+      170deg,
+      color-mix(in srgb, var(--rarity-color) 11%, transparent),
+      transparent 70%
+    );
+  }
+  /* A rarity symbol on a small tile tinted with its colour, for compact
+     labels such as filter options. */
+  .game-rarity-chip {
+    display: inline-grid;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    place-items: center;
+    border-radius: 6px;
+    color: var(--rarity-color);
+    background: color-mix(in srgb, var(--rarity-color) 16%, transparent);
+  }
+  .game-rarity-chip svg {
+    width: 13px;
+    height: 13px;
+  }
+  .game-rarity-chip:is(
+      [data-rarity="LEGENDARY"],
+      [data-rarity="MYTHIC"],
+      [data-rarity="DIVINE"]
+    ) {
+    box-shadow: 0 0 10px
+      color-mix(in srgb, var(--rarity-color) 30%, transparent);
+  }
+  .game-rarity-text {
+    color: var(--rarity-text, var(--rarity-color));
   }
   .game-empty-state {
     padding: 40px 24px;
@@ -3400,16 +3480,6 @@
   .game-skill-layout {
     grid-template-columns: minmax(0, 1fr);
   }
-  .game-market-layout {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .game-market-layout {
-    grid-template-areas: "filters" "results";
-  }
-  .game-market-filter-row {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
 }
 @media (max-width: 900px) {
   .gardening-layout {
@@ -3423,12 +3493,6 @@
   }
 }
 @media (max-width: 767px) {
-  .game-market-filter-row {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .game-market-filter-row > button:last-child {
-    grid-column: 1 / -1;
-  }
   .game-shell {
     padding-left: 0;
   }

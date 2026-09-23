@@ -1,6 +1,11 @@
 export type AtlasLocationMarker = {
   name: string;
   requiredLevel: number;
+  /**
+   * Where the location starts out on the world atlas. Live pins live on
+   * `Location.mapX`/`mapY` and are moved in /admin/locations; these values
+   * only seed a new world and the starting travel times.
+   */
   left: `${number}%`;
   top: `${number}%`;
   region: string;

@@ -1,4 +1,5 @@
 import type {
+  ItemEquipTo,
   ItemRarity,
   StatType,
   VocationalActionType,
@@ -19,6 +20,7 @@ type BalanceDb = Pick<PrismaClient, "rarityConfig">;
 type ResolvableUserItem = {
   rarity: ItemRarity;
   itemTemplate: {
+    equipTo: ItemEquipTo | null;
     flipNegativeStatsWithRarity: boolean;
     stats: ReadonlyArray<{
       statType: StatType;
@@ -76,6 +78,7 @@ export async function hydrateEffectiveItemStats<T extends ResolvableUserItem>(
       rarityMultiplier: multiplierByRarity.get(item.rarity) ?? 1,
       flipNegativeStatsWithRarity:
         item.itemTemplate.flipNegativeStatsWithRarity,
+      equipTo: item.itemTemplate.equipTo,
       stats: item.itemTemplate.stats,
       statProgressions: item.itemTemplate.statProgressions,
       statRarityOverrides: item.itemTemplate.statRarityOverrides,

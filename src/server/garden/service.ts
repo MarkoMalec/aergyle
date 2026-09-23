@@ -13,6 +13,7 @@ import {
 } from "~/server/garden/harvestSchedule";
 import { consumeInventoryItems } from "~/server/items/consumeItems";
 import { grantStackableItemToInventory } from "~/server/vocations/grantItem";
+import { assertRequiredToolEquipped } from "~/server/vocations/tools";
 import { awardXp } from "~/utils/leveling";
 import { awardTrackXp } from "~/utils/progression";
 import { recordSkillWork } from "~/server/skills/metrics";
@@ -233,6 +234,7 @@ export async function plantSeeds(params: {
   await Promise.all([
     assertNoGardenHarvestActive(userId),
     assertNoOtherActiveAction(userId),
+    assertRequiredToolEquipped(userId, VocationalActionType.GARDENING),
   ]);
 
   const seed = await prisma.item.findUnique({

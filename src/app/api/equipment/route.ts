@@ -111,7 +111,12 @@ export async function POST(req: NextRequest) {
         select: {
           id: true,
           itemTemplate: {
-            select: { name: true, equipTo: true, requiredLevel: true },
+            select: {
+              name: true,
+              equipTo: true,
+              twoHanded: true,
+              requiredLevel: true,
+            },
           },
         },
       }),

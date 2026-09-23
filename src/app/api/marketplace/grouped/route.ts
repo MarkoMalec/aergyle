@@ -89,6 +89,8 @@ export async function GET(req: NextRequest) {
         skip: (page - 1) * limit,
         take: limit + 1,
       }),
+      // The first listed item of each type (by id) lends its sprite to the
+      // type filter, so the icon is always something actually on sale.
       prisma.item.findMany({
         where: {
           itemType: { not: null },
@@ -100,8 +102,9 @@ export async function GET(req: NextRequest) {
             },
           },
         },
-        select: { itemType: true },
+        select: { itemType: true, sprite: true },
         distinct: ["itemType"],
+        orderBy: { id: "asc" },
       }),
       prisma.userItem.findMany({
         where: {
@@ -193,8 +196,13 @@ export async function GET(req: NextRequest) {
         hasPreviousPage: page > 1,
       },
       filterOptions: {
-        itemTypes: (Object.values(ItemTypeValues) as ItemType[]).filter(
-          (value) => activeItemTypes.some((item) => item.itemType === value),
+        itemTypes: (Object.values(ItemTypeValues) as ItemType[]).flatMap(
+          (value) => {
+            const item = activeItemTypes.find(
+              (entry) => entry.itemType === value,
+            );
+            return item ? [{ itemType: value, sprite: item.sprite }] : [];
+          },
         ),
         rarities: (Object.values(ItemRarityValues) as ItemRarity[]).filter(
           (value) => activeRarities.some((item) => item.rarity === value),

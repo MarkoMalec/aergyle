@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { NpcHead } from "~/components/game/map/NpcHead";
 import { PlaceMap, type MapPlace } from "~/components/game/map/PlaceMap";
+import { StorageFace } from "~/components/game/map/StorageFace";
 import { CommunityProjects } from "~/components/game/settlements/CommunityProjects";
 import { NewQuestsDot } from "~/components/game/settlements/NewQuestsDot";
 import { PresenceNotice } from "~/components/game/settlements/PresenceNotice";
@@ -12,8 +13,10 @@ import {
   NPC_PROFESSION_LABELS,
   npcHref,
   SETTLEMENT_KIND_LABELS,
+  storageHref,
 } from "~/game/settlements";
 import { headCrop, mapPoint } from "~/game/world/maps";
+import { formatGold } from "~/lib/marketplace";
 import { getServerAuthSession } from "~/server/auth";
 import { getSettlementPage } from "~/server/settlements";
 
@@ -31,7 +34,7 @@ export default async function SettlementPage({
   if (!Number.isInteger(id) || id < 1) notFound();
   const data = await getSettlementPage(session.user.id, id);
   if (!data) notFound();
-  const { settlement, npcs, projects } = data;
+  const { settlement, npcs, projects, storage } = data;
   const people: MapPlace[] = npcs.map((npc) => ({
     key: `npc-${npc.id}`,
     name: npc.name,
@@ -54,6 +57,25 @@ export default async function SettlementPage({
     indicator: <NewQuestsDot npcId={npc.id} className="-right-1.5 -top-1.5" />,
     point: mapPoint(npc),
   }));
+  // The storage stands with the NPCs on the settlement's own map.
+  const places: MapPlace[] = storage
+    ? [
+        ...people,
+        {
+          key: "storage",
+          name: storage.name,
+          detail:
+            storage.used === null
+              ? `Rent for ${formatGold(storage.unlockCost)} gold`
+              : `${storage.used} / ${storage.slots} slots used`,
+          group: "Storage",
+          href: storageHref(settlement.id),
+          variant: "place",
+          face: <StorageFace icon={storage.icon} />,
+          point: mapPoint(storage),
+        },
+      ]
+    : people;
 
   return (
     <main className="space-y-6">
@@ -93,7 +115,7 @@ export default async function SettlementPage({
           <PlaceMap
             image={settlement.mapImage}
             alt={`Map of ${settlement.name}`}
-            places={people}
+            places={places}
             emptyText="No one is around right now."
           />
 

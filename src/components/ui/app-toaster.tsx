@@ -11,7 +11,6 @@ export function AppToaster() {
         duration: 6000,
         style: {
           background: "hsl(var(--popover))",
-          border: "1px solid hsl(var(--border-strong))",
           borderRadius: "12px",
           color: "hsl(var(--foreground))",
         },

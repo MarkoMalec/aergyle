@@ -12,6 +12,7 @@ import {
 import { getSettlementProjects } from "./projects";
 import { findUserQuests, QUEST_VIEW_SELECT, toQuestView } from "./quests";
 import { npcBuyPrice } from "./shop";
+import { getStorageIcon } from "./storage";
 
 const SETTLEMENT_SELECT = {
   id: true,
@@ -100,11 +101,28 @@ export async function getRegionPage(userId: string) {
   };
 }
 
-/** A settlement's NPCs and projects; empty unless the player is there. */
+/** A settlement's NPCs, storage and projects; empty unless the player is there. */
 export async function getSettlementPage(userId: string, settlementId: number) {
   const settlement = await prisma.settlement.findFirst({
     where: { id: settlementId, enabled: true },
-    select: { ...SETTLEMENT_SELECT, mapImage: true },
+    select: {
+      ...SETTLEMENT_SELECT,
+      mapImage: true,
+      storage: {
+        select: {
+          name: true,
+          slots: true,
+          unlockCost: true,
+          enabled: true,
+          ...MAP_PIN_SELECT,
+          // The player's own storage here, and how many slots it holds.
+          players: {
+            where: { userId },
+            select: { _count: { select: { items: true } } },
+          },
+        },
+      },
+    },
   });
   if (!settlement) return null;
 
@@ -116,12 +134,13 @@ export async function getSettlementPage(userId: string, settlementId: number) {
       present,
       traveling: presence.traveling,
       npcs: [],
+      storage: null,
       projects: [],
     };
   }
 
   const now = new Date();
-  const [npcs, inventory] = await Promise.all([
+  const [npcs, inventory, storageIcon] = await Promise.all([
     prisma.npc.findMany({
       where: { settlementId, ...visibleNpcWhere() },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
@@ -142,6 +161,7 @@ export async function getSettlementPage(userId: string, settlementId: number) {
       },
     }),
     loadInventoryStacks(prisma, userId),
+    getStorageIcon(),
   ]);
   const held = countItems(inventory.stacks);
   const [userQuests, projects] = await Promise.all([
@@ -153,10 +173,22 @@ export async function getSettlementPage(userId: string, settlementId: number) {
     getSettlementProjects(userId, settlementId, held),
   ]);
 
+  const storage = settlement.storage;
   return {
     settlement,
     present,
     traveling: presence.traveling,
+    storage: storage?.enabled
+      ? {
+          name: storage.name,
+          slots: storage.slots,
+          unlockCost: Number(storage.unlockCost),
+          used: storage.players[0]?._count.items ?? null,
+          icon: storageIcon,
+          mapX: storage.mapX,
+          mapY: storage.mapY,
+        }
+      : null,
     npcs: npcs.map(({ quests, _count, ...npc }) => {
       const views = quests.map((quest) =>
         toQuestView(quest, { userQuest: userQuests.get(quest.id), held, now }),

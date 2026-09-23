@@ -28,7 +28,13 @@ export interface VocationResourceDefinition {
 }
 
 export const VOCATION_EXPANSION_LOCATIONS = ATLAS_LOCATION_MARKERS.map(
-  ({ name, requiredLevel }) => ({ name, requiredLevel }),
+  ({ name, requiredLevel, left, top }) => ({
+    name,
+    requiredLevel,
+    // The starting pin on the world atlas; admins move it in /admin/locations.
+    mapX: Number.parseFloat(left),
+    mapY: Number.parseFloat(top),
+  }),
 );
 
 /**

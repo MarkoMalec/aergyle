@@ -1,37 +1,42 @@
 import Link from "next/link";
 import { NewSettlementForm } from "~/components/admin/settlements/NewSettlementForm";
+import { StorageIconForm } from "~/components/admin/settlements/StorageEditor";
 import { SETTLEMENT_KIND_LABELS } from "~/game/settlements";
 import { prisma } from "~/lib/prisma";
+import { getStorageIcon } from "~/server/settlements";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function AdminSettlementsPage() {
-  const [locations, npcs, offers, quests, openProjects] = await Promise.all([
-    prisma.location.findMany({
-      orderBy: [{ requiredLevel: "asc" }, { name: "asc" }],
-      select: {
-        id: true,
-        name: true,
-        settlements: {
-          orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-          select: {
-            id: true,
-            name: true,
-            kind: true,
-            enabled: true,
-            _count: { select: { npcs: true, projects: true } },
+  const [locations, npcs, offers, quests, openProjects, storages, storageIcon] =
+    await Promise.all([
+      prisma.location.findMany({
+        orderBy: [{ requiredLevel: "asc" }, { name: "asc" }],
+        select: {
+          id: true,
+          name: true,
+          settlements: {
+            orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+            select: {
+              id: true,
+              name: true,
+              kind: true,
+              enabled: true,
+              _count: { select: { npcs: true, projects: true } },
+            },
           },
         },
-      },
-    }),
-    prisma.npc.count(),
-    prisma.npcOffer.count(),
-    prisma.quest.count(),
-    prisma.communityProject.count({
-      where: { enabled: true, completedAt: null },
-    }),
-  ]);
+      }),
+      prisma.npc.count(),
+      prisma.npcOffer.count(),
+      prisma.quest.count(),
+      prisma.communityProject.count({
+        where: { enabled: true, completedAt: null },
+      }),
+      prisma.settlementStorage.count({ where: { enabled: true } }),
+      getStorageIcon(),
+    ]);
 
   const stats = [
     {
@@ -42,6 +47,7 @@ export default async function AdminSettlementsPage() {
     { label: "Items for sale", value: offers },
     { label: "Quests", value: quests },
     { label: "Open projects", value: openProjects },
+    { label: "Storages", value: storages },
   ];
 
   return (
@@ -59,7 +65,7 @@ export default async function AdminSettlementsPage() {
         </p>
       </header>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-6">
         {stats.map((stat) => (
           <div
             className="rounded-lg border border-white/10 bg-gray-900/35 p-3"
@@ -74,6 +80,8 @@ export default async function AdminSettlementsPage() {
       <NewSettlementForm
         locations={locations.map(({ id, name }) => ({ id, name }))}
       />
+
+      <StorageIconForm icon={storageIcon} />
 
       <div className="space-y-4">
         {locations.map((location) => (

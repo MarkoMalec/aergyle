@@ -1,0 +1,24 @@
+{
+  "generator": "Built-in image_gen",
+  "generatedOn": "2026-09-21",
+  "pack": "profession-npcs-v2",
+  "artDirection": "Grounded Wayfarer's Atlas dark-fantasy civilian NPCs with unique regional tools and stories",
+  "masterSize": "1024x1536 RGBA PNG",
+  "runtimeSize": "512x768 RGBA PNG",
+  "assets": [
+    {"name":"Corren Saltreed","profession":"Angler","region":"Farwater Keys","master":"corren-saltreed-angler-master.png","runtime":"/assets/npcs/corren-saltreed-angler-v2.png","generatedFile":"exec-88df9881-bcb6-41d1-9ce5-6876c9ad72dc.png","revision":"Completely rebuilt as a forward-facing late-fifties tide-pool angler and net salvage worker with handline H-frame and closed crab pot."},
+    {"name":"Harl Vey","profession":"Angler","region":"Frostcrown Peaks","master":"harl-vey-angler-master.png","runtime":"/assets/npcs/harl-vey-angler-v2.png","generatedFile":"exec-5e24d764-47f3-47a8-b9cc-5a2495723f60.png"},
+    {"name":"Dorek Vann","profession":"Weaponsmith","region":"Citadel, River Crown","master":"dorek-vann-weaponsmith-master.png","runtime":"/assets/npcs/dorek-vann-weaponsmith-v2.png","generatedFile":"exec-526c7360-f2ef-4d8d-8a5a-519a2881333c.png"},
+    {"name":"Kest Orbrim","profession":"Weaponsmith","region":"Ember Reach","master":"kest-orbrim-weaponsmith-master.png","runtime":"/assets/npcs/kest-orbrim-weaponsmith-v2.png","generatedFile":"exec-4edd7ead-79a1-4f17-86eb-94f8550e0274.png","revision":"Completely rebuilt as a forward-facing early-sixties former smelter inspecting a safe blade-balance frame."},
+    {"name":"Aled Frostmark","profession":"Weaponsmith","region":"Frostcrown Peaks","master":"aled-frostmark-weaponsmith-master.png","runtime":"/assets/npcs/aled-frostmark-weaponsmith-v2.png","generatedFile":"exec-8be18f34-24a5-4528-b5f4-3bfa3c636f3b.png"},
+    {"name":"Lorn Thistlebank","profession":"Gardener","region":"Greenveil Plains","master":"lorn-thistlebank-gardener-master.png","runtime":"/assets/npcs/lorn-thistlebank-gardener-v2.png","generatedFile":"exec-e7a89d0c-97b0-4103-8fef-eddfb7644330.png"},
+    {"name":"Borin Mudwillow","profession":"Gardener","region":"Ashwood Verge","master":"borin-mudwillow-gardener-master.png","runtime":"/assets/npcs/borin-mudwillow-gardener-v2.png","generatedFile":"exec-409f7b82-3199-4335-b0bb-7a04e31e7156.png"},
+    {"name":"Varis Hemlock","profession":"Tailor","region":"Crownhold Quay ward","master":"varis-hemlock-tailor-master.png","runtime":"/assets/npcs/varis-hemlock-tailor-v2.png","generatedFile":"exec-e4289e9d-7314-4855-91ae-90c35dc41429.png"},
+    {"name":"Edrin Valeweft","profession":"Tailor","region":"Violet Highlands","master":"edrin-valeweft-tailor-master.png","runtime":"/assets/npcs/edrin-valeweft-tailor-v2.png","generatedFile":"exec-ef43738a-10c6-4bc9-8406-8a84a8495764.png","revision":"Revised for direct face-to-camera eye contact while retaining his cloth repair work and kit."},
+    {"name":"Noll Graven","profession":"Blacksmith","region":"Violet Highlands","master":"noll-graven-blacksmith-master.png","runtime":"/assets/npcs/noll-graven-blacksmith-v2.png","generatedFile":"exec-87570913-713c-4d87-9127-4be1c8ef7d2c.png"},
+    {"name":"Elric Oakrest","profession":"Carpenter","region":"Greenveil Plains","master":"elric-oakrest-carpenter-master.png","runtime":"/assets/npcs/elric-oakrest-carpenter-v2.png","generatedFile":"exec-2152c9ab-7b31-457e-a77c-b2e141d0186b.png"},
+    {"name":"Soren Keel","profession":"Carpenter","region":"Farwater Keys","master":"soren-keel-carpenter-master.png","runtime":"/assets/npcs/soren-keel-carpenter-v2.png","generatedFile":"exec-140411f5-6e0e-4daf-93d7-50f6043ee783.png"},
+    {"name":"Iven Cindergrain","profession":"Carpenter","region":"Ember Reach","master":"iven-cindergrain-carpenter-master.png","runtime":"/assets/npcs/iven-cindergrain-carpenter-v2.png","generatedFile":"exec-05c30a99-0905-434b-96d4-e4148be0844d.png","revision":"Completely rebuilt as a forward-facing cliff-house carpenter with shutter panel, folding rule, cracked spectacles and compact repair tools."}
+  ],
+  "runtimeExport": "ffmpeg Lanczos resize from 1024x1536 to 512x768 with RGBA preserved"
+}

@@ -33,6 +33,8 @@ import { ResponsiveModal } from "~/components/ui/responsive-modal";
 
 interface CharacterStatsProps {
   baseStats: Array<{ statType: StatType; value: number }>;
+  /** Level 1 Attack Speed, which an equipped weapon's own speed replaces. */
+  unarmedAttackSpeed: number;
   currentHealth?: number;
 }
 
@@ -128,6 +130,7 @@ function getCategoryRows(stats: Array<[StatType, number]>): StatRow[] {
 
 export const CharacterStats = ({
   baseStats,
+  unarmedAttackSpeed,
   currentHealth,
 }: CharacterStatsProps) => {
   const { equipment } = useEquipmentContext();
@@ -142,8 +145,8 @@ export const CharacterStats = ({
   }, [baseStats]);
 
   const equipmentStatsRecord = useMemo(
-    () => calculateEquipmentBonuses(equipment),
-    [equipment],
+    () => calculateEquipmentBonuses(equipment, unarmedAttackSpeed),
+    [equipment, unarmedAttackSpeed],
   );
 
   const foodStatsRecord = useMemo(() => {

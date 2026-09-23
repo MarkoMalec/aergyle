@@ -17,6 +17,12 @@ travelling) to use them.
 - **/settlements/[id]** shows the settlement map, with a head for each NPC,
   and its community projects. The list beside the map says "Quest ready",
   "N new quests" and "Trades"; a head with a quest to hand in glows green.
+- **/settlements/[id]/storage** is the settlement's storage, opened from the
+  chest on its map: the inventory and the storage side by side, with stacks
+  dragged between them or moved with the arrows in the middle. Clicking the
+  pin opens it as a window over the settlement (an intercepted route); a
+  direct visit or a refresh shows the same thing as its own page. See
+  [Storage](#storage).
 - **/settlements/[id]/npcs/[npcId]** shows the NPC's portrait, greeting and
   quests on the left, and its wares and a sell panel on the right. Each quest
   is a collapsible row: its header holds the name, status and repeat badges
@@ -36,11 +42,14 @@ travel there.
 
 ## Maps
 
-Region and settlement maps are 1536×1024 artworks shown at that exact size,
-like the world atlas; players drag them (or scroll, or use the arrow keys) to
+The world atlas, region maps and settlement maps are 1536×1024 artworks shown
+at that exact size; players drag them (or scroll, or use the arrow keys) to
 see more, so a pin always sits where the admin put it. Pins are stored as
 percentages (`mapX`, `mapY`) on the place itself.
 
+- **World atlas** (`AtlasConfig.mapImage`, one row with id 1): the locations,
+  each on its own pin (`Location.mapX`, `mapY`). A location without a pin is
+  not on the atlas and cannot be travelled to from it.
 - **Region map** (`Location.mapImage`): settlements (a diamond), dungeons and
   hunting grounds. A dungeon above the character's level, or a hunting
   ground above the Hunting level, shows a lock and does not open. Dungeon and
@@ -48,11 +57,13 @@ percentages (`mapX`, `mapY`) on the place itself.
   `/skills/Hunting?ground=`).
 - **Settlement map** (`Settlement.mapImage`): NPC heads, cut from the
   portrait by the NPC's head crop (`headX`, `headY`, `headSize`; a default
-  crop until one is chosen). Later settlement features, such as storage,
-  become pins here too.
+  crop until one is chosen), and the settlement's storage, which wears the
+  chest artwork every storage shares (`StorageConfig.icon`).
 
 Places that aren't on the map yet are still in the list, and a location or
 settlement without artwork shows the list alone. Gathering is not pinned.
+`src/game/world/atlasLocations.ts` still holds each location's field notes and
+the coordinates a new world starts from; the live pins are the database's.
 
 ## NPCs
 
@@ -83,6 +94,48 @@ whatever the stack's rarity (`npcBuyPrice` in `shop.ts`). Equipped and listed
 items are not in the inventory, so they can't be sold. The stack is reduced
 only if it still holds what was read, so two simultaneous sales can never be
 paid for the same items.
+
+## Storage
+
+A settlement can have one storage (`SettlementStorage`): a chest pinned on
+its map that a player **rents once, with gold** (`unlockCost`), and then
+keeps items in. Storage is per settlement, never shared: a sword left in the
+Citadel stays in the Citadel, and is only reachable while the player is at
+that location, like everything else in a settlement.
+
+A storage holds `slots` **stacks** (10 by default, set per settlement in
+admin). Each stack takes one slot however many items it holds; a stackable
+item tops up a stack that is already there before it opens a new one. Extra
+slots bought by a player come later — `UserStorage` is where they will live.
+
+Stored items leave the inventory: they become `UserItem` rows with status
+`IN_STORAGE`, held by the player's `UserStorage` row for that settlement, so
+they no longer count for quests, crafting, selling or the marketplace. A
+whole stack that nothing can merge with moves as it is, keeping its instance
+(and so its rarity and any modifiers); a partial move splits it, and the
+remainder merges on the other side. Every move is one transaction, and each
+write only applies while the stack still holds what was read, so two
+requests can never move the same items twice.
+
+The window shows the **inventory as it really is** — every slot in its own
+position, empty ones included, drawn like the character page's grid — beside
+the storage's own slots. **Drag a stack across** to move all of it, or
+**choose a stack and use the arrows** between them, which is also how a part
+of a stack is moved (the amount box belongs to the chosen stack, so dragging
+that one moves the amount shown and dragging any other moves it whole).
+Clicking an item opens its details card, the same one as everywhere else.
+
+Each slot is its own drop target, so a withdrawal lands in the inventory slot
+it was dropped on (`toSlot`) when that one is free, and in the first free slot
+otherwise. Storage keeps no positions of its own: a stack goes in the first
+slot that fits, and every storage slot accepts a deposit.
+
+The window brings its own drag-and-drop (`@dnd-kit`, the same sensors as the
+inventory: a movement under 5px is a click, and touch waits 200ms so a tap
+still opens an item and the window still scrolls). It does not use the
+character page's `DndProvider`, which is built around inventory, equipment
+and the discard slot; rearranging a side stays that page's job, and the
+arrows remain the way to move things without a pointer drag.
 
 ## Quests
 
@@ -148,17 +201,26 @@ every requirement weighs the same however many items it asks for.
 ## Administration
 
 - **/admin/settlements**: every location with its settlements, and a form to
-  create one. New settlements, NPCs, quests and projects start disabled.
+  create one. New settlements, NPCs, quests, projects and storages start
+  disabled. The **Storage icon** here is the chest artwork every storage in
+  the game uses.
+- **/admin/settlements/[id]** has the **Storage** panel: add the
+  settlement's storage, then set its name, rent cost, how many stacks it
+  holds, and whether players can see it. Deleting it destroys what players
+  kept in it; disabling it only hides it.
 - **/admin/settlements/[id]**: details (name, location, kind, banner image,
   description), its NPCs, and its community projects with progress,
   contributor counts and what each one unlocks. Raising a requirement of a
   completed project reopens it.
+- **/admin/locations**: the **World atlas**: the artwork path and a
+  drag-and-drop editor for the locations, shown as players see it. A new
+  artwork keeps every pin where it is.
 - **/admin/locations/[id]**: the **Region map**: the artwork path and a
   drag-and-drop editor for the location's settlements, dungeons and hunting
   grounds, shown exactly as players see it. Place a pin from the list beside
   the map, drag it into position, and save.
 - **/admin/settlements/[id]** also has the **Settlement map** editor for its
-  NPCs.
+  NPCs and its storage.
 - **/admin/npcs/[id]**: profile (name, settlement, profession, portrait path,
   map head, greeting, hidden-until project) and the shop, saved together from
   the bar that appears on unsaved changes. The map head is chosen on the
@@ -172,8 +234,9 @@ Items, creatures and dungeons are chosen with a searchable picker.
 ## Code
 
 - `src/server/settlements/`: `rules.ts` (pure: periods, windows, progress,
-  shares), `access.ts` (visibility and presence), `shop.ts`, `quests.ts`,
-  `projects.ts`, `pages.ts` (page loaders, the region page too).
+  shares, `planStackFill`), `access.ts` (visibility and presence), `shop.ts`,
+  `storage.ts`, `quests.ts`, `projects.ts`, `pages.ts` (page loaders, the
+  region page too).
 - `src/server/items/consumeItems.ts`: shared inventory consumption (by item,
   lowest rarity first, or from one stack when selling), also used by
   gardening.
@@ -183,28 +246,41 @@ Items, creatures and dungeons are chosen with a searchable picker.
   `PATCH /api/admin/maps`, which saves a map's artwork and moved pins.
 - `src/components/game/settlements/useUnseenQuests.ts`: the unseen-quest
   query behind every `NewQuestsDot`, and marking an NPC's quests as seen.
+- Storage: `src/app/(game)/settlements/[id]/storage/` (the page) and
+  `@modal/(.)storage/` (the same view intercepted into `StorageDialog`); the
+  `@modal` slot is declared in `settlements/[id]/layout.tsx`. The window
+  itself is `src/components/game/settlements/StorageExchange.tsx`, which
+  reuses the inventory's slot styling and the shared item card
+  (`ItemDetailsPopoverContent` with `LoadedItemDetails`) behind its own
+  draggable triggers; its pin face is
+  `src/components/game/map/StorageFace.tsx`.
 - Player API: `/api/settlements/buy`, `/api/settlements/sell`,
   `/api/settlements/quests` (GET: active quests),
   `/api/settlements/quests/[accept|complete|abandon]`,
   `/api/settlements/quests/unseen` (GET), `/api/settlements/quests/seen`
-  (POST), `/api/settlements/projects/contribute`. Admin API: `/api/admin/settlements`,
-  `/api/admin/npcs`, `/api/admin/quests`, `/api/admin/community-projects`.
+  (POST), `/api/settlements/projects/contribute`,
+  `/api/settlements/storage/[unlock|move]`. Admin API:
+  `/api/admin/settlements`, `/api/admin/npcs`, `/api/admin/quests`,
+  `/api/admin/community-projects`, `/api/admin/storages` (and
+  `/api/admin/storages/config` for the shared chest icon).
 
 ## Operations
 
 1. Deploy `prisma/migrations/20260919120000_settlements_npcs_quests/`,
-   `prisma/migrations/20260919180000_user_seen_quests/` and
-   `prisma/migrations/20260919210000_region_settlement_maps/`.
+   `prisma/migrations/20260919180000_user_seen_quests/`,
+   `prisma/migrations/20260919210000_region_settlement_maps/` and
+   `prisma/migrations/20260922120000_settlement_storage/`.
 2. Run the rules tests with `npm run test:settlements` and the dungeon tests
    with `npm run test:dungeons`.
 3. Create settlements in /admin/settlements. NPC portraits live in
    `public/assets/npcs/`, map artwork in `public/assets/world/`.
+4. Set the storage chest icon in /admin/settlements before enabling a
+   storage; without it the pin falls back to a plain icon.
 
 ## Planned
 
-- **Settlement storage.** Storage belongs to a settlement, not an NPC: a
-  player obtains (buys) storage there and moves items between it and the
-  inventory. It is its own inventory-like system and will be built separately.
+- **More storage slots.** Players buying extra slots in a storage they
+  already rent, on top of the settlement's own `slots`.
 - **Travelling merchant.** An NPC who moves between settlements on a schedule
   (for example 24 hours in each) with rare stock, so players plan journeys
   around where it will be next. Waiting for its artwork.

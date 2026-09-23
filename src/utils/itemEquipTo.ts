@@ -46,6 +46,12 @@ export const EQUIPMENT_SLOTS = [
   },
   { slot: "weapon", dbField: "weaponItemId", index: 113, equipTo: "weapon" },
   {
+    slot: "offhand",
+    dbField: "offhandItemId",
+    index: 116,
+    equipTo: "offhand",
+  },
+  {
     slot: "fellingAxe",
     dbField: "fellingAxeItemId",
     index: 114,
@@ -57,6 +63,13 @@ export const EQUIPMENT_SLOTS = [
     index: 115,
     equipTo: "pickaxe",
   },
+  {
+    slot: "fishingRod",
+    dbField: "fishingRodItemId",
+    index: 117,
+    equipTo: "fishingRod",
+  },
+  { slot: "hoe", dbField: "hoeItemId", index: 118, equipTo: "hoe" },
 ] as const satisfies readonly {
   slot: string;
   dbField: string;
@@ -106,6 +119,8 @@ const aliases: Record<string, ItemEquipTo> = {
   legs: "greaves",
   axe: "fellingAxe",
   fellingaxe: "fellingAxe",
+  shield: "offhand",
+  fishingrod: "fishingRod",
 };
 
 export function normalizeItemEquipTo(

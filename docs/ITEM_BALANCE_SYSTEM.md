@@ -12,7 +12,8 @@ For each stat:
 1. Start with `ItemStat.value`.
 2. Add unlocked `ItemStatProgression.baseValue` entries.
 3. Use the global `RarityConfig.statMultiplier`, unless this item/stat/rarity
-   has a `MULTIPLIER` override.
+   has a `MULTIPLIER` override. A weapon's own Attack Speed never takes the
+   global multiplier.
 4. A per-item `ABSOLUTE` override can instead set the final template value.
 5. Apply the stat cap, if configured.
 6. Add `UserItemStatModifier` values belonging to this particular instance.

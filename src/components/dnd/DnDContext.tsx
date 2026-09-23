@@ -4,12 +4,14 @@ import React, { createContext, ReactNode, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import {
   DndContext as DndKitContext,
+  DragOverlay,
   closestCenter,
   MouseSensor,
   useSensor,
   useSensors,
   DragEndEvent,
 } from "@dnd-kit/core";
+import Image from "next/image";
 import { useUserContext } from "~/context/userContext";
 import { useEquipmentContext } from "~/context/equipmentContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -20,10 +22,16 @@ import {
   EQUIPMENT_INDEX_MAP,
   EquipmentSlotType,
 } from "~/types/inventory";
-import { canEquipToSlot, meetsItemLevelRequirement } from "~/utils/inventoryClient";
+import {
+  canEquipToSlot,
+  getDisplacedHand,
+  meetsItemLevelRequirement,
+} from "~/utils/inventoryClient";
 import { useState } from "react";
 import { useVocationalActiveActionContext } from "~/components/game/actions/VocationalActiveActionProvider";
 import toast from "react-hot-toast";
+import type { ItemWithStats } from "~/types/stats";
+import { ItemRarityMark } from "~/utils/ui/rarity-mark";
 
 // Export for backward compatibility
 export type InventorySlot = InventorySlotWithItem;
@@ -198,6 +206,10 @@ export const DndProvider: React.FC<DndProviderProps> = ({
   
   const isLoading = inventoryQuery.isLoading;
 
+  // The dragged item is drawn in an overlay so scrolling slot lists (tools)
+  // can't clip it on its way out.
+  const [draggedItem, setDraggedItem] = useState<ItemWithStats | null>(null);
+
   const sensors = useSensors(
     useSensor(MouseSensor, {
       activationConstraint: {
@@ -205,6 +217,24 @@ export const DndProvider: React.FC<DndProviderProps> = ({
       },
     }),
   );
+
+  // Sends the other hand's item to the first free bag slot, for a two-handed
+  // weapon; returns false when the bags are full.
+  const moveToBags = (
+    updatedEquipment: EquipmentSlotsWithItems,
+    updatedInventory: InventorySlotWithItem[],
+    hand: "weapon" | "offhand",
+  ): boolean => {
+    const freeIndex = updatedInventory.findIndex((slot) => !slot.item);
+    const freeSlot = updatedInventory[freeIndex];
+    if (!freeSlot) {
+      toast.error("Inventory is full, so your other hand can't be emptied.");
+      return false;
+    }
+    updatedInventory[freeIndex] = { ...freeSlot, item: updatedEquipment[hand] };
+    updatedEquipment[hand] = null;
+    return true;
+  };
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
@@ -506,6 +536,14 @@ export const DndProvider: React.FC<DndProviderProps> = ({
         // Swap items
         const existingItem = updatedEquipment[equipmentKey];
         updatedEquipment[equipmentKey] = deleteSlot.item;
+
+        const updatedInventory = [...inventory];
+        const otherHand = getDisplacedHand(updatedEquipment, equipmentKey);
+        if (
+          otherHand &&
+          !moveToBags(updatedEquipment, updatedInventory, otherHand)
+        )
+          return;
         
         const newDeleteSlot = {
           slotIndex: 999,
@@ -514,6 +552,7 @@ export const DndProvider: React.FC<DndProviderProps> = ({
         setDeleteSlot(newDeleteSlot);
         updateDeleteSlotInDB(newDeleteSlot);
 
+        if (otherHand) updateInventoryOrder.mutate(updatedInventory);
         updateEquipmentOrder.mutateAsync(updatedEquipment);
       }
       // Inventory → Equipment
@@ -539,7 +578,14 @@ export const DndProvider: React.FC<DndProviderProps> = ({
         // Swap or move
         const existingItem = updatedEquipment[equipmentKey];
         updatedEquipment[equipmentKey] = item;
-        activeSlot.item = existingItem;
+        updatedInventory[activeIndex] = { ...activeSlot, item: existingItem };
+
+        const otherHand = getDisplacedHand(updatedEquipment, equipmentKey);
+        if (
+          otherHand &&
+          !moveToBags(updatedEquipment, updatedInventory, otherHand)
+        )
+          return;
 
         updateInventoryOrder.mutate(updatedInventory);
         updateEquipmentOrder.mutateAsync(updatedEquipment);
@@ -605,8 +651,15 @@ export const DndProvider: React.FC<DndProviderProps> = ({
         }
 
         // Swap or move
-        overSlot.item = item;
+        updatedInventory[overIndex] = { ...overSlot, item };
         updatedEquipment[equipmentKey] = existingItem;
+
+        const otherHand = getDisplacedHand(updatedEquipment, equipmentKey);
+        if (
+          otherHand &&
+          !moveToBags(updatedEquipment, updatedInventory, otherHand)
+        )
+          return;
 
         updateInventoryOrder.mutate(updatedInventory);
         updateEquipmentOrder.mutateAsync(updatedEquipment);
@@ -664,10 +717,38 @@ export const DndProvider: React.FC<DndProviderProps> = ({
       <DndKitContext
         sensors={sensors}
         collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
+        onDragStart={({ active }) =>
+          setDraggedItem(
+            (active.data.current?.item as ItemWithStats | undefined) ?? null,
+          )
+        }
+        onDragEnd={(event) => {
+          setDraggedItem(null);
+          void handleDragEnd(event);
+        }}
+        onDragCancel={() => setDraggedItem(null)}
         id="unique-dnd-context"
       >
         {children}
+        <DragOverlay dropAnimation={null}>
+          {draggedItem ? (
+            <div className="game-item-trigger game-drag-overlay">
+              <Image
+                alt=""
+                src={draggedItem.sprite}
+                width={102}
+                height={102}
+                className="object-contain"
+              />
+              <ItemRarityMark rarity={draggedItem.rarity} />
+              {draggedItem.quantity && draggedItem.quantity > 1 && (
+                <div className="game-item-quantity">
+                  {draggedItem.quantity}
+                </div>
+              )}
+            </div>
+          ) : null}
+        </DragOverlay>
       </DndKitContext>
     </DndContext.Provider>
   );

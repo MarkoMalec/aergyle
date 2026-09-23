@@ -97,6 +97,7 @@ export default async function AdminEditItemPage(props: {
       seedXp: item.seedXp ?? null,
       foodEffectSeconds: item.foodEffectSeconds ?? null,
       equipTo: item.equipTo,
+      twoHanded: item.twoHanded,
       stackable: item.stackable,
       maxStackSize: item.maxStackSize,
       flipNegativeStatsWithRarity: item.flipNegativeStatsWithRarity,
