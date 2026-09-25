@@ -1,4 +1,10 @@
-import { ItemEquipTo } from "~/generated/prisma/enums";
+import { ItemEquipTo, ItemStatus } from "~/generated/prisma/enums";
+
+/** Item statuses that still count as owned gear (not listed, sold or consumed). */
+export const USABLE_EQUIPMENT_ITEM_STATUSES = [
+  ItemStatus.IN_INVENTORY,
+  ItemStatus.EQUIPPED,
+];
 
 export const EQUIPMENT_SLOTS = [
   { slot: "head", dbField: "headItemId", index: 100, equipTo: "head" },

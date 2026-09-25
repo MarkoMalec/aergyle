@@ -14,7 +14,7 @@ import {
 } from "~/server/garden/harvestSchedule";
 import { consumeInventoryItems } from "~/server/items/consumeItems";
 import { grantStackableItemToInventory } from "~/server/items/grantItem";
-import { assertRequiredToolEquipped } from "~/server/vocations/tools";
+import { assertRequiredToolEquipped } from "~/server/vocations/toolRules";
 import { awardXp } from "~/utils/leveling";
 import { awardTrackXp } from "~/utils/progression";
 import { recordSkillWork } from "~/server/skills/metrics";

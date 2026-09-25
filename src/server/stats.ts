@@ -1,6 +1,6 @@
 import "server-only";
 
-import { ItemStatus, StatType } from "~/generated/prisma/enums";
+import { StatType } from "~/generated/prisma/enums";
 import { prisma } from "~/lib/prisma";
 import type { ComputedStats } from "~/types/stats";
 import {
@@ -16,6 +16,7 @@ import {
 import { getActiveFoodEffect } from "~/server/food-effects";
 import {
   getEquippedUserItemIds,
+  USABLE_EQUIPMENT_ITEM_STATUSES,
   type EquipmentItemReferences,
 } from "~/utils/itemEquipTo";
 import {
@@ -32,11 +33,6 @@ export type CharacterStatSnapshot = {
   equippedUserItemIds: number[];
   activeEffect: Awaited<ReturnType<typeof getActiveFoodEffect>>;
 };
-
-export const USABLE_EQUIPMENT_ITEM_STATUSES = [
-  ItemStatus.IN_INVENTORY,
-  ItemStatus.EQUIPPED,
-];
 
 /** Admin level-growth rules; stats without a saved rule use the defaults. */
 export async function getStatGrowthRules(): Promise<
