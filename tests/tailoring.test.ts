@@ -16,12 +16,12 @@ import {
   StatType,
   VocationalActionType,
 } from "../src/generated/prisma/enums";
+import { getCraftingCategory, getCraftingRule } from "../src/game/crafting";
 import {
-  getCraftingCategory,
-  getCraftingRule,
-  validateCraftingItemTypes,
-} from "../src/game/crafting";
-import { grantStackableItemToInventory } from "../src/server/vocations/grantItem";
+  SHIPPED_SKILL_ITEM_RULES,
+  shippedCraftConflict,
+} from "./shippedSkillItemRules";
+import { grantStackableItemToInventory } from "../src/server/items/grantItem";
 import { resolveEffectiveItemStats } from "../src/utils/itemInstanceStats";
 import { toVocationalActionTypeFromSkillName } from "../src/utils/vocations";
 
@@ -75,10 +75,10 @@ void test("Tailoring inputs are obtainable Gathering resources", () => {
 });
 
 void test("crafting rules make profession ownership explicit", () => {
-  const tailoring = getCraftingRule(VocationalActionType.TAILORING);
-  const blacksmithing = getCraftingRule(VocationalActionType.BLACKSMITHING);
-  const weaponsmithing = getCraftingRule(VocationalActionType.WEAPONSMITHING);
-  const carpentry = getCraftingRule(VocationalActionType.CARPENTRY);
+  const tailoring = SHIPPED_SKILL_ITEM_RULES.TAILORING;
+  const blacksmithing = SHIPPED_SKILL_ITEM_RULES.BLACKSMITHING;
+  const weaponsmithing = SHIPPED_SKILL_ITEM_RULES.WEAPONSMITHING;
+  const carpentry = SHIPPED_SKILL_ITEM_RULES.CARPENTRY;
   assert.ok(tailoring);
   assert.ok(blacksmithing);
   assert.ok(weaponsmithing);
@@ -87,7 +87,10 @@ void test("crafting rules make profession ownership explicit", () => {
   assert.ok(tailoring.inputTypes.includes(ItemType.MATERIAL));
   assert.ok(tailoring.inputTypes.includes(ItemType.HIDE));
   assert.ok(tailoring.inputTypes.includes(ItemType.BLUEPRINT));
-  assert.equal(tailoring.allowsLearnedRecipes, false);
+  assert.equal(
+    getCraftingRule(VocationalActionType.TAILORING)?.allowsLearnedRecipes,
+    false,
+  );
   assert.ok(blacksmithing.outputTypes.includes(ItemType.INGOT));
   assert.ok(blacksmithing.outputTypes.includes(ItemType.CHESTPLATE));
   assert.ok(blacksmithing.outputTypes.includes(ItemType.MATERIAL));
@@ -120,7 +123,7 @@ void test("crafting rules make profession ownership explicit", () => {
   );
 
   assert.equal(
-    validateCraftingItemTypes({
+    shippedCraftConflict({
       actionType: VocationalActionType.TAILORING,
       outputType: ItemType.GLOVES,
       inputTypes: [ItemType.BLUEPRINT, ItemType.MATERIAL, ItemType.HIDE],
@@ -128,16 +131,16 @@ void test("crafting rules make profession ownership explicit", () => {
     null,
   );
   assert.match(
-    validateCraftingItemTypes({
+    shippedCraftConflict({
       actionType: VocationalActionType.TAILORING,
       outputType: ItemType.FOOD,
       inputTypes: [ItemType.MATERIAL],
     }) ?? "",
-    /apparel/i,
+    /Tailoring can't output FOOD/,
   );
 
   assert.equal(
-    validateCraftingItemTypes({
+    shippedCraftConflict({
       actionType: VocationalActionType.WEAPONSMITHING,
       outputType: ItemType.SWORD,
       inputTypes: [ItemType.INGOT, ItemType.MATERIAL],
@@ -145,7 +148,7 @@ void test("crafting rules make profession ownership explicit", () => {
     null,
   );
   assert.equal(
-    validateCraftingItemTypes({
+    shippedCraftConflict({
       actionType: VocationalActionType.CARPENTRY,
       outputType: ItemType.BOW,
       inputTypes: [ItemType.LOG, ItemType.MATERIAL],
@@ -182,6 +185,7 @@ void test("the production grant path does not snapshot shared balance stats", as
   let persistedModifiers: Array<{ statType: StatType; value: number }> = [];
 
   const db = {
+    $queryRaw: async () => [{ slots: [], maxSlots: 1, deleteSlotId: null }],
     item: {
       findUnique: async () => ({
         stackable: false,

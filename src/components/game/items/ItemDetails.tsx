@@ -26,6 +26,7 @@ export type ItemDetailsData = Pick<
   | "requiredLevel"
   | "description"
   | "price"
+  | "healingAmount"
   | "foodEffectSeconds"
   | "foodEffectStats"
 > & {
@@ -38,6 +39,12 @@ export function itemHasTimedEffect(itemType: ItemType | null | undefined) {
     itemType === ItemType.POTION ||
     itemType === ItemType.ELIXIR
   );
+}
+
+export function itemHasImmediateHealing(
+  item: Pick<ItemDetailsData, "itemType" | "healingAmount">,
+) {
+  return itemHasTimedEffect(item.itemType) && (item.healingAmount ?? 0) > 0;
 }
 
 /** The item card body, shared by the inventory popup and item popups everywhere else. */
@@ -94,6 +101,18 @@ export function ItemDetails({ item }: { item: ItemDetailsData }) {
           {item.description}
         </p>
       )}
+      {itemHasImmediateHealing(item) ? (
+        <div className="mb-4 rounded-lg border border-border bg-secondary/30 p-3">
+          <div className="flex items-center justify-between gap-3 text-xs">
+            <span className="font-semibold text-foreground">
+              Instant healing
+            </span>
+            <span className="font-semibold tabular-nums text-success">
+              Restores {Math.floor(item.healingAmount ?? 0)} health
+            </span>
+          </div>
+        </div>
+      ) : null}
       {itemHasTimedEffect(item.itemType) &&
       item.foodEffectSeconds &&
       (item.foodEffectStats?.length ?? 0) > 0 ? (

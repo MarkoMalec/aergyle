@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { COMPONENT_ITEMS } from "../prisma/content/componentExpansion";
+import { ALCHEMY_ITEMS } from "../prisma/content/alchemy";
 import { DUNGEON_MONSTERS, DUNGEONS } from "../prisma/content/dungeons";
 import { HUNTING_ITEMS } from "../prisma/content/hunting";
 import { TAILORING_ITEMS } from "../prisma/content/tailoring";
@@ -346,7 +347,7 @@ void test("recommended health is stable, scales with population and pack size, a
   assert.equal(unwinnable, null);
 });
 
-void test("starter dungeon content is placed in Crownhold with valid monsters and loot", () => {
+void test("dungeon content places the starter vault and the rare troll source with valid loot", () => {
   const locations = new Set(
     WORLD_ATLAS_LOCATION_MARKERS.map((location) => location.name),
   );
@@ -355,11 +356,18 @@ void test("starter dungeon content is placed in Crownhold with valid monsters an
     ...HUNTING_ITEMS.map((item) => item.name),
     ...COMPONENT_ITEMS.map((item) => item.name),
     ...TAILORING_ITEMS.map((item) => item.name),
+    ...ALCHEMY_ITEMS.map((item) => item.name),
     "Wooden Dagger",
   ]);
 
-  assert.equal(DUNGEONS.length, 1);
-  assert.equal(DUNGEONS[0].locationName, "Crownhold");
+  const starter = DUNGEONS.find((dungeon) => dungeon.name === "Gloamvault");
+  const trollCavern = DUNGEONS.find(
+    (dungeon) => dungeon.name === "Trollbreaker Cavern",
+  );
+  assert.equal(starter?.locationName, "Crownhold");
+  assert.deepEqual(starter?.locationAliases, ["Valedor"]);
+  assert.equal(trollCavern?.locationName, "Frostcrown Peaks");
+  assert.ok(trollCavern && trollCavern.requiredLevel >= 65);
   for (const dungeon of DUNGEONS) {
     assert.ok(locations.has(dungeon.locationName));
     assert.ok(dungeon.durationSeconds >= 60);
@@ -384,4 +392,16 @@ void test("starter dungeon content is placed in Crownhold with valid monsters an
     assert.equal(png.toString("hex", 0, 8), "89504e470d0a1a0a");
     assert.equal(png[25], 6, `${monster.name} must retain RGBA transparency`);
   }
+
+  const troll = DUNGEON_MONSTERS.find(
+    (monster) => monster.name === "Stoneback Troll",
+  );
+  const trollBlood = troll?.drops.find(
+    (drop) => drop.itemName === "Troll Blood",
+  );
+  assert.ok(trollBlood, "Stoneback Troll must yield Troll Blood");
+  assert.ok(
+    (trollBlood?.baseChance ?? 1) <= 0.12,
+    "Troll Blood must remain a rare drop",
+  );
 });

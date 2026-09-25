@@ -30,7 +30,7 @@ env:
 jobs:
   # A real gate. next.config.js sets ignoreBuildErrors, so `next build` will
   # happily compile and ship broken TypeScript; this is the only thing standing
-  # between a type error and the Pi.
+  # between a type error and the Pi. The unit tests never touch a database.
   typecheck:
     runs-on: ubuntu-24.04
     steps:
@@ -44,6 +44,10 @@ jobs:
           SKIP_ENV_VALIDATION: "1"
           DATABASE_URL: "mysql://build:build@127.0.0.1:3306/build"
       - run: npx tsc --noEmit
+      - run: npm test
+        env:
+          SKIP_ENV_VALIDATION: "1"
+          DATABASE_URL: "mysql://build:build@127.0.0.1:3306/build"
 
   build:
     needs: typecheck

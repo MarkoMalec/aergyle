@@ -1,5 +1,5 @@
+import { calculateExpeditionEffectiveFindChance } from "~/server/expeditions/rewards";
 import {
-  calculateGatheringEffectiveFindChance,
   calculateGatheringRewardModifiers,
   calculateGatheringRewards,
   type GatheringRewardPoolEntry,
@@ -99,7 +99,7 @@ export function runGatheringSimulation(
       };
       return {
         ...resource,
-        effectiveChance: calculateGatheringEffectiveFindChance(
+        effectiveChance: calculateExpeditionEffectiveFindChance(
           resource.baseChance,
           modifiers.findModifierPercent,
         ),

@@ -1,11 +1,13 @@
 import Link from "next/link";
 import React from "react";
 import { prisma } from "~/lib/prisma";
+import { requireAdminPageAccess } from "~/server/admin/auth";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function AdminSkillsPage() {
+  await requireAdminPageAccess();
   const skills = await prisma.skills.findMany({
     select: {
       skill_id: true,

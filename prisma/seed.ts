@@ -1,9 +1,10 @@
+import { PrismaClient } from "../src/generated/prisma/client";
 import {
-  PrismaClient,
-  ItemRarity,
-  StatType,
   ItemEquipTo,
-} from "@prisma/client";
+  ItemRarity,
+  ItemType,
+  StatType,
+} from "../src/generated/prisma/enums";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 
 const databaseUrl = process.env.DATABASE_URL;
@@ -33,6 +34,10 @@ async function main() {
       equipTo: ItemEquipTo | null;
       rarity: ItemRarity;
       requiredLevel: number;
+      itemType?: ItemType | null;
+      stackable?: boolean;
+      maxStackSize?: number;
+      healingAmount?: number | null;
     },
     stats: Array<{ statType: StatType; value: number }>,
   ) {
@@ -394,16 +399,19 @@ async function main() {
 
   await createItemWithStats(
     {
-      name: "Health Potion",
-      price: 25,
-      sprite: "/assets/items/consumables/potions/health-potion.jpg",
+      name: "Minor Healing Potion",
+      price: 18,
+      sprite:
+        "/assets/items/consumables/potions/minor-healing-potion-alchemy-v1.png",
       equipTo: null, // Consumable, not equipped
       rarity: ItemRarity.COMMON,
       requiredLevel: 1,
+      itemType: ItemType.POTION,
+      stackable: true,
+      maxStackSize: 9999,
+      healingAmount: 30,
     },
-    [
-      { statType: StatType.HEALTH, value: 50 }, // Restores 50 HP
-    ],
+    [],
   );
 
   console.log("\n✅ Seed completed successfully!");

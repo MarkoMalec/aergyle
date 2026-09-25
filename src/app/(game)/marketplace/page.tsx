@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { MarketplaceNav } from "~/components/game/marketplace/MarketplaceNav";
-import { MarketplaceDataTable } from "~/components/game/marketplace/marketplaceTableNew";
+import { MarketplaceDataTable } from "~/components/game/marketplace/marketplaceTable";
 import PageHeading from "~/components/game/ui/PageHeading";
 import { Button } from "~/components/ui/button";
 import { MARKET_DEFAULT_MAX_PRICE } from "~/lib/marketplace";

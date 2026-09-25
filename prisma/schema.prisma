@@ -5,7 +5,6 @@ generator client {
 
 datasource db {
   provider = "mysql"
-  // url      = env("DATABASE_URL")
 }
 
 model Account {
@@ -332,6 +331,10 @@ model Item {
   // Timed character bonuses applied by FOOD, POTION, or ELIXIR consumables.
   foodEffectSeconds Int?
 
+  // Immediate health restored when a POTION or ELIXIR is consumed. Timed
+  // consumables continue to use foodEffectSeconds and FoodEffectStat instead.
+  healingAmount Int?
+
   // If enabled, negative stats (e.g. MOVEMENT_SPEED -5) will become less negative
   // and eventually positive as rarity multipliers increase.
   flipNegativeStatsWithRarity Boolean @default(false)
@@ -366,6 +369,7 @@ model Item {
   questObjectives      QuestObjective[]
   questRewards         QuestRewardItem[]
   projectRequirements  CommunityProjectRequirement[]
+  notifications        Notification[]
 
   seedYieldItem Item?  @relation("SeedYieldItem", fields: [seedYieldItemId], references: [id], onDelete: SetNull)
   seedYieldedBy Item[] @relation("SeedYieldItem")
@@ -1137,6 +1141,17 @@ model VocationalResource {
 
   @@index([actionType, sortOrder])
   @@index([requiredRecipeItemId])
+}
+
+// Which item types a skill's resources may produce and consume, edited on
+// /admin/vocations/rules. Both lists hold ItemType values; an empty list, or
+// no row at all, accepts every type.
+model VocationalSkillRule {
+  actionType      VocationalActionType @id
+  outputItemTypes Json
+  inputItemTypes  Json
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
 }
 
 // Location-specific configuration (overrides defaultSeconds per location)
@@ -1933,17 +1948,21 @@ enum NotificationCategory {
 // `NOTIFICATIONS_KEPT` per player are held; older ones are pruned when the
 // player opens their list.
 model Notification {
-  id        Int                  @id @default(autoincrement())
-  userId    String
-  category  NotificationCategory @default(GENERAL)
-  title     String
-  body      String               @db.Text
-  // Optional "Read more" target, e.g. /settlements/3.
-  href      String?
-  readAt    DateTime?
-  createdAt DateTime             @default(now())
+  id         Int                  @id @default(autoincrement())
+  userId     String
+  category   NotificationCategory @default(GENERAL)
+  title      String
+  body       String               @db.Text
+  // Optional target the row opens, e.g. /settlements/3.
+  href       String?
+  // Optional item drawn beside the note, e.g. the one a sale moved.
+  itemId     Int?
+  itemRarity ItemRarity?
+  readAt     DateTime?
+  createdAt  DateTime             @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  item Item? @relation(fields: [itemId], references: [id], onDelete: SetNull)
 
   @@index([userId, id])
   @@index([userId, readAt])
@@ -2012,28 +2031,87 @@ enum MessageReportStatus {
 // A reported thread, with the transcript copied in as it stood, so neither
 // player can erase what moderators review.
 model MessageReport {
-  id             Int                 @id @default(autoincrement())
-  conversationId Int?
-  reporterId     String?
-  reportedId     String?
-  reason         String?             @db.Text
+  id                Int                 @id @default(autoincrement())
+  conversationId    Int?
+  reporterId        String?
+  reportedId        String?
+  reason            String?             @db.Text
   // [{ at, sender, body }] at the moment of the report.
-  transcript     Json
-  status         MessageReportStatus @default(OPEN)
-  reviewNote     String?             @db.Text
-  reviewedById   String?
-  reviewedAt     DateTime?
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
+  transcript        Json
+  status            MessageReportStatus @default(OPEN)
+  reviewNote        String?             @db.Text
+  reviewedById      String?
+  // Reports closed since /admin got its own accounts name the admin instead.
+  reviewedByAdminId String?
+  reviewedAt        DateTime?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
 
-  conversation Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
-  reporter     User?         @relation("MessageReportReporter", fields: [reporterId], references: [id], onDelete: SetNull)
-  reported     User?         @relation("MessageReportReported", fields: [reportedId], references: [id], onDelete: SetNull)
-  reviewedBy   User?         @relation("MessageReportReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  conversation    Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  reporter        User?         @relation("MessageReportReporter", fields: [reporterId], references: [id], onDelete: SetNull)
+  reported        User?         @relation("MessageReportReported", fields: [reportedId], references: [id], onDelete: SetNull)
+  reviewedBy      User?         @relation("MessageReportReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedByAdmin AdminUser?    @relation(fields: [reviewedByAdminId], references: [id], onDelete: SetNull)
 
   @@index([status, id])
   @@index([conversationId])
   @@index([reporterId])
   @@index([reportedId])
   @@index([reviewedById])
+  @@index([reviewedByAdminId])
+}
+
+// Accounts for /admin, separate from player accounts and managed with
+// `npm run admin`. Signing in takes the password and an authenticator code.
+model AdminUser {
+  id              String    @id @default(cuid())
+  username        String    @unique @db.VarChar(32)
+  passwordHash    String    @db.VarChar(255)
+  // Authenticator secret, encrypted with a key derived from the password.
+  totpSecret      String    @db.VarChar(255)
+  // Last accepted code step, so a code someone watched being typed can't be reused.
+  totpLastCounter Int?
+  disabled        Boolean   @default(false)
+  failedLogins    Int       @default(0)
+  lockedUntil     DateTime?
+  lastLoginAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  sessions        AdminSession[]
+  auditLogs       AdminAuditLog[]
+  reviewedReports MessageReport[]
+}
+
+model AdminSession {
+  id         String    @id @default(cuid())
+  adminId    String
+  // SHA-256 of the cookie token; the token itself is never stored.
+  tokenHash  String    @unique @db.Char(64)
+  ip         String?   @db.VarChar(64)
+  userAgent  String?   @db.VarChar(255)
+  createdAt  DateTime  @default(now())
+  lastSeenAt DateTime  @default(now())
+  expiresAt  DateTime
+  revokedAt  DateTime?
+
+  admin AdminUser @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+}
+
+// Sign-ins and every change made through /admin.
+model AdminAuditLog {
+  id        Int      @id @default(autoincrement())
+  adminId   String?
+  // Kept as written, so entries stay readable after an account is removed.
+  username  String   @db.VarChar(64)
+  action    String   @db.VarChar(191)
+  ip        String?  @db.VarChar(64)
+  createdAt DateTime @default(now())
+
+  admin AdminUser? @relation(fields: [adminId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([adminId, createdAt])
 }

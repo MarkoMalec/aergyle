@@ -1,6 +1,14 @@
 import type { PrismaClient } from "~/generated/prisma/client";
 import { ProgressionTrackType } from "~/generated/prisma/enums";
 import { prisma } from "~/lib/prisma";
+import {
+  cacheForever,
+  levelForTotalXp,
+  levelProgress,
+  toXpCurve,
+  type LevelProgress,
+  type ThresholdRow,
+} from "~/utils/xpCurve";
 
 /**
  * The writes here can be handed a transaction client so a track-XP award commits
@@ -10,31 +18,12 @@ import { prisma } from "~/lib/prisma";
  */
 type TrackDb = Pick<PrismaClient, "userTrackProgress">;
 
-function clampToSafeNumber(value: bigint): number {
-  const max = BigInt(Number.MAX_SAFE_INTEGER);
-  const min = -max;
-  if (value > max) return Number.MAX_SAFE_INTEGER;
-  if (value < min) return -Number.MAX_SAFE_INTEGER;
-  return Number(value);
-}
-
 const TRACK_XP_SCALE: Record<ProgressionTrackType, bigint> = {
   SKILL: 10n,
   VOCATION: 10n,
   DUNGEON: 10n,
   COMBAT: 10n,
 };
-
-type ThresholdRow = { level: number; xpTotal: bigint };
-
-/**
- * TrackXpThreshold is seeded once and never written at runtime, so it is cached
- * for the life of the process. Regenerating thresholds ships as a deploy, which
- * restarts the process and drops the cache. Without this, every award ran a
- * COUNT plus a lookup against a table that cannot change.
- */
-const trackThresholdCache = new Map<ProgressionTrackType, ThresholdRow[]>();
-const trackThresholdLoads = new Map<ProgressionTrackType, Promise<ThresholdRow[]>>();
 
 async function fetchTrackThresholds(
   trackType: ProgressionTrackType,
@@ -78,51 +67,18 @@ async function fetchTrackThresholds(
   return rows;
 }
 
-/** Single-flight: concurrent settlements share one load instead of racing. */
-async function loadTrackThresholds(
-  trackType: ProgressionTrackType,
-): Promise<ThresholdRow[]> {
-  const cached = trackThresholdCache.get(trackType);
-  if (cached) return cached;
+/**
+ * TrackXpThreshold is seeded once and never written at runtime. Without the
+ * cache every award ran a COUNT plus a lookup against a table that cannot
+ * change.
+ */
+const loadTrackThresholds = cacheForever(
+  async (trackType: ProgressionTrackType) =>
+    toXpCurve(await fetchTrackThresholds(trackType)),
+);
 
-  let pending = trackThresholdLoads.get(trackType);
-  if (!pending) {
-    pending = fetchTrackThresholds(trackType)
-      .then((rows) => {
-        trackThresholdCache.set(trackType, rows);
-        return rows;
-      })
-      .finally(() => {
-        trackThresholdLoads.delete(trackType);
-      });
-    trackThresholdLoads.set(trackType, pending);
-  }
-  return pending;
-}
-
-/** Highest level whose cumulative requirement is already met. */
-function levelForTotalXp(rows: ThresholdRow[], totalXp: bigint): number {
-  if (totalXp <= 0n) return 1;
-  let lo = 0;
-  let hi = rows.length - 1;
-  let level = 1;
-  while (lo <= hi) {
-    const mid = (lo + hi) >> 1;
-    const row = rows[mid];
-    if (row && row.xpTotal <= totalXp) {
-      level = row.level;
-      lo = mid + 1;
-    } else {
-      hi = mid - 1;
-    }
-  }
-  return level;
-}
-
-function xpTotalForLevel(rows: ThresholdRow[], level: number): bigint {
-  if (level <= 1) return 0n;
-  return rows.find((row) => row.level === level)?.xpTotal ?? 0n;
-}
+/** A track's level curve, for code that sets a level or XP directly. */
+export const getTrackCurve = loadTrackThresholds;
 
 export async function awardTrackXp(params: {
   userId: string;
@@ -201,13 +157,7 @@ export async function getTrackXpProgress(params: {
   userId: string;
   trackType: ProgressionTrackType;
   trackKey: string;
-}): Promise<{
-  level: number;
-  currentXp: number;
-  xpForNextLevel: number;
-  xpProgress: number; // 0-100
-  xpRemaining: number;
-}> {
+}): Promise<LevelProgress> {
   const { userId, trackType, trackKey } = params;
 
   const [row, thresholds] = await Promise.all([
@@ -220,40 +170,5 @@ export async function getTrackXpProgress(params: {
     loadTrackThresholds(trackType),
   ]);
 
-  const level = row.level;
-  const totalXp = row.experience;
-
-  const levelStartTotal = xpTotalForLevel(thresholds, level);
-  const nextLevelStartTotal = thresholds.find(
-    (threshold) => threshold.level === level + 1,
-  )?.xpTotal;
-
-  if (nextLevelStartTotal === undefined) {
-    return {
-      level,
-      currentXp: clampToSafeNumber(totalXp - levelStartTotal),
-      xpForNextLevel: 0,
-      xpProgress: 100,
-      xpRemaining: 0,
-    };
-  }
-
-  const xpForNextLevelBig = nextLevelStartTotal - levelStartTotal;
-  const xpIntoLevelBig = totalXp - levelStartTotal;
-  const xpRemainingBig =
-    nextLevelStartTotal > totalXp ? nextLevelStartTotal - totalXp : 0n;
-
-  const progressTimes100 =
-    xpForNextLevelBig > 0n
-      ? Number((xpIntoLevelBig * 10000n) / xpForNextLevelBig)
-      : 0;
-  const xpProgress = Math.min(100, Math.max(0, progressTimes100 / 100));
-
-  return {
-    level,
-    currentXp: clampToSafeNumber(xpIntoLevelBig),
-    xpForNextLevel: clampToSafeNumber(xpForNextLevelBig),
-    xpProgress,
-    xpRemaining: clampToSafeNumber(xpRemainingBig),
-  };
+  return levelProgress(thresholds, row.level, row.experience);
 }

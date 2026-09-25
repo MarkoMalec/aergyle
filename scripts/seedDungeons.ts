@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 import { DUNGEON_MONSTERS, DUNGEONS } from "../prisma/content/dungeons";
+import { changedFields } from "./seedHelpers";
 
 type Mode = "--check" | "--apply" | "--verify";
 const mode = (process.argv[2] ?? "--check") as Mode;
@@ -16,15 +17,6 @@ if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required");
 const prisma = new PrismaClient({
   adapter: new PrismaMariaDb(process.env.DATABASE_URL),
 });
-
-function differences(
-  actual: Record<string, unknown>,
-  expected: Record<string, unknown>,
-) {
-  return Object.entries(expected)
-    .filter(([key, value]) => actual[key] !== value)
-    .map(([key]) => key);
-}
 
 async function validateContent() {
   const monsterNames = new Set(DUNGEON_MONSTERS.map((monster) => monster.name));
@@ -106,7 +98,7 @@ async function main(selectedMode: Mode) {
           throw new Error(`${definition.name} already exists as an animal`);
         }
         const diff = found
-          ? differences(found as unknown as Record<string, unknown>, expected)
+          ? changedFields(found as unknown as Record<string, unknown>, expected)
           : Object.keys(expected);
         if (selectedMode === "--verify" && (!found || diff.length > 0)) {
           throw new Error(
@@ -139,7 +131,7 @@ async function main(selectedMode: Mode) {
             where: { creatureId_itemId: { creatureId, itemId } },
           });
           const dropDiff = foundDrop
-            ? differences(
+            ? changedFields(
                 foundDrop as unknown as Record<string, unknown>,
                 expectedDrop,
               )
@@ -164,23 +156,47 @@ async function main(selectedMode: Mode) {
 
       const locations = await tx.location.findMany({
         where: {
-          name: { in: DUNGEONS.map((dungeon) => dungeon.locationName) },
+          name: {
+            in: [
+              ...new Set(
+                DUNGEONS.flatMap((dungeon) => [
+                  dungeon.locationName,
+                  ...(dungeon.locationAliases ?? []),
+                ]),
+              ),
+            ],
+          },
         },
         select: { id: true, name: true },
       });
       const locationIds = new Map(
         locations.map((location) => [location.name, location.id]),
       );
-      for (const { locationName, monsters, ...definition } of DUNGEONS) {
-        const locationId = locationIds.get(locationName);
+      for (const {
+        locationName,
+        locationAliases = [],
+        monsters,
+        ...definition
+      } of DUNGEONS) {
+        const matchedLocationName = [locationName, ...locationAliases].find(
+          (candidate) => locationIds.has(candidate),
+        );
+        const locationId = matchedLocationName
+          ? locationIds.get(matchedLocationName)
+          : null;
         if (!locationId) {
-          throw new Error(`Existing location not found: ${locationName}`);
+          const aliases = locationAliases.length
+            ? ` (also accepted: ${locationAliases.join(", ")})`
+            : "";
+          throw new Error(
+            `Existing location not found: ${locationName}${aliases}`,
+          );
         }
         const { name, ...expected } = { ...definition, enabled: true };
         const where = { locationId_name: { locationId, name } };
         const found = await tx.dungeon.findUnique({ where });
         const diff = found
-          ? differences(found as unknown as Record<string, unknown>, expected)
+          ? changedFields(found as unknown as Record<string, unknown>, expected)
           : Object.keys(expected);
         if (selectedMode === "--verify" && (!found || diff.length > 0)) {
           throw new Error(`${name}: dungeon differs (${diff.join(", ")})`);
@@ -194,7 +210,7 @@ async function main(selectedMode: Mode) {
           });
           dungeonId = dungeon.id;
         }
-        note(`${locationName} · ${name}`, Boolean(found), diff);
+        note(`${matchedLocationName} · ${name}`, Boolean(found), diff);
         if (!dungeonId) continue;
 
         for (const monster of monsters) {
@@ -215,7 +231,7 @@ async function main(selectedMode: Mode) {
             where: assignmentWhere,
           });
           const assignmentDiff = foundAssignment
-            ? differences(
+            ? changedFields(
                 foundAssignment as unknown as Record<string, unknown>,
                 expectedAssignment,
               )

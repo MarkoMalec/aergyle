@@ -10,6 +10,7 @@ import {
   vocationItemCreateData,
   vocationSpritePath,
 } from "../prisma/content/vocationExpansion";
+import { changedFields } from "./seedHelpers";
 
 const mode = process.argv[2] ?? "--check";
 if (
@@ -32,15 +33,6 @@ type ResultRow = {
   name: string;
   action: string;
 };
-
-function scalarDifferences(
-  actual: Record<string, unknown>,
-  expected: Record<string, unknown>,
-) {
-  return Object.entries(expected)
-    .filter(([key, value]) => actual[key] !== value)
-    .map(([key]) => key);
-}
 
 async function validateSprites() {
   for (const definition of VOCATION_EXPANSION) {
@@ -149,7 +141,7 @@ async function main(selectedMode: Mode) {
         }
 
         const differences = found
-          ? scalarDifferences(found, expected as Record<string, unknown>)
+          ? changedFields(found, expected as Record<string, unknown>)
           : [];
         if (selectedMode === "--verify") {
           if (!found) throw new Error(`Missing item: ${definition.name}`);
@@ -344,7 +336,7 @@ async function main(selectedMode: Mode) {
           if (selectedMode === "--verify") {
             if (!resource)
               throw new Error(`Missing resource: ${definition.name}`);
-            const differences = scalarDifferences(
+            const differences = changedFields(
               resource,
               expectedResource as Record<string, unknown>,
             );

@@ -29,7 +29,7 @@ export default async function SettlementPage({
   params: { id: string };
 }) {
   const session = await getServerAuthSession();
-  if (!session?.user?.id) redirect("/signin");
+  if (!session?.user?.id) redirect("/play");
   const id = Number(params.id);
   if (!Number.isInteger(id) || id < 1) notFound();
   const data = await getSettlementPage(session.user.id, id);

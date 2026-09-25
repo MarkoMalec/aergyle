@@ -14,7 +14,7 @@ export default async function StorageModal({
   params: { id: string };
 }) {
   const session = await getServerAuthSession();
-  if (!session?.user?.id) redirect("/signin");
+  if (!session?.user?.id) redirect("/play");
   const settlementId = Number(params.id);
   if (!Number.isInteger(settlementId) || settlementId < 1) notFound();
   const data = await getStoragePage(session.user.id, settlementId);

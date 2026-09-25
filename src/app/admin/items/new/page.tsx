@@ -1,7 +1,9 @@
 import React from "react";
 import { ItemForm } from "~/components/admin/items/ItemForm";
+import { requireAdminPageAccess } from "~/server/admin/auth";
 
-export default function AdminNewItemPage() {
+export default async function AdminNewItemPage() {
+  await requireAdminPageAccess();
   return (
     <div className="space-y-6">
       <div>

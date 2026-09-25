@@ -1,7 +1,9 @@
+import type { Prisma } from "~/generated/prisma/client";
 import { ItemRarity } from "~/generated/prisma/enums";
 import {
   calculateExpeditionEffectiveFindChance,
   type ExpeditionRewardModifiers,
+  finiteNumber,
 } from "~/server/expeditions/rewards";
 import { rollInclusive } from "~/server/expeditions/random";
 
@@ -26,6 +28,16 @@ export type CreatureLootReward = {
   rarity: ItemRarity;
   quantity: number;
 };
+
+/** The drop columns `buildCreatureDropPool` reads. */
+export const CREATURE_DROP_SELECT = {
+  id: true,
+  baseChance: true,
+  minQuantity: true,
+  maxQuantity: true,
+  requiredLevel: true,
+  item: { select: { id: true, name: true, sprite: true, rarity: true } },
+} satisfies Prisma.CreatureDropSelect;
 
 type DropRow = {
   id: number;
@@ -133,10 +145,6 @@ export function rollCreatureDrops(
   }
 }
 
-function finite(value: unknown, fallback = 0) {
-  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
-}
-
 function isRarity(value: unknown): value is ItemRarity {
   return Object.values(ItemRarity).includes(value as ItemRarity);
 }
@@ -162,9 +170,9 @@ export function parseCreatureDropPool(value: unknown): CreatureDropPoolEntry[] {
         name: drop.name,
         sprite: drop.sprite,
         rarity: drop.rarity,
-        baseChance: finite(drop.baseChance),
-        minQuantity: Math.max(1, Math.floor(finite(drop.minQuantity, 1))),
-        maxQuantity: Math.max(1, Math.floor(finite(drop.maxQuantity, 1))),
+        baseChance: finiteNumber(drop.baseChance),
+        minQuantity: Math.max(1, Math.floor(finiteNumber(drop.minQuantity, 1))),
+        maxQuantity: Math.max(1, Math.floor(finiteNumber(drop.maxQuantity, 1))),
       },
     ];
   });

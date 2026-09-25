@@ -45,6 +45,6 @@
     "**/*.cjs",
     "**/*.js",
     ".next/types/**/*.ts"
-, "itemseed.cts"  ],
+  ],
   "exclude": ["node_modules"]
 }

@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { prisma } from "~/lib/prisma";
+import { lockInventory } from "~/server/items/inventoryLock";
 import { getServerAuthSession } from "~/server/auth";
 import {
   normalizeInventorySlots,
@@ -129,7 +130,7 @@ export async function POST(req: NextRequest) {
           throwHttp(400, `Only ${availableQuantity} available`);
         }
 
-        const inventory = await tx.inventory.findUnique({ where: { userId } });
+        const inventory = await lockInventory(tx, userId);
         if (!inventory) return throwHttp(404, "Inventory not found");
         const slots = normalizeInventorySlots(
           inventory.slots,

@@ -9,10 +9,11 @@ import {
 } from "../prisma/content/carpentry";
 import { VOCATION_EXPANSION } from "../prisma/content/vocationExpansion";
 import { ItemType, VocationalActionType } from "../src/generated/prisma/enums";
+import { getCraftingRule } from "../src/game/crafting";
 import {
-  getCraftingRule,
-  validateCraftingItemTypes,
-} from "../src/game/crafting";
+  SHIPPED_SKILL_ITEM_RULES,
+  shippedCraftConflict,
+} from "./shippedSkillItemRules";
 
 type PngInspection = {
   transparentPixels: number;
@@ -177,11 +178,12 @@ void test("plank progression increases with the source-log tiers", () => {
 });
 
 void test("the shared crafting rules accept log-to-material Carpentry", () => {
-  const rule = getCraftingRule(VocationalActionType.CARPENTRY);
+  assert.ok(getCraftingRule(VocationalActionType.CARPENTRY));
+  const rule = SHIPPED_SKILL_ITEM_RULES.CARPENTRY;
   assert.ok(rule?.outputTypes.includes(ItemType.MATERIAL));
   assert.ok(rule?.inputTypes.includes(ItemType.LOG));
   assert.equal(
-    validateCraftingItemTypes({
+    shippedCraftConflict({
       actionType: VocationalActionType.CARPENTRY,
       outputType: ItemType.MATERIAL,
       inputTypes: [ItemType.LOG],

@@ -36,17 +36,6 @@ export function questResetsAt(repeat: QuestRepeat, now = new Date()) {
   return null;
 }
 
-/** A rare find is only for sale inside its window; other offers always are. */
-export function isOfferAvailable(
-  offer: { availableFrom: Date | null; availableUntil: Date | null },
-  now = new Date(),
-) {
-  return (
-    (!offer.availableFrom || offer.availableFrom <= now) &&
-    (!offer.availableUntil || offer.availableUntil > now)
-  );
-}
-
 export type QuestProgress = Record<string, number>;
 
 type ObjectiveTarget = {

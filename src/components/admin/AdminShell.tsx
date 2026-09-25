@@ -14,17 +14,20 @@ import {
 export function AdminShell({
   children,
   openReports,
+  adminName,
 }: {
   children: React.ReactNode;
   /** Reported conversations waiting for review; badges the Moderation link. */
   openReports: number;
+  /** The signed-in admin account, shown with the sign-out button. */
+  adminName: string;
 }) {
   return (
     <div className="admin-theme dark min-h-svh bg-background text-foreground">
       {/* Admin pages are outside the game Providers, so they mount their own. */}
       <AppToaster />
       <SidebarProvider>
-        <AdminSidebar openReports={openReports} />
+        <AdminSidebar openReports={openReports} adminName={adminName} />
         <SidebarInset className="min-h-svh">
           <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
             <SidebarTrigger className="-ml-1" />

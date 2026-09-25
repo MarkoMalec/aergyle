@@ -2,16 +2,22 @@ import React from "react";
 import Link from "next/link";
 import { prisma } from "~/lib/prisma";
 import { VocationalResourceForm } from "~/components/admin/vocations/VocationalResourceForm";
+import { requireAdminPageAccess } from "~/server/admin/auth";
+import { getSkillItemRules } from "~/server/vocations/skillRules";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function AdminNewVocationResourcePage() {
-  const items = await prisma.item.findMany({
-    select: { id: true, name: true, itemType: true },
-    orderBy: [{ name: "asc" }],
-    take: 1000,
-  });
+  await requireAdminPageAccess();
+  const [items, itemRules] = await Promise.all([
+    prisma.item.findMany({
+      select: { id: true, name: true, itemType: true },
+      orderBy: [{ name: "asc" }],
+      take: 1000,
+    }),
+    getSkillItemRules(),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -26,7 +32,11 @@ export default async function AdminNewVocationResourcePage() {
       </div>
 
       <div className="rounded-lg border border-gray-800/60 bg-gray-900/20 p-6">
-        <VocationalResourceForm mode="create" items={items} />
+        <VocationalResourceForm
+          mode="create"
+          items={items}
+          itemRules={itemRules}
+        />
       </div>
     </div>
   );

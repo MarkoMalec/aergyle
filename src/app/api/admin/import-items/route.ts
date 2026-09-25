@@ -2,17 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "~/lib/prisma";
 import { ItemRarity, StatType, ItemType } from "~/generated/prisma/enums";
 import { normalizeItemEquipTo } from "~/utils/itemEquipTo";
+import { requireAdminApiAccess } from "~/server/admin/auth";
 
 /**
  * Import items from CSV data with stat progressions
  * 
  * Expected CSV format (one row per stat progression):
- * name,price,sprite,equipTo,twoHanded,rarity,itemType,stackable,maxStackSize,minPhysicalDamage,maxPhysicalDamage,minMagicDamage,maxMagicDamage,armor,requiredLevel,statType,baseValue,unlocksAtRarity
+ * name,price,sprite,equipTo,twoHanded,rarity,itemType,stackable,maxStackSize,minPhysicalDamage,maxPhysicalDamage,minMagicDamage,maxMagicDamage,armor,requiredLevel,healingAmount,statType,baseValue,unlocksAtRarity
  * 
  * Example:
  * Iron Sword,100,/assets/items/weapons/iron-sword.jpg,weapon,false,COMMON,SWORD,false,1,5,10,0,0,0,5,STRENGTH,5,BASE
  * Iron Sword,100,/assets/items/weapons/iron-sword.jpg,weapon,false,COMMON,SWORD,false,1,5,10,0,0,0,5,CRITICAL_CHANCE,2,RARE
- * Health Potion,25,/assets/items/consumables/potions/health-potion.jpg,,false,,POTION,true,99,0,0,0,0,0,1,,,
+ * Minor Healing Potion,18,/assets/items/consumables/potions/minor-healing-potion-alchemy-v1.png,,false,COMMON,POTION,true,9999,0,0,0,0,0,1,30,,,
  *
  * twoHanded (true/false) only applies to equipTo = weapon. When the column is
  * missing, existing items keep their current setting and new ones are one-handed.
@@ -20,6 +21,9 @@ import { normalizeItemEquipTo } from "~/utils/itemEquipTo";
  * Items with multiple stats will have multiple rows with the same name
  */
 export async function POST(req: NextRequest) {
+  const denied = await requireAdminApiAccess(req);
+  if (denied) return denied;
+
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File;
@@ -128,6 +132,17 @@ export async function POST(req: NextRequest) {
         const equipTo = normalizeItemEquipTo(firstRow.equipTo);
 
         // Prepare item base data
+        const itemType = firstRow.itemType
+          ? (firstRow.itemType as ItemType)
+          : null;
+        const supportsImmediateHealing =
+          itemType === ItemType.FOOD ||
+          itemType === ItemType.POTION ||
+          itemType === ItemType.ELIXIR;
+        const parsedHealingAmount = Number.parseInt(
+          firstRow.healingAmount ?? "",
+          10,
+        );
         const itemData = {
           name: itemName,
           price: parseInt(firstRow.price || "0"),
@@ -141,7 +156,7 @@ export async function POST(req: NextRequest) {
               firstRow.twoHanded?.toLowerCase() === "true",
           }),
           rarity: (firstRow.rarity as ItemRarity) || "COMMON",
-          itemType: firstRow.itemType ? (firstRow.itemType as ItemType) : null,
+          itemType,
           stackable: isStackable,
           maxStackSize: maxStack,
           minPhysicalDamage: parseInt(firstRow.minPhysicalDamage || "0"),
@@ -150,6 +165,12 @@ export async function POST(req: NextRequest) {
           maxMagicDamage: parseInt(firstRow.maxMagicDamage || "0"),
           armor: parseInt(firstRow.armor || "0"),
           requiredLevel: parseInt(firstRow.requiredLevel || "1"),
+          ...(headers.includes("healingAmount") && {
+            healingAmount:
+              supportsImmediateHealing && Number.isFinite(parsedHealingAmount)
+                ? Math.max(1, parsedHealingAmount)
+                : null,
+          }),
         };
 
         let itemId: number;

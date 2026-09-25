@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "~/lib/prisma";
+import { requireAdminApiAccess } from "~/server/admin/auth";
 
 /**
  * Export all items from database as CSV with stat progressions
@@ -10,6 +11,9 @@ import { prisma } from "~/lib/prisma";
  * Items without stat progressions will have one row with empty stat fields
  */
 export async function GET(req: NextRequest) {
+  const denied = await requireAdminApiAccess(req);
+  if (denied) return denied;
+
   try {
     // Fetch all items with their base stats AND stat progressions
     const items = await prisma.item.findMany({
@@ -39,6 +43,7 @@ export async function GET(req: NextRequest) {
       "maxMagicDamage",
       "armor",
       "requiredLevel",
+      "healingAmount",
       "statType",
       "baseValue",
       "unlocksAtRarity",
@@ -65,6 +70,7 @@ export async function GET(req: NextRequest) {
         item.maxMagicDamage,
         item.armor,
         item.requiredLevel,
+        item.healingAmount ?? "",
       ];
 
       let hasStats = false;

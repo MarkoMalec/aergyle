@@ -1,132 +1,132 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { getServerAuthSession } from "~/server/auth";
 import { prisma } from "~/lib/prisma";
+import { lockInventory } from "~/server/items/inventoryLock";
+import {
+  normalizeInventorySlots,
+  slotsToInputJson,
+} from "~/utils/inventorySlots";
 
+type HttpError = Error & { status?: number };
+function fail(status: number, message: string): never {
+  const error = new Error(message) as HttpError;
+  error.status = status;
+  throw error;
+}
+
+function isId(value: unknown): value is number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value > 0;
+}
+
+/** Pours one inventory stack into another of the same item and rarity. */
 export async function POST(req: NextRequest) {
   const session = await getServerAuthSession();
-
-  if (!session?.user) {
+  if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const userId = session.user.id;
+
+  const body = (await req.json().catch(() => null)) as {
+    sourceUserItemId?: unknown;
+    targetUserItemId?: unknown;
+  } | null;
+  const sourceId = body?.sourceUserItemId;
+  const targetId = body?.targetUserItemId;
+  if (!isId(sourceId) || !isId(targetId) || sourceId === targetId) {
+    return NextResponse.json(
+      { error: "Missing required fields" },
+      { status: 400 },
+    );
   }
 
   try {
-    const body = await req.json();
-    const { sourceUserItemId, targetUserItemId } = body;
-
-    if (!sourceUserItemId || !targetUserItemId) {
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 }
-      );
-    }
-
-    // Optimized: Single transaction with minimal queries
     const result = await prisma.$transaction(async (tx) => {
-      // Get both items WITHOUT the heavy itemTemplate include
-      // We'll get the item template separately only if needed
-      const [sourceItem, targetItem] = await Promise.all([
-        tx.userItem.findUnique({
-          where: { id: sourceUserItemId },
-          select: {
-            id: true,
-            userId: true,
-            itemId: true,
-            rarity: true,
-            quantity: true,
-          },
-        }),
-        tx.userItem.findUnique({
-          where: { id: targetUserItemId },
-          select: {
-            id: true,
-            userId: true,
-            itemId: true,
-            rarity: true,
-            quantity: true,
-          },
-        }),
-      ]);
-
-      if (!sourceItem || !targetItem) {
-        throw new Error("Item not found");
-      }
-
-      // Verify ownership
-      if (sourceItem.userId !== session.user.id || targetItem.userId !== session.user.id) {
-        throw new Error("Unauthorized");
-      }
-
-      // Verify items can stack together (same itemId and rarity)
+      const inventory = await lockInventory(tx, userId);
+      if (!inventory) fail(404, "Inventory not found");
+      const slots = normalizeInventorySlots(inventory.slots, inventory.maxSlots);
       if (
-        sourceItem.itemId !== targetItem.itemId ||
-        sourceItem.rarity !== targetItem.rarity
+        !slots.some((slot) => slot.item?.id === sourceId) ||
+        !slots.some((slot) => slot.item?.id === targetId)
       ) {
-        throw new Error("Items cannot be stacked together");
+        fail(409, "Both stacks must be in your inventory");
       }
 
-      // Only fetch item template now that we know we need it
-      const itemTemplate = await tx.item.findUnique({
-        where: { id: sourceItem.itemId },
-        select: { stackable: true, maxStackSize: true },
+      const stacks = await tx.userItem.findMany({
+        where: {
+          id: { in: [sourceId, targetId] },
+          userId,
+          status: "IN_INVENTORY",
+        },
+        select: {
+          id: true,
+          itemId: true,
+          rarity: true,
+          quantity: true,
+          itemTemplate: { select: { stackable: true, maxStackSize: true } },
+        },
       });
+      const source = stacks.find((stack) => stack.id === sourceId);
+      const target = stacks.find((stack) => stack.id === targetId);
+      if (!source || !target) fail(404, "Item not found");
+      if (source.itemId !== target.itemId || source.rarity !== target.rarity) {
+        fail(400, "Items cannot be stacked together");
+      }
+      if (!source.itemTemplate.stackable) fail(400, "Item is not stackable");
 
-      if (!itemTemplate?.stackable) {
-        throw new Error("Item is not stackable");
+      const maxStackSize = Math.max(1, source.itemTemplate.maxStackSize);
+      const total = source.quantity + target.quantity;
+      const targetQuantity = Math.min(total, maxStackSize);
+      const remainder = total - targetQuantity;
+
+      // Each write applies only if the stack still holds what was read.
+      const wroteTarget = await tx.userItem.updateMany({
+        where: { id: target.id, quantity: target.quantity },
+        data: { quantity: targetQuantity },
+      });
+      const wroteSource =
+        remainder > 0
+          ? await tx.userItem.updateMany({
+              where: { id: source.id, quantity: source.quantity },
+              data: { quantity: remainder },
+            })
+          : await tx.userItem.deleteMany({
+              where: { id: source.id, quantity: source.quantity },
+            });
+      if (wroteTarget.count !== 1 || wroteSource.count !== 1) {
+        fail(409, "Your inventory changed. Please try again.");
       }
 
-      const totalQuantity = sourceItem.quantity + targetItem.quantity;
-      const maxStackSize = itemTemplate.maxStackSize;
-
-      if (totalQuantity <= maxStackSize) {
-        // Full merge: Update target and delete source in parallel
-        await Promise.all([
-          tx.userItem.update({
-            where: { id: targetUserItemId },
-            data: { quantity: totalQuantity },
-          }),
-          tx.userItem.delete({
-            where: { id: sourceUserItemId },
-          }),
-        ]);
-
-        return {
-          merged: true,
-          targetQuantity: totalQuantity,
-          sourceDeleted: true,
-        };
-      } else {
-        // Partial merge: Update both quantities in parallel
-        const remainder = totalQuantity - maxStackSize;
-
-        await Promise.all([
-          tx.userItem.update({
-            where: { id: targetUserItemId },
-            data: { quantity: maxStackSize },
-          }),
-          tx.userItem.update({
-            where: { id: sourceUserItemId },
-            data: { quantity: remainder },
-          }),
-        ]);
-
-        return {
-          merged: true,
-          targetQuantity: maxStackSize,
-          sourceQuantity: remainder,
-          sourceDeleted: false,
-        };
+      if (remainder === 0) {
+        await tx.inventory.update({
+          where: { userId },
+          data: {
+            slots: slotsToInputJson(
+              slots.map((slot) =>
+                slot.item?.id === source.id ? { ...slot, item: null } : slot,
+              ),
+            ),
+          },
+        });
       }
+
+      return {
+        merged: true,
+        targetQuantity,
+        ...(remainder > 0 ? { sourceQuantity: remainder } : {}),
+        sourceDeleted: remainder === 0,
+      };
     });
 
-    return NextResponse.json({
-      success: true,
-      ...result,
-    });
+    return NextResponse.json({ success: true, ...result });
   } catch (error) {
+    const status = (error as HttpError).status;
+    if (typeof status === "number") {
+      return NextResponse.json({ error: (error as Error).message }, { status });
+    }
     console.error("Error merging stacks:", error);
     return NextResponse.json(
       { error: "Failed to merge stacks" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

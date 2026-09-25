@@ -8,13 +8,14 @@ import {
   XpActionType,
 } from "~/generated/prisma/enums";
 import { prisma } from "~/lib/prisma";
+import { assertNoOtherActivity } from "~/server/activity";
 import {
   calculateGatheringRewards,
   type GatheringReward,
   type GatheringRewardPoolEntry,
 } from "~/server/gathering/rewards";
 import { getCharacterStatSnapshot } from "~/server/stats";
-import { grantStackableItemToInventory } from "~/server/vocations/grantItem";
+import { grantStackableItemToInventory } from "~/server/items/grantItem";
 import { awardXp } from "~/utils/leveling";
 import { awardTrackXp, getTrackXpProgress } from "~/utils/progression";
 import { recordSkillWork } from "~/server/skills/metrics";
@@ -319,37 +320,14 @@ export async function startGatheringExpedition(params: {
   }
 
   const [
-    travel,
-    vocation,
-    garden,
-    hunting,
-    dungeon,
+    ,
     existing,
     user,
     duration,
     skillProgress,
   ] =
     await Promise.all([
-      prisma.userTravelActivity.findUnique({
-        where: { userId },
-        select: { id: true },
-      }),
-      prisma.userVocationalActivity.findUnique({
-        where: { userId },
-        select: { id: true },
-      }),
-      prisma.userGardenHarvestActivity.findUnique({
-        where: { userId },
-        select: { id: true },
-      }),
-      prisma.userHuntingExpedition.findFirst({
-        where: { userId, claimedAt: null },
-        select: { id: true },
-      }),
-      prisma.userDungeonRun.findFirst({
-        where: { userId, claimedAt: null },
-        select: { id: true },
-      }),
+      assertNoOtherActivity(userId, "gathering"),
       prisma.userGatheringExpedition.findUnique({
         where: { userId },
         select: { id: true, claimedAt: true },
@@ -399,10 +377,7 @@ export async function startGatheringExpedition(params: {
       }),
     ]);
 
-  const hasActiveAction =
-    Boolean(travel ?? vocation ?? garden ?? hunting ?? dungeon) ||
-    existing?.claimedAt === null;
-  if (hasActiveAction) {
+  if (existing?.claimedAt === null) {
     throw new Error("You already have an active activity");
   }
   if (!user) throw new Error("User not found");

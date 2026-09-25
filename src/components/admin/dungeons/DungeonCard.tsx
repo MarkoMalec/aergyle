@@ -28,6 +28,7 @@ import {
   MAX_DUNGEON_PACK_SIZE,
   type DungeonDeathRules,
 } from "~/server/dungeons/resolver";
+import { formatLength } from "~/components/game/actions/format";
 
 export type AdminDungeon = {
   id: number;
@@ -51,13 +52,6 @@ type LocationOption = { id: number; name: string };
 const DIFFICULTIES = Object.keys(
   DUNGEON_DIFFICULTY_LABELS,
 ) as DungeonDifficulty[];
-
-function formatLength(seconds: number) {
-  const hours = Math.floor(seconds / 3_600);
-  const minutes = Math.round((seconds % 3_600) / 60);
-  if (hours === 0) return `${minutes} min`;
-  return minutes === 0 ? `${hours} h` : `${hours} h ${minutes} min`;
-}
 
 function toPayload({
   id: _id,

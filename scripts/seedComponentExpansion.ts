@@ -9,6 +9,7 @@ import {
   COMPONENT_ITEMS,
   componentItemCreateData,
 } from "../prisma/content/componentExpansion";
+import { changedFields, sameRequirements } from "./seedHelpers";
 
 type Mode = "--check" | "--apply" | "--verify";
 
@@ -26,34 +27,6 @@ if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required");
 const prisma = new PrismaClient({
   adapter: new PrismaMariaDb(process.env.DATABASE_URL),
 });
-
-function changedFields(
-  actual: Record<string, unknown>,
-  expected: Record<string, unknown>,
-) {
-  return Object.entries(expected)
-    .filter(([key, value]) => actual[key] !== value)
-    .map(([key]) => key);
-}
-
-function sameRequirements(
-  actual: ReadonlyArray<{ itemId: number; quantityPerUnit: number }>,
-  expected: ReadonlyArray<{ itemId: number; quantityPerUnit: number }>,
-) {
-  const quantities = new Map(
-    actual.map((requirement) => [
-      requirement.itemId,
-      requirement.quantityPerUnit,
-    ]),
-  );
-  return (
-    quantities.size === expected.length &&
-    expected.every(
-      (requirement) =>
-        quantities.get(requirement.itemId) === requirement.quantityPerUnit,
-    )
-  );
-}
 
 async function validateDefinitions() {
   if (COMPONENT_ITEMS.length !== 5 || COMPONENT_CRAFTS.length !== 3) {

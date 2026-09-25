@@ -16,6 +16,7 @@ import {
 import { Dialog, DialogContent, DialogTitle } from "~/components/ui/dialog";
 import type { SearchHit, SearchResults } from "~/app/api/search/route";
 import type { NavigationGroup } from "./navigation-links";
+import { searchQueryKeys } from "~/lib/query-keys";
 
 const EMPTY: SearchResults = {
   items: [],
@@ -47,7 +48,7 @@ export function GameSearch({
   }, [open]);
 
   const results = useQuery({
-    queryKey: ["search", search],
+    queryKey: searchQueryKeys.results(search),
     queryFn: async (): Promise<SearchResults> => {
       const response = await fetch(`/api/search?q=${encodeURIComponent(search)}`);
       if (!response.ok) throw new Error("Search failed");

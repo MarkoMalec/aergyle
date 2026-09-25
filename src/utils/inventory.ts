@@ -1,41 +1,37 @@
-import { EquipmentSlotsWithItems } from "~/types/inventory";
-import { ItemWithStats } from "~/types/stats";
+import { prisma } from "~/lib/prisma";
+import type { EquipmentSlotsWithItems } from "~/types/inventory";
 import { fetchUserItemsByIds } from "~/utils/userItemInventory";
-import { EQUIPMENT_ALLOWED_SLOT_SET } from "~/utils/itemEquipTo";
+import {
+  EQUIPMENT_SLOTS,
+  getEquippedUserItemIds,
+} from "~/utils/itemEquipTo";
 
 /**
- * Validate equipment data
+ * The character's equipment with each slot's item, creating the row on first
+ * use.
  */
-export function validateEquipment(
-  equipment: Record<string, number | null>,
-): boolean {
-  return Object.keys(equipment).every((key) =>
-    EQUIPMENT_ALLOWED_SLOT_SET.has(key),
-  );
-}
-
-/**
- * Populate equipment slots with item data
- */
-export async function populateEquipmentSlots(
-  equipmentIds: Record<string, number | null>,
+export async function loadEquipmentWithItems(
+  userId: string,
 ): Promise<EquipmentSlotsWithItems> {
-  const itemIds = Object.values(equipmentIds).filter(
-    (id): id is number => id !== null,
+  const equipment = await prisma.equipment.upsert({
+    where: { userId },
+    create: { userId },
+    update: {},
+  });
+
+  const items = await fetchUserItemsByIds(
+    userId,
+    getEquippedUserItemIds(equipment),
   );
+  const itemsById = new Map(items.map((item) => [item.id, item]));
 
-  console.log("populateEquipmentSlots - Item IDs to fetch:", itemIds);
-
-  const items = await fetchUserItemsByIds(itemIds);
-
-  console.log("populateEquipmentSlots - Fetched items:", items.map(i => ({ id: i.id, name: i.name })));
-
-  const itemMap = new Map(items.map((item) => [item.id, item]));
-
-  const result: Record<string, ItemWithStats | null> = {};
-  for (const [slot, itemId] of Object.entries(equipmentIds)) {
-    result[slot] = itemId ? itemMap.get(itemId) || null : null;
-  }
-
-  return result as EquipmentSlotsWithItems;
+  return Object.fromEntries(
+    EQUIPMENT_SLOTS.map((definition) => {
+      const userItemId = equipment[definition.dbField];
+      return [
+        definition.slot,
+        userItemId ? itemsById.get(userItemId) ?? null : null,
+      ];
+    }),
+  ) as EquipmentSlotsWithItems;
 }

@@ -9,6 +9,7 @@ import {
   XpActionType,
 } from "~/generated/prisma/enums";
 import { prisma } from "~/lib/prisma";
+import { assertNoOtherActivity } from "~/server/activity";
 import {
   calculateHealthAfterDamage,
   getCharacterVitalsFromSnapshot,
@@ -32,15 +33,17 @@ import {
 } from "~/server/creatures/attackProfile";
 import {
   buildCreatureDropPool,
+  CREATURE_DROP_SELECT,
   parseCreatureDropPool,
   parseLootRewards,
 } from "~/server/creatures/loot";
 import { createExpeditionRandom } from "~/server/expeditions/random";
 import { recordQuestProgress } from "~/server/settlements/quests";
-import { grantStackableItemToInventory } from "~/server/vocations/grantItem";
+import { grantStackableItemToInventory } from "~/server/items/grantItem";
 import { awardXp } from "~/utils/leveling";
 import { awardTrackXp, getTrackXpProgress } from "~/utils/progression";
 import { recordSkillWork } from "~/server/skills/metrics";
+import { finiteNumber } from "~/server/expeditions/rewards";
 
 const MAX_EXPEDITION_SECONDS = 7 * 24 * 60 * 60;
 
@@ -88,10 +91,6 @@ const DEFAULT_HUNTING_CONFIG = {
   minimumRemainingHealthPercent: 5,
   minimumHealthToStartPercent: 25,
 } as const;
-
-function finite(value: unknown, fallback = 0) {
-  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
-}
 
 async function getHuntingConfig() {
   return (
@@ -157,11 +156,11 @@ function parseReport(value: unknown): ClaimedHuntingReport | null {
             creatureId: event.creatureId,
             name: event.name,
             asset: event.asset,
-            count: Math.max(0, Math.floor(finite(event.count))),
-            attacks: Math.max(0, Math.floor(finite(event.attacks))),
-            evaded: Math.max(0, Math.floor(finite(event.evaded))),
-            blocked: Math.max(0, Math.floor(finite(event.blocked))),
-            damageTaken: Math.max(0, finite(event.damageTaken)),
+            count: Math.max(0, Math.floor(finiteNumber(event.count))),
+            attacks: Math.max(0, Math.floor(finiteNumber(event.attacks))),
+            evaded: Math.max(0, Math.floor(finiteNumber(event.evaded))),
+            blocked: Math.max(0, Math.floor(finiteNumber(event.blocked))),
+            damageTaken: Math.max(0, finiteNumber(event.damageTaken)),
           },
         ];
       })
@@ -182,15 +181,17 @@ function parseReport(value: unknown): ClaimedHuntingReport | null {
   return {
     encounters,
     accidents: {
-      attempts: Math.max(0, Math.floor(finite(accidentRow.attempts))),
-      injuries: Math.max(0, Math.floor(finite(accidentRow.injuries))),
-      damageTaken: Math.max(0, finite(accidentRow.damageTaken)),
+      attempts: Math.max(0, Math.floor(finiteNumber(accidentRow.attempts))),
+      injuries: Math.max(0, Math.floor(finiteNumber(accidentRow.injuries))),
+      damageTaken: Math.max(0, finiteNumber(accidentRow.damageTaken)),
     },
-    totalDamage: Math.max(0, finite(row.totalDamage)),
+    totalDamage: Math.max(0, finiteNumber(row.totalDamage)),
     modifiers: {
-      findModifierPercent: finite(modifiersRow.findModifierPercent),
-      quantityModifierPercent: finite(modifiersRow.quantityModifierPercent),
-      quantityScale: Math.max(0, finite(modifiersRow.quantityScale, 1)),
+      findModifierPercent: finiteNumber(modifiersRow.findModifierPercent),
+      quantityModifierPercent: finiteNumber(
+        modifiersRow.quantityModifierPercent,
+      ),
+      quantityScale: Math.max(0, finiteNumber(modifiersRow.quantityScale, 1)),
     },
     potentialDamage:
       typeof row.potentialDamage === "number"
@@ -198,9 +199,9 @@ function parseReport(value: unknown): ClaimedHuntingReport | null {
         : undefined,
     health: healthRow
       ? {
-          before: Math.max(0, finite(healthRow.before)),
-          after: Math.max(0, finite(healthRow.after)),
-          max: Math.max(1, finite(healthRow.max, 1)),
+          before: Math.max(0, finiteNumber(healthRow.before)),
+          after: Math.max(0, finiteNumber(healthRow.after)),
+          max: Math.max(1, finiteNumber(healthRow.max, 1)),
         }
       : undefined,
   };
@@ -227,9 +228,9 @@ function parseCreaturePool(value: unknown): HuntingCreaturePoolEntry[] {
         creatureId: row.creatureId,
         name: row.name,
         asset: row.asset,
-        encounterWeight: finite(row.encounterWeight, 1),
+        encounterWeight: finiteNumber(row.encounterWeight, 1),
         ...attack,
-        attackChance: finite(row.attackChance),
+        attackChance: finiteNumber(row.attackChance),
         drops,
       },
     ];
@@ -242,15 +243,27 @@ function parseRiskConfig(value: unknown): HuntingRiskSnapshot | null {
   if (typeof row.damageEnabled !== "boolean") return null;
   return {
     damageEnabled: row.damageEnabled,
-    globalDangerMultiplier: Math.max(0, finite(row.globalDangerMultiplier, 1)),
-    maxHealthLossPercent: Math.max(0, finite(row.maxHealthLossPercent, 30)),
+    globalDangerMultiplier: Math.max(
+      0,
+      finiteNumber(row.globalDangerMultiplier, 1),
+    ),
+    maxHealthLossPercent: Math.max(
+      0,
+      finiteNumber(row.maxHealthLossPercent, 30),
+    ),
     minimumRemainingHealthPercent: Math.max(
       0,
-      finite(row.minimumRemainingHealthPercent, 5),
+      finiteNumber(row.minimumRemainingHealthPercent, 5),
     ),
-    accidentChance: Math.max(0, finite(row.accidentChance)),
-    accidentDamageMin: Math.max(0, Math.floor(finite(row.accidentDamageMin))),
-    accidentDamageMax: Math.max(0, Math.floor(finite(row.accidentDamageMax))),
+    accidentChance: Math.max(0, finiteNumber(row.accidentChance)),
+    accidentDamageMin: Math.max(
+      0,
+      Math.floor(finiteNumber(row.accidentDamageMin)),
+    ),
+    accidentDamageMax: Math.max(
+      0,
+      Math.floor(finiteNumber(row.accidentDamageMax)),
+    ),
   };
 }
 
@@ -379,21 +392,7 @@ export async function getHuntingPageData(userId: string) {
                           drops: {
                             where: { enabled: true },
                             orderBy: [{ baseChance: "desc" }],
-                            select: {
-                              id: true,
-                              baseChance: true,
-                              minQuantity: true,
-                              maxQuantity: true,
-                              requiredLevel: true,
-                              item: {
-                                select: {
-                                  id: true,
-                                  name: true,
-                                  sprite: true,
-                                  rarity: true,
-                                },
-                              },
-                            },
+                            select: CREATURE_DROP_SELECT,
                           },
                         },
                       },
@@ -509,116 +508,64 @@ export async function startHuntingExpedition(params: {
     throw new Error("Choose a valid hunting ground and duration");
   }
 
-  const [
-    travel,
-    vocation,
-    garden,
-    gathering,
-    existing,
-    dungeon,
-    user,
-    ground,
-    duration,
-    skillProgress,
-    config,
-    character,
-  ] = await Promise.all([
-    prisma.userTravelActivity.findUnique({
-      where: { userId },
-      select: { id: true },
-    }),
-    prisma.userVocationalActivity.findUnique({
-      where: { userId },
-      select: { id: true },
-    }),
-    prisma.userGardenHarvestActivity.findUnique({
-      where: { userId },
-      select: { id: true },
-    }),
-    prisma.userGatheringExpedition.findFirst({
-      where: { userId, claimedAt: null },
-      select: { id: true },
-    }),
-    prisma.userHuntingExpedition.findUnique({
-      where: { userId },
-      select: { id: true, claimedAt: true },
-    }),
-    prisma.userDungeonRun.findFirst({
-      where: { userId, claimedAt: null },
-      select: { id: true },
-    }),
-    prisma.user.findUnique({
-      where: { id: userId },
-      select: { level: true, currentLocationId: true },
-    }),
-    prisma.huntingGround.findUnique({
-      where: { id: groundId },
-      select: {
-        id: true,
-        locationId: true,
-        name: true,
-        enabled: true,
-        requiredHuntingLevel: true,
-        accidentChance: true,
-        accidentDamageMin: true,
-        accidentDamageMax: true,
-        location: { select: { name: true, requiredLevel: true } },
-        creatures: {
-          where: {
-            enabled: true,
-            creature: { enabled: true, kind: CreatureKind.ANIMAL },
-          },
-          select: {
-            encounterWeight: true,
-            creature: {
-              select: {
-                id: true,
-                name: true,
-                asset: true,
-                ...CREATURE_ATTACK_SELECT,
-                attackChance: true,
-                drops: {
-                  where: { enabled: true },
-                  select: {
-                    id: true,
-                    baseChance: true,
-                    minQuantity: true,
-                    maxQuantity: true,
-                    requiredLevel: true,
-                    item: {
-                      select: {
-                        id: true,
-                        name: true,
-                        sprite: true,
-                        rarity: true,
-                      },
-                    },
+  const [, existing, user, ground, duration, skillProgress, config, character] =
+    await Promise.all([
+      assertNoOtherActivity(userId, "hunting"),
+      prisma.userHuntingExpedition.findUnique({
+        where: { userId },
+        select: { id: true, claimedAt: true },
+      }),
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: { level: true, currentLocationId: true },
+      }),
+      prisma.huntingGround.findUnique({
+        where: { id: groundId },
+        select: {
+          id: true,
+          locationId: true,
+          name: true,
+          enabled: true,
+          requiredHuntingLevel: true,
+          accidentChance: true,
+          accidentDamageMin: true,
+          accidentDamageMax: true,
+          location: { select: { name: true, requiredLevel: true } },
+          creatures: {
+            where: {
+              enabled: true,
+              creature: { enabled: true, kind: CreatureKind.ANIMAL },
+            },
+            select: {
+              encounterWeight: true,
+              creature: {
+                select: {
+                  id: true,
+                  name: true,
+                  asset: true,
+                  ...CREATURE_ATTACK_SELECT,
+                  attackChance: true,
+                  drops: {
+                    where: { enabled: true },
+                    select: CREATURE_DROP_SELECT,
                   },
                 },
               },
             },
           },
         },
-      },
-    }),
-    prisma.huntingDuration.findUnique({ where: { id: durationId } }),
-    getTrackXpProgress({
-      userId,
-      trackType: "SKILL",
-      trackKey: VocationalActionType.HUNTING,
-    }),
-    getHuntingConfig(),
-    getCharacterStatSnapshot(userId),
-  ]);
+      }),
+      prisma.huntingDuration.findUnique({ where: { id: durationId } }),
+      getTrackXpProgress({
+        userId,
+        trackType: "SKILL",
+        trackKey: VocationalActionType.HUNTING,
+      }),
+      getHuntingConfig(),
+      getCharacterStatSnapshot(userId),
+    ]);
 
-  if (
-    travel ??
-    vocation ??
-    garden ??
-    gathering ??
-    dungeon ??
-    (existing?.claimedAt === null ? existing : null)
-  ) {
+  if (existing?.claimedAt === null) {
     throw new Error("You already have an active activity");
   }
   if (!user) throw new Error("User not found");

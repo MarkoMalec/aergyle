@@ -160,7 +160,7 @@ export async function getSettlementPage(userId: string, settlementId: number) {
         },
       },
     }),
-    loadInventoryStacks(prisma, userId),
+    loadInventoryStacks(prisma, userId, { lock: false }),
     getStorageIcon(),
   ]);
   const held = countItems(inventory.stacks);
@@ -258,7 +258,7 @@ export async function getNpcPage(
 
   const [user, inventory, userQuests] = await Promise.all([
     prisma.user.findUnique({ where: { id: userId }, select: { gold: true } }),
-    loadInventoryStacks(prisma, userId),
+    loadInventoryStacks(prisma, userId, { lock: false }),
     findUserQuests(userId, quests, now),
   ]);
   const held = countItems(inventory.stacks);

@@ -81,14 +81,6 @@ model Inventory {
   - `base`: Base capacity (25)
   - `bonus`: Bonus from equipped items
 
-### Migration Scripts
-**`scripts/updateInventoryBase25.ts`** - NEW
-- Updates all existing inventories from 20 → 25 slots
-- Expands JSON slots array if needed
-
-**`scripts/setupBackpackCapacity.ts`** - NEW
-- Example: Configure XL Backpack with CARRYING_CAPACITY stat progression
-
 ---
 
 ## Setup Instructions
@@ -103,21 +95,10 @@ npx prisma migrate dev --name add_carrying_capacity_stat
 npx prisma generate
 ```
 
-### 3. Update Existing Inventories
-```bash
-npx tsx scripts/updateInventoryBase25.ts
-```
+### 3. Configure Backpacks
+Give a backpack a `CARRYING_CAPACITY` stat progression in the admin item editor (`/admin/items`).
 
-This updates all inventories from 20 slots → 25 slots.
-
-### 4. Configure Backpacks
-```bash
-npx tsx scripts/setupBackpackCapacity.ts
-```
-
-This sets up XL Backpack (id: 35) with CARRYING_CAPACITY progression.
-
-### 5. Create Backpacks for Testing
+### 4. Create Backpacks for Testing
 ```typescript
 import { createUserItem } from "~/utils/userItems";
 import { ItemRarity } from "@prisma/client";
@@ -131,7 +112,7 @@ const backpackId = await createUserItem(
 // Result: Has CARRYING_CAPACITY: 5 stat
 ```
 
-### 6. Test Equipping
+### 5. Test Equipping
 ```typescript
 // Equip backpack (via DnD or API)
 await fetch("/api/equipment", {

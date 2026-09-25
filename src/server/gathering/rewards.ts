@@ -3,6 +3,7 @@ import {
   calculateExpeditionEffectiveFindChance,
   calculateExpeditionRewardModifiers,
   clampNumber,
+  type ExpeditionRewardModifiers,
 } from "~/server/expeditions/rewards";
 
 export type GatheringRewardPoolEntry = {
@@ -35,20 +36,12 @@ export type GatheringRewardInput = {
   random?: () => number;
 };
 
-export type GatheringRewardModifiers = {
-  findModifierPercent: number;
-  quantityModifierPercent: number;
-  quantityScale: number;
-};
-
-function clamp(value: number, min: number, max: number) {
-  return clampNumber(value, min, max);
-}
-
 function rollInclusive(min: number, max: number, random: () => number) {
   const low = Math.max(1, Math.ceil(Math.min(min, max)));
   const high = Math.max(low, Math.floor(Math.max(min, max)));
-  return low + Math.floor(clamp(random(), 0, 0.999999999) * (high - low + 1));
+  return (
+    low + Math.floor(clampNumber(random(), 0, 0.999999999) * (high - low + 1))
+  );
 }
 
 function weightedFallback(
@@ -56,12 +49,12 @@ function weightedFallback(
   random: () => number,
 ) {
   const totalWeight = pool.reduce(
-    (total, entry) => total + clamp(entry.baseChance, 0.001, 1),
+    (total, entry) => total + clampNumber(entry.baseChance, 0.001, 1),
     0,
   );
-  let cursor = clamp(random(), 0, 0.999999999) * totalWeight;
+  let cursor = clampNumber(random(), 0, 0.999999999) * totalWeight;
   for (const entry of pool) {
-    cursor -= clamp(entry.baseChance, 0.001, 1);
+    cursor -= clampNumber(entry.baseChance, 0.001, 1);
     if (cursor <= 0) return entry;
   }
   return pool[pool.length - 1]!;
@@ -77,23 +70,13 @@ export function calculateGatheringRewardModifiers(
     GatheringRewardInput,
     "skillLevel" | "luck" | "gatheringEfficiency" | "quantityMultiplier"
   >,
-): GatheringRewardModifiers {
+): ExpeditionRewardModifiers {
   return calculateExpeditionRewardModifiers({
     skillLevel: input.skillLevel,
     luck: input.luck,
     efficiency: input.gatheringEfficiency,
     quantityMultiplier: input.quantityMultiplier,
   });
-}
-
-export function calculateGatheringEffectiveFindChance(
-  baseChance: number,
-  findModifierPercent: number,
-) {
-  return calculateExpeditionEffectiveFindChance(
-    baseChance,
-    findModifierPercent,
-  );
 }
 
 /**
@@ -123,7 +106,7 @@ export function calculateGatheringRewards(
   const quantities = new Map<number, number>();
   for (let roll = 0; roll < rollCount; roll += 1) {
     for (const entry of pool) {
-      const effectiveChance = calculateGatheringEffectiveFindChance(
+      const effectiveChance = calculateExpeditionEffectiveFindChance(
         entry.baseChance,
         findModifierPercent,
       );

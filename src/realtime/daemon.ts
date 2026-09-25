@@ -26,6 +26,10 @@ type Ticker = {
 };
 
 const PORT = Number(process.env.REALTIME_WS_PORT ?? 3001);
+// Clients only ever send keepalives, so anything bigger is abuse.
+const MAX_MESSAGE_BYTES = 1024;
+// A game tab or two per player; more is a script holding sockets open.
+const MAX_SOCKETS_PER_USER = 8;
 
 function loadDotEnvIfPresent() {
   // Next.js auto-loads .env files, but this standalone daemon does not.
@@ -264,7 +268,7 @@ async function main() {
   const clientsByUserId = new Map<string, Set<Client>>();
   const tickers = await loadTickers();
 
-  const wss = new WebSocketServer({ port: PORT });
+  const wss = new WebSocketServer({ port: PORT, maxPayload: MAX_MESSAGE_BYTES });
   console.log(`[realtime-daemon] WebSocket server listening on :${PORT}`);
 
   wss.on("connection", (ws: WebSocket, req: IncomingMessage) => {
@@ -287,6 +291,10 @@ async function main() {
     if (!set) {
       set = new Set();
       clientsByUserId.set(userId, set);
+    }
+    if (set.size >= MAX_SOCKETS_PER_USER) {
+      ws.close(1008, "Too many connections");
+      return;
     }
     set.add(client);
 

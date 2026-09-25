@@ -14,7 +14,7 @@ import {
   countItems,
   loadInventoryStacks,
 } from "~/server/items/consumeItems";
-import { grantStackableItemToInventory } from "~/server/vocations/grantItem";
+import { grantStackableItemToInventory } from "~/server/items/grantItem";
 import { awardXp } from "~/utils/leveling";
 import {
   assertPresentAt,
@@ -247,7 +247,7 @@ export async function getQuestJournal(userId: string) {
         },
       },
     }),
-    loadInventoryStacks(prisma, userId),
+    loadInventoryStacks(prisma, userId, { lock: false }),
   ]);
   const held = countItems(inventory.stacks);
 

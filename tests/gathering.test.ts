@@ -13,17 +13,30 @@ import {
 } from "../src/server/gathering/rewards";
 import { runGatheringSimulation } from "../src/server/gathering/simulator";
 
-void test("initial Gathering pool contains six distinct forage foods and six herbs", () => {
+void test("Gathering has six foraged foods and twelve distinct herbs", () => {
   const food = GATHERING_ITEMS.filter((item) => item.itemType === "VEGETABLE");
   const herbs = GATHERING_ITEMS.filter((item) => item.itemType === "HERB");
   assert.equal(food.length, 6);
-  assert.equal(herbs.length, 6);
+  assert.equal(herbs.length, 12);
   assert.ok(food.some((item) => item.name === "Mushrooms"));
   assert.deepEqual(
     new Set(herbs.map((item) => item.name)),
-    new Set(["Mint", "Sage", "Rosemary", "Chamomile", "Lavender", "Thyme"]),
+    new Set([
+      "Mint",
+      "Sage",
+      "Rosemary",
+      "Chamomile",
+      "Lavender",
+      "Thyme",
+      "Yarrow",
+      "Aloe",
+      "Ginseng",
+      "Echinacea",
+      "Amrans",
+      "Arkasu Bark",
+    ]),
   );
-  assert.equal(new Set(GATHERING_ITEMS.map((item) => item.name)).size, 12);
+  assert.equal(new Set(GATHERING_ITEMS.map((item) => item.name)).size, 18);
 
   const existingCookingNames = new Set(
     COOKING_INGREDIENTS.map((item) => item.name),

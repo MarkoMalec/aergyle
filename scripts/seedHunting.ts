@@ -9,6 +9,7 @@ import {
   HUNTING_ITEMS,
   huntingItemData,
 } from "../prisma/content/hunting";
+import { changedFields } from "./seedHelpers";
 
 type Mode = "--check" | "--apply" | "--verify";
 const mode = (process.argv[2] ?? "--check") as Mode;
@@ -22,15 +23,6 @@ if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required");
 const prisma = new PrismaClient({
   adapter: new PrismaMariaDb(process.env.DATABASE_URL),
 });
-
-function differences(
-  actual: Record<string, unknown>,
-  expected: Record<string, unknown>,
-) {
-  return Object.entries(expected)
-    .filter(([key, value]) => actual[key] !== value)
-    .map(([key]) => key);
-}
 
 async function assertRgbaSprite(sprite: string) {
   const png = await readFile(new URL(`../public${sprite}`, import.meta.url));
@@ -133,7 +125,7 @@ async function main(selectedMode: Mode) {
         }
         const found = matches[0] ?? null;
         const diff = found
-          ? differences(
+          ? changedFields(
               found as unknown as Record<string, unknown>,
               expected as unknown as Record<string, unknown>,
             )
@@ -174,7 +166,7 @@ async function main(selectedMode: Mode) {
           where: { name: definition.name },
         });
         const diff = found
-          ? differences(found as unknown as Record<string, unknown>, expected)
+          ? changedFields(found as unknown as Record<string, unknown>, expected)
           : Object.keys(expected);
         if (selectedMode === "--verify" && (!found || diff.length > 0)) {
           throw new Error(
@@ -211,7 +203,7 @@ async function main(selectedMode: Mode) {
             where: { creatureId_itemId: { creatureId, itemId } },
           });
           const dropDiff = foundDrop
-            ? differences(
+            ? changedFields(
                 foundDrop as unknown as Record<string, unknown>,
                 expectedDrop,
               )
@@ -262,7 +254,7 @@ async function main(selectedMode: Mode) {
           where: { locationId_name: { locationId, name: ground.name } },
         });
         const diff = found
-          ? differences(found as unknown as Record<string, unknown>, expected)
+          ? changedFields(found as unknown as Record<string, unknown>, expected)
           : Object.keys(expected);
         if (selectedMode === "--verify" && (!found || diff.length > 0)) {
           throw new Error(
@@ -294,7 +286,7 @@ async function main(selectedMode: Mode) {
             where: { groundId_creatureId: { groundId, creatureId } },
           });
           const assignmentDiff = foundAssignment
-            ? differences(
+            ? changedFields(
                 foundAssignment as unknown as Record<string, unknown>,
                 expectedAssignment,
               )
@@ -328,7 +320,7 @@ async function main(selectedMode: Mode) {
         });
         const expected = { ...definition, enabled: true };
         const diff = found
-          ? differences(found as unknown as Record<string, unknown>, expected)
+          ? changedFields(found as unknown as Record<string, unknown>, expected)
           : Object.keys(expected);
         if (selectedMode === "--verify" && (!found || diff.length > 0)) {
           throw new Error(`${definition.label}: duration differs`);

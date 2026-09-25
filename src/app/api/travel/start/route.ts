@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "~/lib/prisma";
 import { getServerAuthSession } from "~/server/auth";
 import { startTravel } from "~/server/travel/service";
 
@@ -14,20 +13,6 @@ export async function POST(req: NextRequest) {
 
   if (typeof toLocationId !== "number") {
     return NextResponse.json({ error: "toLocationId is required" }, { status: 400 });
-  }
-
-  // Lock: can't travel while a vocational activity is active.
-  const now = new Date();
-  const vocational = await prisma.userVocationalActivity.findUnique({
-    where: { userId: session.user.id },
-    select: { endsAt: true },
-  });
-
-  if (vocational && vocational.endsAt > now) {
-    return NextResponse.json(
-      { error: "You cannot travel while an action is active" },
-      { status: 400 },
-    );
   }
 
   try {

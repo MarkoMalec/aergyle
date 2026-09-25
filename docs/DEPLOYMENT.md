@@ -153,8 +153,23 @@ https://mmo.markomalec.com/api/auth/callback/discord
 
 ### Admin access
 
-If neither `ADMIN_EMAILS` nor `ADMIN_USER_IDS` is set, `src/server/admin/auth.ts`
-falls back to **allowing any authenticated user into /admin**. Always set one.
+`/admin` has its own accounts, separate from player accounts. Signing in at
+`/admin/login` takes a username, a password and a 6-digit code from an
+authenticator app (Authy, 1Password, Google Authenticator...). Accounts are
+managed from a terminal that can reach the database:
+
+```
+npm run admin -- create <username>   # password, then scan the QR code
+npm run admin -- reset <username>    # new password + authenticator, ends all sessions
+npm run admin -- disable <username>  # blocks sign-in, ends all sessions
+npm run admin -- unlock <username>   # after 5 failed attempts (15 min lock)
+npm run admin -- list
+```
+
+Sessions are server-side (the cookie holds a random token; only its SHA-256 is
+stored), last 8 hours, and end after an hour of inactivity. Every sign-in and
+every change made through `/admin` is written to the audit log, visible under
+`/admin/security`, where you can also end your other sessions.
 
 ## Images
 

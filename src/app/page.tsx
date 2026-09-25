@@ -17,7 +17,7 @@ export default function HomePage() {
           <span className="game-wordmark">Aergyle</span>
         </Link>
         <Button asChild variant="outline">
-          <Link href="/signin">
+          <Link href="/play?mode=signin">
             Sign in <ArrowRight size={16} aria-hidden="true" />
           </Link>
         </Button>
@@ -39,12 +39,12 @@ export default function HomePage() {
           </p>
           <div className="mt-9 flex flex-wrap gap-3">
             <Button asChild size="lg">
-              <Link href="/register">
+              <Link href="/play?mode=register">
                 Begin your journey <ArrowRight size={16} aria-hidden="true" />
               </Link>
             </Button>
             <Button asChild variant="outline" size="lg">
-              <Link href="/signin">Return to Aergyle</Link>
+              <Link href="/play?mode=signin">Return to Aergyle</Link>
             </Button>
           </div>
           <p className="mt-6 text-xs text-muted-foreground">

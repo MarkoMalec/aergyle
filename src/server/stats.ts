@@ -14,7 +14,10 @@ import {
   type StatGrowthRule,
 } from "~/utils/stats";
 import { getActiveFoodEffect } from "~/server/food-effects";
-import { getEquippedUserItemIds } from "~/utils/itemEquipTo";
+import {
+  getEquippedUserItemIds,
+  type EquipmentItemReferences,
+} from "~/utils/itemEquipTo";
 import {
   hydrateEffectiveItemStats,
   ITEM_BALANCE_RELATIONS,
@@ -92,12 +95,17 @@ async function loadCharacterBase(userId: string) {
  */
 export async function getCharacterStatSnapshot(
   userId: string,
+  /** Stats for an equipment set that isn't saved yet, e.g. a proposed swap. */
+  options: { equipment?: EquipmentItemReferences } = {},
 ): Promise<CharacterStatSnapshot> {
-  const [{ baseStats, rules }, equipment, activeEffect] = await Promise.all([
+  const [{ baseStats, rules }, savedEquipment, activeEffect] = await Promise.all([
     loadCharacterBase(userId),
-    prisma.equipment.findUnique({ where: { userId } }),
+    options.equipment
+      ? null
+      : prisma.equipment.findUnique({ where: { userId } }),
     getActiveFoodEffect(userId),
   ]);
+  const equipment = options.equipment ?? savedEquipment;
 
   const referencedUserItemIds = getEquippedUserItemIds(equipment);
   const equippedItems =

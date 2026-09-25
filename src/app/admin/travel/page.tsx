@@ -1,11 +1,13 @@
 import { TravelRoutesEditor } from "~/components/admin/travel/TravelRoutesEditor";
 import { prisma } from "~/lib/prisma";
 import { getDefaultTravelSeconds } from "~/server/travel/service";
+import { requireAdminPageAccess } from "~/server/admin/auth";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function AdminTravelPage() {
+  await requireAdminPageAccess();
   const [locations, routes, defaultSeconds] = await Promise.all([
     prisma.location.findMany({
       select: { id: true, name: true },

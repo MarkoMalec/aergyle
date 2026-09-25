@@ -79,9 +79,8 @@ export default function CraftingResourceCatalog(props: {
         });
       }
     }
-    return Array.from(byKey.values()).sort((a, b) =>
-      a.label.localeCompare(b.label),
-    );
+    // Map insertion order follows the admin-managed resource order.
+    return Array.from(byKey.values());
   }, [resources]);
 
   const selectedCategory = categories.find((entry) => entry.key === category);

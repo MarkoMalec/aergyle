@@ -79,6 +79,15 @@ RUN npx esbuild src/realtime/daemon.ts \
       --banner:js="import{createRequire as __cr}from'module';const require=__cr(import.meta.url);" \
       --outfile=/tmp/daemon.mjs
 
+# The admin account CLI, bundled the same way so /admin accounts can be managed
+# on the host without Node: docker compose run --rm app admin <command>
+RUN npx esbuild scripts/admin.ts \
+      --bundle --platform=node --format=esm --target=node22 \
+      --external:mariadb --external:@prisma/adapter-mariadb \
+      --tsconfig=tsconfig.json \
+      --banner:js="import{createRequire as __cr}from'module';const require=__cr(import.meta.url);" \
+      --outfile=/tmp/admin.mjs
+
 # -------------------------------------------------------------- runner
 FROM base AS runner
 ENV NODE_ENV=production \
@@ -104,6 +113,7 @@ COPY --from=runtime-deps /rt/node_modules ./node_modules
 COPY --from=builder /src/prisma ./prisma
 COPY --from=builder /src/prisma.config.ts ./prisma.config.ts
 COPY --from=builder /tmp/daemon.mjs ./daemon.mjs
+COPY --from=builder /tmp/admin.mjs ./admin.mjs
 
 COPY docker-entrypoint.sh /usr/local/bin/entrypoint
 RUN chmod +x /usr/local/bin/entrypoint

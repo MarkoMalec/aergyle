@@ -457,7 +457,7 @@ Each of these is appended to the complete prefix above; none relies on “match 
 
 **Perch (fishing resource):** One compact freshwater perch pointing right, subtle three-quarter view with the left flank readable. Warm olive and ochre body, three broad dark flank bars, muted orange fins, one small bright eye. Simplify fins into coherent shapes; no water, hook, fishing line or wet photographic gloss.
 
-**Health Potion (consumable):** One stout squat bottle with a cork stopper, a single leather neck tie and a deep brick-red liquid mass. Broad illustrated glass with one pale upper-left highlight. Three-quarter view, no fancy gold cage, scattered gems, label, floor or magical vapour.
+**Healing potion family (consumables):** Five transparent glass flasks carrying an unmistakable deep red liquid mass. Progress visibly from the squat Minor Healing Potion through Small, Medium and Big Healing Potions to the largest, heavily sealed Trollblood Elixir. Each uses a broad illustrated glass silhouette with an upper-left highlight; no floor, label, magical vapour or scattered gems.
 
 **Future goblin portrait:** Replace the item-specific camera/composition paragraph with: a bust of a resourceful goblin looking three-quarter toward the viewer, one long folded ear and a broad cheek silhouette, worn cloth collar, compact face with readable brows; cool ink background, warm upper-left key, painted planes, no pores, no huge anime eyes or comedy bobble-head proportions. This is creature artwork, not an assertion that a playable goblin route exists.
 

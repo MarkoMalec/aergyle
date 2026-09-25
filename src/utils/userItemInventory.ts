@@ -8,14 +8,19 @@ import {
  * Fetch UserItems by their IDs with all related data
  * Returns data in ItemWithStats format (compatible with existing components)
  * Exact inventory/equipment references may use the current IN_INVENTORY state
- * or the legacy EQUIPPED state. Market and terminal states remain excluded.
+ * or the legacy EQUIPPED state. Market and terminal states remain excluded,
+ * and so are other players' items, whatever ids are asked for.
  */
-export async function fetchUserItemsByIds(userItemIds: number[]) {
+export async function fetchUserItemsByIds(
+  userId: string,
+  userItemIds: number[],
+) {
   if (userItemIds.length === 0) return [];
 
   const userItems = await prisma.userItem.findMany({
     where: {
       id: { in: userItemIds },
+      userId,
       status: { in: ["IN_INVENTORY", "EQUIPPED"] },
     },
     include: {
@@ -67,6 +72,7 @@ export async function fetchUserItemsByIds(userItemIds: number[]) {
     stackable: userItem.itemTemplate.stackable,
     maxStackSize: userItem.itemTemplate.maxStackSize,
     isTradeable: userItem.isTradeable,
+    healingAmount: userItem.itemTemplate.healingAmount,
     foodEffectSeconds: userItem.itemTemplate.foodEffectSeconds,
     foodEffectStats: userItem.itemTemplate.foodEffectStats,
     stats: userItem.stats.map((stat, index) => ({

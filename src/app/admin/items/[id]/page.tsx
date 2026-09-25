@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "~/lib/prisma";
 import { ItemForm } from "~/components/admin/items/ItemForm";
 import { StatType } from "~/generated/prisma/enums";
+import { requireAdminPageAccess } from "~/server/admin/auth";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -10,6 +11,7 @@ export const revalidate = 0;
 export default async function AdminEditItemPage(props: {
   params: { id: string };
 }) {
+  await requireAdminPageAccess();
   const id = Number(props.params.id);
   if (!Number.isFinite(id)) notFound();
 
@@ -95,6 +97,7 @@ export default async function AdminEditItemPage(props: {
       seedYieldMax: item.seedYieldMax ?? null,
       seedHarvestSeconds: item.seedHarvestSeconds ?? null,
       seedXp: item.seedXp ?? null,
+      healingAmount: item.healingAmount ?? null,
       foodEffectSeconds: item.foodEffectSeconds ?? null,
       equipTo: item.equipTo,
       twoHanded: item.twoHanded,

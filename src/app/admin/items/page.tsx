@@ -6,6 +6,7 @@ import {
   ATLAS_EQUIPMENT,
   atlasSpritePath,
 } from "../../../../prisma/content/atlasEquipment";
+import { requireAdminPageAccess } from "~/server/admin/auth";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -15,6 +16,7 @@ export default async function AdminItemsPage({
 }: {
   searchParams: { collection?: string };
 }) {
+  await requireAdminPageAccess();
   const showAtlas = searchParams.collection === "atlas-v1";
   const items = await prisma.item.findMany({
     where: showAtlas

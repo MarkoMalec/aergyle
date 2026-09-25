@@ -40,7 +40,7 @@ is drawn, not a route time that has already been seeded.
 ```
 npm run db:seed:travel             # --check: list missing pairs
 npm run db:seed:travel -- --apply  # create missing pairs only
-npm run test:travel
+npm test
 ```
 
 The seed only fills pairs that have no route, so times tuned in /admin are

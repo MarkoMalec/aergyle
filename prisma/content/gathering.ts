@@ -10,13 +10,6 @@ export interface GatheringItemDefinition {
   requiredSkillLevel: number;
 }
 
-export interface GatheringLocationResourceDefinition {
-  itemName: string;
-  baseChance: number;
-  minQuantity: number;
-  maxQuantity: number;
-}
-
 export const GATHERING_ITEMS = [
   {
     name: "Mushrooms",
@@ -138,6 +131,66 @@ export const GATHERING_ITEMS = [
     sprite: "/assets/items/resources/herbs/lavender-gathering-v1.png",
     requiredSkillLevel: 35,
   },
+  {
+    name: "Yarrow",
+    description:
+      "A feathery white-flowering field herb carried by healers for poultices, infusions and starter restoratives.",
+    itemType: "HERB",
+    rarity: "COMMON",
+    price: 4,
+    sprite: "/assets/items/resources/herbs/yarrow-alchemy-v1.png",
+    requiredSkillLevel: 1,
+  },
+  {
+    name: "Aloe",
+    description:
+      "A thick-leaved succulent whose clear gel cools burns and gives restorative brews their soothing body.",
+    itemType: "HERB",
+    rarity: "COMMON",
+    price: 6,
+    sprite: "/assets/items/resources/herbs/aloe-alchemy-v1.png",
+    requiredSkillLevel: 5,
+  },
+  {
+    name: "Ginseng",
+    description:
+      "A forked medicinal root valued by alchemists for deep, steady recovery preparations.",
+    itemType: "HERB",
+    rarity: "UNCOMMON",
+    price: 12,
+    sprite: "/assets/items/resources/herbs/ginseng-alchemy-v1.png",
+    requiredSkillLevel: 18,
+  },
+  {
+    name: "Echinacea",
+    description:
+      "Purple coneflower heads with a sharp, earthy tonic quality prized in stronger restorative draughts.",
+    itemType: "HERB",
+    rarity: "UNCOMMON",
+    price: 16,
+    sprite: "/assets/items/resources/herbs/echinacea-alchemy-v1.png",
+    requiredSkillLevel: 28,
+  },
+  {
+    name: "Amrans",
+    description:
+      "A rare silver-veined curative herb, gathered from high meadows and reserved for serious recovery work.",
+    itemType: "HERB",
+    rarity: "RARE",
+    price: 40,
+    sprite: "/assets/items/resources/herbs/amrans-alchemy-v1.png",
+    requiredSkillLevel: 50,
+  },
+  {
+    name: "Arkasu Bark",
+    description:
+      "Frost-pale alpine bark with clinging lichen, a scarce curative reagent that survives the harshest mountain wind.",
+    itemType: "HERB",
+    rarity: "EXQUISITE",
+    price: 95,
+    sprite: "/assets/items/resources/herbs/arkasu-bark-alchemy-v1.png",
+    requiredSkillLevel: 80,
+  },
 ] as const satisfies readonly GatheringItemDefinition[];
 
 export const GATHERING_LOCATIONS = [
@@ -165,6 +218,8 @@ export const GATHERING_LOCATIONS = [
         maxQuantity: 2,
       },
       { itemName: "Thyme", baseChance: 0.38, minQuantity: 1, maxQuantity: 3 },
+      { itemName: "Yarrow", baseChance: 0.42, minQuantity: 1, maxQuantity: 3 },
+      { itemName: "Aloe", baseChance: 0.24, minQuantity: 1, maxQuantity: 2 },
     ],
   },
   {
@@ -196,6 +251,13 @@ export const GATHERING_LOCATIONS = [
         minQuantity: 1,
         maxQuantity: 2,
       },
+      { itemName: "Ginseng", baseChance: 0.22, minQuantity: 1, maxQuantity: 2 },
+      {
+        itemName: "Echinacea",
+        baseChance: 0.17,
+        minQuantity: 1,
+        maxQuantity: 2,
+      },
     ],
   },
   {
@@ -220,6 +282,13 @@ export const GATHERING_LOCATIONS = [
         baseChance: 0.16,
         minQuantity: 1,
         maxQuantity: 2,
+      },
+      { itemName: "Amrans", baseChance: 0.12, minQuantity: 1, maxQuantity: 1 },
+      {
+        itemName: "Arkasu Bark",
+        baseChance: 0.06,
+        minQuantity: 1,
+        maxQuantity: 1,
       },
     ],
   },

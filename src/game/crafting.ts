@@ -1,14 +1,25 @@
 import { ItemType, VocationalActionType } from "~/generated/prisma/enums";
+import { toSkillNameFromActionType } from "~/utils/vocations";
 
 export type CraftingRule = {
   label: string;
   catalogNoun: string;
-  outputTypes: readonly ItemType[];
-  inputTypes: readonly ItemType[];
   allowsLearnedRecipes: boolean;
-  outputError: string;
-  inputError: string;
 };
+
+/**
+ * The item types a skill's resources may produce (`outputTypes`) and consume
+ * as requirements (`inputTypes`). Admin-managed on /admin/vocations/rules and
+ * loaded with getSkillItemRules; an empty list accepts every type.
+ */
+export type SkillItemRule = {
+  outputTypes: ItemType[];
+  inputTypes: ItemType[];
+};
+
+export type SkillItemRules = Partial<
+  Record<VocationalActionType, SkillItemRule>
+>;
 
 export type CraftingCategory = {
   key: string;
@@ -49,9 +60,9 @@ const ITEM_TYPE_CATEGORY_LABELS: Partial<Record<ItemType, string>> = {
 
 /**
  * The production engine remains shared with gathering vocations, while this
- * registry defines the item contract for each crafting profession. Adding a
- * future craft means adding its enum value and one rule here; recipes continue
- * to use VocationalResource + VocationalRequirement.
+ * registry says which skills are crafting professions and how their catalog
+ * reads. Which item types each skill accepts is admin data (SkillItemRule).
+ * Recipes continue to use VocationalResource + VocationalRequirement.
  */
 export const CRAFTING_RULES: Partial<
   Record<VocationalActionType, CraftingRule>
@@ -59,112 +70,32 @@ export const CRAFTING_RULES: Partial<
   [VocationalActionType.COOKING]: {
     label: "Cooking",
     catalogNoun: "dishes",
-    outputTypes: [ItemType.FOOD],
-    inputTypes: [ItemType.FISH, ItemType.MEAT, ItemType.VEGETABLE],
     allowsLearnedRecipes: true,
-    outputError: "Cooking output must be a FOOD item template",
-    inputError: "Cooking ingredients must be FISH, MEAT or VEGETABLE items",
+  },
+  [VocationalActionType.ALCHEMY]: {
+    label: "Alchemy",
+    catalogNoun: "reagents",
+    allowsLearnedRecipes: false,
   },
   [VocationalActionType.BLACKSMITHING]: {
     label: "Blacksmithing",
     catalogNoun: "metalwork",
-    outputTypes: [
-      ItemType.INGOT,
-      ItemType.MATERIAL,
-      ItemType.FELLING_AXE,
-      ItemType.PICKAXE,
-      ItemType.HOE,
-      ItemType.SHIELD,
-      ItemType.HELMET,
-      ItemType.CHESTPLATE,
-      ItemType.GREAVES,
-      ItemType.BOOTS,
-      ItemType.GLOVES,
-      ItemType.PAULDRONS,
-      ItemType.BRACERS,
-      ItemType.BELT,
-      ItemType.OTHER,
-    ],
-    inputTypes: [
-      ItemType.ORE,
-      ItemType.INGOT,
-      ItemType.MATERIAL,
-      ItemType.HIDE,
-      ItemType.BLUEPRINT,
-    ],
     allowsLearnedRecipes: false,
-    outputError:
-      "Blacksmithing output must be an ingot, metal component, tool, armor or shield item template",
-    inputError:
-      "Blacksmithing requirements must be ORE, INGOT, MATERIAL, HIDE or BLUEPRINT items",
   },
   [VocationalActionType.WEAPONSMITHING]: {
     label: "Weaponsmithing",
     catalogNoun: "weapons",
-    outputTypes: [
-      ItemType.SWORD,
-      ItemType.GREATSWORD,
-      ItemType.AXE,
-      ItemType.GREATAXE,
-      ItemType.DAGGER,
-      ItemType.MACE,
-      ItemType.SPEAR,
-      ItemType.FLAIL,
-    ],
-    inputTypes: [
-      ItemType.INGOT,
-      ItemType.MATERIAL,
-      ItemType.HIDE,
-      ItemType.BLUEPRINT,
-    ],
     allowsLearnedRecipes: false,
-    outputError: "Weaponsmithing output must be a melee weapon item template",
-    inputError:
-      "Weaponsmithing requirements must be INGOT, MATERIAL, HIDE or BLUEPRINT items",
   },
   [VocationalActionType.CARPENTRY]: {
     label: "Carpentry",
     catalogNoun: "woodwork",
-    outputTypes: [
-      ItemType.MATERIAL,
-      ItemType.BOW,
-      ItemType.CROSSBOW,
-      ItemType.FISHING_ROD,
-      ItemType.OTHER,
-    ],
-    inputTypes: [
-      ItemType.LOG,
-      ItemType.MATERIAL,
-      ItemType.INGOT,
-      ItemType.HIDE,
-      ItemType.BLUEPRINT,
-    ],
     allowsLearnedRecipes: false,
-    outputError:
-      "Carpentry output must be a wooden component, bow, fishing rod or wooden item template",
-    inputError:
-      "Carpentry requirements must be LOG, MATERIAL, INGOT, HIDE or BLUEPRINT items",
   },
   [VocationalActionType.TAILORING]: {
     label: "Tailoring",
     catalogNoun: "patterns",
-    outputTypes: [
-      ItemType.CHESTPLATE,
-      ItemType.GREAVES,
-      ItemType.BOOTS,
-      ItemType.GLOVES,
-      ItemType.HELMET,
-      ItemType.PAULDRONS,
-      ItemType.BRACERS,
-      ItemType.BELT,
-      ItemType.HIDE,
-    ],
-    inputTypes: [ItemType.MATERIAL, ItemType.HIDE, ItemType.BLUEPRINT],
     allowsLearnedRecipes: false,
-    outputError:
-      "Tailoring output must be an apparel or prepared-hide item template",
-    inputError:
-      "Tailoring requirements must be MATERIAL, HIDE or BLUEPRINT items",
   },
 };
 
@@ -185,22 +116,92 @@ export function getCraftingCategory(itemType: ItemType): CraftingCategory {
   };
 }
 
-export function validateCraftingItemTypes(params: {
+/** Stored order for a set of item types: the ItemType enum's own order. */
+export function sortItemTypes(itemTypes: Iterable<ItemType>): ItemType[] {
+  const wanted = new Set(itemTypes);
+  return Object.values(ItemType).filter((itemType) => wanted.has(itemType));
+}
+
+/** Whether `allowed` (a SkillItemRule list) accepts `itemType`. */
+export function acceptsItemType(
+  allowed: readonly ItemType[] | undefined,
+  itemType: ItemType | null | undefined,
+) {
+  if (!allowed || allowed.length === 0) return true;
+  return itemType != null && allowed.includes(itemType);
+}
+
+export function getSkillLabel(actionType: VocationalActionType) {
+  return (
+    getCraftingRule(actionType)?.label ?? toSkillNameFromActionType(actionType)
+  );
+}
+
+// No player page lists vocational resources for these: Gardening and Hunting
+// run their own systems, and FORGE has no skill page at all.
+const SKILLS_WITHOUT_RESOURCES: ReadonlySet<VocationalActionType> = new Set([
+  VocationalActionType.GARDENING,
+  VocationalActionType.HUNTING,
+  VocationalActionType.FORGE,
+]);
+
+export function skillHoldsResources(actionType: VocationalActionType) {
+  return !SKILLS_WITHOUT_RESOURCES.has(actionType);
+}
+
+/**
+ * Why a resource cannot belong to `actionType`, or null when it can. The admin
+ * API, the resource form and the /admin/vocations move picker all ask this, so
+ * they agree on which skill may hold which resource.
+ */
+export function getResourceSkillConflict(params: {
   actionType: VocationalActionType;
   outputType: ItemType | null | undefined;
-  inputTypes: ReadonlyArray<ItemType | null | undefined>;
+  requirementTypes: ReadonlyArray<ItemType | null | undefined>;
+  hasRecipeGate: boolean;
+  itemRules: SkillItemRules;
 }): string | null {
+  if (!skillHoldsResources(params.actionType)) {
+    return `Players never see resources under ${params.actionType}`;
+  }
+
   const rule = getCraftingRule(params.actionType);
-  if (!rule) return null;
-  if (!rule.outputTypes.includes(params.outputType!)) {
-    return rule.outputError;
+  if (params.hasRecipeGate && !rule?.allowsLearnedRecipes) {
+    const gatedSkills = Object.entries(CRAFTING_RULES)
+      .filter(([, craft]) => craft?.allowsLearnedRecipes)
+      .map(([skill]) => skill)
+      .join(", ");
+    return `Has a required recipe, which only ${gatedSkills} supports`;
   }
-  if (
-    params.inputTypes.some(
-      (itemType) => !rule.inputTypes.includes(itemType!),
-    )
-  ) {
-    return rule.inputError;
+
+  if (rule && params.requirementTypes.length === 0) {
+    return `${rule.label} recipes need at least one material`;
   }
+
+  const skill = getSkillLabel(params.actionType);
+  const itemRule = params.itemRules[params.actionType];
+  if (!acceptsItemType(itemRule?.outputTypes, params.outputType)) {
+    return `${skill} can't output ${params.outputType ?? "untyped"} items (allowed: ${itemRule!.outputTypes.join(", ")})`;
+  }
+  const refusedIndex = params.requirementTypes.findIndex(
+    (itemType) => !acceptsItemType(itemRule?.inputTypes, itemType),
+  );
+  if (refusedIndex >= 0) {
+    return `${skill} can't use ${params.requirementTypes[refusedIndex] ?? "untyped"} items as requirements (allowed: ${itemRule!.inputTypes.join(", ")})`;
+  }
+
+  // Bait is fixed by the fishing engine, which consumes one BAIT stack.
+  if (params.actionType === VocationalActionType.FISHING) {
+    if (params.requirementTypes.length > 1) {
+      return "Fishing can have at most 1 bait requirement";
+    }
+    if (
+      params.requirementTypes.length === 1 &&
+      params.requirementTypes[0] !== ItemType.BAIT
+    ) {
+      return "Fishing requirements must be a BAIT item template";
+    }
+  }
+
   return null;
 }

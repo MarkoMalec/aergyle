@@ -35,6 +35,7 @@ const REPORT_SELECT = {
   reporter: { select: { name: true } },
   reported: { select: { name: true } },
   reviewedBy: { select: { name: true } },
+  reviewedByAdmin: { select: { username: true } },
 } as const;
 
 type ReportRow = {
@@ -48,6 +49,7 @@ type ReportRow = {
   reporter: { name: string | null } | null;
   reported: { name: string | null } | null;
   reviewedBy: { name: string | null } | null;
+  reviewedByAdmin: { username: string } | null;
 };
 
 function toView(row: ReportRow): ReportView {
@@ -62,7 +64,7 @@ function toView(row: ReportRow): ReportView {
       : [],
     createdAt: row.createdAt.toISOString(),
     reviewedAt: row.reviewedAt?.toISOString() ?? null,
-    reviewedBy: row.reviewedBy?.name ?? null,
+    reviewedBy: row.reviewedByAdmin?.username ?? row.reviewedBy?.name ?? null,
     reviewNote: row.reviewNote,
   };
 }
@@ -85,7 +87,8 @@ export function countOpenReports() {
 /** Closes a report as handled or as nothing to answer for. */
 export async function reviewReport(params: {
   reportId: number;
-  reviewerId: string;
+  /** The admin account closing the report. */
+  reviewerAdminId: string;
   status: Exclude<MessageReportStatus, "OPEN">;
   note?: string;
 }) {
@@ -95,7 +98,7 @@ export async function reviewReport(params: {
     data: {
       status: params.status,
       reviewNote: note && note.length > 0 ? note : null,
-      reviewedById: params.reviewerId,
+      reviewedByAdminId: params.reviewerAdminId,
       reviewedAt: new Date(),
     },
     select: REPORT_SELECT,

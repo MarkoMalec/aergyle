@@ -3,7 +3,6 @@ import { test } from "node:test";
 import {
   addQuestProgress,
   contributionShare,
-  isOfferAvailable,
   objectiveProgress,
   parseQuestProgress,
   planStackFill,
@@ -52,29 +51,6 @@ void test("weekly quests reset on Monday at midnight UTC", () => {
 void test("one-time quests have a single period and never reset", () => {
   assert.equal(questPeriod("ONCE", WEDNESDAY), "ONCE");
   assert.equal(questResetsAt("ONCE", WEDNESDAY), null);
-});
-
-void test("a rare find is only for sale inside its window", () => {
-  const window = {
-    availableFrom: new Date("2026-09-17T12:00:00Z"),
-    availableUntil: new Date("2026-09-18T12:00:00Z"),
-  };
-  assert.equal(
-    isOfferAvailable(window, new Date("2026-09-17T11:59:59Z")),
-    false,
-  );
-  assert.equal(
-    isOfferAvailable(window, new Date("2026-09-17T12:00:00Z")),
-    true,
-  );
-  assert.equal(
-    isOfferAvailable(window, new Date("2026-09-18T12:00:00Z")),
-    false,
-  );
-  assert.equal(
-    isOfferAvailable({ availableFrom: null, availableUntil: null }, WEDNESDAY),
-    true,
-  );
 });
 
 const goblins = {

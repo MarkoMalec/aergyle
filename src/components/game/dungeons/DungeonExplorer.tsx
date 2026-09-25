@@ -16,7 +16,6 @@ import {
   PackageOpen,
   Skull,
   Swords,
-  Users,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import type {
@@ -32,9 +31,15 @@ import {
   DUNGEON_DIFFICULTY_LABELS,
 } from "~/game/creatures";
 import { dispatchActiveActionEvent } from "~/components/game/actions/activeActionEvents";
-import { ItemArtwork } from "~/components/game/items/ItemArtwork";
 import { Button } from "~/components/ui/button";
-import { inventoryQueryKeys } from "~/lib/query-keys";
+import { dungeonQueryKeys, inventoryQueryKeys } from "~/lib/query-keys";
+import {
+  formatLength,
+  formatRemaining,
+  formatTime,
+} from "~/components/game/actions/format";
+import { HealthCard } from "~/components/game/character/HealthCard";
+import { RewardHaul } from "~/components/game/items/RewardHaul";
 
 type Reward = {
   itemId: number;
@@ -132,30 +137,6 @@ const DIFFICULTY_TONE: Record<DungeonDifficulty, string> = {
   DEADLY: "border-danger/30 bg-danger/10 text-danger",
 };
 
-function formatRemaining(seconds: number) {
-  const total = Math.max(0, Math.floor(seconds));
-  const hours = Math.floor(total / 3_600);
-  const minutes = Math.floor((total % 3_600) / 60);
-  const secs = total % 60;
-  return hours > 0
-    ? `${hours}h ${String(minutes).padStart(2, "0")}m ${String(secs).padStart(2, "0")}s`
-    : `${minutes}m ${String(secs).padStart(2, "0")}s`;
-}
-
-function formatLength(seconds: number) {
-  const hours = Math.floor(seconds / 3_600);
-  const minutes = Math.round((seconds % 3_600) / 60);
-  if (hours === 0) return `${minutes} min`;
-  return minutes === 0 ? `${hours} h` : `${hours} h ${minutes} min`;
-}
-
-function formatTime(value: string) {
-  return new Intl.DateTimeFormat(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
-}
-
 function formatRange(minimum: number, maximum: number) {
   const round = (value: number) =>
     Number.isInteger(value) ? String(value) : value.toFixed(1);
@@ -175,51 +156,6 @@ function DifficultyBadge({ difficulty }: { difficulty: DungeonDifficulty }) {
     >
       {DUNGEON_DIFFICULTY_LABELS[difficulty]}
     </span>
-  );
-}
-
-function HealthCard(props: {
-  currentHealth: number;
-  maxHealth: number;
-  healthRegen: number;
-  minimumPercent: number;
-}) {
-  const percent =
-    props.maxHealth > 0 ? (props.currentHealth / props.maxHealth) * 100 : 0;
-  const ready = props.currentHealth > 0 && percent >= props.minimumPercent;
-  return (
-    <div className="rounded-xl bg-secondary/25 p-4">
-      <div className="flex items-center justify-between gap-4 text-sm">
-        <span className="flex items-center gap-2 text-muted-foreground">
-          <HeartPulse className="h-4 w-4 text-danger" aria-hidden="true" />
-          Current health
-        </span>
-        <strong className="tabular-nums">
-          {Math.floor(props.currentHealth)} / {Math.floor(props.maxHealth)}
-        </strong>
-      </div>
-      <div
-        className="mt-3 h-2 overflow-hidden rounded-full bg-black/25"
-        role="progressbar"
-        aria-label="Current health"
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={Math.floor(percent)}
-      >
-        <div
-          className="h-full rounded-full bg-danger transition-[width]"
-          style={{ width: `${Math.max(0, Math.min(100, percent))}%` }}
-        />
-      </div>
-      <div className="mt-2 flex flex-wrap justify-between gap-2 text-[11px] text-muted-foreground">
-        <span>Regenerates {props.healthRegen.toFixed(1)} health/second</span>
-        <span className={ready ? "text-success" : "text-warning"}>
-          {ready
-            ? "Fit to enter"
-            : `Recover to ${props.minimumPercent}% before entering`}
-        </span>
-      </div>
-    </div>
   );
 }
 
@@ -401,23 +337,7 @@ function RunJournal({ run }: { run: Run }) {
         </p>
       ) : null}
       {!defeated && run.rewards.length > 0 ? (
-        <div className="gathering-haul-grid">
-          {run.rewards.map((reward) => (
-            <div className="gathering-haul-item" key={reward.itemId}>
-              <ItemArtwork
-                src={reward.sprite}
-                name={reward.name}
-                rarity={reward.rarity}
-                size={60}
-                itemId={reward.itemId}
-              />
-              <div className="min-w-0">
-                <strong>{reward.name}</strong>
-                <span>×{reward.quantity}</span>
-              </div>
-            </div>
-          ))}
-        </div>
+        <RewardHaul rewards={run.rewards} />
       ) : null}
     </section>
   );
@@ -519,7 +439,7 @@ export default function DungeonExplorer({
   const [selectedId, setSelectedId] = useState(initialDungeonId);
 
   const dungeonQuery = useQuery({
-    queryKey: ["dungeons"],
+    queryKey: dungeonQueryKeys.all(),
     queryFn: async (): Promise<DungeonData> => {
       const response = await fetch("/api/dungeons", { cache: "no-store" });
       const body = (await response.json().catch(() => null)) as
@@ -566,7 +486,7 @@ export default function DungeonExplorer({
   const refresh = async (includeInventory = false) => {
     dispatchActiveActionEvent({ kind: "changed" });
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["dungeons"] }),
+      queryClient.invalidateQueries({ queryKey: dungeonQueryKeys.all() }),
       includeInventory
         ? queryClient.invalidateQueries({ queryKey: inventoryQueryKeys.all() })
         : null,
@@ -741,7 +661,14 @@ export default function DungeonExplorer({
                   currentHealth={currentHealth}
                   maxHealth={data.vitals.maxHealth}
                   healthRegen={data.vitals.healthRegen}
-                  minimumPercent={data.minimumHealthToStartPercent}
+                  ready={
+                    currentHealth > 0 &&
+                    (data.vitals.maxHealth > 0
+                      ? (currentHealth / data.vitals.maxHealth) * 100
+                      : 0) >= data.minimumHealthToStartPercent
+                  }
+                  readyLabel="Fit to enter"
+                  recoverLabel={`Recover to ${data.minimumHealthToStartPercent}% before entering`}
                 />
                 <div
                   className="gathering-modifiers"

@@ -2,8 +2,9 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { calculateMarketSale, roundGold } from "~/lib/marketplace";
 import { prisma } from "~/lib/prisma";
+import { lockInventory } from "~/server/items/inventoryLock";
 import { getServerAuthSession } from "~/server/auth";
-import { grantStackableItemToInventory } from "~/server/vocations/grantItem";
+import { grantStackableItemToInventory } from "~/server/items/grantItem";
 import {
   normalizeInventorySlots,
   slotsToInputJson,
@@ -63,9 +64,7 @@ export async function POST(req: NextRequest) {
         fail(400, `You only have ${ownedItem.quantity}`);
       }
 
-      const sellerInventory = await tx.inventory.findUnique({
-        where: { userId: sellerId },
-      });
+      const sellerInventory = await lockInventory(tx, sellerId);
       if (!sellerInventory) fail(404, "Inventory not found");
       const sellerSlots = normalizeInventorySlots(
         sellerInventory.slots,

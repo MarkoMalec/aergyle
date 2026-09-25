@@ -8,9 +8,7 @@ import { resolveEffectiveItemStats } from "../src/utils/itemInstanceStats";
 process.env.SKIP_ENV_VALIDATION = "1";
 process.env.DATABASE_URL = "mysql://test:test@127.0.0.1:1/atlas_tests";
 const { prisma } = await import("../src/lib/prisma");
-const { createUserItem, addUserItemToInventory } = await import(
-  "../src/utils/userItems"
-);
+const { createUserItem } = await import("../src/utils/userItems");
 
 function stub(
   context: TestContext,
@@ -69,11 +67,6 @@ void test("instance creation stores rarity without materializing shared balance 
       return { id: created.length };
     },
   );
-  stub(context, prisma.inventory, "findUnique", async () => ({
-    maxSlots: 25,
-    slots: [],
-  }));
-  stub(context, prisma.inventory, "update", async () => ({ id: 1 }));
 
   for (const [slug, explicit, expected] of [
     ["trailwarden-jerkin", undefined, "RARE"],
@@ -84,13 +77,6 @@ void test("instance creation stores rarity without materializing shared balance 
     definition = ATLAS_EQUIPMENT.find((item) => item.slug === slug)!;
     await createUserItem("test-only", 777, explicit);
     assert.equal(created.at(-1)?.rarity, expected);
-  }
-
-  for (const slug of ["trailwarden-jerkin", "duskwarden-cuirass"]) {
-    definition = ATLAS_EQUIPMENT.find((item) => item.slug === slug)!;
-    const result = await addUserItemToInventory("test-only", 777);
-    assert.equal(result.success, true);
-    assert.equal(created.at(-1)?.rarity, definition.rarity);
   }
   await prisma.$disconnect();
 });

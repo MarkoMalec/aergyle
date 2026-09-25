@@ -40,7 +40,6 @@ export default function ActiveActionHeaderWidget() {
           <X size={13} />
         </Button>
       ) : null}
-      {/* <ClaimStopButtons onClaim={claim} onStop={stop} /> */}
     </div>
   );
 }

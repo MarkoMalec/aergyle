@@ -16,6 +16,7 @@ import { rollInclusive } from "~/server/expeditions/random";
 import {
   calculateExpeditionRewardModifiers,
   clampNumber,
+  round2,
 } from "~/server/expeditions/rewards";
 import type { ComputedStats } from "~/types/stats";
 
@@ -179,10 +180,6 @@ export function applyDungeonDeathPenalty(
         ]
       : [],
   );
-}
-
-function round2(value: number) {
-  return Math.round(value * 100) / 100;
 }
 
 function creatureRef(monster: DungeonMonsterPoolEntry) {

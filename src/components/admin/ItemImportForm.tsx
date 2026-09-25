@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
-import { Upload, Download, FileText } from "lucide-react";
+import { Upload, FileText } from "lucide-react";
 
 export default function ItemImportForm() {
   const [file, setFile] = useState<File | null>(null);
@@ -50,17 +50,20 @@ export default function ItemImportForm() {
   const downloadTemplate = () => {
     // Create CSV template with base stats AND progressive stats + new stacking columns
     const template = [
-      "name,price,sprite,equipTo,twoHanded,rarity,itemType,stackable,maxStackSize,minPhysicalDamage,maxPhysicalDamage,minMagicDamage,maxMagicDamage,armor,requiredLevel,statType,baseValue,unlocksAtRarity",
-      "Iron Sword,100,/assets/items/weapons/iron-sword.jpg,weapon,false,COMMON,SWORD,false,1,5,10,0,0,0,5,STRENGTH,5,BASE",
-      "Iron Sword,100,/assets/items/weapons/iron-sword.jpg,weapon,false,COMMON,SWORD,false,1,5,10,0,0,0,5,CRITICAL_CHANCE,2,RARE",
-      "Iron Greatsword,180,/assets/items/weapons/obsidian-greatsword.png,weapon,true,COMMON,GREATSWORD,false,1,9,16,0,0,0,8,,,",
-      "Leather Helmet,50,/assets/items/armor/leather-helmet.jpg,head,false,COMMON,HELMET,false,1,0,0,0,0,10,3,VITALITY,3,BASE",
-      "Health Potion,25,/assets/items/consumables/potions/health-potion.jpg,,false,,POTION,true,99,0,0,0,0,0,1,HEALTH,50,BASE",
-      "Iron Ore,10,/assets/items/resources/iron-ore.jpg,,false,,ORE,true,99,0,0,0,0,0,1,,,",
-      "Small Backpack,150,/assets/items/storage/backpacks/small-backpack.jpg,backpack,false,COMMON,BACKPACK,false,1,0,0,0,0,0,1,CARRYING_CAPACITY,11,BASE",
-      "Epic Sword,500,/assets/items/weapons/epic-sword.jpg,weapon,false,COMMON,SWORD,false,1,10,20,0,0,0,10,STRENGTH,10,BASE",
-      "Epic Sword,500,/assets/items/weapons/epic-sword.jpg,weapon,false,COMMON,SWORD,false,1,10,20,0,0,0,10,CRITICAL_CHANCE,5,RARE",
-      "Epic Sword,500,/assets/items/weapons/epic-sword.jpg,weapon,false,COMMON,SWORD,false,1,10,20,0,0,0,10,LIFESTEAL,3,EPIC",
+      "name,price,sprite,equipTo,twoHanded,rarity,itemType,stackable,maxStackSize,minPhysicalDamage,maxPhysicalDamage,minMagicDamage,maxMagicDamage,armor,requiredLevel,healingAmount,statType,baseValue,unlocksAtRarity",
+      "Iron Sword,100,/assets/items/weapons/iron-sword.jpg,weapon,false,COMMON,SWORD,false,1,5,10,0,0,0,5,,STRENGTH,5,BASE",
+      "Iron Sword,100,/assets/items/weapons/iron-sword.jpg,weapon,false,COMMON,SWORD,false,1,5,10,0,0,0,5,,CRITICAL_CHANCE,2,RARE",
+      "Iron Greatsword,180,/assets/items/weapons/obsidian-greatsword.png,weapon,true,COMMON,GREATSWORD,false,1,9,16,0,0,0,8,,,,",
+      "Leather Helmet,50,/assets/items/armor/leather-helmet.jpg,head,false,COMMON,HELMET,false,1,0,0,0,0,10,3,,VITALITY,3,BASE",
+      [
+        "Minor Healing Potion,18,/assets/items/consumables/potions/",
+        "minor-healing-potion-alchemy-v1.png,,false,COMMON,POTION,true,9999,0,0,0,0,0,1,30,,,",
+      ].join(""),
+      "Iron Ore,10,/assets/items/resources/iron-ore.jpg,,false,,ORE,true,99,0,0,0,0,0,1,,,,",
+      "Small Backpack,150,/assets/items/storage/backpacks/small-backpack.jpg,backpack,false,COMMON,BACKPACK,false,1,0,0,0,0,0,1,,CARRYING_CAPACITY,11,BASE",
+      "Epic Sword,500,/assets/items/weapons/epic-sword.jpg,weapon,false,COMMON,SWORD,false,1,10,20,0,0,0,10,,STRENGTH,10,BASE",
+      "Epic Sword,500,/assets/items/weapons/epic-sword.jpg,weapon,false,COMMON,SWORD,false,1,10,20,0,0,0,10,,CRITICAL_CHANCE,5,RARE",
+      "Epic Sword,500,/assets/items/weapons/epic-sword.jpg,weapon,false,COMMON,SWORD,false,1,10,20,0,0,0,10,,LIFESTEAL,3,EPIC",
     ].join("\n");
 
     const blob = new Blob([template], { type: "text/csv" });

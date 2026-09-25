@@ -2,11 +2,13 @@ import Link from "next/link";
 import { CreatureKind } from "~/generated/prisma/enums";
 import { HuntingAdminClient } from "~/components/admin/hunting/HuntingAdminClient";
 import { prisma } from "~/lib/prisma";
+import { requireAdminPageAccess } from "~/server/admin/auth";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function AdminHuntingPage() {
+  await requireAdminPageAccess();
   const [config, durations, creatures, grounds, locations, items] =
     await Promise.all([
       prisma.huntingConfig.findUnique({ where: { id: 1 } }),

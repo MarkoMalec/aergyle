@@ -1,19 +1,27 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { getServerAuthSession } from "~/server/auth";
 import { splitStack } from "~/utils/userItems";
+
+function isPositiveInteger(value: unknown): value is number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value > 0;
+}
 
 export async function POST(req: NextRequest) {
   const session = await getServerAuthSession();
 
-  if (!session?.user) {
+  if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    const body = await req.json();
-    const { userItemId, splitQuantity } = body;
+    const body = (await req.json().catch(() => null)) as {
+      userItemId?: unknown;
+      splitQuantity?: unknown;
+    } | null;
+    const userItemId = body?.userItemId;
+    const splitQuantity = body?.splitQuantity;
 
-    if (!userItemId || !splitQuantity) {
+    if (!isPositiveInteger(userItemId) || !isPositiveInteger(splitQuantity)) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }

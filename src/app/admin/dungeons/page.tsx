@@ -3,11 +3,13 @@ import { CreatureKind } from "~/generated/prisma/enums";
 import { DungeonAdminClient } from "~/components/admin/dungeons/DungeonAdminClient";
 import { prisma } from "~/lib/prisma";
 import { getStatGrowthRules } from "~/server/stats";
+import { requireAdminPageAccess } from "~/server/admin/auth";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function AdminDungeonsPage() {
+  await requireAdminPageAccess();
   const [config, dungeons, monsters, locations, items, activeRuns, statGrowth] =
     await Promise.all([
       prisma.dungeonConfig.findUnique({ where: { id: 1 } }),

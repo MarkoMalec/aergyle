@@ -135,7 +135,7 @@ screens link to these profiles instead of showing loot inline.
 2. Preview the starter content with `npm run db:seed:dungeons -- --check`.
 3. Apply it with `npm run db:seed:dungeons -- --apply`.
 4. Verify it with `npm run db:seed:dungeons -- --verify`.
-5. Run the rules tests with `npm run test:dungeons`.
+5. Run the rules tests with `npm test`.
 
 The starter content adds the Goblin (drops Cloth Scraps, Small Bones, Dusk Oil
 and, rarely, a Wooden Dagger) and Gloamvault, an Easy 15-minute dungeon in

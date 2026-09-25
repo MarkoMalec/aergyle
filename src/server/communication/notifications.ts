@@ -1,6 +1,9 @@
 import "server-only";
 
-import type { NotificationCategory } from "~/generated/prisma/enums";
+import type {
+  ItemRarity,
+  NotificationCategory,
+} from "~/generated/prisma/enums";
 import {
   NOTIFICATIONS_KEPT,
   NOTIFICATIONS_PAGE_SIZE,
@@ -13,6 +16,7 @@ export type NotificationView = {
   title: string;
   body: string;
   href: string | null;
+  item: { name: string; sprite: string; rarity: ItemRarity } | null;
   read: boolean;
   createdAt: string;
 };
@@ -22,8 +26,10 @@ export type NotificationDraft = {
   title: string;
   /** The line (or few) the player reads in the list. */
   body: string;
-  /** Optional "Read more" target inside the game, e.g. `/settlements/3`. */
+  /** Optional page the row opens inside the game, e.g. `/settlements/3`. */
   href?: string | null;
+  /** Optional item drawn beside the note, e.g. the one a sale moved. */
+  item?: { id: number; rarity: ItemRarity } | null;
 };
 
 /**
@@ -61,6 +67,8 @@ function normalize(draft: NotificationDraft) {
     title: draft.title.slice(0, 191),
     body: draft.body,
     href: draft.href?.slice(0, 191) ?? null,
+    itemId: draft.item?.id ?? null,
+    itemRarity: draft.item?.rarity ?? null,
   };
 }
 
@@ -105,6 +113,8 @@ export async function listNotifications(
       title: true,
       body: true,
       href: true,
+      itemRarity: true,
+      item: { select: { name: true, sprite: true, rarity: true } },
       readAt: true,
       createdAt: true,
     },
@@ -119,6 +129,13 @@ export async function listNotifications(
         title: row.title,
         body: row.body,
         href: row.href,
+        item: row.item
+          ? {
+              name: row.item.name,
+              sprite: row.item.sprite,
+              rarity: row.itemRarity ?? row.item.rarity,
+            }
+          : null,
         read: row.readAt !== null,
         createdAt: row.createdAt.toISOString(),
       }),

@@ -13,7 +13,7 @@ interface RarityColorsResponse {
 /**
  * Hook to fetch rarity colors from database
  * Colors are cached for 1 hour
- * Use in combination with getRarityTailwindClass to get Tailwind classes
+ * Pass a rarity and its color to rarityStyle() (~/utils/rarity-colors) to style an element
  */
 export function useRarityColors() {
   const { data, isLoading, error } = useQuery<RarityColorsResponse>({

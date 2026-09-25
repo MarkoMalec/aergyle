@@ -8,22 +8,16 @@ import type { Prisma } from "~/generated/prisma/client";
 import { prisma } from "~/lib/prisma";
 import Inventory from "~/components/game/character/Inventory/Inventory";
 import Equipment from "~/components/game/character/Equipment/Equipment";
-import {
-  type EquipmentSlotsWithItems,
-  type InventorySlotWithItem,
-} from "~/types/inventory";
+import { type InventorySlotWithItem } from "~/types/inventory";
 import { fetchUserItemsByIds } from "~/utils/userItemInventory";
 import { CharacterStats } from "~/components/game/character/CharacterStats";
 import { AddItemTestForm } from "~/components/forms/AddItemTestForm";
 import { redirect } from "next/navigation";
-import {
-  getVocationalStatus,
-  getVocationalStatusDebug,
-} from "~/server/vocations";
+import { getVocationalStatusDebug } from "~/server/vocations";
 import { getCharacterBaseStats, getStatGrowthRules } from "~/server/stats";
 import { getCharacterVitals } from "~/server/combat";
 import { ChevronDown, FlaskConical } from "lucide-react";
-import { EQUIPMENT_SLOTS, getEquippedUserItemIds } from "~/utils/itemEquipTo";
+import { settleVocationalTicks } from "../settle";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -36,56 +30,44 @@ const CharacterPage = async ({
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {
-    redirect("/signin");
+    redirect("/play");
   }
 
   const debugEnabled =
     process.env.NODE_ENV !== "production" && searchParams?.debug === "1";
 
   // Ensure a refresh of this page reflects newly completed vocational ticks.
+  // Shared with the layout, so the ticks settle once per request.
   const vocationalDebug = debugEnabled
     ? await getVocationalStatusDebug(session.user.id)
-    : await getVocationalStatus(session.user.id);
+    : await settleVocationalTicks(session.user.id);
 
   // Parallelize all independent queries for better performance
-  const [
-    userInventory,
-    userEquipment,
-    baseStatsFromDb,
-    allItems,
-    vitals,
-    growthRules,
-  ] = await Promise.all([
-    prisma.inventory.findUnique({
-      where: { userId: session.user.id },
-    }),
-    prisma.equipment.upsert({
-      where: { userId: session.user.id },
-      create: {
-        userId: session.user.id,
-      },
-      update: {},
-    }),
-    getCharacterBaseStats(session.user.id),
-    prisma.item.findMany({
-      select: {
-        id: true,
-        name: true,
-        sprite: true,
-        rarity: true,
-        itemType: true,
-        equipTo: true,
-        stackable: true,
-        maxStackSize: true,
-        requiredLevel: true,
-      },
-      orderBy: {
-        name: "asc",
-      },
-    }),
-    getCharacterVitals(session.user.id),
-    getStatGrowthRules(),
-  ]);
+  const [userInventory, baseStatsFromDb, allItems, vitals, growthRules] =
+    await Promise.all([
+      prisma.inventory.findUnique({
+        where: { userId: session.user.id },
+      }),
+      getCharacterBaseStats(session.user.id),
+      prisma.item.findMany({
+        select: {
+          id: true,
+          name: true,
+          sprite: true,
+          rarity: true,
+          itemType: true,
+          equipTo: true,
+          stackable: true,
+          maxStackSize: true,
+          requiredLevel: true,
+        },
+        orderBy: {
+          name: "asc",
+        },
+      }),
+      getCharacterVitals(session.user.id),
+      getStatGrowthRules(),
+    ]);
 
   // Convert to array format for CharacterStats component
   const baseStats = Object.entries(baseStatsFromDb).map(
@@ -116,12 +98,11 @@ const CharacterPage = async ({
     }
   });
 
-  const equipmentItemIds = getEquippedUserItemIds(userEquipment);
-
-  const allItemIds = [...inventoryItemIds, ...equipmentItemIds];
-
   // Fetch UserItems (with rarity and stats)
-  const userItems = await fetchUserItemsByIds(allItemIds);
+  const userItems = await fetchUserItemsByIds(
+    session.user.id,
+    inventoryItemIds,
+  );
   const itemMap = new Map(userItems.map((item) => [item.id, item]));
 
   const slotsWithItems: InventorySlotWithItem[] = slotStructure.map(
@@ -130,14 +111,6 @@ const CharacterPage = async ({
       item: itemId ? itemMap.get(itemId) ?? null : null,
     }),
   );
-
-  const equipmentWithItems = EQUIPMENT_SLOTS.reduce((result, definition) => {
-    const userItemId = userEquipment[definition.dbField];
-    result[definition.slot] = userItemId
-      ? itemMap.get(userItemId) ?? null
-      : null;
-    return result;
-  }, {} as EquipmentSlotsWithItems);
 
   return (
     <main>
@@ -153,10 +126,7 @@ const CharacterPage = async ({
         </pre>
       ) : null}
 
-      <DndProvider
-        initialEquipment={equipmentWithItems}
-        initialInventory={slotsWithItems}
-      >
+      <DndProvider initialInventory={slotsWithItems}>
         <Portrait
           name={
             session.user.name?.trim().length

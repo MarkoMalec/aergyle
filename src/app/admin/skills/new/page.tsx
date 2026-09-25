@@ -1,11 +1,13 @@
 import React from "react";
 import Link from "next/link";
 import { SkillForm } from "~/components/admin/skills/SkillForm";
+import { requireAdminPageAccess } from "~/server/admin/auth";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export default function AdminNewSkillPage() {
+export default async function AdminNewSkillPage() {
+  await requireAdminPageAccess();
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">

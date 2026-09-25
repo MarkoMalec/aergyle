@@ -6,8 +6,9 @@ import {
   slotsToInputJson,
   type InventorySlot,
 } from "~/utils/inventorySlots";
+import { lockInventory } from "~/server/items/inventoryLock";
 
-type DbClient = Pick<PrismaClient, "inventory" | "userItem">;
+type DbClient = Pick<PrismaClient, "inventory" | "userItem" | "$queryRaw">;
 
 const RARITY_RANK = new Map(
   Object.values(ItemRarity).map((rarity, index) => [rarity, index]),
@@ -15,13 +16,22 @@ const RARITY_RANK = new Map(
 
 /**
  * The stacks in a player's inventory slots, in slot order. Equipped and listed
- * items are not in slots, so they are never counted or consumed.
+ * items are not in slots, so they are never counted or consumed. Inside a
+ * transaction the inventory stays locked until it ends (see lockInventory);
+ * pages that only show the inventory pass `lock: false`.
  */
-export async function loadInventoryStacks(db: DbClient, userId: string) {
-  const inventory = await db.inventory.findUnique({
-    where: { userId },
-    select: { slots: true, maxSlots: true },
-  });
+export async function loadInventoryStacks(
+  db: DbClient,
+  userId: string,
+  options: { lock?: boolean } = {},
+) {
+  const inventory =
+    options.lock === false
+      ? await db.inventory.findUnique({
+          where: { userId },
+          select: { slots: true, maxSlots: true },
+        })
+      : await lockInventory(db, userId);
   if (!inventory) throw new Error("Inventory not found");
 
   const slots = normalizeInventorySlots(inventory.slots, inventory.maxSlots);
@@ -46,21 +56,26 @@ export function countItems(
   return totals;
 }
 
-type InventoryStack = Awaited<
-  ReturnType<typeof loadInventoryStacks>
->["stacks"][number];
+export type InventoryStack = {
+  id: number;
+  itemId: number;
+  rarity: ItemRarity;
+  quantity: number;
+};
 
 /**
- * Takes `take` from a loaded stack, deleting it and emptying its slot when it
- * runs out. The write only applies if the stack still holds what was read, so
- * two requests can never spend the same items twice.
+ * Takes `take` from a loaded stack, deleting it and emptying its slot in
+ * `slots` when it runs out; the caller saves the slots. The write only applies
+ * if the stack still holds what was read, so two requests can never spend the
+ * same items twice. Throws when the stack holds fewer than `take`.
  */
-async function takeFromStack(
+export async function takeFromStack(
   db: DbClient,
   slots: InventorySlot[],
   stack: InventoryStack,
   take: number,
 ): Promise<ItemQuantityChange> {
+  if (take > stack.quantity) throw new Error(`You only have ${stack.quantity}`);
   const where = { id: stack.id, quantity: stack.quantity };
   const quantity = stack.quantity - take;
   const written =
@@ -91,6 +106,45 @@ export async function saveInventorySlots(
 }
 
 /**
+ * Takes items by template from stacks already loaded (in slot order), lowest
+ * rarity first or simply in slot order. Emptied slots are cleared in `slots`;
+ * the caller saves them. Throws when the stacks hold too few.
+ */
+export async function takeFromStacks(params: {
+  db: DbClient;
+  slots: InventorySlot[];
+  stacks: InventoryStack[];
+  items: ReadonlyArray<{ itemId: number; quantity: number }>;
+  order: "rarity" | "slot";
+}): Promise<ItemQuantityChange[]> {
+  const { db, slots, stacks } = params;
+  const changes: ItemQuantityChange[] = [];
+
+  for (const request of params.items) {
+    let remaining = Math.max(0, Math.floor(request.quantity));
+    const candidates = stacks.filter(
+      (stack) => stack.itemId === request.itemId && stack.quantity > 0,
+    );
+    if (params.order === "rarity") {
+      candidates.sort(
+        (a, b) =>
+          (RARITY_RANK.get(a.rarity) ?? 0) - (RARITY_RANK.get(b.rarity) ?? 0),
+      );
+    }
+
+    for (const stack of candidates) {
+      if (remaining <= 0) break;
+      const take = Math.min(stack.quantity, remaining);
+      remaining -= take;
+      changes.push(await takeFromStack(db, slots, stack, take));
+    }
+
+    if (remaining > 0) throw new Error("You don't have enough of that item");
+  }
+  return changes;
+}
+
+/**
  * Removes items by template from the inventory, lowest rarity first, so a
  * hand-in never takes an upgraded copy while a plainer one is available.
  * Throws when the player holds too few; run it inside the caller's
@@ -103,26 +157,13 @@ export async function consumeInventoryItems(params: {
 }): Promise<ItemQuantityChange[]> {
   const { db, userId } = params;
   const { slots, stacks } = await loadInventoryStacks(db, userId);
-  const changes: ItemQuantityChange[] = [];
-
-  for (const request of params.items) {
-    let remaining = Math.max(0, Math.floor(request.quantity));
-    const candidates = stacks
-      .filter((stack) => stack.itemId === request.itemId && stack.quantity > 0)
-      .sort(
-        (a, b) =>
-          (RARITY_RANK.get(a.rarity) ?? 0) - (RARITY_RANK.get(b.rarity) ?? 0),
-      );
-
-    for (const stack of candidates) {
-      if (remaining <= 0) break;
-      const take = Math.min(stack.quantity, remaining);
-      remaining -= take;
-      changes.push(await takeFromStack(db, slots, stack, take));
-    }
-
-    if (remaining > 0) throw new Error("You don't have enough of that item");
-  }
+  const changes = await takeFromStacks({
+    db,
+    slots,
+    stacks,
+    items: params.items,
+    order: "rarity",
+  });
 
   if (changes.some((change) => change.quantity === 0)) {
     await saveInventorySlots(db, userId, slots);
@@ -144,9 +185,6 @@ export async function removeFromStack(params: {
   const { slots, stacks } = await loadInventoryStacks(db, userId);
   const stack = stacks.find((entry) => entry.id === params.userItemId);
   if (!stack) throw new Error("That item is not in your inventory");
-  if (params.quantity > stack.quantity) {
-    throw new Error(`You only have ${stack.quantity}`);
-  }
   const change = await takeFromStack(db, slots, stack, params.quantity);
   if (change.quantity === 0) await saveInventorySlots(db, userId, slots);
   return change;

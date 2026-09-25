@@ -13,7 +13,7 @@ export const revalidate = 0;
 const MapPage = async () => {
   const session = await getServerAuthSession();
   if (!session?.user?.id) {
-    redirect("/signin");
+    redirect("/play");
   }
 
   const [locations, user, atlas] = await Promise.all([

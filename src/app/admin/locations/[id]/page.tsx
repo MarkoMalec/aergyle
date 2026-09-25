@@ -8,6 +8,7 @@ import { MapEditor } from "~/components/admin/MapEditor";
 import { PLACE_ICONS } from "~/components/game/map/placeIcons";
 import { SETTLEMENT_KIND_LABELS } from "~/game/settlements";
 import { mapPoint } from "~/game/world/maps";
+import { requireAdminPageAccess } from "~/server/admin/auth";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -23,6 +24,7 @@ const placeSelect = {
 export default async function AdminEditLocationPage(props: {
   params: { id: string };
 }) {
+  await requireAdminPageAccess();
   const id = Number(props.params.id);
   if (!Number.isFinite(id)) return notFound();
 

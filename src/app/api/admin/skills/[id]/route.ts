@@ -13,23 +13,6 @@ const skillSchema = z.object({
   category: z.nativeEnum(SkillCategory).default(SkillCategory.VOCATION),
 });
 
-export async function GET(req: NextRequest, ctx: { params: { id: string } }) {
-  const denied = await requireAdminApiAccess(req);
-  if (denied) return denied;
-
-  const id = Number(ctx.params.id);
-  if (!Number.isFinite(id)) {
-    return NextResponse.json({ error: "Invalid id" }, { status: 400 });
-  }
-
-  const skill = await prisma.skills.findUnique({ where: { skill_id: id } });
-  if (!skill) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
-
-  return NextResponse.json(skill);
-}
-
 export async function PATCH(req: NextRequest, ctx: { params: { id: string } }) {
   const denied = await requireAdminApiAccess(req);
   if (denied) return denied;

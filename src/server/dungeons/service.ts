@@ -8,6 +8,7 @@ import {
   type DungeonDifficulty,
 } from "~/generated/prisma/enums";
 import { prisma } from "~/lib/prisma";
+import { assertNoOtherActivity } from "~/server/activity";
 import {
   getCharacterVitalsFromSnapshot,
   writeCharacterHealth,
@@ -19,14 +20,15 @@ import {
 } from "~/server/creatures/attackProfile";
 import {
   buildCreatureDropPool,
+  CREATURE_DROP_SELECT,
+  type CreatureLootReward,
   parseCreatureDropPool,
   parseLootRewards,
-  type CreatureLootReward,
 } from "~/server/creatures/loot";
 import { createExpeditionRandom } from "~/server/expeditions/random";
 import { recordQuestProgress } from "~/server/settlements/quests";
 import { getCharacterStatSnapshot } from "~/server/stats";
-import { grantStackableItemToInventory } from "~/server/vocations/grantItem";
+import { grantStackableItemToInventory } from "~/server/items/grantItem";
 import { awardXp } from "~/utils/leveling";
 import {
   combatSnapshotFromStats,
@@ -38,6 +40,7 @@ import {
   type DungeonReport,
 } from "./resolver";
 import { estimateRecommendedHealth } from "./simulator";
+import { finiteNumber } from "~/server/expeditions/rewards";
 
 const MAX_RUN_SECONDS = 7 * 24 * 60 * 60;
 
@@ -115,10 +118,6 @@ const ACTIVE_MONSTERS_WHERE = {
   creature: { enabled: true, kind: CreatureKind.MONSTER },
 } satisfies Prisma.DungeonMonsterWhereInput;
 
-function finite(value: unknown, fallback = 0) {
-  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
-}
-
 async function getDungeonConfig() {
   return (
     (await prisma.dungeonConfig.findUnique({ where: { id: 1 } })) ??
@@ -161,8 +160,9 @@ function parseMonsterPool(value: unknown): DungeonMonsterPoolEntry[] {
     ) {
       return [];
     }
-    const whole = (key: string) => Math.max(0, Math.floor(finite(row[key])));
-    const positive = (key: string) => Math.max(0, finite(row[key]));
+    const whole = (key: string) =>
+      Math.max(0, Math.floor(finiteNumber(row[key])));
+    const positive = (key: string) => Math.max(0, finiteNumber(row[key]));
     return [
       {
         creatureId: row.creatureId,
@@ -186,7 +186,7 @@ function parseCombatSnapshot(value: unknown): DungeonCombatSnapshot | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const row = value as Record<string, unknown>;
   const snapshot = Object.fromEntries(
-    COMBAT_SNAPSHOT_KEYS.map((key) => [key, finite(row[key])]),
+    COMBAT_SNAPSHOT_KEYS.map((key) => [key, finiteNumber(row[key])]),
   ) as DungeonCombatSnapshot;
   return snapshot.maxHealth > 0 ? snapshot : null;
 }
@@ -217,7 +217,7 @@ function parseReport(value: unknown): ClaimedDungeonReport | null {
           creatureId: creature.creatureId,
           name: creature.name,
           asset: creature.asset,
-          damageTaken: Math.max(0, finite(creature.damageTaken)),
+          damageTaken: Math.max(0, finiteNumber(creature.damageTaken)),
         }
       : null;
   };
@@ -238,16 +238,16 @@ function parseReport(value: unknown): ClaimedDungeonReport | null {
           asset: defeatedBy.asset,
         }
       : null,
-    damageTaken: Math.max(0, finite(row.damageTaken)),
-    evaded: Math.max(0, Math.floor(finite(row.evaded))),
-    blocked: Math.max(0, Math.floor(finite(row.blocked))),
-    criticalHits: Math.max(0, Math.floor(finite(row.criticalHits))),
+    damageTaken: Math.max(0, finiteNumber(row.damageTaken)),
+    evaded: Math.max(0, Math.floor(finiteNumber(row.evaded))),
+    blocked: Math.max(0, Math.floor(finiteNumber(row.blocked))),
+    criticalHits: Math.max(0, Math.floor(finiteNumber(row.criticalHits))),
     xp: typeof row.xp === "number" ? Math.max(0, row.xp) : undefined,
     health: healthRow
       ? {
-          before: Math.max(0, finite(healthRow.before)),
-          after: Math.max(0, finite(healthRow.after)),
-          max: Math.max(1, finite(healthRow.max, 1)),
+          before: Math.max(0, finiteNumber(healthRow.before)),
+          after: Math.max(0, finiteNumber(healthRow.after)),
+          max: Math.max(1, finiteNumber(healthRow.max, 1)),
         }
       : undefined,
   };
@@ -399,38 +399,8 @@ export async function startDungeonRun(params: {
   const { userId, dungeonId } = params;
   if (!Number.isInteger(dungeonId)) throw new Error("Choose a valid dungeon");
 
-  const [
-    travel,
-    vocation,
-    garden,
-    gathering,
-    hunting,
-    existing,
-    user,
-    dungeon,
-    config,
-    character,
-  ] = await Promise.all([
-    prisma.userTravelActivity.findUnique({
-      where: { userId },
-      select: { id: true },
-    }),
-    prisma.userVocationalActivity.findUnique({
-      where: { userId },
-      select: { id: true },
-    }),
-    prisma.userGardenHarvestActivity.findUnique({
-      where: { userId },
-      select: { id: true },
-    }),
-    prisma.userGatheringExpedition.findFirst({
-      where: { userId, claimedAt: null },
-      select: { id: true },
-    }),
-    prisma.userHuntingExpedition.findFirst({
-      where: { userId, claimedAt: null },
-      select: { id: true },
-    }),
+  const [, existing, user, dungeon, config, character] = await Promise.all([
+    assertNoOtherActivity(userId, "dungeon"),
     prisma.userDungeonRun.findUnique({
       where: { userId },
       select: { id: true, claimedAt: true },
@@ -461,21 +431,7 @@ export async function startDungeonRun(params: {
                 ...MONSTER_COMBAT_SELECT,
                 drops: {
                   where: { enabled: true },
-                  select: {
-                    id: true,
-                    baseChance: true,
-                    minQuantity: true,
-                    maxQuantity: true,
-                    requiredLevel: true,
-                    item: {
-                      select: {
-                        id: true,
-                        name: true,
-                        sprite: true,
-                        rarity: true,
-                      },
-                    },
-                  },
+                  select: CREATURE_DROP_SELECT,
                 },
               },
             },
@@ -487,14 +443,7 @@ export async function startDungeonRun(params: {
     getCharacterStatSnapshot(userId),
   ]);
 
-  if (
-    travel ??
-    vocation ??
-    garden ??
-    gathering ??
-    hunting ??
-    (existing?.claimedAt === null ? existing : null)
-  ) {
+  if (existing?.claimedAt === null) {
     throw new Error("You already have an active activity");
   }
   if (!user) throw new Error("User not found");

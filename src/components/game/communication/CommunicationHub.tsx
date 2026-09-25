@@ -38,7 +38,7 @@ export function CommunicationHub({
 }) {
   return (
     <Dialog open={tab !== null} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-md gap-3 p-0">
+      <DialogContent className="max-w-md gap-3 border-0 p-0">
         <div className="flex items-center gap-2 border-b border-border/60 px-4 py-3">
           <Diamond size={14} className="text-primary" aria-hidden="true" />
           <DialogTitle className="text-sm font-semibold">

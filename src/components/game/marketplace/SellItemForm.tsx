@@ -9,6 +9,7 @@ import {
   MARKET_TAX_PERCENT,
   calculateMarketSale,
   estimateSellNow,
+  fetchMarketStats,
 } from "~/lib/marketplace";
 import {
   inventoryQueryKeys,
@@ -21,7 +22,6 @@ import { CoinsIcon } from "~/components/game/ui/coins-icon";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { RarityBadge } from "~/utils/ui/rarity-badge";
-import { fetchMarketStats } from "./MarketStats";
 
 export interface MarketSellItem {
   userItemId: number;

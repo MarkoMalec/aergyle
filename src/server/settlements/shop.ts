@@ -7,7 +7,7 @@ import {
 } from "~/lib/marketplace";
 import { prisma } from "~/lib/prisma";
 import { removeFromStack } from "~/server/items/consumeItems";
-import { grantStackableItemToInventory } from "~/server/vocations/grantItem";
+import { grantStackableItemToInventory } from "~/server/items/grantItem";
 import { assertPresentAt, liveOfferWhere, visibleNpcWhere } from "./access";
 
 const MAX_PURCHASE_QUANTITY = 10_000;

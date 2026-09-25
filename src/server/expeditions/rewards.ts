@@ -8,6 +8,15 @@ export function clampNumber(value: number, minimum: number, maximum: number) {
   return Math.min(maximum, Math.max(minimum, value));
 }
 
+/** A stored JSON number, or `fallback` when it is missing or not finite. */
+export function finiteNumber(value: unknown, fallback = 0) {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+export function round2(value: number) {
+  return Math.round(value * 100) / 100;
+}
+
 /**
  * Shared Gathering/Hunting reward scaling. Skills and Luck improve discovery;
  * vocation efficiency improves both discovery and quantity. Callers retain

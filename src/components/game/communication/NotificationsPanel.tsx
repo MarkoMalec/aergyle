@@ -3,7 +3,17 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
-import { BellOff } from "lucide-react";
+import {
+  Bell,
+  BellOff,
+  Castle,
+  Megaphone,
+  ScrollText,
+  Store,
+  Swords,
+  type LucideIcon,
+} from "lucide-react";
+import { ItemArtwork } from "~/components/game/items/ItemArtwork";
 import {
   Select,
   SelectContent,
@@ -26,6 +36,16 @@ import { communicationFetch } from "./useCommunication";
 type Page = { notifications: NotificationView[]; nextCursor: number | null };
 
 const ALL = "ALL";
+
+/** Stands in for the item artwork on notes that aren't about an item. */
+const CATEGORY_ICONS: Record<NotificationCategory, LucideIcon> = {
+  GENERAL: Bell,
+  SETTLEMENT: Castle,
+  QUEST: ScrollText,
+  MARKET: Store,
+  COMBAT: Swords,
+  SYSTEM: Megaphone,
+};
 
 export function NotificationsPanel({ onNavigate }: { onNavigate: () => void }) {
   const [filter, setFilter] = useState<NotificationCategory | typeof ALL>(ALL);
@@ -108,9 +128,9 @@ export function NotificationsPanel({ onNavigate }: { onNavigate: () => void }) {
           </p>
         ) : !notifications ? (
           <div className="grid gap-2" aria-busy="true">
-            <Skeleton className="h-16 w-full rounded-[8px]" />
-            <Skeleton className="h-16 w-full rounded-[8px]" />
-            <Skeleton className="h-16 w-full rounded-[8px]" />
+            <Skeleton className="h-14 w-full rounded-[8px]" />
+            <Skeleton className="h-14 w-full rounded-[8px]" />
+            <Skeleton className="h-14 w-full rounded-[8px]" />
           </div>
         ) : notifications.length === 0 ? (
           <div className="grid justify-items-center gap-2 py-10 text-center">
@@ -126,38 +146,11 @@ export function NotificationsPanel({ onNavigate }: { onNavigate: () => void }) {
         ) : (
           <ul className="grid gap-1">
             {notifications.map((notification) => (
-              <li
-                key={notification.id}
-                className={cn(
-                  "grid gap-1 rounded-[8px] px-3 py-2.5",
-                  notification.read
-                    ? "bg-secondary/20"
-                    : "bg-secondary/45 shadow-[inset_2px_0_0_0_hsl(var(--primary))]",
-                )}
-              >
-                <div className="flex items-baseline justify-between gap-3">
-                  <strong className="text-[13px] font-semibold leading-snug">
-                    {notification.title}
-                  </strong>
-                  <span className="shrink-0 text-[10px] uppercase tracking-wider text-muted-foreground">
-                    {NOTIFICATION_CATEGORY_LABELS[notification.category]}
-                  </span>
-                </div>
-                <p className="text-[13px] leading-relaxed text-muted-foreground">
-                  {notification.body}
-                </p>
-                {notification.href ? (
-                  <Link
-                    href={notification.href}
-                    onClick={onNavigate}
-                    className="justify-self-start text-[13px] font-semibold text-primary hover:underline"
-                  >
-                    Read more
-                  </Link>
-                ) : null}
-                <span className="text-[11px] text-muted-foreground">
-                  {timeAgo(notification.createdAt)}
-                </span>
+              <li key={notification.id}>
+                <NotificationRow
+                  notification={notification}
+                  onNavigate={onNavigate}
+                />
               </li>
             ))}
           </ul>
@@ -175,5 +168,74 @@ export function NotificationsPanel({ onNavigate }: { onNavigate: () => void }) {
         ) : null}
       </div>
     </div>
+  );
+}
+
+/** One note: its item (or category), what happened, and a dot while unread. */
+function NotificationRow({
+  notification,
+  onNavigate,
+}: {
+  notification: NotificationView;
+  onNavigate: () => void;
+}) {
+  const Icon = CATEGORY_ICONS[notification.category];
+  const content = (
+    <>
+      {notification.item ? (
+        <ItemArtwork
+          src={notification.item.sprite}
+          name={notification.item.name}
+          rarity={notification.item.rarity}
+          size={40}
+        />
+      ) : (
+        <span className="grid size-10 shrink-0 place-items-center rounded-[8px] bg-secondary/60 text-muted-foreground">
+          <Icon size={16} aria-hidden="true" />
+        </span>
+      )}
+      <div className="grid min-w-0 flex-1 gap-0.5">
+        <div className="flex items-baseline justify-between gap-2">
+          <strong className="min-w-0 text-[13px] font-semibold leading-snug">
+            {notification.title}
+          </strong>
+          <span className="shrink-0 text-[11px] text-muted-foreground">
+            {timeAgo(notification.createdAt)}
+          </span>
+        </div>
+        <p className="text-xs leading-snug text-muted-foreground">
+          {notification.body}
+        </p>
+      </div>
+      {/* Read rows keep the dot's slot so the timestamps line up. */}
+      <span
+        className={cn(
+          "size-2 shrink-0 rounded-full",
+          notification.read ? "invisible" : "bg-primary",
+        )}
+      >
+        {notification.read ? null : <span className="sr-only">Unread</span>}
+      </span>
+    </>
+  );
+
+  const className = cn(
+    "flex items-center gap-3 rounded-[8px] px-2.5 py-2",
+    notification.read ? "bg-secondary/20" : "bg-secondary/45",
+  );
+
+  if (!notification.href) return <div className={className}>{content}</div>;
+
+  return (
+    <Link
+      href={notification.href}
+      onClick={onNavigate}
+      className={cn(
+        className,
+        "transition-colors hover:bg-secondary/70 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/80",
+      )}
+    >
+      {content}
+    </Link>
   );
 }

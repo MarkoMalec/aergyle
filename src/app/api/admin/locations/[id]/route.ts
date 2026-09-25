@@ -11,34 +11,6 @@ const updateSchema = z.object({
   requiredLevel: z.number().int().min(1).max(500),
 });
 
-export async function GET(req: NextRequest, ctx: { params: { id: string } }) {
-  const denied = await requireAdminApiAccess(req);
-  if (denied) return denied;
-
-  const id = Number(ctx.params.id);
-  if (!Number.isFinite(id)) {
-    return NextResponse.json({ error: "Invalid id" }, { status: 400 });
-  }
-
-  const location = await prisma.location.findUnique({
-    where: { id },
-    include: {
-      resources: {
-        include: {
-          resource: { include: { item: true } },
-        },
-        orderBy: [{ resourceId: "asc" }],
-      },
-    },
-  });
-
-  if (!location) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
-
-  return NextResponse.json(location);
-}
-
 export async function PATCH(req: NextRequest, ctx: { params: { id: string } }) {
   const denied = await requireAdminApiAccess(req);
   if (denied) return denied;

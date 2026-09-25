@@ -28,6 +28,7 @@ import {
   isLinkSelected,
   type NavigationSkill,
 } from "./navigation-links";
+import { skillQueryKeys } from "~/lib/query-keys";
 
 export default function GameNavigation({
   skills,
@@ -59,13 +60,15 @@ export default function GameNavigation({
   useEffect(
     () =>
       addSkillProgressEventListener(() => {
-        void queryClient.invalidateQueries({ queryKey: ["skill-levels"] });
+        void queryClient.invalidateQueries({
+          queryKey: skillQueryKeys.levels(),
+        });
       }),
     [queryClient],
   );
 
   const levels = useQuery({
-    queryKey: ["skill-levels"],
+    queryKey: skillQueryKeys.levels(),
     queryFn: async (): Promise<SkillLevels> => {
       const response = await fetch("/api/skills/levels", { cache: "no-store" });
       if (!response.ok) throw new Error("Error fetching skill levels");

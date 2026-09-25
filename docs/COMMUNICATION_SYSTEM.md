@@ -136,4 +136,4 @@ the queue — acting on the player is a separate, manual decision.
   `moderation.ts`, and the `index.ts` everything imports from.
 - `src/components/game/communication/` — the hub dialog and its two panels.
 - `src/components/admin/moderation/` — the report queue and the send form.
-- `tests/communication.test.ts` — `npm run test:communication`.
+- `tests/communication.test.ts` — `npm test`.

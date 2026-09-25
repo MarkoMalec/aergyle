@@ -4,11 +4,13 @@ import { StorageIconForm } from "~/components/admin/settlements/StorageEditor";
 import { SETTLEMENT_KIND_LABELS } from "~/game/settlements";
 import { prisma } from "~/lib/prisma";
 import { getStorageIcon } from "~/server/settlements";
+import { requireAdminPageAccess } from "~/server/admin/auth";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function AdminSettlementsPage() {
+  await requireAdminPageAccess();
   const [locations, npcs, offers, quests, openProjects, storages, storageIcon] =
     await Promise.all([
       prisma.location.findMany({

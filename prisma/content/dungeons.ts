@@ -39,6 +39,8 @@ export interface MonsterDefinition {
 export interface DungeonDefinition {
   name: string;
   locationName: AtlasLocationName;
+  /** Renamed live-location labels accepted by the additive seeder. */
+  locationAliases?: readonly string[];
   description: string;
   difficulty: DungeonDifficulty;
   requiredLevel: number;
@@ -102,12 +104,50 @@ export const DUNGEON_MONSTERS = [
       },
     ],
   },
+  {
+    name: "Stoneback Troll",
+    description:
+      "A mountain troll plated in old stone and frozen mud. Its brute strength makes every harvested blood sample a hard-won prize.",
+    asset: "/assets/creatures/monsters/rare/stoneback-troll.png",
+    attackStyle: "MELEE",
+    damageMin: 38,
+    damageMax: 58,
+    magicDamageMin: 0,
+    magicDamageMax: 0,
+    damageType: null,
+    elementalDamageMin: 0,
+    elementalDamageMax: 0,
+    health: 520,
+    armor: 46,
+    magicResist: 12,
+    evasion: 4,
+    blockChance: 8,
+    critChance: 10,
+    critDamage: 165,
+    drops: [
+      {
+        itemName: "Troll Blood",
+        baseChance: 0.12,
+        minQuantity: 1,
+        maxQuantity: 1,
+        requiredLevel: 65,
+      },
+      {
+        itemName: "Thick Fur",
+        baseChance: 0.42,
+        minQuantity: 1,
+        maxQuantity: 2,
+        requiredLevel: 60,
+      },
+    ],
+  },
 ] as const satisfies readonly MonsterDefinition[];
 
 export const DUNGEONS = [
   {
     name: "Gloamvault",
     locationName: "Crownhold",
+    locationAliases: ["Valedor"],
     description:
       "Flooded vaults beneath the Quay ward, where goblin scavengers hoard lamp oil and stolen cloth in the dark.",
     difficulty: "EASY",
@@ -117,5 +157,19 @@ export const DUNGEONS = [
     xpReward: 12,
     sortOrder: 10,
     monsters: [{ name: "Goblin", minCount: 2, maxCount: 4 }],
+  },
+  {
+    name: "Trollbreaker Cavern",
+    locationName: "Frostcrown Peaks",
+    locationAliases: [],
+    description:
+      "A wind-carved fissure beneath the high passes where stoneback trolls wallow in meltwater and old bones.",
+    difficulty: "HARD",
+    requiredLevel: 65,
+    durationSeconds: 1_800,
+    packSize: 1,
+    xpReward: 260,
+    sortOrder: 60,
+    monsters: [{ name: "Stoneback Troll", minCount: 1, maxCount: 2 }],
   },
 ] as const satisfies readonly DungeonDefinition[];

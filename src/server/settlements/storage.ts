@@ -134,7 +134,7 @@ export async function getStoragePage(
 
   const [stored, inventory] = await Promise.all([
     loadStoredStacks(prisma, userStorage.id),
-    loadInventoryStacks(prisma, userId),
+    loadInventoryStacks(prisma, userId, { lock: false }),
   ]);
   const templates = await loadItemTemplates(
     inventory.stacks.map((stack) => stack.itemId),
@@ -165,7 +165,10 @@ export async function getStoragePage(
   };
 }
 
-type DbClient = Pick<PrismaClient, "item" | "inventory" | "userItem">;
+type DbClient = Pick<
+  PrismaClient,
+  "item" | "inventory" | "userItem" | "$queryRaw"
+>;
 
 async function loadItemTemplates(itemIds: number[]) {
   const items = await prisma.item.findMany({

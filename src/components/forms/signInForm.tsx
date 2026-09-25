@@ -1,138 +1,118 @@
+"use client";
+
+import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import * as z from "zod";
+import { Loader2 } from "lucide-react";
 import {
   Form,
-  FormItem,
-  FormField,
-  FormLabel,
   FormControl,
-  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
 } from "~/components/ui/form";
-import { CardContent, CardHeader } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
+import { PasswordInput } from "~/components/auth/PasswordInput";
+import { authErrorMessage } from "~/components/auth/authErrors";
+import { signInSchema, type SignInInput } from "~/lib/auth-rules";
 
-const FormSchema = z.object({
-  email: z.string().email({
-    message: "Invalid email address.",
-  }),
-  password: z.string().min(6, {
-    message: "Password must be at least 6 characters.",
-  }),
-});
-
-type FormData = z.infer<typeof FormSchema>;
+/** Borderless, tinted fields shared by the sign-in and registration forms. */
+export const authFieldClass =
+  "h-11 border-transparent bg-surface-inset text-[15px] shadow-none placeholder:text-muted-foreground/50 focus-visible:ring-primary/70";
 
 export default function SignInForm({
-  embedded = false,
+  callbackUrl,
+  onError,
 }: {
-  embedded?: boolean;
+  callbackUrl: string;
+  onError: (message: string | null) => void;
 }) {
-  const Heading = embedded ? "h2" : "h1";
-  const router = useRouter();
-
-  const form = useForm({
-    resolver: zodResolver(FormSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
+  const [redirecting, setRedirecting] = useState(false);
+  const form = useForm<SignInInput>({
+    resolver: zodResolver(signInSchema),
+    defaultValues: { email: "", password: "" },
   });
 
-  const onSubmit = async (data: FormData) => {
-    const { email, password } = data;
-
+  const onSubmit = async (values: SignInInput) => {
+    onError(null);
     const result = await signIn("credentials", {
       redirect: false,
-      email,
-      password,
-    });
+      email: values.email,
+      password: values.password,
+      callbackUrl,
+    }).catch(() => null);
 
-    if (result?.ok) {
-      router.push("/profile");
-    } else {
-      const message =
-        result?.error === "CredentialsSignin"
-          ? "Invalid email or password."
-          : "Sign-in failed. Please try again.";
-
-      form.setError("password", {
-        type: "manual",
-        message,
-      });
+    if (result && !result.error) {
+      setRedirecting(true);
+      window.location.assign(callbackUrl);
+      return;
     }
+    onError(authErrorMessage(result?.error ?? "Default"));
+    form.resetField("password");
+    form.setFocus("password");
   };
 
+  const busy = form.formState.isSubmitting || redirecting;
+
   return (
-    <>
-      <CardHeader>
-        <Heading className="text-3xl font-semibold tracking-tight">
-          Welcome back
-        </Heading>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input
-                      className="text-foreground"
-                      placeholder="Email"
-                      {...field}
-                      type="email"
-                    />
-                  </FormControl>
-                  {form.formState.errors.email && (
-                    <p className="text-danger">
-                      {form.formState.errors.email.message}
-                    </p>
-                  )}
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Password</FormLabel>
-                  <FormControl>
-                    <Input
-                      className="text-foreground"
-                      placeholder="Password"
-                      {...field}
-                      type="password"
-                    />
-                  </FormControl>
-                  {form.formState.errors.password && (
-                    <p className="text-danger">
-                      {form.formState.errors.password.message}
-                    </p>
-                  )}
-                </FormItem>
-              )}
-            />
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={form.formState.isSubmitting}
-            >
-              {form.formState.isSubmitting ? "Signing in…" : "Sign in"}
-            </Button>
-          </form>
-          <FormDescription className="mt-5 text-center">
-            Never share your password with anyone.
-          </FormDescription>
-        </Form>
-      </CardContent>
-    </>
+    <Form {...form}>
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className="space-y-4"
+        noValidate
+      >
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <FormControl>
+                <Input
+                  type="email"
+                  autoComplete="email"
+                  inputMode="email"
+                  placeholder="you@example.com"
+                  className={authFieldClass}
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage className="text-danger" />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Password</FormLabel>
+              <FormControl>
+                <PasswordInput
+                  autoComplete="current-password"
+                  placeholder="Your password"
+                  className={authFieldClass}
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage className="text-danger" />
+            </FormItem>
+          )}
+        />
+        <Button type="submit" className="h-11 w-full text-[15px]" disabled={busy}>
+          {busy ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              {redirecting ? "Entering Aergyle…" : "Signing in…"}
+            </>
+          ) : (
+            "Sign in"
+          )}
+        </Button>
+      </form>
+    </Form>
   );
 }

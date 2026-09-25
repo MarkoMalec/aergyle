@@ -26,5 +26,5 @@ npm run db:seed:accessories -- --apply
 npm run db:seed:accessories -- --verify
 ```
 
-Run `npm run test:accessories` to validate definitions, stat behavior, and all
+Run `npm test` to validate definitions, stat behavior, and all
 six runtime sprites.

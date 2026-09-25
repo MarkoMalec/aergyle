@@ -2,6 +2,8 @@ import { ItemType, VocationalActionType } from "~/generated/prisma/enums";
 import type { ItemRarity } from "~/generated/prisma/enums";
 import type { UserVocationalActivity } from "~/generated/prisma/client";
 import { prisma } from "~/lib/prisma";
+import { assertNoOtherActivity } from "~/server/activity";
+import { countItems } from "~/server/items/consumeItems";
 import { MAX_VOCATION_DURATION_SECONDS } from "~/server/vocations/constants";
 import { computeVocationalProgress } from "~/server/vocations/progress";
 import {
@@ -235,45 +237,7 @@ export async function startVocationalActivity(params: {
 }): Promise<VocationalStatus> {
   const { userId, resourceId, locationId } = params;
 
-  const [
-    activeTravel,
-    activeGardenHarvest,
-    activeGatheringExpedition,
-    activeHuntingExpedition,
-    activeDungeonRun,
-  ] =
-    await Promise.all([
-      prisma.userTravelActivity.findUnique({
-        where: { userId },
-        select: { id: true },
-      }),
-      prisma.userGardenHarvestActivity.findUnique({
-        where: { userId },
-        select: { id: true },
-      }),
-      prisma.userGatheringExpedition.findFirst({
-        where: { userId, claimedAt: null },
-        select: { id: true },
-      }),
-      prisma.userHuntingExpedition.findFirst({
-        where: { userId, claimedAt: null },
-        select: { id: true },
-      }),
-      prisma.userDungeonRun.findFirst({
-        where: { userId, claimedAt: null },
-        select: { id: true },
-      }),
-    ]);
-
-  if (
-    activeTravel ??
-    activeGardenHarvest ??
-    activeGatheringExpedition ??
-    activeHuntingExpedition ??
-    activeDungeonRun
-  ) {
-    throw new Error("You already have an active activity");
-  }
+  await assertNoOtherActivity(userId, "vocation");
 
   const existing = await prisma.userVocationalActivity.findUnique({
     where: { userId },
@@ -460,13 +424,7 @@ export async function startVocationalActivity(params: {
       select: { id: true, itemId: true, quantity: true },
     });
 
-    const totalByTemplateId = new Map<number, number>();
-    for (const ui of userItems) {
-      totalByTemplateId.set(
-        ui.itemId,
-        (totalByTemplateId.get(ui.itemId) ?? 0) + ui.quantity,
-      );
-    }
+    const totalByTemplateId = countItems(userItems);
 
     for (const req of requirements) {
       const needed = Math.max(1, req.quantityPerUnit);

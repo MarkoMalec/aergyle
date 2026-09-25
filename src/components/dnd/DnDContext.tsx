@@ -15,13 +15,12 @@ import Image from "next/image";
 import { useUserContext } from "~/context/userContext";
 import { useEquipmentContext } from "~/context/equipmentContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { inventoryQueryKeys } from "~/lib/query-keys";
+import { equipmentQueryKeys, inventoryQueryKeys } from "~/lib/query-keys";
 import {
   InventorySlotWithItem,
   EquipmentSlotsWithItems,
-  EQUIPMENT_INDEX_MAP,
-  EquipmentSlotType,
 } from "~/types/inventory";
+import { EQUIPMENT_INDEX_MAP } from "~/utils/itemEquipTo";
 import {
   canEquipToSlot,
   getDisplacedHand,
@@ -48,21 +47,30 @@ const DndContext = createContext<DndContextProps | undefined>(undefined);
 interface DndProviderProps {
   children: ReactNode;
   initialInventory: InventorySlotWithItem[];
-  initialEquipment: EquipmentSlotsWithItems;
 }
 
+type InventoryData = {
+  slots: InventorySlotWithItem[];
+  deleteSlot: InventorySlotWithItem;
+};
+
 type MutationContext = {
-  previousInventory?: {
-    slots: InventorySlotWithItem[];
-    deleteSlot: InventorySlotWithItem;
-  };
+  previousInventory?: InventoryData;
   previousEquipment?: EquipmentSlotsWithItems;
 };
+
+/** One move: the new bag layout, plus equipment and delete slot when they change. */
+type LayoutChange = {
+  inventory: InventorySlotWithItem[];
+  equipment?: EquipmentSlotsWithItems;
+  deleteSlot?: InventorySlotWithItem;
+};
+
+const EMPTY_DELETE_SLOT: InventorySlotWithItem = { slotIndex: 999, item: null };
 
 export const DndProvider: React.FC<DndProviderProps> = ({
   children,
   initialInventory,
-  initialEquipment,
 }) => {
   const { user } = useUserContext();
   const pathname = usePathname();
@@ -72,7 +80,8 @@ export const DndProvider: React.FC<DndProviderProps> = ({
   const { active: isActionActive } = useVocationalActiveActionContext();
   
   // Use global equipment context instead of local state
-  const { equipment, updateEquipment: updateGlobalEquipment } = useEquipmentContext();
+  const { equipment } = useEquipmentContext();
+  const equipmentKey = equipmentQueryKeys.byUser(user?.id);
 
   const fetchInventory = async (): Promise<{ slots: InventorySlotWithItem[], deleteSlot: InventorySlotWithItem }> => {
     const response = await fetch(`/api/inventory?userId=${user?.id}`, { cache: "no-store" });
@@ -105,96 +114,92 @@ export const DndProvider: React.FC<DndProviderProps> = ({
     void inventoryQuery.refetch();
   }, [pathname, user?.id]);
 
-  const updateInventoryOrder = useMutation<
-    unknown,
-    Error,
-    InventorySlotWithItem[],
-    MutationContext
-  >({
-    mutationFn: async (newSlots: InventorySlotWithItem[]) => {
-      const slotsToSend = newSlots.map((slot) => ({
-        slotIndex: slot.slotIndex,
-        item: slot.item ? { id: slot.item.id } : null,
-      }));
+  // Every move is saved as one request, so an item moving between the bag,
+  // equipment and the delete slot is never in two places or in none; the
+  // server rejects anything that isn't a pure rearrangement. Moves queue up
+  // (one scope) so a quick second drag can't land before the first.
+  const saveLayout = useMutation<unknown, Error, LayoutChange, MutationContext>({
+    scope: { id: "inventory-layout" },
+    mutationFn: async (change) => {
       const response = await fetch("/api/inventory", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: user?.id, inventory: slotsToSend }),
+        body: JSON.stringify({
+          inventory: change.inventory.map((slot) => ({
+            slotIndex: slot.slotIndex,
+            item: slot.item ? { id: slot.item.id } : null,
+          })),
+          ...(change.equipment
+            ? {
+                equipment: Object.fromEntries(
+                  Object.entries(change.equipment).map(([slot, item]) => [
+                    slot,
+                    item?.id ?? null,
+                  ]),
+                ),
+              }
+            : {}),
+          ...(change.deleteSlot
+            ? { deleteSlotId: change.deleteSlot.item?.id ?? null }
+            : {}),
+        }),
       });
       if (!response.ok) {
-        throw new Error("Error updating inventory order");
+        const data = (await response.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        throw new Error(
+          data?.error ?? "Couldn't save your inventory. Please try again.",
+        );
       }
       return response.json();
     },
-    onMutate: async (newInventory) => {
-      await queryClient.cancelQueries({ queryKey: inventoryKey });
-      const previousData = queryClient.getQueryData<{
-        slots: InventorySlotWithItem[];
-        deleteSlot: InventorySlotWithItem;
-      }>(inventoryKey);
-      
-      // Optimistically update with new inventory, keeping existing deleteSlot
-      queryClient.setQueryData(inventoryKey, {
-        slots: newInventory,
-        deleteSlot: previousData?.deleteSlot || { slotIndex: 999, item: null }
+    onMutate: async (change) => {
+      await Promise.all([
+        queryClient.cancelQueries({ queryKey: inventoryKey }),
+        queryClient.cancelQueries({ queryKey: equipmentKey }),
+      ]);
+      const previousInventory =
+        queryClient.getQueryData<InventoryData>(inventoryKey);
+      const previousEquipment =
+        queryClient.getQueryData<EquipmentSlotsWithItems>(equipmentKey);
+
+      queryClient.setQueryData<InventoryData>(inventoryKey, {
+        slots: change.inventory,
+        deleteSlot:
+          change.deleteSlot ??
+          previousInventory?.deleteSlot ??
+          EMPTY_DELETE_SLOT,
       });
-      
-      return { previousInventory: previousData };
-    },
-    onError: (error, variables, context) => {
-      if (context?.previousInventory) {
-        queryClient.setQueryData(
-          inventoryKey,
-          context.previousInventory,
-        );
+      if (change.equipment) {
+        queryClient.setQueryData(equipmentKey, change.equipment);
       }
-      console.error("Failed to update inventory:", error);
-      alert("Failed to update inventory. Please try again.");
+      return { previousInventory, previousEquipment };
     },
-    onSuccess: () => {
-      // Don't invalidate, just keep the optimistic update
-      // The server response should match what we already set
+    onError: (error, _change, context) => {
+      if (context?.previousInventory) {
+        queryClient.setQueryData(inventoryKey, context.previousInventory);
+      }
+      if (context?.previousEquipment) {
+        queryClient.setQueryData(equipmentKey, context.previousEquipment);
+      }
+      toast.error(error.message);
+      // Whatever the server has now is the truth.
+      void queryClient.invalidateQueries({ queryKey: inventoryKey });
+      void queryClient.invalidateQueries({ queryKey: equipmentKey });
+    },
+    onSuccess: (_data, change) => {
+      // Equipment can change the bag's size (backpacks, carrying capacity).
+      if (change.equipment) {
+        void queryClient.invalidateQueries({ queryKey: inventoryQueryKeys.all() });
+        void queryClient.invalidateQueries({ queryKey: equipmentKey });
+      }
     },
   });
 
-  // Helper function to update delete slot in database
-  const updateDeleteSlotInDB = async (newDeleteSlot: InventorySlotWithItem) => {
-    try {
-      // Optimistically update the cache
-      const currentData = queryClient.getQueryData<{
-        slots: InventorySlotWithItem[];
-        deleteSlot: InventorySlotWithItem;
-      }>(inventoryKey);
-      
-      if (currentData) {
-        queryClient.setQueryData(inventoryKey, {
-          ...currentData,
-          deleteSlot: newDeleteSlot
-        });
-      }
-      
-      // Update the database
-      await fetch("/api/inventory/delete-slot", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: user?.id,
-          deleteSlotId: newDeleteSlot.item?.id || null,
-        }),
-      });
-    } catch (error) {
-      console.error("Failed to update delete slot:", error);
-    }
-  };
-
-  // No need for local equipment mutation - use global one
-  const updateEquipmentOrder = {
-    mutateAsync: updateGlobalEquipment,
-  };
-
   const inventory = inventoryQuery.data?.slots || [];
   const [deleteSlot, setDeleteSlot] = useState<InventorySlotWithItem>(
-    inventoryQuery.data?.deleteSlot || { slotIndex: 999, item: null }
+    inventoryQuery.data?.deleteSlot || EMPTY_DELETE_SLOT
   );
   
   // Update deleteSlot when query data changes
@@ -233,6 +238,36 @@ export const DndProvider: React.FC<DndProviderProps> = ({
     }
     updatedInventory[freeIndex] = { ...freeSlot, item: updatedEquipment[hand] };
     updatedEquipment[hand] = null;
+    return true;
+  };
+
+  const toDeleteSlot = (item: InventorySlotWithItem["item"]) => ({
+    slotIndex: 999,
+    item,
+  });
+
+  // Dropping onto an occupied delete slot destroys what is already in it.
+  // False when the player cancels or the delete fails.
+  const confirmDeleteOfSlotItem = async () => {
+    if (!deleteSlot.item) return true;
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${deleteSlot.item.name}"?\n\nThis action cannot be undone.`,
+    );
+    if (!confirmed) return false;
+
+    try {
+      const response = await fetch(`/api/inventory/delete`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userItemId: deleteSlot.item.id }),
+      });
+      if (!response.ok) throw new Error("Delete failed");
+    } catch (error) {
+      console.error("Failed to delete item:", error);
+      toast.error("Failed to delete item. Please try again.");
+      void queryClient.invalidateQueries({ queryKey: inventoryKey });
+      return false;
+    }
     return true;
   };
 
@@ -286,7 +321,7 @@ export const DndProvider: React.FC<DndProviderProps> = ({
     // Same container swaps
     if (activeContainer === overContainer) {
       if (activeContainer === "inventory") {
-        const updatedInventory = [...inventory];
+        const updatedInventory = inventory.map((slot) => ({ ...slot }));
         const activeSlot = updatedInventory[activeIndex];
         const overSlot = updatedInventory[overIndex];
 
@@ -370,7 +405,7 @@ export const DndProvider: React.FC<DndProviderProps> = ({
         // Swap items (default behavior)
         [activeSlot.item, overSlot.item] = [overSlot.item, activeSlot.item];
 
-        updateInventoryOrder.mutate(updatedInventory);
+        saveLayout.mutate({ inventory: updatedInventory });
       } else if (activeContainer === "equipment") {
         const equipmentKeyActive = EQUIPMENT_INDEX_MAP[activeIndex];
         const equipmentKeyOver = EQUIPMENT_INDEX_MAP[overIndex];
@@ -404,54 +439,27 @@ export const DndProvider: React.FC<DndProviderProps> = ({
           updatedEquipment[equipmentKeyActive],
         ];
 
-        updateEquipmentOrder.mutateAsync(updatedEquipment);
+        saveLayout.mutate({ inventory, equipment: updatedEquipment });
       }
     }
     // Cross-container moves
     else {
       // Inventory → Delete Slot
       if (activeContainer === "inventory" && overContainer === "delete") {
-        const updatedInventory = [...inventory];
+        const updatedInventory = inventory.map((slot) => ({ ...slot }));
         const activeSlot = updatedInventory[activeIndex];
         
         if (!activeSlot || !activeSlot.item) return;
 
-        // If delete slot already has an item, confirm deletion
-        if (deleteSlot.item) {
-          const confirmed = window.confirm(
-            `Are you sure you want to delete "${deleteSlot.item.name}"?\n\nThis action cannot be undone.`
-          );
-          
-          if (!confirmed) return;
-          
-          // Delete the item from database
-          try {
-            await fetch(`/api/inventory/delete`, {
-              method: "DELETE",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                userId: user?.id,
-                userItemId: deleteSlot.item.id,
-              }),
-            });
-          } catch (error) {
-            console.error("Failed to delete item:", error);
-            alert("Failed to delete item. Please try again.");
-            return;
-          }
-        }
+        if (!(await confirmDeleteOfSlotItem())) return;
 
         // Move item to delete slot
-        const newDeleteSlot = {
-          slotIndex: 999,
-          item: activeSlot.item,
-        };
-        setDeleteSlot(newDeleteSlot);
-        updateDeleteSlotInDB(newDeleteSlot);
-        
-        // Remove from inventory
+        const item = activeSlot.item;
         activeSlot.item = null;
-        updateInventoryOrder.mutate(updatedInventory);
+        saveLayout.mutate({
+          inventory: updatedInventory,
+          deleteSlot: toDeleteSlot(item),
+        });
       }
       // Equipment → Delete Slot
       else if (activeContainer === "equipment" && overContainer === "delete") {
@@ -463,46 +471,19 @@ export const DndProvider: React.FC<DndProviderProps> = ({
         const item = updatedEquipment[equipmentKey];
         if (!item) return;
 
-        // If delete slot already has an item, confirm deletion
-        if (deleteSlot.item) {
-          const confirmed = window.confirm(
-            `Are you sure you want to delete "${deleteSlot.item.name}"?\n\nThis action cannot be undone.`
-          );
-          
-          if (!confirmed) return;
-          
-          // Delete the item from database
-          try {
-            await fetch(`/api/inventory/delete`, {
-              method: "DELETE",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                userId: user?.id,
-                userItemId: deleteSlot.item.id,
-              }),
-            });
-          } catch (error) {
-            console.error("Failed to delete item:", error);
-            alert("Failed to delete item. Please try again.");
-            return;
-          }
-        }
+        if (!(await confirmDeleteOfSlotItem())) return;
 
         // Move item to delete slot
-        const newDeleteSlot = {
-          slotIndex: 999,
-          item: item,
-        };
-        setDeleteSlot(newDeleteSlot);
-        updateDeleteSlotInDB(newDeleteSlot);
-        
-        // Remove from equipment
         updatedEquipment[equipmentKey] = null;
-        updateEquipmentOrder.mutateAsync(updatedEquipment);
+        saveLayout.mutate({
+          inventory,
+          equipment: updatedEquipment,
+          deleteSlot: toDeleteSlot(item),
+        });
       }
       // Delete Slot → Inventory
       else if (activeContainer == "delete" && overContainer === "inventory") {
-        const updatedInventory = [...inventory];
+        const updatedInventory = inventory.map((slot) => ({ ...slot }));
         const overSlot = updatedInventory[overIndex];
         
         if (!overSlot || !deleteSlot.item) return;
@@ -510,15 +491,11 @@ export const DndProvider: React.FC<DndProviderProps> = ({
         // Swap items
         const existingItem = overSlot.item;
         overSlot.item = deleteSlot.item;
-        
-        const newDeleteSlot = {
-          slotIndex: 999,
-          item: existingItem,
-        };
-        setDeleteSlot(newDeleteSlot);
-        updateDeleteSlotInDB(newDeleteSlot);
 
-        updateInventoryOrder.mutate(updatedInventory);
+        saveLayout.mutate({
+          inventory: updatedInventory,
+          deleteSlot: toDeleteSlot(existingItem),
+        });
       }
       // Delete Slot → Equipment
       else if (activeContainer === "delete" && overContainer === "equipment") {
@@ -537,7 +514,7 @@ export const DndProvider: React.FC<DndProviderProps> = ({
         const existingItem = updatedEquipment[equipmentKey];
         updatedEquipment[equipmentKey] = deleteSlot.item;
 
-        const updatedInventory = [...inventory];
+        const updatedInventory = inventory.map((slot) => ({ ...slot }));
         const otherHand = getDisplacedHand(updatedEquipment, equipmentKey);
         if (
           otherHand &&
@@ -545,19 +522,15 @@ export const DndProvider: React.FC<DndProviderProps> = ({
         )
           return;
         
-        const newDeleteSlot = {
-          slotIndex: 999,
-          item: existingItem,
-        };
-        setDeleteSlot(newDeleteSlot);
-        updateDeleteSlotInDB(newDeleteSlot);
-
-        if (otherHand) updateInventoryOrder.mutate(updatedInventory);
-        updateEquipmentOrder.mutateAsync(updatedEquipment);
+        saveLayout.mutate({
+          inventory: updatedInventory,
+          equipment: updatedEquipment,
+          deleteSlot: toDeleteSlot(existingItem),
+        });
       }
       // Inventory → Equipment
       else if (activeContainer === "inventory" && overContainer === "equipment") {
-        const updatedInventory = [...inventory];
+        const updatedInventory = inventory.map((slot) => ({ ...slot }));
         const updatedEquipment = { ...equipment };
         const equipmentKey = EQUIPMENT_INDEX_MAP[overIndex];
 
@@ -587,15 +560,17 @@ export const DndProvider: React.FC<DndProviderProps> = ({
         )
           return;
 
-        updateInventoryOrder.mutate(updatedInventory);
-        updateEquipmentOrder.mutateAsync(updatedEquipment);
+        saveLayout.mutate({
+          inventory: updatedInventory,
+          equipment: updatedEquipment,
+        });
       }
       // Equipment → Inventory
       else if (
         activeContainer === "equipment" &&
         overContainer === "inventory"
       ) {
-        const updatedInventory = [...inventory];
+        const updatedInventory = inventory.map((slot) => ({ ...slot }));
         const updatedEquipment = { ...equipment };
         const equipmentKey = EQUIPMENT_INDEX_MAP[activeIndex];
 
@@ -661,8 +636,10 @@ export const DndProvider: React.FC<DndProviderProps> = ({
         )
           return;
 
-        updateInventoryOrder.mutate(updatedInventory);
-        updateEquipmentOrder.mutateAsync(updatedEquipment);
+        saveLayout.mutate({
+          inventory: updatedInventory,
+          equipment: updatedEquipment,
+        });
       }
     }
   };

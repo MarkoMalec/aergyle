@@ -8,7 +8,14 @@ import {
   SellItemForm,
   type MarketSellItem,
 } from "~/components/game/marketplace/SellItemForm";
-import { ItemArtwork } from "~/components/game/items/ItemArtwork";
+import {
+  MarketItemCell,
+  MarketTable,
+  MarketTableEmpty,
+  MarketTableHead,
+  MarketTableRow,
+  MarketTableSkeleton,
+} from "~/components/game/marketplace/MarketTable";
 import PageHeading from "~/components/game/ui/PageHeading";
 import { Input } from "~/components/ui/input";
 import {
@@ -18,11 +25,13 @@ import {
   SheetHeader,
   SheetTitle,
 } from "~/components/ui/sheet";
-import { Skeleton } from "~/components/ui/skeleton";
 import { useUserContext } from "~/context/userContext";
 import { inventoryQueryKeys } from "~/lib/query-keys";
+import { cn } from "~/lib/utils";
 import type { SellableItem } from "~/types/marketplace";
-import { RarityBadge } from "~/utils/ui/rarity-badge";
+
+const columns =
+  "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 sm:grid-cols-[minmax(0,1fr)_80px_120px]";
 
 function toFormItem(item: SellableItem): MarketSellItem {
   return {
@@ -82,7 +91,7 @@ export default function MarketplaceSellPage() {
   };
 
   return (
-    <div className="min-w-0 space-y-6">
+    <div className="min-w-0 space-y-4">
       <PageHeading
         eyebrow="The exchange"
         title="Sell"
@@ -91,89 +100,101 @@ export default function MarketplaceSellPage() {
       <MarketplaceNav />
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.8fr)]">
-        <section className="game-panel min-w-0 overflow-hidden">
-          <div className="border-b border-border p-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <div className="min-w-0 space-y-4">
+          <div role="search" className="game-panel-flat p-1.5">
+            <div className="flex h-9 items-center rounded-[9px] bg-surface-inset transition-shadow focus-within:ring-1 focus-within:ring-ring/80">
+              <label
+                htmlFor="sell-search"
+                className="flex h-full shrink-0 items-center pl-3 text-muted-foreground"
+              >
+                <Search className="h-4 w-4" aria-hidden="true" />
+                <span className="sr-only">Search tradeable inventory</span>
+              </label>
               <Input
+                id="sell-search"
                 placeholder="Search tradeable inventory…"
-                aria-label="Search tradeable inventory"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                className="pl-9"
+                className="h-full min-w-0 flex-1 border-0 bg-transparent px-2 text-[13px] shadow-none focus-visible:ring-0"
               />
             </div>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Only tradeable items currently in your inventory are shown.
-            </p>
           </div>
 
-          <div className="max-h-[68vh] overflow-y-auto">
-            {query.isLoading ? (
-              Array.from({ length: 6 }, (_, index) => (
-                <div
-                  key={index}
-                  className="flex gap-3 border-b border-border p-3"
-                >
-                  <Skeleton className="h-12 w-12" />
-                  <Skeleton className="h-12 flex-1" />
-                </div>
-              ))
-            ) : filtered.length > 0 ? (
-              filtered.map((item) => (
-                <div
-                  key={item.id}
-                  className={`game-stretched-row flex w-full items-center gap-3 border-b border-border p-3 text-left transition-colors last:border-0 ${selected?.id === item.id ? "bg-primary/10 shadow-[inset_3px_0_0_hsl(var(--primary))]" : "hover:bg-secondary/50"}`}
-                >
-                  <ItemArtwork
-                    src={item.itemTemplate.sprite}
-                    name={item.itemTemplate.name}
-                    rarity={item.rarity}
-                    size={48}
-                    itemId={item.itemTemplate.id}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <button
-                      type="button"
-                      onClick={() => choose(item)}
-                      aria-pressed={selected?.id === item.id}
-                      className="game-stretched-action block w-full truncate font-semibold"
+          <MarketTable
+            title="Tradeable inventory"
+            meta={
+              query.isLoading
+                ? "Loading…"
+                : `${filtered.length} item${filtered.length === 1 ? "" : "s"}`
+            }
+          >
+            <div className="max-h-[68vh] overflow-y-auto px-1.5 pb-1.5">
+              <MarketTableHead className={cn(columns, "hidden sm:grid")}>
+                <span>Item</span>
+                <span className="text-right">Available</span>
+                <span className="text-right">Sale</span>
+              </MarketTableHead>
+
+              {query.isLoading ? (
+                <MarketTableSkeleton rows={6} />
+              ) : filtered.length > 0 ? (
+                filtered.map((item) => {
+                  const active = selected?.id === item.id;
+                  return (
+                    <MarketTableRow
+                      key={item.id}
+                      active={active}
+                      className={cn(columns, "game-stretched-row")}
                     >
-                      {item.itemTemplate.name}
-                    </button>
-                    <div className="mt-1 flex flex-wrap items-center gap-2">
-                      <RarityBadge rarity={item.rarity} />
-                      <span className="text-xs text-muted-foreground">
-                        {item.quantity.toLocaleString()} available
+                      <MarketItemCell
+                        item={{ ...item.itemTemplate, rarity: item.rarity }}
+                        name={
+                          <button
+                            type="button"
+                            onClick={() => choose(item)}
+                            aria-pressed={active}
+                            className={cn(
+                              "game-stretched-action block w-full truncate font-semibold",
+                              active && "text-primary",
+                            )}
+                          >
+                            {item.itemTemplate.name}
+                          </button>
+                        }
+                      />
+                      <span className="text-right text-sm font-semibold tabular-nums">
+                        {item.quantity.toLocaleString()}
+                        <span className="block text-[10px] font-normal text-muted-foreground sm:hidden">
+                          available
+                        </span>
                       </span>
-                    </div>
-                  </div>
-                  <span className="text-xs text-muted-foreground">
-                    {item.itemTemplate.stackable
-                      ? "Instant or listing"
-                      : "Exact listing"}
-                  </span>
-                </div>
-              ))
-            ) : (
-              <div className="game-empty-state m-4">
-                <PackageOpen className="mx-auto mb-3 h-7 w-7" />
-                <p className="font-medium text-foreground">
-                  No tradeable items found
-                </p>
-                <p className="mt-1 text-sm">
-                  Try another search or place items in your inventory first.
-                </p>
-              </div>
-            )}
-          </div>
-        </section>
+                      <span className="hidden text-right text-xs text-muted-foreground sm:block">
+                        {item.itemTemplate.stackable
+                          ? "Instant or listing"
+                          : "Exact listing"}
+                      </span>
+                    </MarketTableRow>
+                  );
+                })
+              ) : (
+                <MarketTableEmpty
+                  icon={<PackageOpen className="mx-auto mb-3 h-7 w-7" />}
+                  title="No tradeable items found"
+                >
+                  <p className="mt-1 text-sm">
+                    Try another search or place items in your inventory first.
+                  </p>
+                </MarketTableEmpty>
+              )}
+            </div>
+          </MarketTable>
+        </div>
 
-        <aside className="game-panel hidden h-fit min-h-[520px] p-5 lg:block">
+        <aside className="game-panel-flat hidden h-fit min-h-[520px] p-5 lg:block">
           {selected ? (
             <SellItemForm item={toFormItem(selected)} onCompleted={completed} />
           ) : (
-            <div className="game-empty-state">
+            <div className="game-empty-state border-0 bg-surface-inset/60">
               <Store className="mx-auto mb-3 h-7 w-7" />
               Choose an inventory item to prepare a sale.
             </div>
@@ -184,7 +205,7 @@ export default function MarketplaceSellPage() {
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent
           side="bottom"
-          className="max-h-[90dvh] overflow-y-auto rounded-t-xl border-primary/30 p-5 lg:hidden"
+          className="max-h-[90dvh] overflow-y-auto rounded-t-xl border-0 bg-card p-5 lg:hidden"
         >
           <SheetHeader className="sr-only">
             <SheetTitle>

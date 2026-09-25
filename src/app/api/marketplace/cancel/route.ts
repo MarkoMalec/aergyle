@@ -1,8 +1,9 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { prisma } from "~/lib/prisma";
+import { lockInventory } from "~/server/items/inventoryLock";
 import { getServerAuthSession } from "~/server/auth";
-import { grantStackableItemToInventory } from "~/server/vocations/grantItem";
+import { grantStackableItemToInventory } from "~/server/items/grantItem";
 import {
   normalizeInventorySlots,
   slotsToInputJson,
@@ -65,9 +66,7 @@ export async function DELETE(req: NextRequest) {
           );
         }
       } else {
-        const inventory = await tx.inventory.findUnique({
-          where: { userId: session.user.id },
-        });
+        const inventory = await lockInventory(tx, session.user.id);
         if (!inventory) fail(404, "Inventory not found");
         const slots = normalizeInventorySlots(
           inventory.slots,

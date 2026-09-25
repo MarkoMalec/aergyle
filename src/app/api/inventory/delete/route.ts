@@ -1,67 +1,57 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "~/lib/prisma";
 import { getServerAuthSession } from "~/server/auth";
-import {
-  normalizeInventorySlots,
-  slotsToInputJson,
-} from "~/utils/inventorySlots";
+import { lockInventory } from "~/server/items/inventoryLock";
 
+/**
+ * Destroys the item waiting in the player's delete slot, and only that one:
+ * nothing else (an equipped, listed or stored item) can be deleted by id.
+ */
 export async function DELETE(req: NextRequest) {
+  const session = await getServerAuthSession();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const userId = session.user.id;
+  const body = (await req.json().catch(() => null)) as {
+    userItemId?: unknown;
+  } | null;
+  const userItemId = body?.userItemId;
+  if (
+    typeof userItemId !== "number" ||
+    !Number.isSafeInteger(userItemId) ||
+    userItemId <= 0
+  ) {
+    return NextResponse.json({ error: "Missing userItemId" }, { status: 400 });
+  }
+
   try {
-    const session = await getServerAuthSession();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const deleted = await prisma.$transaction(async (tx) => {
+      const inventory = await lockInventory(tx, userId);
+      if (!inventory || inventory.deleteSlotId !== userItemId) return false;
 
-    const userId = session.user.id;
-    const { userItemId } = await req.json();
-
-    if (!userItemId) {
-      return NextResponse.json(
-        { error: "Missing userItemId" },
-        { status: 400 },
-      );
-    }
-
-    const userItem = await prisma.userItem.findUnique({
-      where: { id: userItemId },
-      select: { id: true, userId: true },
-    });
-
-    if (!userItem) {
-      return NextResponse.json({ error: "Item not found" }, { status: 404 });
-    }
-
-    if (userItem.userId !== userId) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    // First, remove the item from inventory JSON
-    const userInventory = await prisma.inventory.findUnique({
-      where: { userId },
-    });
-
-    if (userInventory && userInventory.slots) {
-      const slots = normalizeInventorySlots(
-        userInventory.slots,
-        userInventory.maxSlots,
-      );
-      const updatedSlots = slots.map((slot) => {
-        if (slot?.item?.id === userItemId) {
-          return { ...slot, item: null };
-        }
-        return slot;
+      // Per-instance modifiers cascade with the UserItem.
+      const removed = await tx.userItem.deleteMany({
+        where: {
+          id: userItemId,
+          userId,
+          status: { in: ["IN_INVENTORY", "EQUIPPED"] },
+        },
       });
-
-      await prisma.inventory.update({
+      await tx.inventory.update({
         where: { userId },
-        data: { slots: slotsToInputJson(updatedSlots) },
+        data: { deleteSlotId: null },
       });
+      return removed.count === 1;
+    });
+
+    if (!deleted) {
+      return NextResponse.json(
+        { error: "That item is no longer in the delete slot" },
+        { status: 409 },
+      );
     }
-
-    // Per-instance modifiers cascade with the UserItem.
-    await prisma.userItem.delete({ where: { id: userItemId } });
-
     return NextResponse.json(
       { message: "Item deleted successfully" },
       { status: 200 },

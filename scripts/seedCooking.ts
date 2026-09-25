@@ -10,6 +10,7 @@ import {
   type CookingItemDefinition,
   cookingItemCreateData,
 } from "../prisma/content/cooking";
+import { changedFields } from "./seedHelpers";
 
 const mode = process.argv[2] ?? "--check";
 if (!["--check", "--apply", "--verify"].includes(mode)) {
@@ -24,15 +25,6 @@ const prisma = new PrismaClient({
 });
 
 type Mode = "--check" | "--apply" | "--verify";
-
-function changedFields(
-  actual: Record<string, unknown>,
-  expected: Record<string, unknown>,
-) {
-  return Object.entries(expected)
-    .filter(([key, value]) => actual[key] !== value)
-    .map(([key]) => key);
-}
 
 async function validateSprites() {
   for (const sprite of new Set(COOKING_ITEMS.map((item) => item.sprite))) {

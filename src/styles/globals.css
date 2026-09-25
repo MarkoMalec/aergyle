@@ -669,16 +669,6 @@
   .game-inventory-panel {
     grid-area: inventory;
   }
-  .game-attribute-source {
-    flex-shrink: 0;
-    padding: 4px 7px;
-    color: hsl(var(--muted-foreground));
-    border: 1px solid hsl(var(--border) / 0.7);
-    border-radius: 999px;
-    background: hsl(var(--surface-inset) / 0.55);
-    font-size: 10px;
-    line-height: 1;
-  }
   .game-core-stats {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1439,9 +1429,6 @@
     height: 100%;
     background: hsl(var(--xp));
     transition: width var(--duration-normal) var(--ease-game);
-  }
-  .game-garden {
-    padding: 20px;
   }
   .game-garden-grid {
     display: grid;
@@ -2402,33 +2389,6 @@
   .gathering-field-guide-while-away > div:first-child {
     margin-bottom: 14px;
   }
-  .gathering-away-resources {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-  }
-  .gathering-away-resources > div {
-    display: flex;
-    min-width: 0;
-    align-items: center;
-    gap: 9px;
-    padding: 7px;
-    border: 1px solid hsl(var(--border));
-    border-radius: 11px;
-    background: hsl(var(--surface-inset) / 0.4);
-  }
-  .gathering-away-resources > div.is-locked {
-    opacity: 0.55;
-  }
-  .gathering-away-resources > div > span {
-    min-width: 0;
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 12px;
-    font-weight: 600;
-  }
   .atlas-frame {
     overflow: hidden;
   }
@@ -3093,32 +3053,6 @@
     border: 1px dashed hsl(var(--border));
     border-radius: 12px;
   }
-  .game-auth {
-    min-height: 100dvh;
-    padding: 40px 20px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    background:
-      linear-gradient(#111b1ecc, #111b1efa),
-      url("/assets/homepage/background1.jpg") center/cover;
-  }
-  .game-auth-card {
-    width: 100%;
-    max-width: 440px;
-    border: 1px solid hsl(var(--primary) / 0.3);
-  }
-  .game-auth-links {
-    margin-top: 22px;
-    font-size: 13px;
-    color: hsl(var(--muted-foreground));
-  }
-  .game-auth-links a {
-    color: hsl(var(--primary));
-    text-decoration: underline;
-    text-underline-offset: 4px;
-  }
   /* Region and settlement maps: pins over the artwork, a list beside it. */
   .place-map {
     display: grid;
@@ -3521,8 +3455,7 @@
   .game-skill-page-heading {
     background-position: 36% center;
   }
-  .game-panel-body,
-  .game-garden {
+  .game-panel-body {
     padding: 16px;
   }
   .game-panel-header {
@@ -3682,8 +3615,7 @@
   .gardening-harvest-banner b {
     margin-left: 40px;
   }
-  .gathering-haul-grid,
-  .gathering-away-resources {
+  .gathering-haul-grid {
     grid-template-columns: minmax(0, 1fr);
   }
   .gathering-route-labels {

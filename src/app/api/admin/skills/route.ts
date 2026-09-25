@@ -13,18 +13,6 @@ const skillSchema = z.object({
   category: z.nativeEnum(SkillCategory).default(SkillCategory.VOCATION),
 });
 
-export async function GET(req: NextRequest) {
-  const denied = await requireAdminApiAccess(req);
-  if (denied) return denied;
-
-  const skills = await prisma.skills.findMany({
-    orderBy: [{ skill_name: "asc" }],
-    take: 1000,
-  });
-
-  return NextResponse.json(skills);
-}
-
 export async function POST(req: NextRequest) {
   const denied = await requireAdminApiAccess(req);
   if (denied) return denied;

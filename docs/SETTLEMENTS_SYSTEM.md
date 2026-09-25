@@ -270,8 +270,7 @@ Items, creatures and dungeons are chosen with a searchable picker.
    `prisma/migrations/20260919180000_user_seen_quests/`,
    `prisma/migrations/20260919210000_region_settlement_maps/` and
    `prisma/migrations/20260922120000_settlement_storage/`.
-2. Run the rules tests with `npm run test:settlements` and the dungeon tests
-   with `npm run test:dungeons`.
+2. Run the rules and dungeon tests with `npm test`.
 3. Create settlements in /admin/settlements. NPC portraits live in
    `public/assets/npcs/`, map artwork in `public/assets/world/`.
 4. Set the storage chest icon in /admin/settlements before enabling a

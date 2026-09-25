@@ -2,11 +2,13 @@ import { Panel } from "~/components/admin/fields";
 import { BroadcastForm } from "~/components/admin/moderation/BroadcastForm";
 import { ReportsQueue } from "~/components/admin/moderation/ReportsQueue";
 import { listReports } from "~/server/communication";
+import { requireAdminPageAccess } from "~/server/admin/auth";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function AdminModerationPage() {
+  await requireAdminPageAccess();
   const reports = await listReports();
   const open = reports.filter((report) => report.status === "OPEN").length;
 

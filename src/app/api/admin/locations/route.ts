@@ -11,20 +11,6 @@ const createSchema = z.object({
   requiredLevel: z.number().int().min(1).max(500),
 });
 
-export async function GET(req: NextRequest) {
-  const denied = await requireAdminApiAccess(req);
-  if (denied) return denied;
-
-  const locations = await prisma.location.findMany({
-    orderBy: [{ id: "desc" }],
-    include: {
-      _count: { select: { resources: true } },
-    },
-  });
-
-  return NextResponse.json(locations);
-}
-
 export async function POST(req: NextRequest) {
   const denied = await requireAdminApiAccess(req);
   if (denied) return denied;

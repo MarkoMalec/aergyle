@@ -21,8 +21,10 @@ import { dispatchActiveActionEvent } from "~/components/game/actions/activeActio
 import { ItemArtwork } from "~/components/game/items/ItemArtwork";
 import { dispatchSkillProgressEvent } from "~/components/game/skills/skillProgressEvents";
 import { Button } from "~/components/ui/button";
-import { inventoryQueryKeys } from "~/lib/query-keys";
+import { gatheringQueryKeys, inventoryQueryKeys } from "~/lib/query-keys";
 import { RarityBadge } from "~/utils/ui/rarity-badge";
+import { formatRemaining, formatTime } from "~/components/game/actions/format";
+import { RewardHaul } from "~/components/game/items/RewardHaul";
 
 type GatheringReward = {
   resourceId: number;
@@ -99,23 +101,6 @@ type GatheringData = {
     rewards: GatheringReward[];
   };
 };
-
-function formatRemaining(seconds: number) {
-  const total = Math.max(0, Math.floor(seconds));
-  const hours = Math.floor(total / 3600);
-  const minutes = Math.floor((total % 3600) / 60);
-  const secs = total % 60;
-  return hours > 0
-    ? `${hours}h ${String(minutes).padStart(2, "0")}m ${String(secs).padStart(2, "0")}s`
-    : `${minutes}m ${String(secs).padStart(2, "0")}s`;
-}
-
-function formatTime(value: string) {
-  return new Intl.DateTimeFormat(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
-}
 
 function ModifierSummary({ data }: { data: GatheringData }) {
   const effect = data.modifiers.sources.activeEffect;
@@ -245,23 +230,7 @@ function ExpeditionCard({
             </h2>
           </div>
         </div>
-        <div className="gathering-haul-grid">
-          {expedition.rewards.map((reward) => (
-            <div className="gathering-haul-item" key={reward.itemId}>
-              <ItemArtwork
-                src={reward.sprite}
-                name={reward.name}
-                rarity={reward.rarity}
-                size={60}
-                itemId={reward.itemId}
-              />
-              <div className="min-w-0">
-                <strong>{reward.name}</strong>
-                <span>×{reward.quantity}</span>
-              </div>
-            </div>
-          ))}
-        </div>
+        <RewardHaul rewards={expedition.rewards} />
       </section>
     );
   }
@@ -336,7 +305,7 @@ export default function GatheringExpedition() {
   );
 
   const gatheringQuery = useQuery({
-    queryKey: ["gathering"],
+    queryKey: gatheringQueryKeys.all(),
     queryFn: async (): Promise<GatheringData> => {
       const response = await fetch("/api/gathering", { cache: "no-store" });
       const data = (await response.json().catch(() => null)) as
@@ -398,7 +367,9 @@ export default function GatheringExpedition() {
     onSuccess: async () => {
       toast.success(`Expedition sent from ${data?.location?.name ?? "camp"}`);
       dispatchActiveActionEvent({ kind: "changed" });
-      await queryClient.invalidateQueries({ queryKey: ["gathering"] });
+      await queryClient.invalidateQueries({
+        queryKey: gatheringQueryKeys.all(),
+      });
     },
     onError: (error) =>
       toast.error(error instanceof Error ? error.message : "Failed to depart"),
@@ -424,7 +395,7 @@ export default function GatheringExpedition() {
       dispatchActiveActionEvent({ kind: "changed" });
       dispatchSkillProgressEvent("Gathering");
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["gathering"] }),
+        queryClient.invalidateQueries({ queryKey: gatheringQueryKeys.all() }),
         queryClient.invalidateQueries({ queryKey: inventoryQueryKeys.all() }),
       ]);
     },

@@ -5,7 +5,7 @@ import { PopoverTrigger } from "~/components/ui/popover";
 import Image from "next/image";
 import { Skeleton } from "~/components/ui/skeleton";
 import { useDndContext } from "./DnDContext";
-import { EQUIPMENT_SLOT_TO_INDEX } from "~/types/inventory";
+import { EQUIPMENT_SLOT_TO_INDEX } from "~/utils/itemEquipTo";
 import type { ItemWithStats } from "~/types/stats";
 import toast from "react-hot-toast";
 import { ItemRarityMark } from "~/utils/ui/rarity-mark";

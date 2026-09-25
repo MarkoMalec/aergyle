@@ -10,6 +10,7 @@ art
 docs
 tests
 scripts
+!scripts/admin.ts
 *.md
 !README.md
 .vscode

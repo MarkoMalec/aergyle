@@ -1,4 +1,5 @@
 import { prisma } from "~/lib/prisma";
+import { assertNoOtherActivity } from "~/server/activity";
 import {
   applyMovementSpeed,
   FALLBACK_TRAVEL_SECONDS,
@@ -151,43 +152,7 @@ export async function startTravel(params: {
 }) {
   const { userId, toLocationId } = params;
 
-  const [
-    activeGardenHarvest,
-    activeVocation,
-    activeGatheringExpedition,
-    activeHuntingExpedition,
-    activeDungeonRun,
-  ] = await Promise.all([
-    prisma.userGardenHarvestActivity.findUnique({
-      where: { userId },
-      select: { id: true },
-    }),
-    prisma.userVocationalActivity.findUnique({
-      where: { userId },
-      select: { id: true },
-    }),
-    prisma.userGatheringExpedition.findFirst({
-      where: { userId, claimedAt: null },
-      select: { id: true },
-    }),
-    prisma.userHuntingExpedition.findFirst({
-      where: { userId, claimedAt: null },
-      select: { id: true },
-    }),
-    prisma.userDungeonRun.findFirst({
-      where: { userId, claimedAt: null },
-      select: { id: true },
-    }),
-  ]);
-  if (
-    activeGardenHarvest ??
-    activeVocation ??
-    activeGatheringExpedition ??
-    activeHuntingExpedition ??
-    activeDungeonRun
-  ) {
-    throw new Error("You already have an active activity");
-  }
+  await assertNoOtherActivity(userId, "travel");
 
   const [user, destination] = await Promise.all([
     prisma.user.findUnique({

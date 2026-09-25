@@ -1,9 +1,7 @@
 import { ItemType } from "~/generated/prisma/enums";
 import { prisma } from "~/lib/prisma";
-import {
-  normalizeInventorySlots,
-  slotsToInputJson,
-} from "~/utils/inventorySlots";
+import { removeFromStack } from "~/server/items/consumeItems";
+import { normalizeInventorySlots } from "~/utils/inventorySlots";
 
 export async function getLearnedRecipes(userId: string) {
   return prisma.userLearnedRecipe.findMany({
@@ -47,8 +45,7 @@ export async function learnRecipeFromInventory(params: {
     }
 
     const slots = normalizeInventorySlots(inventory.slots, inventory.maxSlots);
-    const slotIndex = slots.findIndex((slot) => slot.item?.id === userItem.id);
-    if (slotIndex < 0) {
+    if (!slots.some((slot) => slot.item?.id === userItem.id)) {
       throw new Error("Recipe was not found in your inventory");
     }
 
@@ -89,20 +86,12 @@ export async function learnRecipeFromInventory(params: {
       },
     });
 
-    if (userItem.quantity > 1) {
-      await tx.userItem.update({
-        where: { id: userItem.id },
-        data: { quantity: { decrement: 1 } },
-      });
-    } else {
-      await tx.userItem.delete({ where: { id: userItem.id } });
-      const slot = slots[slotIndex];
-      if (slot) slots[slotIndex] = { ...slot, item: null };
-      await tx.inventory.update({
-        where: { userId },
-        data: { slots: slotsToInputJson(slots) },
-      });
-    }
+    await removeFromStack({
+      db: tx,
+      userId,
+      userItemId: userItem.id,
+      quantity: 1,
+    });
 
     return {
       recipeItemId: userItem.itemId,

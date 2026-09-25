@@ -55,8 +55,6 @@ export const PLAYER_AVATARS = [
   },
 ] as const;
 
-export type PlayerAvatar = (typeof PLAYER_AVATARS)[number];
-
 export const DEFAULT_PLAYER_AVATAR = PLAYER_AVATARS[0];
 
 export function getPlayerAvatarById(id: string | null | undefined) {

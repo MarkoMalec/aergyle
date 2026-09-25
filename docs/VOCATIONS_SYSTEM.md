@@ -6,11 +6,20 @@ for both gathering vocations and crafting professions:
 - Woodcutting, Mining, Fishing
 - Alchemy, Blacksmithing, Weaponsmithing, Carpentry, Cooking, Tailoring, Forge
 
-The shared crafting registry gives each profession a clear item contract:
+Each skill's item contract (the item types its resources may output and
+consume as requirements) is admin data in `VocationalSkillRule`, edited on
+`/admin/vocations/rules` or from the resource form's "Change rules" link. An
+empty list accepts every type. The shipped defaults are:
 
 - Blacksmithing refines ore into ingots and produces armor, tools and metal components.
 - Weaponsmithing owns dedicated melee-weapon production.
 - Carpentry processes logs into wooden components, bows and practical wooden items.
+- Alchemy turns herbs and materials into potions and reagents.
+
+Rules are checked when a resource is saved or moved between skills, never
+while it is being worked, so narrowing a rule leaves existing resources
+running. Fishing's bait slot (at most one BAIT item) and Cooking-only recipe
+gates stay in `src/game/crafting.ts`, since the engine depends on them.
 
 These professions use the same resource, requirement, timed-action and reward
 paths as the existing crafting skills; they do not have profession-specific
@@ -51,12 +60,13 @@ Earned units are settled by `claimVocationalRewards` (`src/server/vocations/clai
 
 All routes require an authenticated session.
 
-- `GET /api/vocations/resources` → list all vocational resources
 - `POST /api/vocations/start` `{ resourceId, locationId?, durationSeconds?, quantity?, baitUserItemId? }` → start an activity. `quantity` sets the duration to `quantity × unitSeconds` (still capped at 8h); the start dialog sends it for resources with inputs.
-- `GET /api/vocations/status` → current activity + derived progress (settles due units first)
+- `GET /api/activity/status` → every activity's status in one response; its `vocation` entry is the current activity + derived progress (settles due units first)
 - `POST /api/vocations/stop` → grant what was earned, then stop the activity
 
-There is no manual claim: `POST /api/vocations/claim` intentionally returns 404.
+There is no manual claim; due units settle on status reads, page loads and in the realtime daemon.
+
+The skill page loads the resource list server-side.
 
 ## Balancing workflow
 

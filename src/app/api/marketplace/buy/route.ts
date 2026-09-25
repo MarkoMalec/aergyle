@@ -2,9 +2,10 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { MARKET_MAX_GOLD_AMOUNT, calculateMarketSale } from "~/lib/marketplace";
 import { prisma } from "~/lib/prisma";
+import { lockInventory } from "~/server/items/inventoryLock";
 import { getServerAuthSession } from "~/server/auth";
 import { notify } from "~/server/communication";
-import { grantStackableItemToInventory } from "~/server/vocations/grantItem";
+import { grantStackableItemToInventory } from "~/server/items/grantItem";
 import {
   normalizeInventorySlots,
   slotsToInputJson,
@@ -117,9 +118,7 @@ export async function POST(req: NextRequest) {
           );
         }
       } else {
-        const inventory = await tx.inventory.findUnique({
-          where: { userId: buyerId },
-        });
+        const inventory = await lockInventory(tx, buyerId);
         if (!inventory) fail(404, "Inventory not found");
 
         const slots = normalizeInventorySlots(
@@ -180,6 +179,8 @@ export async function POST(req: NextRequest) {
       });
 
       return {
+        itemId: listing.itemId,
+        rarity: listing.rarity,
         itemName: listing.itemTemplate.name,
         sellerId: listing.userId,
         seller: listing.user.name ?? "Unknown seller",
@@ -193,8 +194,9 @@ export async function POST(req: NextRequest) {
     await notify(result.sellerId, {
       category: "MARKET",
       title: "Your listing sold",
-      body: `${result.quantity}× ${result.itemName} sold for ${result.net.toFixed(2)} gold after tax.`,
-      href: "/marketplace",
+      body: `${result.quantity}× ${result.itemName} for ${result.net.toFixed(2)} gold after tax.`,
+      href: "/marketplace/history",
+      item: { id: result.itemId, rarity: result.rarity },
     });
 
     return NextResponse.json({

@@ -27,7 +27,7 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 import { cn } from "~/lib/utils";
-import { getRarityTailwindClass } from "~/utils/rarity-colors";
+import { rarityStyle } from "~/utils/rarity-colors";
 
 const ITEM_RARITY_VALUES = Object.values(ItemRarity) as [
   ItemRarity,
@@ -35,10 +35,6 @@ const ITEM_RARITY_VALUES = Object.values(ItemRarity) as [
 ];
 
 const ITEM_TYPE_VALUES = Object.values(ItemType) as [ItemType, ...ItemType[]];
-
-const rarityColorClass = (rarity: ItemRarity) => {
-  return getRarityTailwindClass(rarity);
-};
 
 type ToolEfficiencyRow = {
   actionType: VocationalActionType;
@@ -362,6 +358,7 @@ const schema = z.object({
   seedYieldMax: z.coerce.number().int().nullable().optional(),
   seedHarvestSeconds: z.coerce.number().int().nullable().optional(),
   seedXp: z.coerce.number().int().nullable().optional(),
+  healingAmount: z.coerce.number().int().nullable().optional(),
   foodEffectSeconds: z.coerce.number().int().nullable().optional(),
   equipTo: z.string().nullable().optional(),
   twoHanded: z.coerce.boolean().default(false),
@@ -418,6 +415,7 @@ export function ItemForm(props: {
     seedYieldMax: null,
     seedHarvestSeconds: null,
     seedXp: null,
+    healingAmount: null,
     foodEffectSeconds: null,
     equipTo: null,
     twoHanded: false,
@@ -1088,6 +1086,18 @@ export function ItemForm(props: {
           <Input type="number" {...form.register("maxMagicDamage")} />
         </div>
       </div>
+
+      {supportsTimedEffect ? (
+        <div className="max-w-xs space-y-2 rounded-lg border border-gray-800/60 p-4">
+          <div className="text-sm font-semibold text-white">
+            Instant healing
+          </div>
+          <div className="text-xs text-white/60">
+            Health restored immediately when this item is consumed.
+          </div>
+          <Input type="number" {...form.register("healingAmount")} />
+        </div>
+      ) : null}
 
       {supportsTimedEffect ? (
         <div className="space-y-4 rounded-lg border border-gray-800/60 p-4">
@@ -2157,10 +2167,9 @@ export function ItemForm(props: {
                         className="whitespace-nowrap px-2 py-1.5 text-right"
                       >
                         <span
-                          className={cn(
-                            rarityColorClass(r),
-                            "rounded px-[2px] py-[3px]",
-                          )}
+                          className="rarity-badge border px-[2px] py-[3px]"
+                          style={rarityStyle(r)}
+                          data-rarity={r}
                         >
                           {r}
                         </span>

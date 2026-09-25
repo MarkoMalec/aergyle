@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "~/lib/prisma";
 import { SkillForm } from "~/components/admin/skills/SkillForm";
+import { requireAdminPageAccess } from "~/server/admin/auth";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -10,6 +11,7 @@ export const revalidate = 0;
 export default async function AdminEditSkillPage(props: {
   params: { id: string };
 }) {
+  await requireAdminPageAccess();
   const id = Number(props.params.id);
   if (!Number.isFinite(id)) return notFound();
 

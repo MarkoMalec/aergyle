@@ -9,6 +9,7 @@ import { rarityStyle } from "~/utils/rarity-colors";
 import {
   ItemDetails,
   ItemDetailsPopoverContent,
+  itemHasImmediateHealing,
   itemHasTimedEffect,
 } from "~/components/game/items/ItemDetails";
 import { ListItemDialog } from "~/components/game/marketplace/ListItemDialog";
@@ -68,7 +69,12 @@ export default function SingleItemTemplate({
   const router = useRouter();
   const meetsLevel = meetsItemLevelRequirement(item, user?.level ?? 0);
   const isRecipe = item.itemType === ItemType.RECIPE;
+  const supportsImmediateHealing = itemHasImmediateHealing(item);
   const supportsTimedEffect = itemHasTimedEffect(item.itemType);
+  const canUseConsumable =
+    supportsImmediateHealing ||
+    (supportsTimedEffect &&
+      Boolean(item.foodEffectSeconds && item.foodEffectStats?.length));
   const learnedRecipes = useQuery({
     queryKey: recipeQueryKeys.learned(user?.id),
     enabled: isRecipe && Boolean(user?.id),
@@ -151,7 +157,7 @@ export default function SingleItemTemplate({
   };
 
   const handleEat = async () => {
-    if (!supportsTimedEffect || isEating) return;
+    if (!canUseConsumable || isEating) return;
 
     setIsEating(true);
     try {
@@ -162,6 +168,10 @@ export default function SingleItemTemplate({
       });
       const result = (await response.json().catch(() => null)) as {
         error?: string;
+        effect?: {
+          healing?: { healed: number } | null;
+          timed?: object | null;
+        };
       } | null;
       if (!response.ok) {
         toast.error(result?.error ?? "Failed to use consumable");
@@ -176,7 +186,15 @@ export default function SingleItemTemplate({
       ]);
       router.refresh();
       setOpen(false);
-      toast.success(`${item.name} is now active.`);
+      const healed = Math.floor(result?.effect?.healing?.healed ?? 0);
+      const isActive = Boolean(result?.effect?.timed);
+      toast.success(
+        healed > 0
+          ? `${item.name} restored ${healed} health${isActive ? " and is now active" : ""}.`
+          : isActive
+            ? `${item.name} is now active.`
+            : `${item.name} was used.`,
+      );
     } catch {
       toast.error("Failed to use consumable");
     } finally {
@@ -244,17 +262,14 @@ export default function SingleItemTemplate({
               Unequip
             </Button>
           )}
-          {container === "inventory" && supportsTimedEffect && (
-            <Button
-              onClick={handleEat}
-              disabled={
-                isEating ||
-                !item.foodEffectSeconds ||
-                !item.foodEffectStats?.length
-              }
-              className="w-full"
-            >
-              {isEating ? "Using..." : "Use"}
+          {container === "inventory" && canUseConsumable && (
+            <Button onClick={handleEat} disabled={isEating} className="w-full">
+              {isEating
+                ? "Using..."
+                : item.itemType === ItemType.POTION ||
+                    item.itemType === ItemType.ELIXIR
+                  ? "Drink"
+                  : "Use"}
             </Button>
           )}
           {showListButton && (

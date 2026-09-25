@@ -18,6 +18,8 @@ The [Tailoring system](docs/TAILORING_SYSTEM.md) adds blueprint-gated equipment 
 
 Crafting also separates general metalwork, combat weapons and woodwork into Blacksmithing, Weaponsmithing and Carpentry while keeping one shared vocational production engine.
 
+Players sign in at `/play` with email and password or with Discord. `/admin` has [its own accounts](docs/DEPLOYMENT.md#admin-access), separate from players, and takes an authenticator code on every sign-in; manage them with `npm run admin`.
+
 ## Project foundation
 
 This is a [T3 Stack](https://create.t3.gg/) project bootstrapped with `create-t3-app`.

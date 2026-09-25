@@ -69,7 +69,7 @@ npm run db:migrate
 npm run db:seed:vocations -- --check
 npm run db:seed:vocations -- --apply
 npm run db:seed:vocations -- --verify
-npm run test:vocations
+npm test
 ```
 
 `--check` is read-only. `--apply` creates or synchronizes pack-owned items/resources, recipes and exact location assignments; it creates missing Worm, Coal or Iron ore dependencies without replacing conflicts. `--verify` checks the stored pack. New resource location assignments are intentionally exact so a high-level resource cannot leak into a beginner destination.

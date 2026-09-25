@@ -1,552 +1,250 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import {
-  type ColumnDef,
-  flexRender,
-  getCoreRowModel,
-  useReactTable,
-  getSortedRowModel,
-  type SortingState,
-} from "@tanstack/react-table";
-import {
-  Search,
-  X,
-  ShoppingCart,
-  SortDesc,
-  SortAsc,
-  ArrowUpDown,
-} from "lucide-react";
-import { Input } from "~/components/ui/input";
+import { useEffect, useState } from "react";
+import { BarChart3, PackageOpen } from "lucide-react";
+import { CoinsIcon } from "~/components/game/ui/coins-icon";
 import { Button } from "~/components/ui/button";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "~/components/ui/table";
-import { Badge } from "~/components/ui/badge";
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "~/components/ui/sheet";
+import { MARKET_DEFAULT_MAX_PRICE } from "~/lib/marketplace";
+import { cn } from "~/lib/utils";
+import type {
+  MarketplaceGroupedItem,
+  MarketplaceGroupedResponse,
+} from "~/types/marketplace";
+import { MarketDetailPanel } from "./MarketDetailPanel";
+import { MarketFilterBar } from "./marketplaceFilters";
+import type { MarketFilterBarProps } from "./marketplaceFilters";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "~/components/ui/select";
-import { RarityBadge } from "~/utils/ui/rarity-badge";
-import { ItemFilters } from "./marketplaceFilters";
-import { MarketplaceListing } from "~/types/marketplace";
-import SingleItemTemplate from "../items/single-item-template";
-import { Skeleton } from "~/components/ui/skeleton";
-import { CoinsIcon } from "../ui/coins-icon";
+  MarketItemCell,
+  MarketTable,
+  MarketTableEmpty,
+  MarketTableHead,
+  MarketTablePagination,
+  MarketTableRow,
+  MarketTableSkeleton,
+} from "./MarketTable";
 
-import { RARITY_COLORS } from "~/utils/rarity";
-
-// Extend TableMeta to include currentUserId
-declare module "@tanstack/react-table" {
-  interface TableMeta<TData> {
-    currentUserId?: string;
-  }
-}
-
-interface DataTableProps {
-  data: MarketplaceListing[];
-  onBuyItem: (itemId: number) => void;
+interface DataTableProps
+  extends Omit<MarketFilterBarProps, "hasFilters" | "onReset"> {
+  data: MarketplaceGroupedItem[];
   isLoading?: boolean;
-  currentUserId?: string; // Current logged-in user ID
-  // Controlled filters (lifted to page, persisted via URL)
-  searchValue?: string;
-  onSearchChange?: (v: string) => void;
-  equipToFilter?: string;
-  onEquipToFilterChange?: (v: string) => void;
-  rarityFilter?: string;
-  onRarityFilterChange?: (v: string) => void;
-  priceRange?: { min: number; max: number };
-  onPriceRangeChange?: (r: { min: number; max: number }) => void;
+  currentUserId?: string;
+  pagination?: MarketplaceGroupedResponse["pagination"];
+  onPageChange: (page: number) => void;
 }
-
-const createColumns = (
-  onBuyItem: (itemId: number) => void,
-): ColumnDef<MarketplaceListing>[] => [
-  {
-    id: "image",
-    header: "",
-    cell: ({ row }) => {
-      const itemWithStats = {
-        ...row.original.itemTemplate,
-        id: row.original.id, // Use the UserItem id
-        itemId: row.original.itemTemplate.id, // Original item template ID
-        rarity: row.original.rarity, // Use actual item rarity (can be upgraded)
-        stats: row.original.stats.map((stat) => ({
-          id: stat.id,
-          itemId: row.original.itemTemplate.id, // Map userItemId to itemId for compatibility
-          statType: stat.statType,
-          value: stat.value,
-        })),
-      };
-
-      return (
-        <SingleItemTemplate
-          item={itemWithStats}
-          sprite={row.original.itemTemplate.sprite}
-          showEquipButton={false}
-          showUnequipButton={false}
-          showListButton={false}
-        />
-      );
-    },
-    enableSorting: false,
-  },
-  {
-    accessorFn: (row) => row.itemTemplate.name,
-    id: "name",
-    header: ({ column }) => (
-      <Button
-        variant="ghost"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        className="flex items-center gap-2"
-      >
-        Item
-        {column.getIsSorted() === "asc" ? (
-          <SortAsc className="h-4 w-4" />
-        ) : column.getIsSorted() === "desc" ? (
-          <SortDesc className="h-4 w-4" />
-        ) : (
-          <ArrowUpDown className="h-4 w-4" />
-        )}
-      </Button>
-    ),
-    cell: ({ row }) => {
-      const rarityColor = RARITY_COLORS[row.original.rarity];
-      return (
-        <span className="font-medium" style={{ color: rarityColor }}>
-          {row.original.itemTemplate.name}
-        </span>
-      );
-    },
-  },
-  {
-    accessorKey: "quantity",
-    header: "Qty",
-    cell: ({ row }) => <span>{row.original.quantity}</span>,
-  },
-  // {
-  //   accessorFn: (row) => row.itemTemplate.equipTo,
-  //   id: "equipTo",
-  //   header: ({ column }) => (
-  //     <Button
-  //       variant="ghost"
-  //       onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-  //       className="flex items-center gap-2"
-  //     >
-  //       Type
-  //       {column.getIsSorted() === "asc" ? (
-  //         <SortAsc className="h-4 w-4" />
-  //       ) : column.getIsSorted() === "desc" ? (
-  //         <SortDesc className="h-4 w-4" />
-  //       ) : (
-  //         <ArrowUpDown className="h-4 w-4" />
-  //       )}
-  //     </Button>
-  //   ),
-  //   cell: ({ row }) => (
-  //     <Badge variant="outline" className="font-light capitalize text-foreground">
-  //       {row.original.itemTemplate.equipTo || "Consumable"}
-  //     </Badge>
-  //   ),
-  // },
-  {
-    accessorKey: "rarity",
-    header: ({ column }) => (
-      <Button
-        variant="ghost"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        className="flex items-center gap-2"
-      >
-        Rarity
-        {column.getIsSorted() === "asc" ? (
-          <SortAsc className="h-4 w-4" />
-        ) : column.getIsSorted() === "desc" ? (
-          <SortDesc className="h-4 w-4" />
-        ) : (
-          <ArrowUpDown className="h-4 w-4" />
-        )}
-      </Button>
-    ),
-    cell: ({ row }) => <RarityBadge rarity={row.original.rarity} />,
-  },
-  {
-    accessorFn: (row) => row.user.name,
-    id: "seller",
-    header: "Seller",
-    cell: ({ row }) => (
-      <span className="text-sm">{row.original.user.name || "Unknown"}</span>
-    ),
-  },
-  {
-    accessorKey: "listedPrice",
-    header: ({ column }) => (
-      <Button
-        variant="ghost"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "desc")}
-        className="flex items-center gap-2"
-      >
-        Price
-        {column.getIsSorted() === "asc" ? (
-          <SortAsc className="h-4 w-4" />
-        ) : column.getIsSorted() === "desc" ? (
-          <SortDesc className="h-4 w-4" />
-        ) : (
-          <ArrowUpDown className="h-4 w-4" />
-        )}
-      </Button>
-    ),
-    cell: ({ row }) => (
-      <span className="font-semibold text-currency">
-        {row.original.listedPrice?.toLocaleString() || "0"} <CoinsIcon />
-      </span>
-    ),
-  },
-  {
-    id: "actions",
-    header: "",
-    cell: ({ row, table }) => {
-      const isOwnListing =
-        row.original.user.id === table.options.meta?.currentUserId;
-
-      return (
-        <Button
-          size="sm"
-          onClick={() => onBuyItem(row.original.id)}
-          className="gap-2"
-          disabled={isOwnListing}
-          title={
-            isOwnListing
-              ? "You cannot buy your own items"
-              : "Purchase this item"
-          }
-        >
-          {isOwnListing ? (
-            "Selling"
-          ) : (
-            <>
-              <ShoppingCart className="h-4 w-4" /> Buy
-            </>
-          )}
-        </Button>
-      );
-    },
-    enableSorting: false,
-  },
-];
 
 export function MarketplaceDataTable({
   data,
-  onBuyItem,
   isLoading = false,
   currentUserId,
-  searchValue: controlledSearchValue,
-  onSearchChange,
-  equipToFilter: controlledEquipTo,
-  onEquipToFilterChange,
-  rarityFilter: controlledRarity,
-  onRarityFilterChange,
-  priceRange: controlledPriceRange,
-  onPriceRangeChange,
+  pagination,
+  onPageChange,
+  ...filters
 }: DataTableProps) {
-  const [sorting, setSorting] = useState<SortingState>([]);
-  const [internalSearchValue, setInternalSearchValue] = useState("");
-  const [internalEquipTo, setInternalEquipTo] = useState<string>("all");
-  const [internalRarity, setInternalRarity] = useState<string>("all");
-  const [internalPriceRange, setInternalPriceRange] = useState<{
-    min: number;
-    max: number;
-  }>({
-    min: 0,
-    max: 100000,
-  });
+  const [selected, setSelected] = useState<MarketplaceGroupedItem | null>(null);
+  const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
 
-  // Use controlled values if provided, otherwise fall back to internal state
-  const searchValue = controlledSearchValue ?? internalSearchValue;
-  const equipToFilter = controlledEquipTo ?? internalEquipTo;
-  const rarityFilter = controlledRarity ?? internalRarity;
-  const priceRange = controlledPriceRange ?? internalPriceRange;
-
-  const columns = useMemo(() => createColumns(onBuyItem), [onBuyItem]);
-
-  // Advanced filtering logic
-  const filteredData = useMemo(() => {
-    let result = data;
-
-    // Search filter
-    if (searchValue) {
-      result = result.filter(
-        (item) =>
-          item.itemTemplate.name
-            .toLowerCase()
-            .includes(searchValue.toLowerCase()) ||
-          item.user.name?.toLowerCase().includes(searchValue.toLowerCase()),
-      );
+  useEffect(() => {
+    if (data.length === 0) {
+      setSelected(null);
+      return;
     }
-
-    // EquipTo filter
-    if (equipToFilter && equipToFilter !== "all") {
-      result = result.filter(
-        (item) => item.itemTemplate.equipTo === equipToFilter,
-      );
-    }
-
-    // Rarity filter
-    if (rarityFilter && rarityFilter !== "all") {
-      result = result.filter((item) => item.rarity === rarityFilter);
-    }
-
-    // Price range filter
-    result = result.filter(
-      (item) =>
-        (item.listedPrice || 0) >= priceRange.min &&
-        (item.listedPrice || 0) <= priceRange.max,
+    setSelected((current) =>
+      current &&
+      data.some(
+        (row) =>
+          row.itemTemplateId === current.itemTemplateId &&
+          row.rarity === current.rarity,
+      )
+        ? current
+        : data[0]!,
     );
-
-    return result;
-  }, [data, searchValue, equipToFilter, rarityFilter, priceRange]);
-
-  const table = useReactTable({
-    data: filteredData,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    state: {
-      sorting,
-    },
-    onSortingChange: setSorting,
-    meta: {
-      currentUserId,
-    },
-  });
-
-  const equipToOptions = useMemo(() => {
-    const unique = new Set(
-      data.map((item) => item.itemTemplate.equipTo).filter(Boolean),
-    );
-    return Array.from(unique).sort();
   }, [data]);
 
-  const rarities = useMemo(() => {
-    const unique = new Set(data.map((item) => item.rarity));
-    return Array.from(unique).sort();
-  }, [data]);
-
-  const resetFilters = () => {
-    if (onSearchChange) onSearchChange("");
-    else setInternalSearchValue("");
-
-    if (onEquipToFilterChange) onEquipToFilterChange("all");
-    else setInternalEquipTo("all");
-
-    if (onRarityFilterChange) onRarityFilterChange("all");
-    else setInternalRarity("all");
-
-    if (onPriceRangeChange) onPriceRangeChange({ min: 0, max: 100000 });
-    else setInternalPriceRange({ min: 0, max: 100000 });
-
-    setSorting([]);
+  const choose = (row: MarketplaceGroupedItem) => {
+    setSelected(row);
+    if (window.matchMedia("(max-width: 1023px)").matches) {
+      setMobileDetailOpen(true);
+    }
   };
 
-  const hasActiveFilters =
-    !!searchValue ||
-    equipToFilter !== "all" ||
-    rarityFilter !== "all" ||
-    sorting.length > 0;
+  const isFiltered =
+    filters.searchValue.length > 0 ||
+    filters.itemTypeFilter !== "all" ||
+    filters.rarityFilter !== "all" ||
+    filters.priceRange.min > 0 ||
+    filters.priceRange.max < MARKET_DEFAULT_MAX_PRICE;
+  const resetFilters = () => {
+    filters.onSearchChange("");
+    filters.onItemTypeFilterChange("all");
+    filters.onRarityFilterChange("all");
+    filters.onPriceRangeChange({ min: 0, max: MARKET_DEFAULT_MAX_PRICE });
+    filters.onSortChange("price-asc");
+  };
 
   return (
-    <div className="flex gap-6">
-      {/* Table */}
-      <div className="relative flex-1 overflow-hidden rounded-lg border">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow
-                key={headerGroup.id}
-                // className="hover:bg-black"
-              >
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id} className="font-semibold">
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext(),
-                        )}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows.length > 0
-              ? table.getRowModel().rows.map((row, idx) => (
-                  <TableRow
-                    key={row.id}
-                    className={`${idx % 2 === 0 ? "bg-muted/5" : "bg-transparent"} border-none text-foreground hover:bg-muted/10`}
+    <div className="space-y-4">
+      <MarketFilterBar
+        {...filters}
+        hasFilters={isFiltered || filters.sortValue !== "price-asc"}
+        onReset={resetFilters}
+      />
+
+      <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start xl:grid-cols-[minmax(0,1fr)_380px]">
+        <MarketTable
+          title="Goods for sale"
+          meta={
+            isLoading
+              ? "Loading…"
+              : `${data.length} market${data.length === 1 ? "" : "s"}`
+          }
+          className="game-market-results"
+          aria-label="Market results"
+        >
+          <div
+            key={pagination?.page}
+            className="max-h-[68vh] overflow-y-auto px-1.5 pb-1.5"
+          >
+            <MarketTableHead className="game-market-columns">
+              <span>Item</span>
+              <span className="text-right">Lowest ask</span>
+              <span className="text-right">Supply</span>
+              <span className="text-right">24h sold</span>
+            </MarketTableHead>
+
+            {isLoading ? (
+              <MarketTableSkeleton />
+            ) : data.length > 0 ? (
+              data.map((row) => {
+                const active =
+                  selected?.itemTemplateId === row.itemTemplateId &&
+                  selected.rarity === row.rarity;
+                return (
+                  <MarketTableRow
+                    key={`${row.itemTemplateId}:${row.rarity}`}
+                    active={active}
+                    className="game-stretched-row game-market-row"
                   >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="text-foreground">
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext(),
-                        )}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              : null}
-          </TableBody>
-          {/* Loading skeleton rows */}
-          {isLoading && (
-            <tbody>
-              {Array.from({ length: 8 }).map((_, i) => (
-                <TableRow
-                  key={`skeleton-${i}`}
-                  className={`${i % 2 === 0 ? "bg-muted/5" : "bg-transparent"} border-none`}
-                >
-                  <TableCell className="w-16">
-                    <Skeleton className="h-14 w-14 rounded" />
-                  </TableCell>
-
-                  {/* Item name column */}
-                  <TableCell>
-                    <Skeleton className="h-5 w-32" />
-                  </TableCell>
-
-                  {/* Type column - badge skeleton */}
-                  <TableCell>
-                    <Skeleton className="h-6 w-24 rounded-full" />
-                  </TableCell>
-
-                  {/* Rarity column - badge skeleton */}
-                  <TableCell>
-                    <Skeleton className="h-6 w-20 rounded-full" />
-                  </TableCell>
-
-                  {/* Seller column */}
-                  <TableCell>
-                    <Skeleton className="h-4 w-28" />
-                  </TableCell>
-
-                  {/* Price column */}
-                  <TableCell>
-                    <Skeleton className="h-5 w-24" />
-                  </TableCell>
-
-                  {/* Actions column - button skeleton */}
-                  <TableCell>
-                    <Skeleton className="h-9 w-20 rounded-md" />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </tbody>
-          )}
-        </Table>
-      </div>
-
-      <div className="max-w-md">
-        {/* Search and Filter Controls */}
-        <div className="space-y-4">
-          {/* Search Bar */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-muted-foreground" />
-            <Input
-              placeholder="Search items by name or seller..."
-              value={searchValue}
-              onChange={(e) =>
-                onSearchChange
-                  ? onSearchChange(e.target.value)
-                  : setInternalSearchValue(e.target.value)
-              }
-              className="indent-5"
-            />
+                    <MarketItemCell
+                      item={{
+                        id: row.itemTemplateId,
+                        name: row.itemName,
+                        sprite: row.sprite,
+                        rarity: row.rarity,
+                      }}
+                      name={
+                        <button
+                          type="button"
+                          onClick={() => choose(row)}
+                          aria-pressed={active}
+                          className={cn(
+                            "game-stretched-action block w-full truncate font-semibold",
+                            active && "text-primary",
+                          )}
+                        >
+                          {row.itemName}
+                        </button>
+                      }
+                    >
+                      <span className="game-market-narrow text-[11px] text-muted-foreground">
+                        {row.totalUnits.toLocaleString()} for sale ·{" "}
+                        {row.volume24h.toLocaleString()} sold 24h
+                      </span>
+                    </MarketItemCell>
+                    <span className="text-right font-semibold tabular-nums text-currency">
+                      <CoinsIcon size={14} /> {row.minPrice.toLocaleString()}
+                      <span className="block text-[10px] font-normal text-muted-foreground">
+                        each
+                      </span>
+                    </span>
+                    <span className="game-market-wide text-right text-sm tabular-nums">
+                      {row.totalUnits.toLocaleString()}
+                      <span className="block text-[10px] text-muted-foreground">
+                        {row.totalListings} offer
+                        {row.totalListings === 1 ? "" : "s"}
+                      </span>
+                    </span>
+                    <span className="game-market-wide text-right text-sm tabular-nums">
+                      {row.volume24h.toLocaleString()}
+                    </span>
+                  </MarketTableRow>
+                );
+              })
+            ) : (
+              <MarketTableEmpty
+                icon={<PackageOpen className="mx-auto mb-3 h-7 w-7" />}
+                title="No matching offers"
+              >
+                <p className="mt-1 text-sm">
+                  Try widening the price range or clearing a filter.
+                </p>
+                {isFiltered && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="mt-4"
+                    onClick={resetFilters}
+                  >
+                    Clear filters
+                  </Button>
+                )}
+              </MarketTableEmpty>
+            )}
           </div>
 
-          {/* Filter Row */}
-          <div className="flex flex-col gap-3 md:flex-row">
-            <Select
-              value={equipToFilter}
-              onValueChange={(v) =>
-                onEquipToFilterChange
-                  ? onEquipToFilterChange(v)
-                  : setInternalEquipTo(v)
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="All Types" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                {equipToOptions.map((equipTo) => (
-                  <SelectItem key={equipTo} value={equipTo || "consumable"}>
-                    {equipTo || "Consumable"}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={rarityFilter}
-              onValueChange={(v) =>
-                onRarityFilterChange
-                  ? onRarityFilterChange(v)
-                  : setInternalRarity(v)
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="All Rarities" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Rarities</SelectItem>
-                {rarities.map((rarity) => (
-                  <SelectItem key={rarity} value={rarity}>
-                    {rarity}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <ItemFilters
-              priceRange={priceRange}
-              onPriceRangeChange={(r) =>
-                onPriceRangeChange
-                  ? onPriceRangeChange(r)
-                  : setInternalPriceRange(r)
-              }
+          {pagination && (
+            <MarketTablePagination
+              page={pagination.page}
+              hasPreviousPage={pagination.hasPreviousPage}
+              hasNextPage={pagination.hasNextPage}
+              onPageChange={onPageChange}
             />
-          </div>
-          {hasActiveFilters && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={resetFilters}
-              className="ml-auto flex gap-2"
-            >
-              <X className="h-4 w-4" />
-              Reset Filters
-            </Button>
           )}
-        </div>
+        </MarketTable>
 
-        {/* Results Count */}
-        <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <span>
-            Showing {table.getRowModel().rows.length} of {filteredData.length}{" "}
-            items
-          </span>
-          {isLoading && (
-            <span className="text-xs italic">Loading listings...</span>
+        <aside
+          className="game-panel-flat hidden min-h-[580px] min-w-0 flex-col overflow-hidden lg:sticky lg:top-24 lg:flex lg:max-h-[calc(100dvh-7.5rem)]"
+          aria-label="Selected market"
+        >
+          {selected ? (
+            <MarketDetailPanel
+              market={selected}
+              currentUserId={currentUserId}
+            />
+          ) : (
+            <div className="game-empty-state m-3 border-0 bg-surface-inset/60">
+              <BarChart3 className="mx-auto mb-3 h-7 w-7" />
+              Select a market to inspect its offers and completed-sale metrics.
+            </div>
           )}
-        </div>
+        </aside>
       </div>
+
+      <Sheet open={mobileDetailOpen} onOpenChange={setMobileDetailOpen}>
+        <SheetContent
+          side="bottom"
+          className="h-[90dvh] overflow-hidden rounded-t-xl border-0 bg-card p-0 lg:hidden"
+        >
+          <SheetHeader className="sr-only">
+            <SheetTitle>{selected?.itemName ?? "Market details"}</SheetTitle>
+            <SheetDescription>
+              Offers, prices, and trade actions.
+            </SheetDescription>
+          </SheetHeader>
+          {selected && (
+            <MarketDetailPanel
+              market={selected}
+              currentUserId={currentUserId}
+            />
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

@@ -7,6 +7,7 @@ import React from "react";
 import toast from "react-hot-toast";
 import { Clock3, Leaf, MapPin, Plus, Save, Trash2 } from "lucide-react";
 import { Button } from "~/components/ui/button";
+import { responseJson } from "~/components/admin/fields";
 import { GatheringSimulator } from "./GatheringSimulator";
 
 export type GatheringAdminResource = {
@@ -58,13 +59,6 @@ const inputClass =
 
 function errorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
-}
-
-async function responseJson(response: Response) {
-  return (await response.json().catch(() => null)) as null | {
-    error?: string;
-    duration?: GatheringAdminDuration;
-  };
 }
 
 function ResourceCatalogue(props: {
@@ -529,7 +523,8 @@ function DurationEditor(props: { initialDurations: GatheringAdminDuration[] }) {
       if (!response.ok || !body?.duration) {
         throw new Error(body?.error ?? "Unable to create duration");
       }
-      setDurations((current) => [...current, body.duration!]);
+      const duration = body.duration as GatheringAdminDuration;
+      setDurations((current) => [...current, duration]);
       setDraft((current) => ({
         ...current,
         label: "",

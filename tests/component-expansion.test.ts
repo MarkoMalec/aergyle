@@ -11,9 +11,9 @@ import {
 } from "../prisma/content/componentExpansion";
 import { ItemType, VocationalActionType } from "../src/generated/prisma/enums";
 import {
-  getCraftingRule,
-  validateCraftingItemTypes,
-} from "../src/game/crafting";
+  SHIPPED_SKILL_ITEM_RULES,
+  shippedCraftConflict,
+} from "./shippedSkillItemRules";
 
 function paeth(left: number, above: number, upperLeft: number) {
   const estimate = left + above - upperLeft;
@@ -158,12 +158,12 @@ void test("Basic Pickaxe consumes a normal Wooden Handle", () => {
 });
 
 void test("crafting rules support prepared leather and wrapped woodwork", () => {
-  const carpentry = getCraftingRule(VocationalActionType.CARPENTRY);
-  const tailoring = getCraftingRule(VocationalActionType.TAILORING);
+  const carpentry = SHIPPED_SKILL_ITEM_RULES.CARPENTRY;
+  const tailoring = SHIPPED_SKILL_ITEM_RULES.TAILORING;
   assert.ok(carpentry?.inputTypes.includes(ItemType.HIDE));
   assert.ok(tailoring?.outputTypes.includes(ItemType.HIDE));
   assert.equal(
-    validateCraftingItemTypes({
+    shippedCraftConflict({
       actionType: VocationalActionType.CARPENTRY,
       outputType: ItemType.MATERIAL,
       inputTypes: [ItemType.MATERIAL, ItemType.HIDE],
@@ -171,7 +171,7 @@ void test("crafting rules support prepared leather and wrapped woodwork", () => 
     null,
   );
   assert.equal(
-    validateCraftingItemTypes({
+    shippedCraftConflict({
       actionType: VocationalActionType.TAILORING,
       outputType: ItemType.HIDE,
       inputTypes: [ItemType.HIDE, ItemType.MATERIAL],

@@ -1,24 +1,6 @@
 import { prisma } from "~/lib/prisma";
 import { ItemRarity } from "~/generated/prisma/enums";
-
-/**
- * Rarity colors - synced with database RarityConfig.color
- * Also exported in ~/utils/rarity-colors.ts for client-side usage
- */
-export const RARITY_COLORS: Record<ItemRarity, string> = {
-  WORTHLESS: "#4b5563", // Dark Gray
-  BROKEN: "#92400e", // Brown
-  COMMON: "#9ca3af", // Gray
-  UNCOMMON: "#22c55e", // Green
-  RARE: "#3b82f6", // Blue
-  EXQUISITE: "#06b6d4", // Cyan
-  EPIC: "#a855f7", // Purple
-  ELITE: "#ec4899", // Pink
-  UNIQUE: "#f59e0b", // Amber
-  LEGENDARY: "#eab308", // Gold
-  MYTHIC: "#ef4444", // Red
-  DIVINE: "#f8fafc", // White
-};
+import { FALLBACK_RARITY_COLORS as RARITY_COLORS } from "~/utils/rarity-colors";
 
 /**
  * Initialize rarity configurations in database
@@ -190,24 +172,6 @@ export async function initializeRarityConfigs(): Promise<void> {
       update: config,
     });
   }
-}
-
-/**
- * Get rarity configuration
- */
-export async function getRarityConfig(rarity: ItemRarity) {
-  return await prisma.rarityConfig.findUnique({
-    where: { rarity },
-  });
-}
-
-/**
- * Get all rarity configs sorted by order
- */
-export async function getAllRarityConfigs() {
-  return await prisma.rarityConfig.findMany({
-    orderBy: { sortOrder: "asc" },
-  });
 }
 
 /**

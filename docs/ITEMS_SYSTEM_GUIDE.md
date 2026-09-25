@@ -9,7 +9,7 @@ Complete guide to the items system - database architecture, functions, and how t
 1. [Database Architecture](#database-architecture)
 2. [Core Concepts](#core-concepts)
 3. [Available Functions](#available-functions)
-4. [Common Use Cases](#common-use-cases)
+4. [Where Item Flows Live](#where-item-flows-live)
 5. [Rarity System](#rarity-system)
 6. [Stats System](#stats-system)
 7. [Best Practices](#best-practices)
@@ -101,19 +101,21 @@ model UserItem {
 - UserItem #2: RARE rarity (1.35x stats)
 - UserItem #3: LEGENDARY rarity (2.3x stats)
 
-#### 4. **UserItemStat** (Instance stats)
+#### 4. **UserItemStatModifier** (Instance additions, table `UserItemStat`)
 ```prisma
-model UserItemStat {
-  id         Int      
+model UserItemStatModifier {
+  id         Int
   userItemId Int      // References UserItem
-  statType   StatType 
-  value      Float    // Rarity-multiplied value
-  
+  statType   StatType
+  value      Float    // Added on top of the live template stats
+
   userItem UserItem @relation(fields: [userItemId], references: [id])
+
+  @@map("UserItemStat")
 }
 ```
 
-**Purpose:** Stores the actual stats for each UserItem instance. Values are calculated as: `ItemStat.value × RarityMultiplier`.
+**Purpose:** Additions unique to one item instance, such as future enchantments. Template and rarity stats are never stored here; they are resolved live (see [Stats System](#stats-system)).
 
 #### 5. **Inventory**
 ```prisma
@@ -287,31 +289,17 @@ DIVINE Wooden Sword:    CRITICAL_CHANCE: 5 × 3.0 = 15
 
 #### Setting Up Stat Progressions
 
-```typescript
-import { setItemStatProgressions } from "~/utils/statProgressions";
-import { StatType, ItemRarity } from "@prisma/client";
+Edit the item in the admin item editor (`/admin/items`). Progressions are a CSV
+of `statType,baseValue,unlocksAtRarity`:
 
-// Define what stats unlock at each rarity
-await setItemStatProgressions(19, [ // Wooden Sword
-  { 
-    statType: StatType.CRITICAL_CHANCE, 
-    baseValue: 5, 
-    unlocksAtRarity: ItemRarity.COMMON 
-  },
-  { 
-    statType: StatType.ATTACK_SPEED, 
-    baseValue: 0.1, 
-    unlocksAtRarity: ItemRarity.MYTHIC 
-  },
-  { 
-    statType: StatType.LIFESTEAL, 
-    baseValue: 3, 
-    unlocksAtRarity: ItemRarity.DIVINE 
-  },
-]);
+```
+statType,baseValue,unlocksAtRarity
+CRITICAL_CHANCE,5,COMMON
+ATTACK_SPEED,0.1,MYTHIC
+LIFESTEAL,3,DIVINE
 ```
 
-See `scripts/setupStatProgressions.ts` for examples.
+See `docs/STAT_PROGRESSION_SYSTEM.md`.
 
 ---
 
@@ -363,840 +351,93 @@ Repeat for each rarity tier of the tool (Iron Felling Axe at 10%, etc.). When yo
 
 ## Available Functions
 
-### Creating Items for Players
+All inventory writes go through two server modules, so every system stacks,
+fills slots and guards against double-spending the same way. Pass the
+transaction client (`db: tx`) to commit an item change together with whatever
+paid for it.
 
-#### **createUserItem()** - Give item to player
+### Giving Items
+
+#### **grantStackableItemToInventory()** - `src/server/items/grantItem.ts`
 ```typescript
-import { createUserItem } from "~/utils/userItems";
-import { ItemRarity } from "@prisma/client";
-
-// Give player a specific item with specific rarity
-const userItemId = await createUserItem(
-  userId,        // Player's user ID
-  itemId,        // Item template ID
-  ItemRarity.RARE, // Rarity tier
-  false          // isEquipped (usually false for new items)
-);
-
-// Returns: UserItem ID (NOT Item template ID)
+const grant = await grantStackableItemToInventory({
+  db: tx,
+  userId,
+  itemId,            // Item template ID
+  rarity: ItemRarity.RARE,
+  quantity: 5,
+  unitSize: 1,       // optional: only grant whole units of this size
+});
+// grant.addedQuantity / grant.remainingQuantity (what did not fit)
+// grant.itemChanges: new quantity of every stack touched (for realtime sync)
 ```
+Tops up existing stacks of the same item and rarity first, then opens new
+stacks in empty slots. Non-stackable items become one instance per slot.
+`getStackCapacity()` answers "how many fit?" with the same filling rules.
 
-**When to use:**
-- Quest rewards
-- Enemy loot drops
-- Shop purchases
-- Achievement unlocks
-- Admin giving items
+#### **createUserItem()** - `src/utils/userItems.ts`
+Creates one UserItem instance without placing it in a slot. Used when setting
+up a new character; prefer `grantStackableItemToInventory()` everywhere else.
 
-**Example - Quest Reward:**
-```typescript
-// After completing quest, give player a rare sword
-const swordTemplateId = 19; // Wooden Sword template
-const userItemId = await createUserItem(
-  player.id,
-  swordTemplateId,
-  ItemRarity.RARE
-);
+### Taking Items
 
-// Add to inventory
-await addItemToInventory(player.id, userItemId);
-```
+`src/server/items/consumeItems.ts`:
 
----
+| Function | Use |
+|----------|-----|
+| `consumeInventoryItems({ db, userId, items })` | Hand-ins and costs by template, lowest rarity first |
+| `removeFromStack({ db, userId, userItemId, quantity })` | Take from one specific stack (eat, learn, sell) |
+| `loadInventoryStacks(db, userId)` + `countItems(stacks)` | Read what the player holds per template |
+| `takeFromStacks(...)` / `takeFromStack(...)` + `saveInventorySlots(...)` | The same removal on stacks the caller already loaded |
 
-### Managing Inventory
+Every removal only writes if the stack still holds what was read, and throws
+otherwise, so run it inside the caller's transaction.
 
-#### **addItemToInventory()** - Add UserItem to first empty slot
-```typescript
-import { addItemToInventory } from "~/utils/inventorySync";
+### Reading Item Data
 
-const slotIndex = await addItemToInventory(userId, userItemId);
-// Returns: slot index (0-19) where item was placed
-// Throws error if inventory is full
-```
+#### **fetchUserItemsByIds()** - `src/utils/userItemInventory.ts`
+Returns items ready for display: template fields, instance rarity and quantity,
+and the current effective stats.
 
-#### **removeItemFromInventory()** - Remove item from inventory
-```typescript
-import { removeItemFromInventory } from "~/utils/inventorySync";
+#### **hydrateEffectiveItemStats()** - `src/server/items/effectiveStats.ts`
+Resolves live stats for rows loaded with `ITEM_BALANCE_RELATIONS`.
 
-await removeItemFromInventory(userId, userItemId);
-// Clears the slot containing this UserItem
-```
+#### **loadEquipmentWithItems()** - `src/utils/inventory.ts`
+The character's equipment with each slot's item.
 
-#### **moveItemInInventory()** - Move item between slots
-```typescript
-import { moveItemInInventory } from "~/utils/inventorySync";
+### Equipment Rules
 
-await moveItemInInventory(userId, fromSlotIndex, toSlotIndex);
-// Swaps items between slots (handles DnD)
-```
-
-#### **getUserInventoryWithItems()** - Get full inventory data
-```typescript
-import { getUserInventoryWithItems } from "~/utils/inventorySync";
-
-const inventory = await getUserInventoryWithItems(userId);
-// Returns: { id, maxSlots, slots: [...], deleteSlotId, slotData }
-```
-
----
-
-### Fetching Item Data
-
-#### **fetchUserItemsByIds()** - Get UserItems by IDs (for display)
-```typescript
-import { fetchUserItemsByIds } from "~/utils/userItemInventory";
-
-const userItems = await fetchUserItemsByIds([101, 102, 103]);
-// Returns array of items with template data + rarity + stats
-```
-
-**Use this for:**
-- Displaying items in inventory UI
-- Showing equipped items
-- Character screen
-- Item tooltips
-
-**Returns format:**
-```typescript
-{
-  id: 101,              // UserItem ID
-  name: "Wooden Sword", // From template
-  sprite: "/assets/items/weapons/wooden-sword.jpg",
-  rarity: "RARE",       // Instance rarity
-  minPhysicalDamage: 3,
-  maxPhysicalDamage: 7,
-  stats: [              // Rarity-multiplied stats
-    { statType: "STRENGTH", value: 13.5 }
-  ]
-}
-```
-
-#### **getUserItem()** - Get single UserItem with full details
-```typescript
-import { getUserItem } from "~/utils/userItems";
-
-const item = await getUserItem(userItemId);
-// Returns: UserItem with itemTemplate, stats, user
-```
-
-#### **getUserItems()** - Get all items owned by user
-```typescript
-import { getUserItems } from "~/utils/userItems";
-
-const allItems = await getUserItems(userId);
-// Returns: All UserItems for this player (including equipped)
-```
-
----
-
-### Rarity & Upgrades
-
-#### **upgradeUserItemRarity()** - Upgrade item to next tier
-```typescript
-import { upgradeUserItemRarity } from "~/utils/userItems";
-
-const result = await upgradeUserItemRarity(userItemId, userId);
-
-if (result.success) {
-  console.log(`Upgraded to ${result.newRarity}`);
-  console.log(`New stats:`, result.newStats);
-} else {
-  console.error(result.message); // e.g., "Cannot upgrade DIVINE items"
-}
-```
-
-**What it does:**
-1. Checks if upgrade is allowed (DIVINE cannot be upgraded)
-2. Calculates new stats with higher multiplier
-3. Updates UserItem rarity
-4. Updates UserItemStat values
-5. Returns new rarity and stats
-
-**Costs:** Defined in `RarityConfig.upgradeCost` (currently not deducted - implement gold check)
-
-#### **getRarityMultiplier()** - Get multiplier for rarity
-```typescript
-import { getRarityMultiplier } from "~/utils/rarity";
-
-const multiplier = getRarityMultiplier(ItemRarity.LEGENDARY);
-// Returns: 2.3
-```
-
-#### **getRarityColor()** - Get color hex for UI
-```typescript
-import { getRarityColor } from "~/utils/rarity";
-
-const color = getRarityColor(ItemRarity.EPIC);
-// Returns: "#a855f7" (purple)
-```
-
----
+`src/utils/inventoryClient.ts` (safe to import in client components):
+`canEquipToSlot()`, `getDisplacedHand()`, `meetsItemLevelRequirement()` and
+`getEquipmentValidationError()`, which `POST /api/equipment` uses as the
+server-side check. Slot definitions live in `EQUIPMENT_SLOTS`
+(`src/utils/itemEquipTo.ts`).
 
 ### Creating New Item Templates
 
-**Option 1: CSV Import (Recommended)**
-1. Go to `/admin` page
-2. Click "Export Current Items" to get template
-3. Edit CSV in Google Sheets
-4. Add new rows with item data
-5. Export as CSV
-6. Upload via admin panel
-
-**Option 2: Direct Database Insert**
-```typescript
-import { prisma } from "~/lib/prisma";
-import { ItemRarity, StatType } from "@prisma/client";
-
-// Create item template
-const item = await prisma.item.create({
-  data: {
-    name: "Magic Staff",
-    price: 500,
-    sprite: "/assets/items/weapons/magic-staff.jpg",
-    equipTo: "weapon",
-    rarity: ItemRarity.UNCOMMON, // Default rarity
-    minPhysicalDamage: 0,
-    maxPhysicalDamage: 0,
-    minMagicDamage: 15,
-    maxMagicDamage: 30,
-    armor: 0,
-    requiredLevel: 8,
-  },
-});
-
-// Add base stats
-await prisma.itemStat.createMany({
-  data: [
-    {
-      itemId: item.id,
-      statType: StatType.MAGIC_DAMAGE_MAX,
-      value: 30,
-    },
-    {
-      itemId: item.id,
-      statType: StatType.MANA,
-      value: 50,
-    },
-  ],
-});
-```
+- **Admin item editor** (`/admin/items`): one item at a time, with base stats,
+  progressions, rarity overrides, tool efficiencies and timed effects.
+- **CSV import** on the admin dashboard (`/admin`): export the current items,
+  edit the CSV, upload it back.
+- **Content packs** (`prisma/content/*` + `scripts/seed*.ts`): items that ship
+  with a feature, seeded with `npm run db:seed:<pack>`.
 
 ---
 
-## Common Use Cases
+## Where Item Flows Live
 
-### 1. Enemy Drops Loot
-
-```typescript
-import { createUserItem } from "~/utils/userItems";
-import { addItemToInventory } from "~/utils/inventorySync";
-import { ItemRarity } from "@prisma/client";
-
-async function dropLoot(playerId: string, enemyLevel: number) {
-  // Determine loot (simplified)
-  const lootTable = {
-    itemId: 19, // Wooden Sword
-    dropChance: 0.3,
-  };
-  
-  if (Math.random() > lootTable.dropChance) {
-    return; // No drop
-  }
-  
-  // Determine rarity based on enemy level
-  let rarity = ItemRarity.COMMON;
-  const roll = Math.random();
-  
-  if (enemyLevel > 10) {
-    if (roll < 0.05) rarity = ItemRarity.EPIC;
-    else if (roll < 0.15) rarity = ItemRarity.RARE;
-    else if (roll < 0.40) rarity = ItemRarity.UNCOMMON;
-  } else {
-    if (roll < 0.10) rarity = ItemRarity.UNCOMMON;
-  }
-  
-  // Create item instance with determined rarity
-  const userItemId = await createUserItem(
-    playerId,
-    lootTable.itemId,
-    rarity
-  );
-  
-  // Add to inventory
-  try {
-    const slotIndex = await addItemToInventory(playerId, userItemId);
-    return {
-      success: true,
-      itemId: userItemId,
-      rarity,
-      slotIndex,
-    };
-  } catch (error) {
-    // Inventory full - handle appropriately
-    // Option: Send to mailbox, drop on ground, etc.
-    return { success: false, reason: "inventory_full" };
-  }
-}
-```
-
----
-
-### 2. Quest Reward System
-
-```typescript
-import { createUserItem } from "~/utils/userItems";
-import { addItemToInventory } from "~/utils/inventorySync";
-import { ItemRarity } from "@prisma/client";
-
-async function giveQuestReward(playerId: string, questId: string) {
-  const questRewards = {
-    "starter_quest": {
-      itemId: 19, // Wooden Sword
-      rarity: ItemRarity.COMMON,
-      gold: 100,
-    },
-    "dragon_slayer": {
-      itemId: 23, // Silver Revolver
-      rarity: ItemRarity.LEGENDARY,
-      gold: 5000,
-    },
-  };
-  
-  const reward = questRewards[questId];
-  if (!reward) return;
-  
-  // Create item with fixed rarity
-  const userItemId = await createUserItem(
-    playerId,
-    reward.itemId,
-    reward.rarity
-  );
-  
-  await addItemToInventory(playerId, userItemId);
-  
-  // Give gold (implement your gold system)
-  // await addGold(playerId, reward.gold);
-  
-  return {
-    itemId: userItemId,
-    gold: reward.gold,
-  };
-}
-```
-
----
-
-### 3. NPC Shop Purchase (New Items)
-
-**For NPC vendors that sell new items (not player marketplace):**
-
-```typescript
-import { createUserItem } from "~/utils/userItems";
-import { addItemToInventory } from "~/utils/inventorySync";
-import { prisma } from "~/lib/prisma";
-import { ItemRarity } from "@prisma/client";
-
-async function purchaseFromNPC(
-  playerId: string,
-  itemTemplateId: number
-): Promise<{ success: boolean; message: string }> {
-  // Get item template
-  const itemTemplate = await prisma.item.findUnique({
-    where: { id: itemTemplateId },
-  });
-  
-  if (!itemTemplate) {
-    return { success: false, message: "Item not found" };
-  }
-  
-  // Check player gold (implement your currency system)
-  const player = await prisma.user.findUnique({
-    where: { id: playerId },
-    // select: { gold: true } // Add gold field to User model
-  });
-  
-  // if (player.gold < itemTemplate.price) {
-  //   return { success: false, message: "Not enough gold" };
-  // }
-  
-  // NPC shops sell COMMON rarity by default
-  const userItemId = await createUserItem(
-    playerId,
-    itemTemplateId,
-    ItemRarity.COMMON
-  );
-  
-  try {
-    await addItemToInventory(playerId, userItemId);
-    
-    // Deduct gold
-    // await prisma.user.update({
-    //   where: { id: playerId },
-    //   data: { gold: { decrement: itemTemplate.price } }
-    // });
-    
-    return {
-      success: true,
-      message: `Purchased ${itemTemplate.name}`,
-    };
-  } catch (error) {
-    // Rollback: delete created UserItem
-    await prisma.userItem.delete({
-      where: { id: userItemId },
-    });
-    
-    return {
-      success: false,
-      message: error.message,
-    };
-  }
-}
-```
-
----
-
-### 3b. Player Marketplace (Transfer UserItems)
-
-**For player-to-player trading marketplace:**
-
-```typescript
-import { addItemToInventory } from "~/utils/inventorySync";
-import { removeItemFromInventory } from "~/utils/inventorySync";
-import { getUserItem } from "~/utils/userItems";
-import { prisma } from "~/lib/prisma";
-
-// Marketplace listing model (add to schema.prisma):
-// model MarketplaceListing {
-//   id          Int      @id @default(autoincrement())
-//   userItemId  Int      @unique
-//   sellerId    String
-//   price       Float
-//   listedAt    DateTime @default(now())
-//   
-//   userItem    UserItem @relation(fields: [userItemId], references: [id])
-//   seller      User     @relation(fields: [sellerId], references: [id])
-// }
-
-async function listItemOnMarketplace(
-  sellerId: string,
-  userItemId: number,
-  price: number
-): Promise<{ success: boolean; message: string }> {
-  // Verify ownership
-  const userItem = await getUserItem(userItemId);
-  
-  if (!userItem || userItem.userId !== sellerId) {
-    return { success: false, message: "Item not found or not yours" };
-  }
-  
-  if (userItem.isEquipped) {
-    return { success: false, message: "Cannot sell equipped items" };
-  }
-  
-  if (!userItem.isTradeable) {
-    return { success: false, message: "This item cannot be traded" };
-  }
-  
-  // Remove from seller's inventory
-  await removeItemFromInventory(sellerId, userItemId);
-  
-  // Create marketplace listing
-  await prisma.marketplaceListing.create({
-    data: {
-      userItemId,
-      sellerId,
-      price,
-    },
-  });
-  
-  return { success: true, message: "Item listed on marketplace" };
-}
-
-async function purchaseFromMarketplace(
-  buyerId: string,
-  listingId: number
-): Promise<{ success: boolean; message: string; userItemId?: number }> {
-  // Get listing
-  const listing = await prisma.marketplaceListing.findUnique({
-    where: { id: listingId },
-    include: {
-      userItem: {
-        include: {
-          itemTemplate: true,
-        },
-      },
-    },
-  });
-  
-  if (!listing) {
-    return { success: false, message: "Listing not found" };
-  }
-  
-  if (listing.sellerId === buyerId) {
-    return { success: false, message: "Cannot buy your own item" };
-  }
-  
-  // Check buyer has enough gold
-  const buyer = await prisma.user.findUnique({
-    where: { id: buyerId },
-    // select: { gold: true }
-  });
-  
-  // if (buyer.gold < listing.price) {
-  //   return { success: false, message: "Not enough gold" };
-  // }
-  
-  // Execute transaction
-  await prisma.$transaction(async (tx) => {
-    // Transfer gold: buyer → seller
-    // await tx.user.update({
-    //   where: { id: buyerId },
-    //   data: { gold: { decrement: listing.price } }
-    // });
-    
-    // await tx.user.update({
-    //   where: { id: listing.sellerId },
-    //   data: { gold: { increment: listing.price } }
-    // });
-    
-    // Transfer item ownership
-    await tx.userItem.update({
-      where: { id: listing.userItemId },
-      data: {
-        userId: buyerId, // Change owner
-        isEquipped: false,
-      },
-    });
-    
-    // Delete listing
-    await tx.marketplaceListing.delete({
-      where: { id: listingId },
-    });
-  });
-  
-  // Add to buyer's inventory
-  try {
-    await addItemToInventory(buyerId, listing.userItemId);
-  } catch (error) {
-    // Inventory full - item is owned but not in inventory
-    // Could implement mailbox system here
-    return {
-      success: true,
-      message: "Purchase successful! Item sent to mailbox (inventory full)",
-      userItemId: listing.userItemId,
-    };
-  }
-  
-  return {
-    success: true,
-    message: `Purchased ${listing.userItem.itemTemplate.name}`,
-    userItemId: listing.userItemId,
-  };
-}
-
-async function cancelMarketplaceListing(
-  sellerId: string,
-  listingId: number
-): Promise<{ success: boolean; message: string }> {
-  const listing = await prisma.marketplaceListing.findUnique({
-    where: { id: listingId },
-  });
-  
-  if (!listing) {
-    return { success: false, message: "Listing not found" };
-  }
-  
-  if (listing.sellerId !== sellerId) {
-    return { success: false, message: "Not your listing" };
-  }
-  
-  // Delete listing
-  await prisma.marketplaceListing.delete({
-    where: { id: listingId },
-  });
-  
-  // Return item to seller's inventory
-  try {
-    await addItemToInventory(sellerId, listing.userItemId);
-    return { success: true, message: "Listing cancelled, item returned" };
-  } catch (error) {
-    // Inventory full - item still owned, just not in inventory
-    return {
-      success: true,
-      message: "Listing cancelled (check mailbox - inventory full)",
-    };
-  }
-}
-
-// Get marketplace listings
-async function getMarketplaceListings(filters?: {
-  itemTemplateId?: number;
-  minPrice?: number;
-  maxPrice?: number;
-  rarity?: ItemRarity;
-  equipTo?: string;
-}) {
-  return await prisma.marketplaceListing.findMany({
-    where: {
-      ...(filters?.itemTemplateId && {
-        userItem: { itemId: filters.itemTemplateId },
-      }),
-      ...(filters?.rarity && {
-        userItem: { rarity: filters.rarity },
-      }),
-      ...(filters?.equipTo && {
-        userItem: { itemTemplate: { equipTo: filters.equipTo } },
-      }),
-      ...(filters?.minPrice && { price: { gte: filters.minPrice } }),
-      ...(filters?.maxPrice && { price: { lte: filters.maxPrice } }),
-    },
-    include: {
-      userItem: {
-        include: {
-          itemTemplate: true,
-          stats: true,
-        },
-      },
-      seller: {
-        select: {
-          id: true,
-          name: true,
-        },
-      },
-    },
-    orderBy: {
-      listedAt: "desc",
-    },
-  });
-}
-```
-
----
-
-### 4. Crafting System
-
-```typescript
-import { createUserItem } from "~/utils/userItems";
-import { addItemToInventory } from "~/utils/inventorySync";
-import { removeItemFromInventory } from "~/utils/inventorySync";
-import { ItemRarity } from "@prisma/client";
-
-async function craftItem(
-  playerId: string,
-  recipeId: string,
-  materialUserItemIds: number[]
-) {
-  // Define recipe
-  const recipes = {
-    "iron_sword": {
-      outputItemId: 20, // Iron Sword template
-      outputRarity: ItemRarity.UNCOMMON,
-      requiredMaterials: [
-        { itemId: 50, quantity: 5 }, // Iron Ore
-        { itemId: 51, quantity: 2 }, // Leather
-      ],
-    },
-  };
-  
-  const recipe = recipes[recipeId];
-  if (!recipe) {
-    return { success: false, message: "Invalid recipe" };
-  }
-  
-  // Verify player has materials (simplified - check userItemIds match)
-  // ... material validation logic ...
-  
-  // Remove materials from inventory
-  for (const materialId of materialUserItemIds) {
-    await removeItemFromInventory(playerId, materialId);
-    // Delete UserItem
-    await prisma.userItem.delete({
-      where: { id: materialId },
-    });
-  }
-  
-  // Create crafted item
-  const craftedItemId = await createUserItem(
-    playerId,
-    recipe.outputItemId,
-    recipe.outputRarity
-  );
-  
-  await addItemToInventory(playerId, craftedItemId);
-  
-  return {
-    success: true,
-    itemId: craftedItemId,
-    rarity: recipe.outputRarity,
-  };
-}
-```
-
----
-
-### 5. Random Loot Chest
-
-```typescript
-import { createUserItem } from "~/utils/userItems";
-import { addItemToInventory } from "~/utils/inventorySync";
-import { ItemRarity } from "@prisma/client";
-
-async function openLootChest(playerId: string, chestType: string) {
-  const lootTables = {
-    "common_chest": {
-      items: [
-        { itemId: 19, weight: 50 }, // Wooden Sword
-        { itemId: 20, weight: 50 }, // Wooden Dagger
-        { itemId: 25, weight: 30 }, // Gold Helmet
-      ],
-      rarityWeights: {
-        [ItemRarity.COMMON]: 70,
-        [ItemRarity.UNCOMMON]: 25,
-        [ItemRarity.RARE]: 5,
-      },
-    },
-    "legendary_chest": {
-      items: [
-        { itemId: 23, weight: 40 }, // Silver Revolver
-        { itemId: 34, weight: 60 }, // Gold Amulet
-      ],
-      rarityWeights: {
-        [ItemRarity.EPIC]: 40,
-        [ItemRarity.UNIQUE]: 35,
-        [ItemRarity.LEGENDARY]: 20,
-        [ItemRarity.MYTHIC]: 5,
-      },
-    },
-  };
-  
-  const lootTable = lootTables[chestType];
-  if (!lootTable) return { success: false };
-  
-  // Pick random item based on weights
-  const totalWeight = lootTable.items.reduce((sum, i) => sum + i.weight, 0);
-  let roll = Math.random() * totalWeight;
-  
-  let selectedItem = lootTable.items[0];
-  for (const item of lootTable.items) {
-    roll -= item.weight;
-    if (roll <= 0) {
-      selectedItem = item;
-      break;
-    }
-  }
-  
-  // Pick random rarity based on weights
-  const rarityTotal = Object.values(lootTable.rarityWeights).reduce(
-    (sum, w) => sum + w,
-    0
-  );
-  roll = Math.random() * rarityTotal;
-  
-  let selectedRarity = ItemRarity.COMMON;
-  for (const [rarity, weight] of Object.entries(lootTable.rarityWeights)) {
-    roll -= weight;
-    if (roll <= 0) {
-      selectedRarity = rarity as ItemRarity;
-      break;
-    }
-  }
-  
-  // Create and give item
-  const userItemId = await createUserItem(
-    playerId,
-    selectedItem.itemId,
-    selectedRarity
-  );
-  
-  await addItemToInventory(playerId, userItemId);
-  
-  return {
-    success: true,
-    itemId: userItemId,
-    rarity: selectedRarity,
-  };
-}
-```
-
----
-
-### 6. Equipping Items
-
-```typescript
-import { prisma } from "~/lib/prisma";
-import { getUserItem } from "~/utils/userItems";
-
-async function equipItem(
-  playerId: string,
-  userItemId: number
-): Promise<{ success: boolean; message: string }> {
-  // Get UserItem
-  const userItem = await getUserItem(userItemId);
-  
-  if (!userItem) {
-    return { success: false, message: "Item not found" };
-  }
-  
-  if (userItem.userId !== playerId) {
-    return { success: false, message: "Not your item" };
-  }
-  
-  const equipSlot = userItem.itemTemplate.equipTo;
-  if (!equipSlot) {
-    return { success: false, message: "Item cannot be equipped" };
-  }
-  
-  // Get or create equipment record
-  let equipment = await prisma.equipment.findUnique({
-    where: { userId: playerId },
-  });
-  
-  if (!equipment) {
-    equipment = await prisma.equipment.create({
-      data: { userId: playerId },
-    });
-  }
-  
-  // Determine which column to update
-  const slotColumnMap = {
-    weapon: "weaponItemId",
-    head: "headItemId",
-    chest: "chestItemId",
-    belt: "beltItemId",
-    greaves: "greavesItemId",
-    boots: "bootsItemId",
-    pauldrons: "pauldronsItemId",
-    bracers: "bracersItemId",
-    gloves: "glovesItemId",
-    necklace: "necklaceItemId",
-    ring: "ring1ItemId", // Or ring2ItemId - implement dual ring logic
-    amulet: "amuletItemId",
-    backpack: "backpackItemId",
-  };
-  
-  const column = slotColumnMap[equipSlot];
-  if (!column) {
-    return { success: false, message: "Invalid equipment slot" };
-  }
-  
-  // Update equipment
-  await prisma.equipment.update({
-    where: { userId: playerId },
-    data: {
-      [column]: userItemId,
-    },
-  });
-  
-  // Mark UserItem as equipped
-  await prisma.userItem.update({
-    where: { id: userItemId },
-    data: { isEquipped: true },
-  });
-  
-  return { success: true, message: `Equipped to ${equipSlot}` };
-}
-```
+| Flow | Code |
+|------|------|
+| Gathering, hunting and dungeon rewards | `src/server/{gathering,hunting,dungeons}/service.ts` |
+| Vocation ticks (inputs consumed, output granted) | `src/server/vocations/claim.ts` |
+| Garden planting and harvests | `src/server/garden/service.ts` |
+| Quest rewards and hand-ins, community projects | `src/server/settlements/quests.ts`, `projects.ts` |
+| NPC shop buy and sell | `src/server/settlements/shop.ts` |
+| Settlement storage | `src/server/settlements/storage.ts` |
+| Player marketplace | `src/app/api/marketplace/*` |
+| Eating food, learning recipes | `src/server/food-effects/service.ts`, `src/server/recipes/service.ts` |
+| Equipping | `POST /api/equipment` |
+| Splitting and merging stacks | `src/utils/userItems.ts` (`splitStack`), `POST /api/inventory/merge-stacks` |
 
 ---
 
@@ -1204,29 +445,21 @@ async function equipItem(
 
 ### Configuration
 
-Rarity configs are stored in the `RarityConfig` table. Initialize them with:
+Rarity configs are stored in the `RarityConfig` table and tuned at
+`/admin/rarity`. Seed the defaults once with `scripts/initRarities.ts`.
 
-```typescript
-import { initializeRarityConfigs } from "~/utils/rarity";
-
-await initializeRarityConfigs();
-```
-
-This creates configurations for all 12 rarities with:
+Each rarity has:
 - `statMultiplier`: How much stats are multiplied (0.5x - 3.0x)
 - `color`: Hex color for UI display
-- `upgradeEnabled`: Can this rarity be upgraded?
-- `nextRarity`: What rarity it upgrades to
-- `upgradeCost`: Gold cost to upgrade
+- `upgradeEnabled`, `nextRarity`, `upgradeCost`: reserved for rarity upgrades,
+  which no game system offers yet
 
-### Upgrade Paths
+### Rarity Order
 
 ```
-WORTHLESS → BROKEN → COMMON → UNCOMMON → RARE → EXQUISITE → 
-EPIC → ELITE → UNIQUE → LEGENDARY → MYTHIC → DIVINE (max)
+WORTHLESS → BROKEN → COMMON → UNCOMMON → RARE → EXQUISITE →
+EPIC → ELITE → UNIQUE → LEGENDARY → MYTHIC → DIVINE
 ```
-
-DIVINE cannot be upgraded further.
 
 ---
 
@@ -1234,251 +467,30 @@ DIVINE cannot be upgraded further.
 
 ### How Stats are Calculated
 
-1. **Item Template Created** (base stats in ItemStat table)
-   - Example: Wooden Sword has STRENGTH: 10
+Stats are live balance data, resolved every time an item is read
+(`resolveEffectiveItemStats` in `src/utils/itemInstanceStats.ts`):
 
-2. **UserItem Created** (rarity chosen)
-   - COMMON: 10 × 1.0 = 10
-   - RARE: 10 × 1.35 = 13.5
-   - LEGENDARY: 10 × 2.3 = 23
+1. The template's base stats (`ItemStat`), scaled by the rarity's `statMultiplier`
+2. Stat progressions that unlock at or below the item's rarity (`ItemStatProgression`)
+3. Per-rarity overrides (`ItemStatRarityOverride`)
+4. Per-instance additions (`UserItemStatModifier`), reserved for systems such
+   as enchantments
 
-3. **Stored in UserItemStat** (multiplied values)
-   - Each UserItem has its own stats table
-   - Values are final (already multiplied)
-
-### When Stats are Recalculated
-
-- **On UserItem creation:** Stats copied from template and multiplied
-- **On rarity upgrade:** Base stats calculated (current / old multiplier), then new multiplier applied
-- **Never on template changes:** Existing UserItems keep their stats
-
-### Balancing Items
-
-To change item balance:
-
-1. **For NEW items only:** Update Item template stats
-2. **For EXISTING items:** Need migration script to recalculate UserItemStats
-
-Example migration:
-```typescript
-import { prisma } from "~/lib/prisma";
-import { getRarityMultiplier } from "~/utils/rarity";
-
-async function rebalanceItem(itemTemplateId: number, newBaseStats: any[]) {
-  // Update template
-  await prisma.itemStat.deleteMany({
-    where: { itemId: itemTemplateId },
-  });
-  
-  await prisma.itemStat.createMany({
-    data: newBaseStats.map(stat => ({
-      itemId: itemTemplateId,
-      statType: stat.statType,
-      value: stat.value,
-    })),
-  });
-  
-  // Update all UserItems of this template
-  const userItems = await prisma.userItem.findMany({
-    where: { itemId: itemTemplateId },
-  });
-  
-  for (const userItem of userItems) {
-    const multiplier = getRarityMultiplier(userItem.rarity);
-    
-    // Delete old stats
-    await prisma.userItemStat.deleteMany({
-      where: { userItemId: userItem.id },
-    });
-    
-    // Create new stats with multiplier
-    await prisma.userItemStat.createMany({
-      data: newBaseStats.map(stat => ({
-        userItemId: userItem.id,
-        statType: stat.statType,
-        value: stat.value * multiplier,
-      })),
-    });
-  }
-}
-```
+Nothing template-derived is copied onto a player's item, so editing a template
+rebalances every existing copy immediately. No migration is needed.
 
 ---
 
 ## Best Practices
 
-### 1. Always Use UserItems
-
-❌ **Wrong:**
-```typescript
-// Don't store Item template IDs in inventory
-inventory.slots = [{ item: { id: 19 } }]; // Item ID
-```
-
-✅ **Correct:**
-```typescript
-// Always store UserItem IDs
-const userItemId = await createUserItem(userId, 19, ItemRarity.COMMON);
-inventory.slots = [{ item: { id: userItemId } }]; // UserItem ID
-```
-
-### 2. Check Ownership
-
-Always verify UserItem belongs to the player:
-
-```typescript
-const userItem = await getUserItem(userItemId);
-if (userItem.userId !== playerId) {
-  throw new Error("Unauthorized");
-}
-```
-
-### 3. Handle Full Inventory
-
-```typescript
-try {
-  await addItemToInventory(playerId, userItemId);
-} catch (error) {
-  if (error.message === "Inventory is full") {
-    // Send to mailbox, drop on ground, or notify player
-  }
-}
-```
-
-### 4. Delete UserItems When Consumed
-
-For consumable items (potions, scrolls):
-
-```typescript
-// After using potion
-await removeItemFromInventory(playerId, userItemId);
-await prisma.userItem.delete({
-  where: { id: userItemId },
-});
-```
-
-### 5. Transaction Safety
-
-Use transactions for complex operations:
-
-```typescript
-await prisma.$transaction(async (tx) => {
-  // Remove materials
-  for (const matId of materialIds) {
-    await tx.userItem.delete({ where: { id: matId } });
-  }
-  
-  // Create crafted item
-  const craftedItem = await tx.userItem.create({
-    data: { /* ... */ },
-  });
-  
-  // Add stats
-  await tx.userItemStat.createMany({
-    data: stats,
-  });
-});
-```
-
-### 6. Fetching for Display
-
-Use `fetchUserItemsByIds()` for UI rendering:
-
-```typescript
-// Get equipped items for character screen
-const equipment = await prisma.equipment.findUnique({
-  where: { userId },
-});
-
-const itemIds = [
-  equipment.headItemId,
-  equipment.chestItemId,
-  equipment.weaponItemId,
-].filter(Boolean);
-
-const items = await fetchUserItemsByIds(itemIds);
-// Ready to render with rarity colors, stats, etc.
-```
-
----
-
-## Quick Reference
-
-### Function Summary
-
-| Function | Purpose | Returns |
-|----------|---------|---------|
-| `createUserItem(userId, itemId, rarity, isEquipped)` | Give item to player | UserItem ID |
-| `addItemToInventory(userId, userItemId)` | Add to first empty slot | Slot index |
-| `removeItemFromInventory(userId, userItemId)` | Remove from inventory | void |
-| `fetchUserItemsByIds(userItemIds)` | Get items for display | Array of items with stats |
-| `getUserItem(userItemId)` | Get single item details | UserItem with relations |
-| `getUserItems(userId)` | Get all user's items | Array of UserItems |
-| `upgradeUserItemRarity(userItemId, userId)` | Upgrade to next tier | Result with new rarity |
-| `getRarityMultiplier(rarity)` | Get stat multiplier | Number (0.5-3.0) |
-| `getRarityColor(rarity)` | Get UI color | Hex color string |
-
----
-
-## Example Workflow: Complete Item Lifecycle
-
-```typescript
-import { createUserItem } from "~/utils/userItems";
-import { addItemToInventory } from "~/utils/inventorySync";
-import { upgradeUserItemRarity } from "~/utils/userItems";
-import { ItemRarity } from "@prisma/client";
-import { prisma } from "~/lib/prisma";
-
-// 1. Enemy drops loot
-const lootItemId = await createUserItem(
-  "player123",
-  19, // Wooden Sword template
-  ItemRarity.COMMON
-);
-
-// 2. Add to inventory
-await addItemToInventory("player123", lootItemId);
-
-// 3. Player picks it up and sees it in inventory
-// (UI fetches with fetchUserItemsByIds)
-
-// 4. Player upgrades the item
-const upgradeResult = await upgradeUserItemRarity(lootItemId, "player123");
-// Now it's UNCOMMON (1.15x stats)
-
-// 5. Player equips it
-await prisma.equipment.update({
-  where: { userId: "player123" },
-  data: { weaponItemId: lootItemId },
-});
-
-await prisma.userItem.update({
-  where: { id: lootItemId },
-  data: { isEquipped: true },
-});
-
-// 6. Later, player unequips and sells it to NPC
-await prisma.equipment.update({
-  where: { userId: "player123" },
-  data: { weaponItemId: null },
-});
-
-await prisma.userItem.update({
-  where: { id: lootItemId },
-  data: { isEquipped: false },
-});
-
-// Remove from inventory
-await removeItemFromInventory("player123", lootItemId);
-
-// Delete the UserItem (sold)
-await prisma.userItem.delete({
-  where: { id: lootItemId },
-});
-
-// Give gold (implement your economy system)
-// await addGold("player123", sellPrice);
-```
+1. **Store UserItem IDs in slots**, never Item template IDs.
+2. **Check ownership and status**: a UserItem must belong to the player and be
+   `IN_INVENTORY` before it is used, sold or equipped.
+3. **Use the shared grant and consume helpers** instead of writing
+   `Inventory.slots` directly, and check `remainingQuantity` for a full bag.
+4. **Commit together**: pass the transaction client so the items, gold and XP
+   of one action land or fail as one.
+5. **Display with `fetchUserItemsByIds()`** so stats and rarity are current.
 
 ---
 
@@ -1486,23 +498,20 @@ await prisma.userItem.delete({
 
 **Items not appearing in inventory?**
 - Check you're using UserItem IDs, not Item template IDs
-- Verify `fetchUserItemsByIds()` is being called
-- Check console for missing UserItem warnings
+- Check the item is `IN_INVENTORY` and referenced by a slot
 
 **Stats not correct?**
-- Verify rarity multiplier is being applied
-- Check UserItemStat table has entries
-- Use `upgradeUserItemRarity()` to recalculate
+- Check the template's stats, progressions and rarity overrides in `/admin/items`
+- Check the rarity's `statMultiplier` in `/admin/rarity`
 
 **Cannot equip item?**
 - Check `equipTo` field is set on Item template
-- Verify UserItem belongs to player
-- Ensure equipment column name matches slot
+- Check the character meets `requiredLevel`
+- A two-handed weapon needs an empty off hand
 
-**Inventory full errors?**
-- Handle with try/catch
-- Check maxSlots limit (default 20)
-- Implement overflow system (mailbox, etc.)
+**Inventory full?**
+- `grantStackableItemToInventory()` reports what did not fit in `remainingQuantity`
+- Capacity is 25 slots plus the character's `CARRYING_CAPACITY`
 
 ---
 

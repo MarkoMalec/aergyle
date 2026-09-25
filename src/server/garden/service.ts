@@ -1,4 +1,5 @@
 import { prisma } from "~/lib/prisma";
+import { assertNoOtherActivity } from "~/server/activity";
 import {
   ItemType,
   VocationalActionType,
@@ -12,7 +13,7 @@ import {
   type HarvestScheduleTile,
 } from "~/server/garden/harvestSchedule";
 import { consumeInventoryItems } from "~/server/items/consumeItems";
-import { grantStackableItemToInventory } from "~/server/vocations/grantItem";
+import { grantStackableItemToInventory } from "~/server/items/grantItem";
 import { assertRequiredToolEquipped } from "~/server/vocations/tools";
 import { awardXp } from "~/utils/leveling";
 import { awardTrackXp } from "~/utils/progression";
@@ -91,35 +92,6 @@ async function assertNoGardenHarvestActive(userId: string) {
   });
   if (harvest) {
     throw new Error("You already have an active gardening action");
-  }
-}
-
-async function assertNoOtherActiveAction(userId: string) {
-  const [travel, vocation, expedition, hunting, dungeon] = await Promise.all([
-    prisma.userTravelActivity.findUnique({
-      where: { userId },
-      select: { id: true },
-    }),
-    prisma.userVocationalActivity.findUnique({
-      where: { userId },
-      select: { id: true },
-    }),
-    prisma.userGatheringExpedition.findFirst({
-      where: { userId, claimedAt: null },
-      select: { id: true },
-    }),
-    prisma.userHuntingExpedition.findFirst({
-      where: { userId, claimedAt: null },
-      select: { id: true },
-    }),
-    prisma.userDungeonRun.findFirst({
-      where: { userId, claimedAt: null },
-      select: { id: true },
-    }),
-  ]);
-
-  if (travel ?? vocation ?? expedition ?? hunting ?? dungeon) {
-    throw new Error("You already have an active activity");
   }
 }
 
@@ -233,7 +205,7 @@ export async function plantSeeds(params: {
   // Planting is instant, but we still disallow it during an active garden harvest.
   await Promise.all([
     assertNoGardenHarvestActive(userId),
-    assertNoOtherActiveAction(userId),
+    assertNoOtherActivity(userId, "garden"),
     assertRequiredToolEquipped(userId, VocationalActionType.GARDENING),
   ]);
 
@@ -321,7 +293,7 @@ export async function startGardenHarvest(params: {
 
   await Promise.all([
     assertNoGardenHarvestActive(userId),
-    assertNoOtherActiveAction(userId),
+    assertNoOtherActivity(userId, "garden"),
   ]);
 
   const now = new Date();

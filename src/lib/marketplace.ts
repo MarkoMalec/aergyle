@@ -1,3 +1,6 @@
+import type { ItemRarity } from "~/generated/prisma/enums";
+import type { MarketStatsData } from "~/types/marketplace";
+
 export const MARKET_TAX_RATE = 0.12;
 export const MARKET_TAX_PERCENT = MARKET_TAX_RATE * 100;
 export const MARKET_DEFAULT_MAX_PRICE = 100_000;
@@ -126,4 +129,13 @@ export function percentageChange(
 ): number | null {
   if (current == null || previous == null || previous === 0) return null;
   return roundGold(((current - previous) / previous) * 100);
+}
+
+/** Price history and order book summary for one item at one rarity. */
+export async function fetchMarketStats(itemId: number, rarity: ItemRarity) {
+  const response = await fetch(
+    `/api/marketplace/stats?itemId=${itemId}&rarity=${rarity}`,
+  );
+  if (!response.ok) throw new Error("Failed to fetch market metrics");
+  return response.json() as Promise<MarketStatsData>;
 }

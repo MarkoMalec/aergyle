@@ -11,7 +11,6 @@ import {
 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import {
-  calculateGatheringEffectiveFindChance,
   calculateGatheringRewardModifiers,
   type GatheringRewardPoolEntry,
 } from "~/server/gathering/rewards";
@@ -19,6 +18,7 @@ import {
   runGatheringSimulation,
   type GatheringSimulationResult,
 } from "~/server/gathering/simulator";
+import { calculateExpeditionEffectiveFindChance } from "~/server/expeditions/rewards";
 import type {
   GatheringAdminDuration,
   GatheringAdminLocation,
@@ -583,7 +583,7 @@ export function GatheringSimulator(props: {
                       <td className="p-3 font-mono text-xs text-sky-200">
                         {resource.enabled && unlocked
                           ? formatPercent(
-                              calculateGatheringEffectiveFindChance(
+                              calculateExpeditionEffectiveFindChance(
                                 resource.baseChance,
                                 modifiers.findModifierPercent,
                               ),

@@ -22,6 +22,28 @@ export const inventoryQueryKeys = {
 
 export const gardenQueryKeys = {
   all: () => ["garden"] as const,
+  seedConfig: (seedItemId: number | null) =>
+    ["seed-config", seedItemId] as const,
+} as const;
+
+export const gatheringQueryKeys = {
+  all: () => ["gathering"] as const,
+} as const;
+
+export const huntingQueryKeys = {
+  all: () => ["hunting"] as const,
+} as const;
+
+export const dungeonQueryKeys = {
+  all: () => ["dungeons"] as const,
+} as const;
+
+export const skillQueryKeys = {
+  levels: () => ["skill-levels"] as const,
+} as const;
+
+export const searchQueryKeys = {
+  results: (search: string) => ["search", search] as const,
 } as const;
 
 export const itemQueryKeys = {
@@ -49,6 +71,10 @@ export const marketplaceQueryKeys = {
   myListings: (userId?: string) => ["my-listings", userId] as const,
   stats: (itemId: number, rarity: string) =>
     ["marketplace", "stats", itemId, rarity] as const,
+  detail: (itemId: number, rarity: string) =>
+    ["marketplace", "detail", itemId, rarity] as const,
+  history: (page: number, side: string) =>
+    ["marketplace", "history", page, side] as const,
 } as const;
 
 export const questQueryKeys = {

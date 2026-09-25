@@ -19,9 +19,10 @@ This keeps acquisition modes composable:
 
 `VocationalResource.itemId` is unique, so one item template has one canonical
 production recipe and profession. `VocationalRequirement` rows define the exact
-materials consumed for each completed unit. The item-type rules for crafting
-professions live in `src/game/crafting.ts`; future professions add one rule
-without changing the shared production engine.
+materials consumed for each completed unit. The item-type rules for each
+profession are edited on `/admin/vocations/rules` (see
+[VOCATIONS_SYSTEM.md](VOCATIONS_SYSTEM.md)); future professions add one entry
+to `src/game/crafting.ts` without changing the shared production engine.
 
 ## Blueprints
 
@@ -77,7 +78,7 @@ npm run db:migrate
 npm run db:seed:tailoring -- --check
 npm run db:seed:tailoring -- --apply
 npm run db:seed:tailoring -- --verify
-npm run test:tailoring
+npm test
 ```
 
 Definitions live in `prisma/content/tailoring.ts`. Runtime art lives under

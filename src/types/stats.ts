@@ -27,6 +27,7 @@ export interface ItemWithStats {
   isTradeable?: boolean;
   quantity?: number; // For stackable items
   stats: ItemStat[];
+  healingAmount?: number | null;
   foodEffectSeconds?: number | null;
   foodEffectStats?: Array<{ statType: StatType; value: number }>;
 }
@@ -35,14 +36,6 @@ export interface ItemWithStats {
 export interface ItemStat {
   id?: number;
   itemId: number;
-  statType: StatType;
-  value: number;
-}
-
-// Character base stat
-export interface CharacterBaseStat {
-  id: number;
-  userId: string;
   statType: StatType;
   value: number;
 }

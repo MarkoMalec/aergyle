@@ -1,11 +1,13 @@
 import { StatGrowthEditor } from "~/components/admin/character-stats/StatGrowthEditor";
 import { prisma } from "~/lib/prisma";
 import { getStatGrowthRules } from "~/server/stats";
+import { requireAdminPageAccess } from "~/server/admin/auth";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function AdminCharacterStatsPage() {
+  await requireAdminPageAccess();
   const [rules, characters] = await Promise.all([
     getStatGrowthRules(),
     prisma.user.aggregate({ _count: { _all: true }, _max: { level: true } }),

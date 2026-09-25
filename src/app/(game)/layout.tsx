@@ -6,16 +6,11 @@ import { UserContextProvider } from "~/context/userContext";
 import { EquipmentProvider } from "~/context/equipmentContext";
 import { LevelProvider } from "~/context/levelContext";
 import Providers, { AuthSessionProvider } from "../providers";
-import { fetchUserItemsByIds } from "~/utils/userItemInventory";
+import { loadEquipmentWithItems } from "~/utils/inventory";
 import { getXpProgress } from "~/utils/leveling";
 import { redirect } from "next/navigation";
-import { getVocationalStatus } from "~/server/vocations";
-import {
-  EQUIPMENT_SLOTS,
-  getEquippedUserItemIds,
-  type EquipmentDbField,
-} from "~/utils/itemEquipTo";
-import { EquipmentSlotsWithItems } from "~/types/inventory";
+import { StaleSession } from "~/components/auth/StaleSession";
+import { settleVocationalTicks } from "./settle";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -36,51 +31,41 @@ const GameLayout = async ({ children }: { children: React.ReactNode }) => {
 
   // Redirect to sign-in if not authenticated
   if (!session?.user?.id) {
-    redirect("/signin");
+    redirect("/play");
   }
 
-  // Auto-claim any newly completed vocational ticks on page load/refresh.
-  // This keeps inventory and user state consistent with the "refresh/visit" model.
-  const vocationalStatus = await getVocationalStatus(session.user.id);
+  const userId = session.user.id;
+  let loaded;
+  try {
+    // Auto-claim any newly completed vocational ticks on page load/refresh.
+    // This keeps inventory and user state consistent with the "refresh/visit" model.
+    const vocationalStatus = await settleVocationalTicks(userId);
 
-  const user = await prisma.user.findUnique({
-    where: {
-      id: session.user.id,
-    },
-    include: {
-      inventory: true,
-    },
-  });
-
-  // Fetch equipment for global state
-  const emptyDbFields = Object.fromEntries(
-    EQUIPMENT_SLOTS.map((s) => [s.dbField, null]),
-  ) as Partial<Record<EquipmentDbField, null>>;
-
-  const userEquipment = await prisma.equipment.upsert({
-    where: { userId: session.user.id },
-    create: {
-      userId: session.user.id,
-      ...emptyDbFields,
-    },
-    update: {},
-  });
-
-  const equipmentItemIds = getEquippedUserItemIds(userEquipment);
-
-  const equipmentItems = await fetchUserItemsByIds(equipmentItemIds);
-  const equipmentItemMap = new Map(
-    equipmentItems.map((item) => [item.id, item]),
-  );
-
-  const initialEquipment = EQUIPMENT_SLOTS.reduce((acc, s) => {
-    const userItemId = userEquipment[s.dbField] as number | null;
-    acc[s.slot] = userItemId ? equipmentItemMap.get(userItemId) || null : null;
-    return acc;
-  }, {} as EquipmentSlotsWithItems);
-
-  // Fetch initial level data
-  const initialLevelData = await getXpProgress(session.user.id);
+    // Settling can change the inventory and XP, so the rest loads after it.
+    const [user, initialEquipment, initialLevelData] = await Promise.all([
+      prisma.user.findUnique({
+        where: {
+          id: userId,
+        },
+        include: {
+          inventory: true,
+        },
+      }),
+      loadEquipmentWithItems(userId),
+      getXpProgress(userId),
+    ]);
+    loaded = { vocationalStatus, user, initialEquipment, initialLevelData };
+  } catch (error) {
+    // A valid cookie for an account that no longer exists fails above.
+    const exists = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
+    if (!exists) return <StaleSession />;
+    throw error;
+  }
+  const { vocationalStatus, user, initialEquipment, initialLevelData } = loaded;
+  if (!user) return <StaleSession />;
 
   return (
     <div className="game-shell">

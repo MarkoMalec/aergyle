@@ -138,7 +138,7 @@ npm run db:migrate
 npm run db:seed:gathering -- --check
 npm run db:seed:gathering -- --apply
 npm run db:seed:gathering -- --verify
-npm run test:gathering
+npm test
 ```
 
 Definitions live in `prisma/content/gathering.ts`. Runtime sprites live below

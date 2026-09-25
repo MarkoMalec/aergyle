@@ -8,6 +8,7 @@ import {
   GATHERING_LOCATIONS,
   gatheringItemData,
 } from "../prisma/content/gathering";
+import { changedFields } from "./seedHelpers";
 
 const mode = process.argv[2] ?? "--check";
 if (!(["--check", "--apply", "--verify"] as const).includes(mode as never)) {
@@ -22,21 +23,14 @@ const prisma = new PrismaClient({
   adapter: new PrismaMariaDb(process.env.DATABASE_URL),
 });
 
-function differences(
-  actual: Record<string, unknown>,
-  expected: Record<string, unknown>,
-) {
-  return Object.entries(expected)
-    .filter(([key, value]) => actual[key] !== value)
-    .map(([key]) => key);
-}
-
 async function validateContent() {
-  if (GATHERING_ITEMS.length !== 12) {
-    throw new Error("Gathering content must contain twelve initial resources");
+  if (GATHERING_ITEMS.length !== 18) {
+    throw new Error("Gathering content must contain eighteen resources");
   }
-  if (GATHERING_ITEMS.filter((item) => item.itemType === "HERB").length !== 6) {
-    throw new Error("Gathering content must contain six herbs");
+  if (
+    GATHERING_ITEMS.filter((item) => item.itemType === "HERB").length !== 12
+  ) {
+    throw new Error("Gathering content must contain twelve herbs");
   }
   if (!GATHERING_ITEMS.some((item) => item.name === "Mushrooms")) {
     throw new Error("Mushrooms are required in the initial resource pool");
@@ -122,7 +116,7 @@ async function main(selectedMode: Mode) {
         // apply mode updates it in place rather than creating a duplicate concept.
         const found = nameMatches[0] ?? spriteMatches[0] ?? null;
         const diff = found
-          ? differences(
+          ? changedFields(
               found as unknown as Record<string, unknown>,
               expected as unknown as Record<string, unknown>,
             )
@@ -159,7 +153,7 @@ async function main(selectedMode: Mode) {
         if (!location) {
           throw new Error(`Existing location not found: ${definition.name}`);
         }
-        const locationDiff = differences(
+        const locationDiff = changedFields(
           location as unknown as Record<string, unknown>,
           {
             gatheringEnabled: true,
@@ -211,7 +205,7 @@ async function main(selectedMode: Mode) {
           );
         }
         const diff = found
-          ? differences(
+          ? changedFields(
               found as unknown as Record<string, unknown>,
               expected as unknown as Record<string, unknown>,
             )
@@ -249,7 +243,7 @@ async function main(selectedMode: Mode) {
             },
           });
           const joinDiff = join
-            ? differences(
+            ? changedFields(
                 join as unknown as Record<string, unknown>,
                 expectedJoin,
               )
@@ -282,7 +276,7 @@ async function main(selectedMode: Mode) {
         });
         const expected = { ...definition, enabled: true };
         const diff = found
-          ? differences(
+          ? changedFields(
               found as unknown as Record<string, unknown>,
               expected as unknown as Record<string, unknown>,
             )

@@ -21,7 +21,7 @@ export const metadata = {
 
 export default async function RegionPage() {
   const session = await getServerAuthSession();
-  if (!session?.user?.id) redirect("/signin");
+  if (!session?.user?.id) redirect("/play");
   const { traveling, location } = await getRegionPage(session.user.id);
   const atlas = location ? getAtlasLocationMarker(location.name) : null;
 

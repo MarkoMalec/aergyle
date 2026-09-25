@@ -18,6 +18,7 @@ import { gardenQueryKeys, inventoryQueryKeys } from "~/lib/query-keys";
 import { useOptionalDndContext } from "~/components/dnd/DnDContext";
 import type { InventorySlotWithItem } from "~/types/inventory";
 import { useUserContext } from "~/context/userContext";
+import { formatRemaining } from "~/components/game/actions/format";
 import { useVocationalActiveActionContext } from "~/components/game/actions/VocationalActiveActionProvider";
 import {
   addActiveActionEventListener,
@@ -80,19 +81,14 @@ type SeedConfigResponse = {
   };
 };
 
-function formatDuration(totalSeconds: number, compact = false) {
+/** A plot's time on a small tile: "2h 5m", "5m" or "40s". */
+function formatCompactDuration(totalSeconds: number) {
   const total = Math.max(0, Math.floor(totalSeconds));
   const hours = Math.floor(total / 3600);
   const minutes = Math.floor((total % 3600) / 60);
-  const seconds = total % 60;
-  if (compact) {
-    if (hours > 0) return `${hours}h ${minutes}m`;
-    if (minutes > 0) return `${minutes}m`;
-    return `${seconds}s`;
-  }
-  return hours > 0
-    ? `${hours}h ${String(minutes).padStart(2, "0")}m ${String(seconds).padStart(2, "0")}s`
-    : `${minutes}m ${String(seconds).padStart(2, "0")}s`;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  if (minutes > 0) return `${minutes}m`;
+  return `${total % 60}s`;
 }
 
 function buildSeedOptions(inventory: InventorySlotWithItem[]) {
@@ -220,7 +216,7 @@ export default function Garden() {
   }, [seedOptions, selectedSeedTemplateId]);
 
   const seedConfigQuery = useQuery({
-    queryKey: ["seed-config", selectedSeedTemplateId],
+    queryKey: gardenQueryKeys.seedConfig(selectedSeedTemplateId),
     enabled: selectedSeedTemplateId !== null,
     queryFn: async (): Promise<SeedConfigResponse> => {
       const response = await fetch(`/api/items/${selectedSeedTemplateId}`, {
@@ -459,7 +455,7 @@ export default function Garden() {
                 your inventory.
               </small>
             </div>
-            <b>{formatDuration(harvestRemaining)}</b>
+            <b>{formatRemaining(harvestRemaining)}</b>
           </div>
         ) : null}
 
@@ -538,7 +534,7 @@ export default function Garden() {
                   data-state={kind.toLowerCase()}
                   data-selected={selectedTile}
                   aria-pressed={selectedTile}
-                  aria-label={`Plot ${tile.tileIndex + 1}: ${kind === "EMPTY" ? "empty" : kind === "READY" ? `${cropName}, ready to harvest` : `${cropName}, ${formatDuration(remaining, true)} remaining`}`}
+                  aria-label={`Plot ${tile.tileIndex + 1}: ${kind === "EMPTY" ? "empty" : kind === "READY" ? `${cropName}, ready to harvest` : `${cropName}, ${formatCompactDuration(remaining)} remaining`}`}
                   disabled={!canInteract}
                   onClick={() => handleTileClick(tile)}
                 >
@@ -578,7 +574,7 @@ export default function Garden() {
                         <small>
                           {kind === "READY"
                             ? "Ready"
-                            : formatDuration(remaining, true)}
+                            : formatCompactDuration(remaining)}
                         </small>
                       </span>
                       {kind === "GROWING" ? (
@@ -688,9 +684,8 @@ export default function Garden() {
                   </dt>
                   <dd>
                     {seedConfigQuery.data.seedGrowSeconds
-                      ? formatDuration(
+                      ? formatCompactDuration(
                           seedConfigQuery.data.seedGrowSeconds,
-                          true,
                         )
                       : "—"}
                   </dd>

@@ -24,7 +24,8 @@ import type {
 } from "~/types/marketplace";
 import { rarityStyle } from "~/utils/rarity-colors";
 import { RarityBadge } from "~/utils/ui/rarity-badge";
-import { fetchMarketStats } from "./MarketStats";
+import { fetchMarketStats } from "~/lib/marketplace";
+import { BuyConfirmDialog, QuantityField } from "./BuyConfirmDialog";
 
 type ActionMode = "BUY_NOW" | "BUY_ORDER";
 type ViewMode = "SIMPLE" | "TRADER";
@@ -76,9 +77,10 @@ export function MarketDetailPanel({
   );
   const [quantity, setQuantity] = useState(1);
   const [orderPrice, setOrderPrice] = useState("");
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const listingsQuery = useQuery({
-    queryKey: ["marketplace", "detail", market.itemTemplateId, market.rarity],
+    queryKey: marketplaceQueryKeys.detail(market.itemTemplateId, market.rarity),
     queryFn: () => fetchListings(market),
     staleTime: 10_000,
   });
@@ -107,6 +109,7 @@ export function MarketDetailPanel({
     setSelectedListingId(null);
     setQuantity(1);
     setOrderPrice("");
+    setConfirmOpen(false);
   }, [market.itemTemplateId, market.rarity]);
 
   useEffect(() => {
@@ -160,6 +163,7 @@ export function MarketDetailPanel({
     },
     onSuccess: async (data) => {
       toast.success(data.message);
+      setConfirmOpen(false);
       setQuantity(1);
       await refreshMarket();
     },
@@ -189,6 +193,7 @@ export function MarketDetailPanel({
     },
     onSuccess: async (data) => {
       toast.success(data.message);
+      setConfirmOpen(false);
       setQuantity(1);
       await refreshMarket();
     },
@@ -473,51 +478,11 @@ export function MarketDetailPanel({
           </p>
         ) : (
           <div className="space-y-2 pt-2">
-            <div className="flex items-center justify-between gap-3">
-              <label htmlFor="market-quantity" className="text-sm font-medium">
-                Quantity
-              </label>
-              <div className="flex gap-1">
-                {[1, 10, 100].map((value) => (
-                  <Button
-                    key={value}
-                    size="sm"
-                    variant="secondary"
-                    className="h-7 px-2.5"
-                    onClick={() => setQuantity(Math.min(value, maxQuantity))}
-                    disabled={value > maxQuantity}
-                  >
-                    {value}
-                  </Button>
-                ))}
-                {actionMode === "BUY_NOW" && (
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    className="h-7 px-2.5"
-                    onClick={() => setQuantity(maxQuantity)}
-                  >
-                    All
-                  </Button>
-                )}
-              </div>
-            </div>
-            <Input
-              id="market-quantity"
-              type="number"
-              min={1}
-              max={maxQuantity}
+            <QuantityField
               value={quantity}
-              onChange={(event) => {
-                const next = Number.parseInt(event.target.value, 10);
-                setQuantity(
-                  Math.min(
-                    maxQuantity,
-                    Math.max(1, Number.isFinite(next) ? next : 1),
-                  ),
-                );
-              }}
-              className="border-0 shadow-none"
+              max={maxQuantity}
+              allowAll={actionMode === "BUY_NOW"}
+              onChange={setQuantity}
             />
             <div className="rounded-[10px] bg-surface-inset p-3 text-sm">
               <div className="flex justify-between text-muted-foreground">
@@ -550,11 +515,7 @@ export function MarketDetailPanel({
                 buyMutation.isPending ||
                 buyOrderMutation.isPending
               }
-              onClick={() =>
-                actionMode === "BUY_NOW"
-                  ? buyMutation.mutate()
-                  : buyOrderMutation.mutate()
-              }
+              onClick={() => setConfirmOpen(true)}
             >
               {actionMode === "BUY_NOW" ? (
                 <ShoppingCart className="h-4 w-4" />
@@ -570,6 +531,23 @@ export function MarketDetailPanel({
           </div>
         )}
       </div>
+
+      <BuyConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        market={market}
+        listing={actionMode === "BUY_NOW" ? selectedListing : null}
+        quantity={quantity}
+        maxQuantity={maxQuantity}
+        onQuantityChange={setQuantity}
+        unitPrice={unitPrice}
+        isPending={buyMutation.isPending || buyOrderMutation.isPending}
+        onConfirm={() =>
+          actionMode === "BUY_NOW"
+            ? buyMutation.mutate()
+            : buyOrderMutation.mutate()
+        }
+      />
     </div>
   );
 }

@@ -4,11 +4,13 @@ import { MapEditor } from "~/components/admin/MapEditor";
 import { PLACE_ICONS } from "~/components/game/map/placeIcons";
 import { mapPoint } from "~/game/world/maps";
 import { prisma } from "~/lib/prisma";
+import { requireAdminPageAccess } from "~/server/admin/auth";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function AdminLocationsPage() {
+  await requireAdminPageAccess();
   const [locations, atlas] = await Promise.all([
     prisma.location.findMany({
       select: {

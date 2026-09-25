@@ -20,7 +20,7 @@ export default async function NpcPage({
   params: { id: string; npcId: string };
 }) {
   const session = await getServerAuthSession();
-  if (!session?.user?.id) redirect("/signin");
+  if (!session?.user?.id) redirect("/play");
   const settlementId = Number(params.id);
   const npcId = Number(params.npcId);
   if (!Number.isInteger(settlementId) || !Number.isInteger(npcId)) notFound();

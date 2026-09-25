@@ -110,6 +110,15 @@ export const EQUIPMENT_SLOT_KEYS = EQUIPMENT_SLOTS.map(
 
 export const EQUIPMENT_ALLOWED_SLOT_SET = new Set<string>(EQUIPMENT_SLOT_KEYS);
 
+// Drag-and-drop addresses equipment slots by index, past the inventory slots.
+export const EQUIPMENT_INDEX_MAP = Object.fromEntries(
+  EQUIPMENT_SLOTS.map((s) => [s.index, s.slot]),
+) as Record<number, EquipmentSlotKey>;
+
+export const EQUIPMENT_SLOT_TO_INDEX = Object.fromEntries(
+  EQUIPMENT_SLOTS.map((s) => [s.slot, s.index]),
+) as Record<EquipmentSlotKey, number>;
+
 const allowed = new Set<string>(Object.values(ItemEquipTo) as string[]);
 
 const aliases: Record<string, ItemEquipTo> = {
@@ -135,10 +144,4 @@ export function normalizeItemEquipTo(
   const aliased = aliases[normalized] ?? normalized;
 
   return allowed.has(aliased) ? (aliased as ItemEquipTo) : null;
-}
-
-export function isItemEquipTo(
-  value: string | null | undefined,
-): value is ItemEquipTo {
-  return normalizeItemEquipTo(value) != null;
 }

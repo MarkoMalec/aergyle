@@ -2,10 +2,12 @@ import Link from "next/link";
 import React from "react";
 import ItemImportForm from "~/components/admin/ItemImportForm";
 import { countOpenReports } from "~/server/communication";
+import { requireAdminPageAccess } from "~/server/admin/auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
+  await requireAdminPageAccess();
   const openReports = await countOpenReports();
 
   return (
@@ -18,6 +20,16 @@ export default async function AdminPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <Link
+          href="/admin/players"
+          className="rounded-lg border border-gray-800/60 bg-gray-900/40 p-4 hover:bg-gray-900/60"
+        >
+          <div className="text-sm font-semibold">Players</div>
+          <div className="mt-1 text-sm text-white/70">
+            Every account: gold, items, stats, skills, activities and messages
+          </div>
+        </Link>
+
         <Link
           href="/admin/items"
           className="rounded-lg border border-gray-800/60 bg-gray-900/40 p-4 hover:bg-gray-900/60"

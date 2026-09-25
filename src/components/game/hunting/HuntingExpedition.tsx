@@ -11,7 +11,6 @@ import {
   Compass,
   Crosshair,
   Footprints,
-  HeartPulse,
   LockKeyhole,
   MapPin,
   PackageOpen,
@@ -30,8 +29,11 @@ import { dispatchActiveActionEvent } from "~/components/game/actions/activeActio
 import { ItemArtwork } from "~/components/game/items/ItemArtwork";
 import { dispatchSkillProgressEvent } from "~/components/game/skills/skillProgressEvents";
 import { Button } from "~/components/ui/button";
-import { inventoryQueryKeys } from "~/lib/query-keys";
+import { huntingQueryKeys, inventoryQueryKeys } from "~/lib/query-keys";
 import { RarityBadge } from "~/utils/ui/rarity-badge";
+import { formatRemaining, formatTime } from "~/components/game/actions/format";
+import { HealthCard } from "~/components/game/character/HealthCard";
+import { RewardHaul } from "~/components/game/items/RewardHaul";
 
 type Reward = {
   itemId: number;
@@ -173,23 +175,6 @@ type HuntingData = {
   };
 };
 
-function formatRemaining(seconds: number) {
-  const total = Math.max(0, Math.floor(seconds));
-  const hours = Math.floor(total / 3_600);
-  const minutes = Math.floor((total % 3_600) / 60);
-  const secs = total % 60;
-  return hours > 0
-    ? `${hours}h ${String(minutes).padStart(2, "0")}m ${String(secs).padStart(2, "0")}s`
-    : `${minutes}m ${String(secs).padStart(2, "0")}s`;
-}
-
-function formatTime(value: string) {
-  return new Intl.DateTimeFormat(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
-}
-
 function riskLabel(chance: number) {
   if (chance <= 0) return null;
   if (chance <= 3) return "Minimal";
@@ -197,41 +182,6 @@ function riskLabel(chance: number) {
   if (chance <= 9) return "Guarded";
   if (chance <= 15) return "Risky";
   return "Dangerous";
-}
-
-function HealthCard({ data }: { data: HuntingData }) {
-  const ready = data.vitals.percent >= data.safety.minimumHealthToStartPercent;
-  return (
-    <div className="rounded-xl bg-secondary/25 p-4">
-      <div className="flex items-center justify-between gap-4 text-sm">
-        <span className="flex items-center gap-2 text-muted-foreground">
-          <HeartPulse className="h-4 w-4 text-danger" /> Current health
-        </span>
-        <strong className="tabular-nums">
-          {Math.floor(data.vitals.currentHealth)} /{" "}
-          {Math.floor(data.vitals.maxHealth)}
-        </strong>
-      </div>
-      <div className="mt-3 h-2 overflow-hidden rounded-full bg-black/25">
-        <div
-          className="h-full rounded-full bg-danger transition-[width]"
-          style={{
-            width: `${Math.max(0, Math.min(100, data.vitals.percent))}%`,
-          }}
-        />
-      </div>
-      <div className="mt-2 flex flex-wrap justify-between gap-2 text-[11px] text-muted-foreground">
-        <span>
-          Regenerates {data.vitals.healthRegen.toFixed(1)} health/second
-        </span>
-        <span className={ready ? "text-success" : "text-warning"}>
-          {ready
-            ? "Fit to hunt"
-            : `Recover to ${data.safety.minimumHealthToStartPercent}%`}
-        </span>
-      </div>
-    </div>
-  );
 }
 
 function CreatureGuide({
@@ -450,23 +400,7 @@ function ExpeditionCard(props: {
           </div>
         ) : null}
 
-        <div className="gathering-haul-grid">
-          {expedition.rewards.map((reward) => (
-            <div className="gathering-haul-item" key={reward.itemId}>
-              <ItemArtwork
-                src={reward.sprite}
-                name={reward.name}
-                rarity={reward.rarity}
-                size={60}
-                itemId={reward.itemId}
-              />
-              <div className="min-w-0">
-                <strong>{reward.name}</strong>
-                <span>×{reward.quantity}</span>
-              </div>
-            </div>
-          ))}
-        </div>
+        <RewardHaul rewards={expedition.rewards} />
       </section>
     );
   }
@@ -542,7 +476,7 @@ export default function HuntingExpedition({
   );
 
   const huntingQuery = useQuery({
-    queryKey: ["hunting"],
+    queryKey: huntingQueryKeys.all(),
     queryFn: async (): Promise<HuntingData> => {
       const response = await fetch("/api/hunting", { cache: "no-store" });
       const body = (await response.json().catch(() => null)) as
@@ -624,7 +558,7 @@ export default function HuntingExpedition({
         `Hunting expedition sent to ${selectedGround?.name ?? "the wilds"}`,
       );
       dispatchActiveActionEvent({ kind: "changed" });
-      await queryClient.invalidateQueries({ queryKey: ["hunting"] });
+      await queryClient.invalidateQueries({ queryKey: huntingQueryKeys.all() });
     },
     onError: (error) =>
       toast.error(error instanceof Error ? error.message : "Failed to depart"),
@@ -651,7 +585,7 @@ export default function HuntingExpedition({
       dispatchActiveActionEvent({ kind: "changed" });
       dispatchSkillProgressEvent("Hunting");
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["hunting"] }),
+        queryClient.invalidateQueries({ queryKey: huntingQueryKeys.all() }),
         queryClient.invalidateQueries({ queryKey: inventoryQueryKeys.all() }),
       ]);
     },
@@ -763,7 +697,17 @@ export default function HuntingExpedition({
               </div>
             ) : (
               <>
-                <HealthCard data={data} />
+                <HealthCard
+                  currentHealth={data.vitals.currentHealth}
+                  maxHealth={data.vitals.maxHealth}
+                  healthRegen={data.vitals.healthRegen}
+                  ready={
+                    data.vitals.percent >=
+                    data.safety.minimumHealthToStartPercent
+                  }
+                  readyLabel="Fit to hunt"
+                  recoverLabel={`Recover to ${data.safety.minimumHealthToStartPercent}%`}
+                />
                 <div
                   className="gathering-modifiers"
                   aria-label="Hunting modifiers"

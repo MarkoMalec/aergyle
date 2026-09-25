@@ -24,19 +24,6 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const now = new Date();
-    const travel = await prisma.userTravelActivity.findUnique({
-      where: { userId: session.user.id },
-      select: { endsAt: true, cancelledAt: true },
-    });
-
-    if (travel && !travel.cancelledAt && travel.endsAt > now) {
-      return NextResponse.json(
-        { error: "You cannot start an action while traveling" },
-        { status: 400 },
-      );
-    }
-
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
       select: { currentLocationId: true },

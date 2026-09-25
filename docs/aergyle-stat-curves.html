@@ -429,7 +429,7 @@ e = tool baseEfficiency × rarity  +  other gear efficiency × rarity  +  food e
         <p>Unchanged. Players see the time a resource takes to gather and nothing else. From their side output is linear, so there's no diminishing return to explain.</p>
 
         <h4>Tests and docs</h4>
-        <p><code>tests/vocation-speed.test.ts</code> runs with <code>npm run test:vocations</code>. The formula is also noted in <code>docs/VOCATIONS_SYSTEM.md</code>.</p>
+        <p><code>tests/vocation-speed.test.ts</code> runs with <code>npm test</code>. The formula is also noted in <code>docs/VOCATIONS_SYSTEM.md</code>.</p>
         <div class="note"><span class="label">Tradeoff</span><p>High-efficiency tools are slower than before: 50 efficiency now gives ×1.5 output instead of ×2. The repo's content packs author no Woodcutting, Mining or Fishing efficiency. The only <code>ToolEfficiency</code> row (12, on the Reedwind Bow in <code>scripts/seedHunting.ts</code>) is for Hunting, which uses efficiency for finds and quantity, not time. Live tool values weren't checked.</p></div>
       </article>
 
@@ -875,7 +875,7 @@ softCap(x, knee, ceiling)  → x ≤ knee ? x : knee + (ceiling − knee) · sat
       <p class="section-intro">These aren't curve problems, but they came up while tracing the pipelines and they affect balance more than any curve would.</p>
 
       <div class="note bug"><span class="label">Security · fix before any balance work</span>
-        <p><code>POST /api/leveling/add-multiplier</code>, <code>POST /api/leveling/award-xp</code> and <code>POST /api/test/add-item</code> only check that the request has a signed-in session. None of them uses <code>requireAdminApiAccess</code> or an environment guard. Any player can grant themselves an arbitrary stackable XP multiplier, any amount of XP, or any item at any rarity. While these are open, every balance decision in this document can be bypassed. Gate them behind admin access or remove them.</p>
+        <p><code>POST /api/test/add-item</code> only checks that the request has a signed-in session. It doesn't use <code>requireAdminApiAccess</code> or an environment guard, so any player can grant themselves any item at any rarity. While it is open, every balance decision in this document can be bypassed. Gate it behind admin access or remove it. (The equally open <code>award-xp</code> and <code>add-multiplier</code> routes have been removed.)</p>
       </div>
 
       <div class="note"><span class="label">Attack speed stacking · fixed</span>

@@ -1,6 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { getServerAuthSession } from "~/server/auth";
-import { requireAdminApiAccess } from "~/server/admin/auth";
+import { getAdminSession, requireAdminApiAccess } from "~/server/admin/auth";
 import { reviewReport } from "~/server/communication";
 
 type Context = { params: { id: string } };
@@ -9,9 +8,8 @@ type Context = { params: { id: string } };
 export async function PATCH(request: NextRequest, context: Context) {
   const denied = await requireAdminApiAccess(request);
   if (denied) return denied;
-  const session = await getServerAuthSession();
-  const reviewerId = session?.user?.id;
-  if (!reviewerId) {
+  const admin = await getAdminSession();
+  if (!admin) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const id = Number(context.params.id);
@@ -30,7 +28,7 @@ export async function PATCH(request: NextRequest, context: Context) {
       ok: true,
       report: await reviewReport({
         reportId: id,
-        reviewerId,
+        reviewerAdminId: admin.adminId,
         status: body.status,
         note: typeof body.note === "string" ? body.note : undefined,
       }),

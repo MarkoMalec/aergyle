@@ -1,52 +1,67 @@
-import { NextRequest, NextResponse } from "next/server";
-import { hash } from 'bcryptjs';
-import { prisma } from '~/lib/prisma';
+import { NextResponse, type NextRequest } from "next/server";
+import { hash } from "bcryptjs";
+import { prisma } from "~/lib/prisma";
+import { PASSWORD_BCRYPT_ROUNDS, registerSchema } from "~/lib/auth-rules";
+import { getClientIp, sharedRateLimiter } from "~/server/security/rateLimit";
 import { provisionNewUser } from "~/server/userSetup";
 
-export async function POST(req: NextRequest, res: NextResponse) {
-  const body = await req.json();
-  const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
-  const password = typeof body?.password === "string" ? body.password : "";
-  const name = typeof body?.name === "string" ? body.name.trim() : null;
+const registrationsByIp = sharedRateLimiter("register-ip", {
+  limit: 10,
+  windowMs: 60 * 60_000,
+});
 
-  if (!email || !email.includes("@") || password.length < 6) {
+const EMAIL_TAKEN = "An account with this email already exists. Sign in instead.";
+
+export async function POST(req: NextRequest) {
+  const limit = registrationsByIp.hit(getClientIp(req.headers));
+  if (!limit.ok) {
     return NextResponse.json(
-      { error: "Invalid registration data" },
-      { status: 400 },
+      { error: "Too many new accounts from your network. Please try again later." },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } },
     );
   }
 
-  const hashedPassword = await hash(password, 10);
+  const body: unknown = await req.json().catch(() => null);
+  const parsed = registerSchema.safeParse(body);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    return NextResponse.json(
+      {
+        error: issue?.message ?? "Check the form and try again.",
+        field: issue?.path[0],
+      },
+      { status: 400 },
+    );
+  }
+  const { name, email, password } = parsed.data;
 
   try {
-    const existing = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+    const existing = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true },
+    });
     if (existing) {
-      return NextResponse.json(
-        { error: "Email already registered" },
-        { status: 409 },
-      );
+      return NextResponse.json({ error: EMAIL_TAKEN, field: "email" }, { status: 409 });
     }
 
     const user = await prisma.user.create({
       data: {
         email,
         name,
-        password: hashedPassword,
+        password: await hash(password, PASSWORD_BCRYPT_ROUNDS),
       },
-      select: { id: true, email: true },
+      select: { id: true },
     });
 
     await provisionNewUser(user.id);
 
-    return NextResponse.json(
-      { success: true, userId: user.id },
-      { status: 201 },
-    );
+    return NextResponse.json({ success: true }, { status: 201 });
   } catch (error) {
-    console.error('Error creating user:', error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    // Two sign-ups with the same email at once: the unique index decides.
+    if ((error as { code?: string })?.code === "P2002") {
+      return NextResponse.json({ error: EMAIL_TAKEN, field: "email" }, { status: 409 });
+    }
+    console.error("Error creating user:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

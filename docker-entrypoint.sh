@@ -1,5 +1,5 @@
 #!/bin/sh
-# Three roles out of one image. `docker compose` picks one per service.
+# Three roles (and the admin CLI) out of one image. `docker compose` picks one per service.
 set -e
 
 case "$1" in
@@ -14,6 +14,12 @@ case "$1" in
   migrate)
     cd /opt/aergyle-runtime
     exec node_modules/.bin/prisma migrate deploy
+    ;;
+  admin)
+    # /admin accounts: docker compose run --rm app admin <command> [username]
+    shift
+    cd /opt/aergyle-runtime
+    exec node admin.mjs "$@"
     ;;
   *)
     exec "$@"

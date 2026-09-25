@@ -119,24 +119,3 @@ function getEfficiencyFromCharacter(
   const statType = getVocationalEfficiencyStatType(actionType);
   return statType ? clampEfficiency(character.totals[statType]) : 0;
 }
-
-export async function getToolEfficiencyMap(
-  userId: string,
-  actionTypes: VocationalActionType[],
-): Promise<Record<VocationalActionType, number>> {
-  const uniqueTypes = Array.from(new Set(actionTypes));
-  const result: Record<VocationalActionType, number> = {} as Record<
-    VocationalActionType,
-    number
-  >;
-
-  for (const type of uniqueTypes) result[type] = 0;
-  if (!uniqueTypes.some(getVocationalEfficiencyStatType)) return result;
-
-  const character = await getCharacterStatSnapshot(userId);
-  for (const type of uniqueTypes) {
-    result[type] = getEfficiencyFromCharacter(character, type);
-  }
-
-  return result;
-}

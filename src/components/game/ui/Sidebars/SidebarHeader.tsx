@@ -125,7 +125,7 @@ export function SidebarHeader({
               <button
                 type="button"
                 className="game-rail-action"
-                onClick={() => void signOut()}
+                onClick={() => void signOut({ callbackUrl: "/play" })}
               >
                 <LogOut size={15} aria-hidden="true" />
                 <span className="sr-only">Log out</span>

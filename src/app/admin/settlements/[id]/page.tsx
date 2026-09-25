@@ -16,6 +16,7 @@ import { NPC_PROFESSION_LABELS, settlementHref } from "~/game/settlements";
 import { headCrop, mapPoint } from "~/game/world/maps";
 import { prisma } from "~/lib/prisma";
 import { getStorageIcon } from "~/server/settlements";
+import { requireAdminPageAccess } from "~/server/admin/auth";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -25,6 +26,7 @@ export default async function AdminSettlementPage({
 }: {
   params: { id: string };
 }) {
+  await requireAdminPageAccess();
   const id = Number(params.id);
   if (!Number.isInteger(id) || id < 1) notFound();
 

@@ -15,7 +15,14 @@ import { computeVocationalProgress } from "~/server/vocations/progress";
 import {
   getStackCapacity,
   grantStackableItemToInventory,
-} from "~/server/vocations/grantItem";
+} from "~/server/items/grantItem";
+import {
+  countItems,
+  saveInventorySlots,
+  takeFromStack,
+  takeFromStacks,
+} from "~/server/items/consumeItems";
+import { lockInventory } from "~/server/items/inventoryLock";
 import { awardXp } from "~/utils/leveling";
 import { awardTrackXp } from "~/utils/progression";
 import { recordSkillWork } from "~/server/skills/metrics";
@@ -138,10 +145,7 @@ export async function claimVocationalRewards(params: {
     });
 
     // Load inventory slots + referenced UserItems so we can compute availability and consume.
-    const inventory = await tx.inventory.findUnique({
-      where: { userId },
-      select: { slots: true, maxSlots: true },
-    });
+    const inventory = await lockInventory(tx, userId);
 
     const slots = normalizeInventorySlots(inventory?.slots, null);
     const userItemIds = slots
@@ -162,13 +166,7 @@ export async function claimVocationalRewards(params: {
     const userItemById = new Map<number, (typeof userItems)[number]>();
     for (const ui of userItems) userItemById.set(ui.id, ui);
 
-    const totalByTemplateId = new Map<number, number>();
-    for (const ui of userItems) {
-      totalByTemplateId.set(
-        ui.itemId,
-        (totalByTemplateId.get(ui.itemId) ?? 0) + ui.quantity,
-      );
-    }
+    const totalByTemplateId = countItems(userItems);
 
     const isFishing = activity.actionType === VocationalActionType.FISHING;
 
@@ -242,106 +240,37 @@ export async function claimVocationalRewards(params: {
       return endActivity(limitedBySpace ? "INVENTORY_FULL" : inputStopReason);
     }
 
-    // Consume required inputs for the units we're about to award.
-    const updatedSlots = [...slots];
-    let slotsChanged = false;
-    const itemChanges = new Map<number, number>();
-
-    const consumeSpecificUserItem = async (
-      userItemId: number,
-      quantityToConsume: number,
-    ) => {
-      if (quantityToConsume <= 0) return;
-      const ui = userItemById.get(userItemId);
-      if (!ui || ui.quantity < quantityToConsume) {
-        throw new Error("Insufficient materials");
-      }
-
-      const newQty = ui.quantity - quantityToConsume;
-      if (newQty <= 0) {
-        await tx.userItem.delete({ where: { id: userItemId } });
-        userItemById.delete(userItemId);
-        for (let i = 0; i < updatedSlots.length; i++) {
-          if (updatedSlots[i]?.item?.id === userItemId) {
-            const currentSlot = updatedSlots[i];
-            if (currentSlot) {
-              updatedSlots[i] = { ...currentSlot, item: null };
-            }
-            slotsChanged = true;
-          }
-        }
-        itemChanges.set(userItemId, 0);
-      } else {
-        await tx.userItem.update({
-          where: { id: userItemId },
-          data: { quantity: newQty },
-        });
-        ui.quantity = newQty;
-        itemChanges.set(userItemId, newQty);
-      }
-    };
-    const consumeTemplateId = async (
-      templateItemId: number,
-      quantityToConsume: number,
-    ) => {
-      let remaining = quantityToConsume;
-      if (remaining <= 0) return;
-
-      for (let i = 0; i < updatedSlots.length; i++) {
-        if (remaining <= 0) break;
-
-        const userItemId = updatedSlots[i]?.item?.id;
-        if (typeof userItemId !== "number") continue;
-
-        const ui = userItemById.get(userItemId);
-        if (!ui) continue;
-        if (ui.itemId !== templateItemId) continue;
-
-        const take = Math.min(ui.quantity, remaining);
-        remaining -= take;
-
-        const newQty = ui.quantity - take;
-        if (newQty <= 0) {
-          await tx.userItem.delete({ where: { id: userItemId } });
-          userItemById.delete(userItemId);
-          const currentSlot = updatedSlots[i];
-          if (currentSlot) {
-            updatedSlots[i] = { ...currentSlot, item: null };
-          }
-          slotsChanged = true;
-          itemChanges.set(userItemId, 0);
-        } else {
-          await tx.userItem.update({
-            where: { id: userItemId },
-            data: { quantity: newQty },
-          });
-          ui.quantity = newQty;
-          itemChanges.set(userItemId, newQty);
-        }
-      }
-
-      if (remaining > 0) {
-        throw new Error("Insufficient materials");
-      }
-    };
-
+    // Consume required inputs for the units we're about to award, in slot order.
+    let consumed: ItemQuantityChange[];
     if (isFishing) {
-      const baitUserItemId = activity.baitUserItemId!;
+      const bait = userItemById.get(activity.baitUserItemId!);
+      if (!bait) throw new Error("Insufficient materials");
       const baitPerUnit = Math.max(1, requirements[0]?.quantityPerUnit ?? 1);
-      await consumeSpecificUserItem(baitUserItemId, unitsToClaim * baitPerUnit);
-    } else if (requirements.length > 0) {
-      for (const req of requirements) {
-        const perUnit = Math.max(1, req.quantityPerUnit);
-        await consumeTemplateId(req.itemId, unitsToClaim * perUnit);
-      }
-    }
-
-    if (slotsChanged) {
-      await tx.inventory.update({
-        where: { userId },
-        data: { slots: updatedSlots },
+      consumed = [
+        await takeFromStack(tx, slots, bait, unitsToClaim * baitPerUnit),
+      ];
+    } else {
+      const stacks = slots.flatMap((slot) => {
+        const stack = slot.item ? userItemById.get(slot.item.id) : undefined;
+        return stack ? [stack] : [];
+      });
+      consumed = await takeFromStacks({
+        db: tx,
+        slots,
+        stacks,
+        items: requirements.map((req) => ({
+          itemId: req.itemId,
+          quantity: unitsToClaim * Math.max(1, req.quantityPerUnit),
+        })),
+        order: "slot",
       });
     }
+    if (consumed.some((change) => change.quantity === 0)) {
+      await saveInventorySlots(tx, userId, slots);
+    }
+    const itemChanges = new Map(
+      consumed.map((change) => [change.userItemId, change.quantity]),
+    );
 
     const grant = await grantStackableItemToInventory({
       db: tx,

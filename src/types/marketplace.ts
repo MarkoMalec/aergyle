@@ -45,18 +45,6 @@ export interface MarketplaceListing {
   user: { id: string; name: string | null };
 }
 
-export interface MarketplaceResponse {
-  listings: MarketplaceListing[];
-  pagination: {
-    page: number;
-    limit: number;
-    totalCount: number;
-    totalPages: number;
-    hasNextPage: boolean;
-    hasPreviousPage: boolean;
-  };
-}
-
 export interface MarketplaceGroupedItem {
   itemTemplateId: number;
   itemName: string;

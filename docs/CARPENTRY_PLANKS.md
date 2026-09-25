@@ -46,7 +46,7 @@ does not recreate or overwrite source logs.
 npm run db:seed:carpentry -- --check
 npm run db:seed:carpentry -- --apply
 npm run db:seed:carpentry -- --verify
-npm run test:carpentry
+npm test
 ```
 
 `--check` is read-only. `--apply` creates or updates the eight plank templates,

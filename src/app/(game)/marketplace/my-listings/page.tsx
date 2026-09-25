@@ -1,12 +1,19 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowDownToLine, ArrowUpFromLine, Loader2, Undo2 } from "lucide-react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import toast from "react-hot-toast";
 import { MarketplaceNav } from "~/components/game/marketplace/MarketplaceNav";
-import { ItemArtwork } from "~/components/game/items/ItemArtwork";
+import {
+  MarketItemCell,
+  MarketTable,
+  MarketTableEmpty,
+  MarketTableHead,
+  MarketTableRow,
+} from "~/components/game/marketplace/MarketTable";
 import PageHeading from "~/components/game/ui/PageHeading";
 import { CoinsIcon } from "~/components/game/ui/coins-icon";
 import { Button } from "~/components/ui/button";
@@ -16,8 +23,36 @@ import {
   marketplaceQueryKeys,
   userQueryKeys,
 } from "~/lib/query-keys";
+import { cn } from "~/lib/utils";
 import type { MyListingsResponse } from "~/types/marketplace";
-import { RarityBadge } from "~/utils/ui/rarity-badge";
+
+const columns =
+  "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 sm:grid-cols-[minmax(0,1fr)_56px_96px_104px_104px]";
+const wideCell = "hidden text-right tabular-nums sm:block";
+
+function SummaryTile({
+  label,
+  value,
+  note,
+  className,
+}: {
+  label: string;
+  value: ReactNode;
+  note: string;
+  className?: string;
+}) {
+  return (
+    <div className="rounded-[10px] bg-surface-inset px-3 py-2.5">
+      <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
+        {label}
+      </dt>
+      <dd className={cn("mt-1 text-xl font-semibold tabular-nums", className)}>
+        {value}
+      </dd>
+      <p className="text-[11px] text-muted-foreground">{note}</p>
+    </div>
+  );
+}
 
 function apiError(body: unknown) {
   if (typeof body === "object" && body !== null) {
@@ -88,7 +123,7 @@ export default function MyListingsPage() {
   });
 
   return (
-    <div className="min-w-0 space-y-6">
+    <div className="min-w-0 space-y-4">
       <PageHeading
         eyebrow="The exchange"
         title="My orders"
@@ -97,227 +132,188 @@ export default function MyListingsPage() {
       <MarketplaceNav />
 
       {!session?.user?.id ? (
-        <div className="game-empty-state">
+        <div className="game-empty-state border-0 bg-surface-inset/60">
           Sign in to view your market orders.
         </div>
       ) : query.isLoading ? (
-        <div className="game-empty-state">
+        <div className="game-empty-state border-0 bg-surface-inset/60">
           <Loader2 className="mx-auto h-6 w-6 animate-spin" />
         </div>
-      ) : query.error ? (
-        <div className="game-empty-state text-danger">
-          {query.error.message}
-        </div>
       ) : !query.data ? (
-        <div className="game-empty-state text-danger">
-          Could not load your orders
+        <div className="game-empty-state border-0 bg-surface-inset/60 text-danger">
+          {query.error?.message ?? "Could not load your orders"}
         </div>
       ) : (
         <>
-          <dl className="game-panel grid grid-cols-2 gap-px overflow-hidden bg-border md:grid-cols-4">
-            <div className="bg-card p-4">
-              <dt className="text-xs text-muted-foreground">Sell offers</dt>
-              <dd className="mt-1 text-xl font-semibold tabular-nums">
-                {query.data.summary.sellListingCount}
-              </dd>
-              <p className="text-[11px] text-muted-foreground">
-                {query.data.summary.sellUnits} units
-              </p>
-            </div>
-            <div className="bg-card p-4">
-              <dt className="text-xs text-muted-foreground">
-                Expected proceeds
-              </dt>
-              <dd className="mt-1 text-xl font-semibold tabular-nums text-success">
-                {query.data.summary.sellNet.toLocaleString()}
-              </dd>
-              <p className="text-[11px] text-muted-foreground">
-                after {query.data.summary.sellTax.toLocaleString()} tax
-              </p>
-            </div>
-            <div className="bg-card p-4">
-              <dt className="text-xs text-muted-foreground">Buy orders</dt>
-              <dd className="mt-1 text-xl font-semibold tabular-nums">
-                {query.data.summary.buyOrderCount}
-              </dd>
-              <p className="text-[11px] text-muted-foreground">
-                {query.data.summary.buyUnits} units wanted
-              </p>
-            </div>
-            <div className="bg-card p-4">
-              <dt className="text-xs text-muted-foreground">Gold reserved</dt>
-              <dd className="mt-1 text-xl font-semibold tabular-nums text-currency">
-                {query.data.summary.reservedGold.toLocaleString()}
-              </dd>
-              <p className="text-[11px] text-muted-foreground">
-                returned if cancelled
-              </p>
-            </div>
+          <dl className="game-panel-flat grid grid-cols-2 gap-1.5 p-1.5 md:grid-cols-4">
+            <SummaryTile
+              label="Sell offers"
+              value={query.data.summary.sellListingCount}
+              note={`${query.data.summary.sellUnits} units`}
+            />
+            <SummaryTile
+              label="Expected proceeds"
+              value={query.data.summary.sellNet.toLocaleString()}
+              note={`after ${query.data.summary.sellTax.toLocaleString()} tax`}
+              className="text-success"
+            />
+            <SummaryTile
+              label="Buy orders"
+              value={query.data.summary.buyOrderCount}
+              note={`${query.data.summary.buyUnits} units wanted`}
+            />
+            <SummaryTile
+              label="Gold reserved"
+              value={query.data.summary.reservedGold.toLocaleString()}
+              note="returned if cancelled"
+              className="text-currency"
+            />
           </dl>
 
-          <section className="game-panel overflow-hidden">
-            <header className="flex items-center justify-between border-b border-border p-4">
-              <div>
-                <h2 className="game-section-title flex items-center gap-2">
-                  <ArrowUpFromLine className="h-4 w-4 text-primary" /> Sell
-                  offers
-                </h2>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Expected proceeds include the 12% exchange tax.
-                </p>
-              </div>
+          <MarketTable
+            title={
+              <span className="flex items-center gap-2">
+                <ArrowUpFromLine className="h-4 w-4 text-primary" /> Sell offers
+              </span>
+            }
+            meta={`${query.data.sellListings.length} active`}
+            action={
               <Button asChild size="sm">
                 <Link href="/marketplace/sell">Sell an item</Link>
               </Button>
-            </header>
-            {query.data.sellListings.length > 0 ? (
-              <div className="divide-y divide-border">
-                {query.data.sellListings.map((listing) => {
-                  const sale = calculateMarketSale(
-                    listing.listedPrice ?? 0,
-                    listing.quantity,
-                  );
-                  return (
-                    <div
-                      key={listing.id}
-                      className="grid gap-3 p-4 sm:grid-cols-[minmax(220px,1fr)_repeat(3,minmax(80px,auto))_auto] sm:items-center"
-                    >
-                      <div className="flex min-w-0 items-center gap-3">
-                        <ItemArtwork
-                          src={listing.itemTemplate.sprite}
-                          name={listing.itemTemplate.name}
-                          rarity={listing.rarity}
-                          size={48}
-                          itemId={listing.itemTemplate.id}
-                        />
-                        <div className="min-w-0">
-                          <span className="block truncate font-semibold">
-                            {listing.itemTemplate.name}
+            }
+          >
+            <div className="px-1.5 pb-1.5">
+              {query.data.sellListings.length > 0 ? (
+                <>
+                  <MarketTableHead className={cn(columns, "hidden sm:grid")}>
+                    <span>Item</span>
+                    <span className="text-right">Qty</span>
+                    <span className="text-right">Price each</span>
+                    <span className="text-right">Net after tax</span>
+                    <span className="sr-only">Actions</span>
+                  </MarketTableHead>
+                  {query.data.sellListings.map((listing) => {
+                    const sale = calculateMarketSale(
+                      listing.listedPrice ?? 0,
+                      listing.quantity,
+                    );
+                    return (
+                      <MarketTableRow key={listing.id} className={columns}>
+                        <MarketItemCell
+                          item={{
+                            ...listing.itemTemplate,
+                            rarity: listing.rarity,
+                          }}
+                        >
+                          <span className="text-[11px] tabular-nums text-muted-foreground sm:hidden">
+                            {listing.quantity} ×{" "}
+                            {listing.listedPrice?.toLocaleString()}
                           </span>
-                          <div className="mt-1">
-                            <RarityBadge rarity={listing.rarity} />
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-sm">
-                        <span className="text-xs text-muted-foreground">
-                          Quantity
+                        </MarketItemCell>
+                        <span className={cn(wideCell, "text-sm")}>
+                          {listing.quantity.toLocaleString()}
                         </span>
-                        <span className="block font-semibold tabular-nums">
-                          {listing.quantity}
-                        </span>
-                      </div>
-                      <div className="text-sm">
-                        <span className="text-xs text-muted-foreground">
-                          Unit price
-                        </span>
-                        <span className="block font-semibold tabular-nums text-currency">
+                        <span
+                          className={cn(
+                            wideCell,
+                            "font-semibold text-currency",
+                          )}
+                        >
+                          <CoinsIcon size={14} />{" "}
                           {listing.listedPrice?.toLocaleString()}
                         </span>
-                      </div>
-                      <div className="text-sm">
-                        <span className="text-xs text-muted-foreground">
-                          Net if sold
-                        </span>
-                        <span className="block font-semibold tabular-nums text-success">
+                        <span
+                          className={cn(wideCell, "font-semibold text-success")}
+                        >
                           {sale.net.toLocaleString()}
                         </span>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => withdrawListing.mutate(listing.id)}
-                        disabled={withdrawListing.isPending}
-                      >
-                        <Undo2 className="h-3.5 w-3.5" /> Withdraw
-                      </Button>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="game-empty-state m-4">
-                You have no active sell offers.
-              </div>
-            )}
-          </section>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="justify-self-end"
+                          onClick={() => withdrawListing.mutate(listing.id)}
+                          disabled={withdrawListing.isPending}
+                        >
+                          <Undo2 className="h-3.5 w-3.5" /> Withdraw
+                        </Button>
+                      </MarketTableRow>
+                    );
+                  })}
+                </>
+              ) : (
+                <MarketTableEmpty title="You have no active sell offers." />
+              )}
+            </div>
+          </MarketTable>
 
-          <section className="game-panel overflow-hidden">
-            <header className="border-b border-border p-4">
-              <h2 className="game-section-title flex items-center gap-2">
+          <MarketTable
+            title={
+              <span className="flex items-center gap-2">
                 <ArrowDownToLine className="h-4 w-4 text-primary" /> Buy orders
-              </h2>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Gold is reserved; higher prices fill first and equal prices fill
-                oldest first. Orders that cannot fit are cancelled and refunded.
-              </p>
-            </header>
-            {query.data.buyOrders.length > 0 ? (
-              <div className="divide-y divide-border">
-                {query.data.buyOrders.map((order) => (
-                  <div
-                    key={order.id}
-                    className="grid gap-3 p-4 sm:grid-cols-[minmax(220px,1fr)_repeat(3,minmax(80px,auto))_auto] sm:items-center"
-                  >
-                    <div className="flex min-w-0 items-center gap-3">
-                      <ItemArtwork
-                        src={order.item.sprite}
-                        name={order.item.name}
-                        rarity={order.rarity}
-                        size={48}
-                        itemId={order.itemId}
-                      />
-                      <div className="min-w-0">
-                        <span className="block truncate font-semibold">
-                          {order.item.name}
+              </span>
+            }
+            meta={`${query.data.buyOrders.length} open`}
+          >
+            <div className="px-1.5 pb-1.5">
+              {query.data.buyOrders.length > 0 ? (
+                <>
+                  <MarketTableHead className={cn(columns, "hidden sm:grid")}>
+                    <span>Item</span>
+                    <span className="text-right">Left</span>
+                    <span className="text-right">Bid each</span>
+                    <span className="text-right">Reserved</span>
+                    <span className="sr-only">Actions</span>
+                  </MarketTableHead>
+                  {query.data.buyOrders.map((order) => (
+                    <MarketTableRow key={order.id} className={columns}>
+                      <MarketItemCell
+                        item={{
+                          id: order.itemId,
+                          name: order.item.name,
+                          sprite: order.item.sprite,
+                          rarity: order.rarity,
+                        }}
+                      >
+                        <span className="text-[11px] tabular-nums text-muted-foreground sm:hidden">
+                          {order.remainingQuantity} ×{" "}
+                          {order.pricePerItem.toLocaleString()}
                         </span>
-                        <div className="mt-1">
-                          <RarityBadge rarity={order.rarity} />
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-sm">
-                      <span className="text-xs text-muted-foreground">
-                        Remaining
+                      </MarketItemCell>
+                      <span className={cn(wideCell, "text-sm")}>
+                        {order.remainingQuantity}
+                        <span className="block text-[10px] text-muted-foreground">
+                          of {order.quantity}
+                        </span>
                       </span>
-                      <span className="block font-semibold tabular-nums">
-                        {order.remainingQuantity} / {order.quantity}
-                      </span>
-                    </div>
-                    <div className="text-sm">
-                      <span className="text-xs text-muted-foreground">
-                        Bid each
-                      </span>
-                      <span className="block font-semibold tabular-nums text-success">
+                      <span
+                        className={cn(wideCell, "font-semibold text-success")}
+                      >
                         {order.pricePerItem.toLocaleString()}
                       </span>
-                    </div>
-                    <div className="text-sm">
-                      <span className="text-xs text-muted-foreground">
-                        Reserved
-                      </span>
-                      <span className="block font-semibold tabular-nums text-currency">
+                      <span
+                        className={cn(wideCell, "font-semibold text-currency")}
+                      >
                         <CoinsIcon size={14} />{" "}
                         {order.reservedGold.toLocaleString()}
                       </span>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => cancelBuyOrder.mutate(order.id)}
-                      disabled={cancelBuyOrder.isPending}
-                    >
-                      <Undo2 className="h-3.5 w-3.5" /> Cancel & refund
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="game-empty-state m-4">
-                You have no open buy orders.
-              </div>
-            )}
-          </section>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="justify-self-end"
+                        onClick={() => cancelBuyOrder.mutate(order.id)}
+                        disabled={cancelBuyOrder.isPending}
+                      >
+                        <Undo2 className="h-3.5 w-3.5" /> Cancel
+                      </Button>
+                    </MarketTableRow>
+                  ))}
+                </>
+              ) : (
+                <MarketTableEmpty title="You have no open buy orders." />
+              )}
+            </div>
+          </MarketTable>
         </>
       )}
     </div>

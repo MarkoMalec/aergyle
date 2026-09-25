@@ -3,11 +3,13 @@ import Link from "next/link";
 import { ItemType } from "~/generated/prisma/enums";
 import { prisma } from "~/lib/prisma";
 import { GardeningSeedsTableClient } from "~/components/admin/gardening/GardeningSeedsTableClient";
+import { requireAdminPageAccess } from "~/server/admin/auth";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function AdminGardeningPage() {
+  await requireAdminPageAccess();
   const seeds = await prisma.item.findMany({
     where: { itemType: ItemType.SEED },
     orderBy: { name: "asc" },

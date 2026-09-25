@@ -61,7 +61,7 @@ The importer uses the project's `DATABASE_URL`. It does not run the general data
 npm run db:seed:atlas -- --check
 npm run db:seed:atlas -- --apply
 npm run db:seed:atlas -- --verify
-npm run test:atlas
+npm test
 ```
 
 `--check` is the default read-only preview. `--apply` creates missing templates and their stats. `--verify` checks the stored definitions against the pack. The import was run twice: the first created 21 records, and the second kept the same 21 records. Database verification passed.

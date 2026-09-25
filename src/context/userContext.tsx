@@ -35,7 +35,7 @@ export const UserContextProvider = ({
   const [user, setUser] = useState(initialUser);
 
   if (!user) {
-    return redirect('/signin');
+    return redirect('/play');
   }
 
   return (

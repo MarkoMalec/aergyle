@@ -21,6 +21,7 @@ import {
   getDefaultBaseStats,
   type StatGrowthRule,
 } from "~/utils/stats";
+import { round2 } from "~/server/expeditions/rewards";
 
 export type MonsterPopulation = {
   creatureId: number;
@@ -49,10 +50,6 @@ export type TestCharacter = {
 const NEW_CHARACTER_COMBAT = combatSnapshotFromStats(
   calculateFinalStatsFromTotals(getDefaultBaseStats()),
 );
-
-function round2(value: number) {
-  return Math.round(value * 100) / 100;
-}
 
 /** A character of the given level without gear, using the admin's stat growth. */
 export function testCharacterForLevel(

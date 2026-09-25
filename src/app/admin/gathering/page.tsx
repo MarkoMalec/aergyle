@@ -2,11 +2,13 @@ import Link from "next/link";
 import { ItemRarity, VocationalActionType } from "~/generated/prisma/enums";
 import { GatheringAdminClient } from "~/components/admin/gathering/GatheringAdminClient";
 import { prisma } from "~/lib/prisma";
+import { requireAdminPageAccess } from "~/server/admin/auth";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function AdminGatheringPage() {
+  await requireAdminPageAccess();
   const [locations, resources, assignments, durations, rarityConfigs] =
     await Promise.all([
       prisma.location.findMany({ orderBy: { name: "asc" } }),

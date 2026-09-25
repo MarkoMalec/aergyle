@@ -48,6 +48,7 @@ export async function GET(
       equipTo: true,
       requiredLevel: true,
       rarity: true,
+      healingAmount: true,
       foodEffectSeconds: true,
       foodEffectStats: {
         select: { statType: true, value: true },
@@ -86,6 +87,7 @@ export async function GET(
     requiredLevel: item.requiredLevel,
     rarity,
     stats: effective?.stats ?? [],
+    healingAmount: item.healingAmount,
     foodEffectSeconds: item.foodEffectSeconds,
     foodEffectStats: item.foodEffectStats,
     seedGrowSeconds: item.seedGrowSeconds,

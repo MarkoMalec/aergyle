@@ -11,6 +11,7 @@ import {
   tailoringItemCreateData,
   tailoringRequirementsForGear,
 } from "../prisma/content/tailoring";
+import { changedFields, sameRequirements } from "./seedHelpers";
 
 type Mode = "--check" | "--apply" | "--verify";
 const mode = process.argv[2] ?? "--check";
@@ -24,28 +25,6 @@ if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required");
 const prisma = new PrismaClient({
   adapter: new PrismaMariaDb(process.env.DATABASE_URL),
 });
-
-function changedFields(
-  actual: Record<string, unknown>,
-  expected: Record<string, unknown>,
-) {
-  return Object.entries(expected)
-    .filter(([key, value]) => actual[key] !== value)
-    .map(([key]) => key);
-}
-
-function sameRequirements(
-  actual: ReadonlyArray<{ itemId: number; quantityPerUnit: number }>,
-  expected: ReadonlyArray<{ itemId: number; quantityPerUnit: number }>,
-) {
-  const quantities = new Map(
-    actual.map((row) => [row.itemId, row.quantityPerUnit]),
-  );
-  return (
-    quantities.size === expected.length &&
-    expected.every((row) => quantities.get(row.itemId) === row.quantityPerUnit)
-  );
-}
 
 async function validateDefinitions() {
   if (TAILORING_MATERIALS.length !== 3) {

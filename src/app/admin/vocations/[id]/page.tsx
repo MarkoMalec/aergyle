@@ -4,15 +4,18 @@ import { notFound } from "next/navigation";
 import { prisma } from "~/lib/prisma";
 import { VocationalResourceForm } from "~/components/admin/vocations/VocationalResourceForm";
 import { ResourceLocationsEditor } from "~/components/admin/vocations/ResourceLocationsEditor";
+import { requireAdminPageAccess } from "~/server/admin/auth";
+import { getSkillItemRules } from "~/server/vocations/skillRules";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function AdminEditVocationResourcePage(props: { params: { id: string } }) {
+  await requireAdminPageAccess();
   const id = Number(props.params.id);
   if (!Number.isFinite(id)) return notFound();
 
-  const [items, resource] = await Promise.all([
+  const [items, resource, itemRules] = await Promise.all([
     prisma.item.findMany({
       select: { id: true, name: true, itemType: true },
       orderBy: [{ name: "asc" }],
@@ -41,6 +44,7 @@ export default async function AdminEditVocationResourcePage(props: { params: { i
         },
       },
     }),
+    getSkillItemRules(),
   ]);
 
   const locations = await prisma.location.findMany({
@@ -69,6 +73,7 @@ export default async function AdminEditVocationResourcePage(props: { params: { i
             mode="edit"
             resourceId={resource.id}
             items={items}
+            itemRules={itemRules}
             initialValues={{
               actionType: resource.actionType,
               name: resource.name,
