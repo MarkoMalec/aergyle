@@ -21,6 +21,7 @@ import { ItemArtwork } from "~/components/game/items/ItemArtwork";
 import { CoinsIcon } from "~/components/game/ui/coins-icon";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
+import { cn } from "~/lib/utils";
 import { RarityBadge } from "~/utils/ui/rarity-badge";
 
 export interface MarketSellItem {
@@ -31,6 +32,16 @@ export interface MarketSellItem {
   rarity: ItemRarity;
   maxQuantity: number;
   stackable: boolean;
+}
+
+/** Borderless quick-pick for the quantity; the chosen amount reads in gold. */
+function quantityChipClass(active: boolean) {
+  return cn(
+    "h-10 min-w-10 px-3",
+    active
+      ? "bg-primary/15 text-primary hover:bg-primary/25 hover:text-primary"
+      : "bg-surface-inset text-muted-foreground hover:bg-surface-inset hover:text-foreground",
+  );
 }
 
 function apiError(value: unknown) {
@@ -163,7 +174,7 @@ export function SellItemForm({
   return (
     <div className="space-y-5">
       {showItemHeader && (
-        <div className="flex items-center gap-3 rounded-lg border border-border bg-surface-inset p-3">
+        <div className="flex items-center gap-3 rounded-lg bg-surface-inset p-3">
           <ItemArtwork
             src={item.sprite}
             name={item.itemName}
@@ -183,75 +194,70 @@ export function SellItemForm({
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-1 rounded-md bg-surface-inset p-1">
-        <button
-          disabled={!item.stackable}
-          className={`rounded px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40 ${mode === "SELL_NOW" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-          onClick={() => setMode("SELL_NOW")}
-        >
-          Sell now
-        </button>
-        <button
-          className={`rounded px-3 py-2 text-sm font-semibold ${mode === "LIST" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-          onClick={() => setMode("LIST")}
-        >
-          Create listing
-        </button>
-      </div>
-
-      {!item.stackable && (
-        <p className="rounded-md border border-border bg-surface-inset p-3 text-xs text-muted-foreground">
-          Rolled equipment is sold as an exact listing so buyers can inspect its
-          stats.
-        </p>
+      {item.stackable && (
+        <div className="grid grid-cols-2 gap-1 rounded-md bg-surface-inset p-1">
+          <button
+            className={`rounded px-3 py-2 text-sm font-semibold ${mode === "SELL_NOW" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            onClick={() => setMode("SELL_NOW")}
+          >
+            Sell now
+          </button>
+          <button
+            className={`rounded px-3 py-2 text-sm font-semibold ${mode === "LIST" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            onClick={() => setMode("LIST")}
+          >
+            Create listing
+          </button>
+        </div>
       )}
 
-      <div className="space-y-2">
-        <div className="flex items-center justify-between gap-3">
-          <label
-            htmlFor={`sell-quantity-${item.userItemId}`}
-            className="text-sm font-medium"
-          >
-            Quantity
-          </label>
-          <div className="flex gap-1">
-            {[1, 10, 100].map((amount) => (
-              <Button
-                key={amount}
-                size="sm"
-                variant="outline"
-                onClick={() => setQuantity(Math.min(amount, item.maxQuantity))}
-                disabled={amount > item.maxQuantity}
-              >
-                {amount}
-              </Button>
-            ))}
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setQuantity(item.maxQuantity)}
-            >
-              All
-            </Button>
+      {item.maxQuantity > 1 && (
+        <div className="flex items-center gap-2">
+          <div className="relative min-w-0 flex-1">
+            <Input
+              id={`sell-quantity-${item.userItemId}`}
+              aria-label="Quantity"
+              type="number"
+              min={1}
+              max={item.maxQuantity}
+              value={quantity}
+              onChange={(event) => {
+                const parsed = Number.parseInt(event.target.value, 10);
+                setQuantity(
+                  Math.min(
+                    item.maxQuantity,
+                    Math.max(1, Number.isFinite(parsed) ? parsed : 1),
+                  ),
+                );
+              }}
+              className="border-transparent pr-16 tabular-nums"
+            />
+            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs tabular-nums text-muted-foreground">
+              of {item.maxQuantity.toLocaleString()}
+            </span>
           </div>
+          {[1, 10, 100].map((amount) => (
+            <Button
+              key={amount}
+              size="sm"
+              variant="ghost"
+              className={quantityChipClass(quantity === amount)}
+              onClick={() => setQuantity(Math.min(amount, item.maxQuantity))}
+              disabled={amount > item.maxQuantity}
+            >
+              {amount}
+            </Button>
+          ))}
+          <Button
+            size="sm"
+            variant="ghost"
+            className={quantityChipClass(quantity === item.maxQuantity)}
+            onClick={() => setQuantity(item.maxQuantity)}
+          >
+            All
+          </Button>
         </div>
-        <Input
-          id={`sell-quantity-${item.userItemId}`}
-          type="number"
-          min={1}
-          max={item.maxQuantity}
-          value={quantity}
-          onChange={(event) => {
-            const parsed = Number.parseInt(event.target.value, 10);
-            setQuantity(
-              Math.min(
-                item.maxQuantity,
-                Math.max(1, Number.isFinite(parsed) ? parsed : 1),
-              ),
-            );
-          }}
-        />
-      </div>
+      )}
 
       {mode === "LIST" ? (
         <div className="space-y-2">
@@ -280,7 +286,7 @@ export function SellItemForm({
               value={price}
               onChange={(event) => setPrice(event.target.value)}
               placeholder="Enter a unit price"
-              className="pr-16"
+              className="border-transparent pr-16"
             />
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
               gold
@@ -296,13 +302,13 @@ export function SellItemForm({
             </span>
           </div>
           {priceWarning && (
-            <p className="rounded-md border border-warning/40 bg-warning/10 p-2 text-xs text-warning">
+            <p className="rounded-md bg-warning/10 p-2 text-xs text-warning">
               {priceWarning}
             </p>
           )}
         </div>
       ) : (
-        <div className="rounded-md border border-border bg-surface-inset p-3 text-sm">
+        <div className="rounded-md bg-surface-inset p-3 text-sm">
           <div className="flex justify-between">
             <span className="text-muted-foreground">Current highest bid</span>
             <span className="font-semibold text-success">
@@ -349,7 +355,7 @@ export function SellItemForm({
             gold
           </span>
         </div>
-        <div className="mt-2 flex justify-between border-t border-border pt-2 font-semibold">
+        <div className="mt-3 flex justify-between font-semibold">
           <span>You receive</span>
           <span className="inline-flex items-center gap-1 tabular-nums text-success">
             <CoinsIcon size={16} />

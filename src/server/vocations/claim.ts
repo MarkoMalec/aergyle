@@ -23,29 +23,24 @@ import {
   takeFromStacks,
 } from "~/server/items/consumeItems";
 import { lockInventory } from "~/server/items/inventoryLock";
+import {
+  addToTotals,
+  readTotals,
+  recordSessionSummary,
+  type SessionTotals,
+} from "~/server/activitySummaries";
 import { awardXp } from "~/utils/leveling";
 import { awardTrackXp } from "~/utils/progression";
 import { recordSkillWork } from "~/server/skills/metrics";
 import { normalizeInventorySlots } from "~/utils/inventorySlots";
 
-export type VocationalCompletionSummary = {
-  kind: "VOCATION";
-  actionType: VocationalActionType;
-  resourceName: string;
-  itemName: string;
-  grantedQuantity: number;
-  userXpGained: number;
-  skillXpGained: number;
-  stopReason: ActivityStopReason | null;
-};
-
 export type VocationalClaimResult = {
   claimedUnits: number;
   grantedQuantity: number;
   remainingClaimableUnits: number;
-  userXpGained: number;
-  skillXpGained: number;
-  summary: VocationalCompletionSummary | null;
+  /** The activity claimed for; null when there was none. */
+  actionType: VocationalActionType | null;
+  resourceName: string | null;
   /** Set when this claim ended the activity. */
   stopReason: ActivityStopReason | null;
   itemChanges: ItemQuantityChange[];
@@ -58,7 +53,7 @@ export async function claimVocationalRewards(params: {
 }): Promise<VocationalClaimResult> {
   const { userId, maxUnits } = params;
 
-  const result = await prisma.$transaction(async (tx) => {
+  return prisma.$transaction(async (tx): Promise<VocationalClaimResult> => {
     // The daemon, page loads and start/stop can all claim for the same player at once.
     // Locking the activity row makes them take turns instead of paying out twice.
     await tx.$queryRaw`SELECT id FROM UserVocationalActivity WHERE userId = ${userId} FOR UPDATE`;
@@ -74,7 +69,7 @@ export async function claimVocationalRewards(params: {
             xpPerUnit: true,
             name: true,
             item: {
-              select: { name: true, stackable: true, maxStackSize: true },
+              select: { stackable: true, maxStackSize: true },
             },
           },
         },
@@ -86,13 +81,10 @@ export async function claimVocationalRewards(params: {
         claimedUnits: 0,
         grantedQuantity: 0,
         remainingClaimableUnits: 0,
-        xpToAward: 0,
-        unitSeconds: 0,
-        vocationalActionType: null,
+        actionType: null,
         resourceName: null,
-        itemName: null,
         stopReason: null,
-        itemChanges: [] as ItemQuantityChange[],
+        itemChanges: [],
         newStacks: false,
       };
     }
@@ -100,24 +92,34 @@ export async function claimVocationalRewards(params: {
     const nothingClaimed = (
       remainingClaimableUnits: number,
       stopReason: ActivityStopReason | null = null,
-    ) => ({
+    ): VocationalClaimResult => ({
       claimedUnits: 0,
       grantedQuantity: 0,
       remainingClaimableUnits,
-      xpToAward: 0,
-      unitSeconds: activity.unitSeconds,
-      vocationalActionType: activity.actionType,
+      actionType: activity.actionType,
       resourceName: activity.resource.name,
-      itemName: activity.resource.item.name,
       stopReason,
-      itemChanges: [] as ItemQuantityChange[],
+      itemChanges: [],
       newStacks: false,
     });
+
+    // The player's "while you were away" summary of the whole session.
+    const summarize = (stopReason: ActivityStopReason, totals: SessionTotals) =>
+      recordSessionSummary(tx, {
+        userId,
+        kind: "VOCATION",
+        skill: activity.actionType,
+        title: activity.resource.name,
+        stopReason,
+        startedAt: activity.startedAt,
+        totals,
+      });
 
     // Ends the activity when nothing more can come of it, so it doesn't sit at 100%
     // and the daemon doesn't retry it every tick.
     const endActivity = async (stopReason: ActivityStopReason) => {
       await tx.userVocationalActivity.delete({ where: { userId } });
+      await summarize(stopReason, readTotals(activity.totals));
       return nothingClaimed(0, stopReason);
     };
 
@@ -292,20 +294,70 @@ export async function claimVocationalRewards(params: {
 
     const claimedUnits = Math.floor(grant.addedQuantity / yieldPerUnit);
     const grantedQuantity = claimedUnits * yieldPerUnit;
-
-    if (claimedUnits > 0) {
-      await tx.userVocationalActivity.update({
-        where: { userId },
-        data: { unitsClaimed: { increment: claimedUnits } },
-      });
-    }
-
     const remainingClaimableUnits = Math.max(0, unitsToClaim - claimedUnits);
 
     const xpToAward =
       claimedUnits > 0
         ? claimedUnits * Math.max(0, activity.resource.xpPerUnit || 0)
         : 0;
+
+    // XP, skill metrics and track progress commit with the loot that earned
+    // them. These used to run after the transaction, so anything interrupting
+    // in between (a daemon restart on deploy, a dropped connection) left the
+    // player holding the items with the tick already marked claimed and the XP
+    // silently, unrecoverably lost.
+    let characterXp = 0;
+    if (claimedUnits > 0) {
+      await recordSkillWork({
+        db: tx,
+        userId,
+        actionType: activity.actionType,
+        items: grantedQuantity,
+        seconds: claimedUnits * activity.unitSeconds,
+      });
+
+      if (xpToAward > 0) {
+        const awarded = await awardXp(
+          userId,
+          xpToAward,
+          XpActionType.VOCATION,
+          activity.actionType,
+          "Vocational activity",
+          undefined,
+          // Ticks fire every few seconds per player; only a level-up is worth
+          // an audit row.
+          { db: tx, log: "levelUpOnly" },
+        );
+        characterXp = awarded.xpGained;
+
+        await awardTrackXp({
+          db: tx,
+          userId,
+          trackType: "SKILL",
+          trackKey: String(activity.actionType),
+          amount: xpToAward,
+          description: "Vocational activity (skill XP)",
+        });
+      }
+    }
+
+    const totals = addToTotals(activity.totals, {
+      items: [
+        {
+          itemId: activity.resource.itemId,
+          rarity: activity.resource.rarity,
+          quantity: grantedQuantity,
+        },
+      ],
+      xp: characterXp,
+      skillXp: xpToAward,
+    });
+    if (claimedUnits > 0) {
+      await tx.userVocationalActivity.update({
+        where: { userId },
+        data: { unitsClaimed: { increment: claimedUnits }, totals },
+      });
+    }
 
     let stopReason: ActivityStopReason | null = null;
 
@@ -346,53 +398,14 @@ export async function claimVocationalRewards(params: {
       }
     }
 
-    // XP, skill metrics and track progress commit with the loot that earned
-    // them. These used to run after the transaction, so anything interrupting
-    // in between (a daemon restart on deploy, a dropped connection) left the
-    // player holding the items with the tick already marked claimed and the XP
-    // silently, unrecoverably lost.
-    if (claimedUnits > 0) {
-      await recordSkillWork({
-        db: tx,
-        userId,
-        actionType: activity.actionType,
-        items: grantedQuantity,
-        seconds: claimedUnits * activity.unitSeconds,
-      });
-
-      if (xpToAward > 0) {
-        await awardXp(
-          userId,
-          xpToAward,
-          XpActionType.VOCATION,
-          activity.actionType,
-          "Vocational activity",
-          undefined,
-          // Ticks fire every few seconds per player; only a level-up is worth
-          // an audit row.
-          { db: tx, log: "levelUpOnly" },
-        );
-
-        await awardTrackXp({
-          db: tx,
-          userId,
-          trackType: "SKILL",
-          trackKey: String(activity.actionType),
-          amount: xpToAward,
-          description: "Vocational activity (skill XP)",
-        });
-      }
-    }
+    if (stopReason) await summarize(stopReason, totals);
 
     return {
       claimedUnits,
       grantedQuantity,
       remainingClaimableUnits,
-      xpToAward,
-      unitSeconds: activity.unitSeconds,
-      vocationalActionType: activity.actionType,
+      actionType: activity.actionType,
       resourceName: activity.resource.name,
-      itemName: activity.resource.item.name,
       stopReason,
       itemChanges: [...itemChanges].map(([userItemId, quantity]) => ({
         userItemId,
@@ -401,34 +414,4 @@ export async function claimVocationalRewards(params: {
       newStacks: grant.newStacks,
     };
   });
-
-  const userXpGained =
-    result.claimedUnits > 0 ? Math.max(0, result.xpToAward) : 0;
-  const skillXpGained = userXpGained;
-
-  const summary: VocationalCompletionSummary | null =
-    result.vocationalActionType && result.resourceName && result.itemName
-      ? {
-          kind: "VOCATION",
-          actionType: result.vocationalActionType,
-          resourceName: result.resourceName,
-          itemName: result.itemName,
-          grantedQuantity: result.grantedQuantity,
-          userXpGained,
-          skillXpGained,
-          stopReason: result.stopReason,
-        }
-      : null;
-
-  return {
-    claimedUnits: result.claimedUnits,
-    grantedQuantity: result.grantedQuantity,
-    remainingClaimableUnits: result.remainingClaimableUnits,
-    userXpGained,
-    skillXpGained,
-    summary,
-    stopReason: result.stopReason,
-    itemChanges: result.itemChanges,
-    newStacks: result.newStacks,
-  };
 }

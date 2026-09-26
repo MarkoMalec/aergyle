@@ -1,13 +1,14 @@
 import type { PrismaClient } from "~/generated/prisma/client";
 import { prisma } from "~/lib/prisma";
 import { VocationalActionType, XpActionType } from "~/generated/prisma/enums";
+import { DEFAULT_CURVE_DESIGNS } from "~/game/balance/curve";
 import {
-  cacheForever,
-  clampToSafeNumber,
+  CURVE_REFRESH_MS,
   levelForTotalXp,
   levelProgress,
+  refreshingCache,
+  thresholdRowsFromDesign,
   toXpCurve,
-  xpTotalForLevel,
   type LevelProgress,
   type XpCurve,
 } from "~/utils/xpCurve";
@@ -27,56 +28,41 @@ export type XpLogMode =
   | "levelUpOnly"
   | "never";
 
-// Seeded by scripts/generateLevelThresholds.ts.
-const loadThresholds = cacheForever(async () =>
-  toXpCurve(
-    await prisma.levelXpThreshold.findMany({
-      select: { level: true, xpTotal: true },
-      orderBy: { xpTotal: "asc" },
-    }),
-  ),
-);
+// Written by /admin/leveling; an empty table falls back to the default design.
+const loadThresholds = refreshingCache(async () => {
+  const rows = await prisma.levelXpThreshold.findMany({
+    select: { level: true, xpTotal: true },
+    orderBy: { xpTotal: "asc" },
+  });
+  return toXpCurve(
+    rows.length > 0
+      ? rows
+      : thresholdRowsFromDesign(DEFAULT_CURVE_DESIGNS.CHARACTER),
+  );
+}, CURVE_REFRESH_MS);
 
 /** The character level curve, for code that sets a level or XP directly. */
 export const getLevelCurve = loadThresholds;
 
-function assertThresholdCoversLevel(thresholds: XpCurve, level: number) {
-  if (level <= 1) return;
-  if (!thresholds.byLevel.has(level)) {
-    throw new Error(
-      `Missing LevelXpThreshold for level ${level}. Generate thresholds (e.g. tsx scripts/generateLevelThresholds.ts --maxLevel <N>).`,
-    );
-  }
-}
-
-async function normalizeUserTotalXp(params: {
+/**
+ * `experience` is the character's lifetime XP and the level is derived from
+ * it. A stored level can lag behind the curve for a moment after an admin
+ * changes it (another process may still hold the old curve), so it is
+ * corrected whenever it is read here.
+ */
+async function syncStoredLevel(params: {
   userId: string;
   storedLevel: number;
-  storedXp: bigint;
+  totalXp: bigint;
   thresholds: XpCurve;
   db: LevelingDb;
-}): Promise<{ totalXp: bigint; level: number }> {
-  const { userId, storedLevel, storedXp, thresholds, db } = params;
-
-  // If the DB still contains legacy "XP within level" values, they'll be smaller than
-  // the cumulative threshold for the stored level. We convert lazily and fix the row.
-  assertThresholdCoversLevel(thresholds, storedLevel);
-  const minTotalForStoredLevel = xpTotalForLevel(thresholds, storedLevel);
-  const isLegacyWithinLevelXp = storedXp < minTotalForStoredLevel;
-  const totalXp = isLegacyWithinLevelXp
-    ? minTotalForStoredLevel + storedXp
-    : storedXp;
-
-  const derivedLevel = levelForTotalXp(thresholds, totalXp);
-  const shouldUpdate = isLegacyWithinLevelXp || derivedLevel !== storedLevel;
-  if (shouldUpdate) {
-    await db.user.update({
-      where: { id: userId },
-      data: { experience: totalXp, level: derivedLevel },
-    });
+}): Promise<number> {
+  const { userId, storedLevel, totalXp, thresholds, db } = params;
+  const level = levelForTotalXp(thresholds, totalXp);
+  if (level !== storedLevel) {
+    await db.user.update({ where: { id: userId }, data: { level } });
   }
-
-  return { totalXp, level: derivedLevel };
+  return level;
 }
 
 type ActiveMultiplier = {
@@ -192,23 +178,16 @@ export async function awardXp(
   const [user, thresholds] = await Promise.all([
     db.user.findUnique({
       where: { id: userId },
-      select: { level: true, experience: true },
+      select: { experience: true },
     }),
     loadThresholds(),
   ]);
 
   if (!user) throw new Error("User not found");
 
-  // Normalize legacy "within-level" XP to total XP if needed.
-  const normalized = await normalizeUserTotalXp({
-    userId,
-    storedLevel: user.level,
-    storedXp: user.experience,
-    thresholds,
-    db,
-  });
-  const oldLevel = normalized.level;
-  const oldTotalXp = normalized.totalXp;
+  // The update below also corrects a stored level the curve has moved.
+  const oldTotalXp = user.experience;
+  const oldLevel = levelForTotalXp(thresholds, oldTotalXp);
 
   const multiplierRows = await readActiveMultipliers(db, userId);
   const xpMultiplier = combineMultipliers(multiplierRows, {
@@ -304,41 +283,13 @@ export async function getXpProgress(userId: string): Promise<LevelProgress> {
 
   if (!user) throw new Error("User not found");
 
-  const normalized = await normalizeUserTotalXp({
+  const level = await syncStoredLevel({
     userId,
     storedLevel: user.level,
-    storedXp: user.experience,
+    totalXp: user.experience,
     thresholds,
     db: prisma,
   });
 
-  return levelProgress(thresholds, normalized.level, normalized.totalXp);
-}
-
-/**
- * Calculate XP table for reference (useful for admin/debugging)
- */
-export async function generateXpTable(maxLevel: number = 70): Promise<Array<{
-  level: number;
-  xpRequired: number;
-  cumulativeXp: number;
-  bracket: string;
-}>> {
-  // Was 2 queries per level (140 for the default table); now a cached lookup.
-  const thresholds = await loadThresholds();
-  const table = [];
-  for (let level = 1; level <= maxLevel; level++) {
-    const cumulativeXp = clampToSafeNumber(xpTotalForLevel(thresholds, level));
-    const nextCumulative = clampToSafeNumber(
-      xpTotalForLevel(thresholds, level + 1),
-    );
-    table.push({
-      level,
-      xpRequired: Math.max(0, nextCumulative - cumulativeXp),
-      cumulativeXp,
-      bracket: "",
-    });
-  }
-
-  return table;
+  return levelProgress(thresholds, level, user.experience);
 }

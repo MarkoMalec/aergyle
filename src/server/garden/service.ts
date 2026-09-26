@@ -12,6 +12,11 @@ import {
   parseHarvestSchedule,
   type HarvestScheduleTile,
 } from "~/server/garden/harvestSchedule";
+import {
+  addToTotals,
+  recordSessionSummary,
+  type SessionTotals,
+} from "~/server/activitySummaries";
 import { consumeInventoryItems } from "~/server/items/consumeItems";
 import { grantStackableItemToInventory } from "~/server/items/grantItem";
 import { assertRequiredToolEquipped } from "~/server/vocations/toolRules";
@@ -20,7 +25,7 @@ import { awardTrackXp } from "~/utils/progression";
 import { recordSkillWork } from "~/server/skills/metrics";
 
 const GRID_SIZE = 6;
-const TILE_COUNT = GRID_SIZE * GRID_SIZE;
+export const GARDEN_TILE_COUNT = GRID_SIZE * GRID_SIZE;
 
 export type GardenTileState =
   | {
@@ -76,7 +81,7 @@ function assertValidTileIndices(tileIndices: number[]) {
     if (!Number.isInteger(idx)) {
       throw new Error("Invalid tile index");
     }
-    if (idx < 0 || idx >= TILE_COUNT) {
+    if (idx < 0 || idx >= GARDEN_TILE_COUNT) {
       throw new Error("Tile out of bounds");
     }
     unique.add(idx);
@@ -131,7 +136,7 @@ export async function getGardenState(userId: string): Promise<GardenState> {
   for (const t of tiles) byIndex.set(t.tileIndex, t);
 
   const resolvedTiles: GardenTileState[] = [];
-  for (let tileIndex = 0; tileIndex < TILE_COUNT; tileIndex++) {
+  for (let tileIndex = 0; tileIndex < GARDEN_TILE_COUNT; tileIndex++) {
     const row = byIndex.get(tileIndex);
     if (!row) {
       resolvedTiles.push({ tileIndex, state: "EMPTY" });
@@ -406,7 +411,7 @@ export async function settleGardenHarvest(
 
     const activity = await tx.userGardenHarvestActivity.findUnique({
       where: { userId },
-      select: { startedAt: true, tiles: true },
+      select: { startedAt: true, tiles: true, totals: true },
     });
     if (!activity) {
       return {
@@ -471,6 +476,7 @@ export async function settleGardenHarvest(
       new Date(),
     );
     const itemChanges = new Map<number, number>();
+    const crops: SessionTotals["items"] = [];
     let newStacks = false;
     let xpGained = 0;
     let harvestedTiles = 0;
@@ -501,6 +507,11 @@ export async function settleGardenHarvest(
           itemChanges.set(change.userItemId, change.quantity);
         }
         newStacks ||= grant.newStacks;
+        crops.push({
+          itemId: row.yieldItemId,
+          rarity: row.yieldItem.rarity,
+          quantity,
+        });
         cropsHarvested += quantity;
         secondsHarvested += Math.max(0, tile.harvestSeconds);
         xpGained += Math.max(0, row.xpReward);
@@ -509,16 +520,6 @@ export async function settleGardenHarvest(
 
       tile.harvested = true;
       harvestedTiles++;
-    }
-
-    if (stopReason !== null || schedule.every((tile) => tile.harvested)) {
-      await tx.userGardenHarvestActivity.delete({ where: { userId } });
-      stopReason ??= "COMPLETED";
-    } else if (harvestedTiles > 0 || scheduleChanged) {
-      await tx.userGardenHarvestActivity.update({
-        where: { userId },
-        data: { tiles: schedule },
-      });
     }
 
     // Commit XP and metrics with the harvest itself: running them after the
@@ -534,8 +535,9 @@ export async function settleGardenHarvest(
       });
     }
 
+    let characterXp = 0;
     if (xpGained > 0) {
-      await awardXp(
+      const awarded = await awardXp(
         userId,
         xpGained,
         XpActionType.VOCATION,
@@ -545,6 +547,7 @@ export async function settleGardenHarvest(
         // Harvest ticks are high frequency; only a level-up earns an audit row.
         { db: tx, log: "levelUpOnly" },
       );
+      characterXp = awarded.xpGained;
       await awardTrackXp({
         db: tx,
         userId,
@@ -552,6 +555,30 @@ export async function settleGardenHarvest(
         trackKey: VocationalActionType.GARDENING,
         amount: xpGained,
         description: "Gardening harvest",
+      });
+    }
+
+    const totals = addToTotals(activity.totals, {
+      items: crops,
+      xp: characterXp,
+      skillXp: xpGained,
+    });
+    if (stopReason !== null || schedule.every((tile) => tile.harvested)) {
+      await tx.userGardenHarvestActivity.delete({ where: { userId } });
+      stopReason ??= "COMPLETED";
+      await recordSessionSummary(tx, {
+        userId,
+        kind: "GARDEN",
+        skill: VocationalActionType.GARDENING,
+        title: "Garden harvest",
+        stopReason,
+        startedAt: activity.startedAt,
+        totals,
+      });
+    } else if (harvestedTiles > 0 || scheduleChanged) {
+      await tx.userGardenHarvestActivity.update({
+        where: { userId },
+        data: { tiles: schedule, totals },
       });
     }
 

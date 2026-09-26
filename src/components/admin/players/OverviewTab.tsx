@@ -442,6 +442,25 @@ function ActivityPanel() {
           </div>
         )}
       </div>
+
+      <div>
+        <h3 className="mb-2 text-sm font-semibold">While you were away</h3>
+        <Row>
+          <p className="min-w-0 flex-1 text-xs text-white/50">
+            A sample summary with level-ups, a full bag and a dungeon run to
+            claim, shown the next time they open the game. Complete now shows
+            a real one.
+          </p>
+          <ActionButton
+            actionKey="demo-summary"
+            onClick={() =>
+              run("demo-summary", "/summaries", "POST", undefined, "Queued for their next visit")
+            }
+          >
+            Queue demo summary
+          </ActionButton>
+        </Row>
+      </div>
     </Panel>
   );
 }

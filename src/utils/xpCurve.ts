@@ -1,10 +1,22 @@
+import { buildCurve, type CurveDesign } from "~/game/balance/curve";
+
 /**
  * The cumulative-XP level curve shared by the character level
  * (LevelXpThreshold) and every progression track (TrackXpThreshold). Both
- * tables are seeded and never written at runtime.
+ * tables are written only when an admin saves a curve on /admin/leveling.
  */
 
 export type ThresholdRow = { level: number; xpTotal: bigint };
+
+/** How stale a process's copy of a curve may get after an admin edit. */
+export const CURVE_REFRESH_MS = 30_000;
+
+/** Threshold rows for a design, for a database whose table is still empty. */
+export function thresholdRowsFromDesign(design: CurveDesign): ThresholdRow[] {
+  return buildCurve(design)
+    .totals.slice(1)
+    .map((total, index) => ({ level: index + 1, xpTotal: BigInt(total) }));
+}
 export type XpCurve = { byXp: ThresholdRow[]; byLevel: Map<number, bigint> };
 
 export type LevelProgress = {
@@ -99,22 +111,28 @@ export function levelProgress(
 }
 
 /**
- * Caches each key's load for the life of the process. Threshold tables only
- * change with a deploy, which restarts the process and drops the cache.
- * Concurrent callers share one in-flight load instead of racing.
+ * Caches each key's load and reloads it in the background once it is older
+ * than `maxAgeMs`. Every process (the web server and the realtime daemon)
+ * picks up an admin curve edit within that time, and hot paths never wait on
+ * a reload. Concurrent callers share one in-flight load instead of racing.
+ * `invalidate` drops everything, for the process that made the edit.
  */
-export function cacheForever<V, K = void>(
+export function refreshingCache<V, K = void>(
   load: (key: K) => Promise<V>,
-): (key: K) => Promise<V> {
-  const loaded = new Map<K, V>();
+  maxAgeMs: number,
+): ((key: K) => Promise<V>) & { invalidate: () => void } {
+  const loaded = new Map<K, { value: V; at: number }>();
   const pending = new Map<K, Promise<V>>();
-  return async (key) => {
-    if (loaded.has(key)) return loaded.get(key)!;
+  let generation = 0;
+
+  const refresh = (key: K) => {
     let load$ = pending.get(key);
     if (!load$) {
+      const started = generation;
       load$ = load(key)
         .then((value) => {
-          loaded.set(key, value);
+          // A load that began before an invalidation carries old data.
+          if (started === generation) loaded.set(key, { value, at: Date.now() });
           return value;
         })
         .finally(() => pending.delete(key));
@@ -122,4 +140,22 @@ export function cacheForever<V, K = void>(
     }
     return load$;
   };
+
+  const get = async (key: K) => {
+    const entry = loaded.get(key);
+    if (!entry) return refresh(key);
+    if (Date.now() - entry.at > maxAgeMs) {
+      // The stale copy answers this call; a failed reload retries next time.
+      refresh(key).catch(() => undefined);
+    }
+    return entry.value;
+  };
+
+  return Object.assign(get, {
+    invalidate: () => {
+      generation += 1;
+      loaded.clear();
+      pending.clear();
+    },
+  });
 }

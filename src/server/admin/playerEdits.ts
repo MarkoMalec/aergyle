@@ -12,6 +12,7 @@ import {
 } from "~/generated/prisma/enums";
 import { PASSWORD_BCRYPT_ROUNDS } from "~/lib/auth-rules";
 import { prisma } from "~/lib/prisma";
+import { saveSummaries } from "~/server/activitySummaries";
 import { writeCharacterHealth } from "~/server/combat/health";
 import { grantStackableItemToInventory } from "~/server/items/grantItem";
 import { fitSlots } from "~/server/items/inventoryLayout";
@@ -569,6 +570,114 @@ export async function cancelActivity(userId: string, kind: AdminActivityKind) {
       await prisma.userDungeonRun.deleteMany({ where });
       return;
   }
+}
+
+const pickOne = <T>(list: T[]): T | undefined =>
+  list[Math.floor(Math.random() * list.length)];
+
+/**
+ * Queues a sample "while you were away" summary, built from real game content,
+ * for the player's next visit: a vocation session with level-ups, a garden
+ * harvest cut short by a full bag, and a dungeon run waiting to be claimed.
+ */
+export async function queueDemoSummary(userId: string) {
+  const [player, resources, crops, dungeon] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        level: true,
+        trackProgress: {
+          where: { trackType: "SKILL" },
+          select: { trackKey: true, level: true },
+        },
+      },
+    }),
+    prisma.vocationalResource.findMany({
+      select: {
+        actionType: true,
+        name: true,
+        itemId: true,
+        rarity: true,
+        yieldPerUnit: true,
+        xpPerUnit: true,
+        defaultSeconds: true,
+        item: { select: { name: true, sprite: true } },
+      },
+    }),
+    prisma.item.findMany({
+      where: { seedYieldedBy: { some: { itemType: ItemType.SEED } } },
+      select: { id: true, name: true, sprite: true, rarity: true },
+    }),
+    prisma.dungeon.findFirst({ select: { name: true }, orderBy: { id: "asc" } }),
+  ]);
+  if (!player) fail(404, "Player not found");
+
+  const skillLevel = (skill: VocationalActionType) =>
+    player.trackProgress.find((track) => track.trackKey === skill)?.level ?? 1;
+  // Ends on their real level where it can, and always shows a level-up.
+  const rise = (level: number, by: number) => ({
+    from: Math.max(level, by + 1) - by,
+    to: Math.max(level, by + 1),
+  });
+  const character = rise(player.level, 1);
+  const hoursAgo = (hours: number) =>
+    new Date(Date.now() - hours * 3_600_000).toISOString();
+  const summaries: Parameters<typeof saveSummaries>[1] = [];
+
+  const resource = pickOne(resources);
+  if (resource) {
+    const units = Math.floor((8 * 3_600) / Math.max(1, resource.defaultSeconds));
+    const xp = units * resource.xpPerUnit;
+    summaries.push({
+      kind: "VOCATION",
+      skill: resource.actionType,
+      title: resource.name,
+      stopReason: "COMPLETED",
+      startedAt: hoursAgo(8),
+      items: [
+        {
+          itemId: resource.itemId,
+          name: resource.item.name,
+          sprite: resource.item.sprite,
+          rarity: resource.rarity,
+          quantity: units * resource.yieldPerUnit,
+        },
+      ],
+      xp: { character: xp, skill: xp },
+      levels: { character, skill: rise(skillLevel(resource.actionType), 2) },
+    });
+  }
+
+  const harvest = crops.sort(() => Math.random() - 0.5).slice(0, 3);
+  if (harvest.length > 0) {
+    const gardening = skillLevel(VocationalActionType.GARDENING);
+    summaries.push({
+      kind: "GARDEN",
+      skill: VocationalActionType.GARDENING,
+      title: "Garden harvest",
+      stopReason: "INVENTORY_FULL",
+      startedAt: hoursAgo(0.75),
+      items: harvest.map((crop, index) => ({
+        itemId: crop.id,
+        name: crop.name,
+        sprite: crop.sprite,
+        rarity: crop.rarity,
+        quantity: 18 - index * 5,
+      })),
+      xp: { character: 240, skill: 240 },
+      levels: {
+        character: { from: character.to, to: character.to },
+        skill: { from: gardening, to: gardening },
+      },
+    });
+  }
+
+  if (dungeon) summaries.push({ kind: "DUNGEON", title: dungeon.name });
+
+  if (summaries.length === 0) {
+    fail(409, "There is no game content to build a summary from yet");
+  }
+  await saveSummaries(userId, summaries);
 }
 
 export async function growGardenTile(userId: string, tileId: number) {

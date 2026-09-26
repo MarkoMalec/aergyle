@@ -56,9 +56,12 @@ export function RealtimeBridge() {
           });
         }
         if (event.stopReason) {
-          const message = `${event.label}: ${ACTIVITY_STOP_MESSAGES[event.stopReason]}`;
-          if (event.stopReason === "COMPLETED") toast.success(message);
-          else toast.error(message);
+          // A hidden tab gets the "while you were away" summary instead.
+          if (document.visibilityState === "visible") {
+            const message = `${event.label}: ${ACTIVITY_STOP_MESSAGES[event.stopReason]}`;
+            if (event.stopReason === "COMPLETED") toast.success(message);
+            else toast.error(message);
+          }
           // The activity ended server-side; let the header drop it.
           dispatchActiveActionEvent({ kind: "changed" });
         }

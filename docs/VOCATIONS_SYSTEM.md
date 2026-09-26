@@ -36,7 +36,7 @@ mixed-reward expedition system. Both are documented separately in
 
 The server stores a single active activity row per user (timestamps + unit time). Progress is derived from time math.
 
-Earned units are settled by `claimVocationalRewards` (`src/server/vocations/claim.ts`): the realtime daemon calls it the moment each unit is due (see [REALTIME_WS_DAEMON.md](REALTIME_WS_DAEMON.md)), and status checks / page loads call it to catch up on anything it missed. Claims lock the activity row, so concurrent callers can't pay a unit twice. A claim grants only the units whose output fits and whose inputs are available; when nothing more can be produced it ends the activity with a reason (`INVENTORY_FULL`, `OUT_OF_MATERIALS`, `OUT_OF_BAIT`, `COMPLETED`) that the player sees as a toast or a "while you were away" summary.
+Earned units are settled by `claimVocationalRewards` (`src/server/vocations/claim.ts`): the realtime daemon calls it the moment each unit is due (see [REALTIME_WS_DAEMON.md](REALTIME_WS_DAEMON.md)), and status checks / page loads call it to catch up on anything it missed. Claims lock the activity row, so concurrent callers can't pay a unit twice. A claim grants only the units whose output fits and whose inputs are available; when nothing more can be produced it ends the activity with a reason (`INVENTORY_FULL`, `OUT_OF_MATERIALS`, `OUT_OF_BAIT`, `COMPLETED`) that the player sees as a toast, or in the "while you were away" summary if they weren't looking (see below).
 
 ## Database models
 
@@ -55,6 +55,7 @@ Earned units are settled by `claimVocationalRewards` (`src/server/vocations/clai
   - `enabled`: allow/disable resource in a location
 - `UserVocationalActivity`: one active activity per user
   - `startedAt`, `endsAt`, `unitSeconds` (snapshot), `unitsClaimed`
+  - `totals`: what the session has paid out so far, for its summary
 
 ## API
 
@@ -65,6 +66,18 @@ All routes require an authenticated session.
 - `POST /api/vocations/stop` → grant what was earned, then stop the activity
 
 There is no manual claim; due units settle on status reads, page loads and in the realtime daemon.
+
+## While you were away
+
+When a vocation session or a garden harvest ends on its own, the settlement that ends it writes an `ActivitySummary` row in the same transaction: everything the session paid out (items, skill XP, character XP after multipliers) and the levels it passed. Each payout adds to the activity row's `totals` in the update that already counts `unitsClaimed`, so the summary covers the whole session, not just its last tick. A manual stop writes none. Code: `src/server/activitySummaries.ts`.
+
+`ActivitySummaryDialog` (game layout) fetches `GET /api/activity/summaries` when the game opens and whenever the player comes back to it (the tab shows again, or its window regains focus), and lists what ended meanwhile. Gathering, hunting and dungeon runs whose time ran out unclaimed are listed too, with a button to their claim screen; they pay nothing until claimed.
+
+`User.summariesSeenAt` marks everything that ended up to that moment as seen. Closing the dialog moves it to the batch's `asOf` (`POST /api/activity/summaries`). An activity the page saw end while the player was looking (the header's `ended` event) moves it to now, so it isn't summarized later.
+
+Item toasts follow the header's clock, one per unit. A page that was asleep (hidden tab, locked phone) catches up in one jump: it shows a single toast for all those units, once the server confirms the session is still running. If the session ended meanwhile, the summary reports it instead.
+
+To try it: /admin → Players → a player → Activities → "Queue demo summary" queues a sample (level-ups, a full bag, a dungeon run) for their next visit; "Complete now" produces a real one.
 
 The skill page loads the resource list server-side.
 

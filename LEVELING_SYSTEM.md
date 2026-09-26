@@ -1,286 +1,84 @@
-# Leveling System Documentation
+# Leveling and balance simulations
 
-## Overview
+## How levels work
 
-A highly flexible and configurable leveling system with progressive difficulty, XP multipliers, and soft/hard level caps.
+- A character has one lifetime XP total (`User.experience`); its level is the
+  highest `LevelXpThreshold` row that total reaches.
+- Every skill has its own lifetime XP (`UserTrackProgress`, track type
+  `SKILL`, key = the skill). All skills share one curve, the `SKILL` rows of
+  `TrackXpThreshold`.
+- Skill activities pay the same XP to their skill and to the character.
+  Dungeons and quests pay the character only. Per-player boosts
+  (`XpMultiplier`) apply on top.
 
-## Features
+## Designing a curve: `/admin/leveling`
 
-### 1. **Configurable XP Curve**
-- Database-driven configuration (no code changes needed)
-- Exponential growth with customizable parameters
-- Multiple difficulty brackets
+A curve is stored as a design (`LevelCurveDesign`) and generated into its
+threshold table. The XP from level L to L + 1 is
 
-### 2. **Difficulty Brackets**
-- **Easy (1-5)**: 80% XP requirement
-- **Normal (6-15)**: 100% XP requirement  
-- **Hard (16-30)**: 130% XP requirement
-- **Very Hard (31-50)**: 180% XP requirement
-- **Extreme (51-62)**: 300% XP requirement
-- **Soft Cap (63-70)**: 1000% XP (nearly impossible)
-
-### 3. **XP Multipliers**
-- Temporary boosts from items, events, cards
-- Stackable or non-stackable options
-- Duration-based or use-limited
-- Action-specific or global
-
-### 4. **Level Caps**
-- **Soft Cap**: Makes leveling extremely difficult
-- **Hard Cap**: Absolute maximum level
-- Easy to adjust for seasons/expansions
-
-## Usage Examples
-
-### Award XP to a Player
-
-```typescript
-import { awardXp } from "~/utils/leveling";
-import { XpActionType } from "@prisma/client";
-
-const result = await awardXp(
-  userId,
-  100,                          // Base XP amount
-  XpActionType.COMBAT,          // Action type
-  "Killed Goblin",              // Description
-  { monsterId: 123 }            // Optional metadata
-);
-
-if (result.leveledUp) {
-  console.log(`Level up! ${result.oldLevel} → ${result.newLevel}`);
-}
+```
+firstLevelXp × L^power × (1 + growthPercent / 100)^(L − 1) × bands
 ```
 
-### Add Temporary XP Boost
+rounded down, at least 1 (`src/game/balance/curve.ts`).
 
-```typescript
-import { addXpMultiplier } from "~/utils/leveling";
-import { XpActionType } from "@prisma/client";
+- **Power** is polynomial growth (1 linear, 2 quadratic). **Growth per level**
+  compounds (RuneScape uses about 10.4%). Presets change the shape and keep
+  the XP needed for level 100.
+- **Difficulty bands** multiply the cost of reaching a range of levels (walls,
+  soft caps, easier early levels).
+- **Pacing targets** ("level 50 in 30 days") are drawn on the time chart and
+  marked on track, slower or faster.
+- The time chart and table use the player journey below, for a chosen player
+  profile, with today's content.
 
-// 10% XP boost for 60 minutes
-await addXpMultiplier(userId, "XP Boost Card", 1.1, {
-  durationMinutes: 60,
-  stackable: true
-});
+Saving writes the design and the table and recalculates every player's level
+from their lifetime XP, in one transaction. XP never changes, so saving the
+previous design restores everyone. Running processes (web and realtime
+daemon) reload curves within 30 seconds (`CURVE_REFRESH_MS`); a stored level
+that lags behind is corrected the next time it is read.
 
-// 50% XP boost for combat only, 10 uses
-await addXpMultiplier(userId, "Combat XP Card", 1.5, {
-  actionType: XpActionType.COMBAT,
-  uses: 10,
-  stackable: false
-});
-```
+With no stored design the page starts from `DEFAULT_CURVE_DESIGNS`, which
+reproduce the tables that were live before designs existed (character
+`5 × L^1.5`, skills ten times that). An empty threshold table also falls back
+to these defaults.
 
-### Get Player Progress
+## Simulations: `/admin/simulations`
 
-```typescript
-import { getXpProgress } from "~/utils/leveling";
+Pure, client-side simulations over live content (`src/game/balance/`), loaded
+once by `src/server/balance/content.ts`. They follow the game's own rules:
+skill gates, the character level of the locations offering a resource,
+recipes, tool efficiency, 8-hour vocation starts, expedition and dungeon
+lengths.
 
-const progress = await getXpProgress(userId);
-// {
-//   level: 12,
-//   currentXp: 450,
-//   xpForNextLevel: 1000,
-//   xpProgress: 45,        // 45%
-//   xpRemaining: 550
-// }
-```
+- **Player journey** plays a character day by day. The profile sets hours of
+  activity and check-ins per day: an activity only runs until its idle cap,
+  so short runs need frequent check-ins. Time is split evenly over the chosen
+  activities or goes to the most character XP first; each activity always
+  uses its best source at the current levels. The garden grows alongside and
+  pays per replant; quests pay when unlocked (daily and weekly ones repeat).
+  Crafting can use bought materials or include gathering them (time and XP).
+  Levels are reached exactly, not sampled.
+- **XP sources** lists every source with XP per hour and hours per level when
+  it opens, flags sources that are never the best choice and big jumps, and
+  shows resources no location offers. Per-group what-if multipliers change
+  the simulations; "Apply" rewrites that group's stored XP rewards
+  (rounded, never below 1).
+- **Unlocks** puts every level gate (locations, dungeons, quests, items,
+  resources, expedition tiers and areas) on a timeline with the day the
+  journey reaches it, and flags long waits.
+- **Dungeons & gear** finds the lowest level that survives each dungeon
+  (live combat resolver, base stats by level plus the strongest item per slot
+  at a chosen rarity), and lists items weaker than a lower-level item of their
+  slot.
 
-### Check XP Required for Level
+Hunting, gathering and single-dungeon Monte Carlo simulators stay on their
+own admin pages, where they test unsaved edits.
 
-```typescript
-import { getXpRequiredForLevel } from "~/utils/leveling";
+## Code
 
-const xpNeeded = await getXpRequiredForLevel(50);
-console.log(`Level 50 requires ${xpNeeded} XP`);
-```
-
-## Database Models
-
-### XpConfig
-Main configuration table. Only one config can be `isActive` at a time.
-
-```prisma
-model XpConfig {
-  id                    Int
-  configName            String   // "default", "season1", etc.
-  isActive              Boolean
-  
-  // Base formula
-  baseXp                Float    // Starting XP (default: 100)
-  exponentMultiplier    Float    // Curve steepness (default: 1.5)
-  levelMultiplier       Float    // Additional scaling (default: 1.0)
-  
-  // Difficulty brackets
-  easyLevelCap          Int      // Level 5
-  easyMultiplier        Float    // 0.8 (80%)
-  // ... more brackets
-  
-  // Caps
-  softCapLevel          Int      // Level 62
-  softCapMultiplier     Float    // 10.0 (1000%)
-  hardCapLevel          Int      // Level 70
-  
-  // Seasonal bonus
-  seasonalBonus         Float    // 0.1 = 10% less XP needed
-}
-```
-
-### XpMultiplier
-Temporary XP boosts for players.
-
-```prisma
-model XpMultiplier {
-  id              Int
-  userId          String
-  name            String           // Display name
-  multiplier      Float            // 1.1 = 10% more XP
-  actionType      XpActionType?    // null = all actions
-  expiresAt       DateTime?        // null = permanent
-  usesRemaining   Int?             // null = unlimited
-  isActive        Boolean
-  stackable       Boolean
-}
-```
-
-### XpTransaction
-Complete audit log of all XP gains.
-
-```prisma
-model XpTransaction {
-  id                Int
-  userId            String
-  amount            Float           // Base XP
-  finalAmount       Float           // After multipliers
-  actionType        XpActionType
-  levelBefore       Int
-  levelAfter        Int
-  experienceBefore  Float
-  experienceAfter   Float
-  description       String?
-  metadata          Json?
-  createdAt         DateTime
-}
-```
-
-## Action Types
-
-Available `XpActionType` enum values:
-
-- `COMBAT` - Killing monsters
-- `QUEST` - Completing quests
-- `CRAFTING` - Crafting items
-- `GATHERING` - Resource gathering
-- `SKILL` - Training skills
-- `EXPLORATION` - Discovering areas
-- `DUNGEON` - Completing dungeons
-- `BOSS` - Defeating bosses
-- `PVP` - Player vs Player
-- `TRADE` - Trading
-- `ACHIEVEMENT` - Unlocking achievements
-- `DAILY` - Daily activities
-- `EVENT` - Special events
-
-## Changing the XP Curve
-
-### Option 1: Update Active Config (Recommended)
-
-```typescript
-import { prisma } from "~/lib/prisma";
-
-await prisma.xpConfig.updateMany({
-  where: { isActive: true },
-  data: {
-    // Make leveling easier
-    easyLevelCap: 10,           // Extend easy levels to 10
-    easyMultiplier: 0.6,        // Even easier (60% XP)
-    
-    // Adjust soft cap
-    softCapLevel: 70,           // Move soft cap to 70
-    hardCapLevel: 80,           // New hard cap at 80
-  }
-});
-```
-
-### Option 2: Create New Season Config
-
-```typescript
-await prisma.xpConfig.updateMany({
-  where: { isActive: true },
-  data: { isActive: false }
-});
-
-await prisma.xpConfig.create({
-  data: {
-    configName: "season2",
-    isActive: true,
-    baseXp: 120,              // Slightly harder
-    softCapLevel: 70,         // Raise cap for season
-    hardCapLevel: 80,
-    seasonalBonus: 0.2,       // 20% XP boost for season
-    // ... other settings
-  }
-});
-```
-
-## API Routes
-
-### POST `/api/leveling/award-xp`
-```json
-{
-  "userId": "user123",
-  "amount": 100,
-  "actionType": "COMBAT",
-  "description": "Killed Dragon"
-}
-```
-
-### POST `/api/leveling/add-multiplier`
-```json
-{
-  "userId": "user123",
-  "name": "Weekend Event",
-  "multiplier": 2.0,
-  "durationMinutes": 2880
-}
-```
-
-### GET `/api/admin/leveling/table`
-Returns full XP table for visualization.
-
-## Testing
-
-Visit `/admin/leveling` to see the full XP curve visualization with all brackets color-coded.
-
-## Future Ideas
-
-### Prestige System
-```typescript
-// Reset to level 1 but keep prestige bonuses
-await prisma.user.update({
-  where: { id: userId },
-  data: {
-    level: 1,
-    experience: 0,
-    prestigeLevel: { increment: 1 }
-  }
-});
-```
-
-### Seasonal Resets
-```typescript
-// Create new season config with raised caps
-await createSeasonConfig("season3", {
-  softCapLevel: 80,
-  hardCapLevel: 90,
-  seasonalBonus: 0.25  // 25% boost for comeback players
-});
-```
-
-### Dynamic Events
-```typescript
-// Double XP Weekend
-await addXpMultiplier(userId, "Double XP Weekend", 2.0, {
-  durationMinutes: 4320  // 3 days
-});
-```
+- `src/game/balance/` — curve maths, content types, XP sources, journey,
+  combat, unlocks (pure; tested in `tests/balance.test.ts`).
+- `src/server/balance/` — content loader, saving designs, bulk XP scaling.
+- `src/utils/leveling.ts`, `src/utils/progression.ts` — awarding XP.
+- `src/components/admin/balance/` — the two admin pages.

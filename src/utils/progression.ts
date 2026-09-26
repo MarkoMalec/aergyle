@@ -1,80 +1,42 @@
 import type { PrismaClient } from "~/generated/prisma/client";
-import { ProgressionTrackType } from "~/generated/prisma/enums";
+import type { ProgressionTrackType } from "~/generated/prisma/enums";
+import { DEFAULT_CURVE_DESIGNS } from "~/game/balance/curve";
 import { prisma } from "~/lib/prisma";
 import {
-  cacheForever,
+  CURVE_REFRESH_MS,
   levelForTotalXp,
   levelProgress,
+  refreshingCache,
+  thresholdRowsFromDesign,
   toXpCurve,
   type LevelProgress,
-  type ThresholdRow,
 } from "~/utils/xpCurve";
 
 /**
  * The writes here can be handed a transaction client so a track-XP award commits
  * together with the loot that earned it. Reads of the threshold tables always go
- * through the global client: they are static reference data and there is no
- * reason to hold a transaction open for them.
+ * through the global client: they are reference data and there is no reason to
+ * hold a transaction open for them.
  */
 type TrackDb = Pick<PrismaClient, "userTrackProgress">;
 
-const TRACK_XP_SCALE: Record<ProgressionTrackType, bigint> = {
-  SKILL: 10n,
-  VOCATION: 10n,
-  DUNGEON: 10n,
-  COMBAT: 10n,
-};
-
-async function fetchTrackThresholds(
-  trackType: ProgressionTrackType,
-): Promise<ThresholdRow[]> {
-  let rows = await prisma.trackXpThreshold.findMany({
-    where: { trackType },
-    select: { level: true, xpTotal: true },
-    orderBy: { xpTotal: "asc" },
-  });
-
-  if (rows.length === 0) {
-    // Derive from the existing player thresholds (same curve, scaled harder).
-    const base = await prisma.levelXpThreshold.findMany({
-      select: { level: true, xpTotal: true },
-      orderBy: { level: "asc" },
-    });
-
-    if (base.length === 0) {
-      throw new Error(
-        "Missing LevelXpThreshold rows. Generate them first (scripts/generateLevelThresholds.ts).",
-      );
-    }
-
-    const scale = TRACK_XP_SCALE[trackType] ?? 10n;
-    await prisma.trackXpThreshold.createMany({
-      data: base.map((row) => ({
-        trackType,
-        level: row.level,
-        xpTotal: row.xpTotal * scale,
-      })),
-      skipDuplicates: true,
-    });
-
-    rows = await prisma.trackXpThreshold.findMany({
+/**
+ * Written by /admin/leveling (skills are the SKILL track); an empty table
+ * falls back to the default skill design. Cached so an award doesn't read
+ * the table, and refreshed so an admin edit reaches every process.
+ */
+const loadTrackThresholds = refreshingCache(
+  async (trackType: ProgressionTrackType) => {
+    const rows = await prisma.trackXpThreshold.findMany({
       where: { trackType },
       select: { level: true, xpTotal: true },
       orderBy: { xpTotal: "asc" },
     });
-  }
-
-  return rows;
-}
-
-/**
- * TrackXpThreshold is seeded once and never written at runtime. Without the
- * cache every award ran a COUNT plus a lookup against a table that cannot
- * change.
- */
-const loadTrackThresholds = cacheForever(
-  async (trackType: ProgressionTrackType) =>
-    toXpCurve(await fetchTrackThresholds(trackType)),
+    return toXpCurve(
+      rows.length > 0 ? rows : thresholdRowsFromDesign(DEFAULT_CURVE_DESIGNS.SKILL),
+    );
+  },
+  CURVE_REFRESH_MS,
 );
 
 /** A track's level curve, for code that sets a level or XP directly. */
@@ -170,5 +132,10 @@ export async function getTrackXpProgress(params: {
     loadTrackThresholds(trackType),
   ]);
 
-  return levelProgress(thresholds, row.level, row.experience);
+  // Derived from XP, so a curve edit applies before the stored level catches up.
+  return levelProgress(
+    thresholds,
+    levelForTotalXp(thresholds, row.experience),
+    row.experience,
+  );
 }

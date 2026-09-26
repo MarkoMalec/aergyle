@@ -270,6 +270,57 @@ async function fetchActivityStatus(): Promise<ActivityStatusResponse | null> {
   return res.ok ? ((await res.json()) as ActivityStatusResponse) : null;
 }
 
+/**
+ * The running activity that leaves a summary when it ends, e.g. "vocation:12".
+ * A run whose time is up no longer counts as running.
+ */
+function runningActivityKey(statuses: ActivityStatusResponse) {
+  const vocation = statuses.vocation?.activity;
+  if (vocation) return `vocation:${vocation.id}`;
+  const harvest = statuses.garden?.harvest;
+  if (harvest) return `garden:${harvest.id}`;
+  const runs = {
+    gathering: statuses.gathering?.expedition,
+    hunting: statuses.hunting?.expedition,
+    dungeon: statuses.dungeon?.run,
+  };
+  for (const [kind, run] of Object.entries(runs)) {
+    if (run?.status === "ACTIVE") return `${kind}:${run.id}`;
+  }
+  return null;
+}
+
+/** "+3 Iron ore", bottom right, for items an activity just produced. */
+function showItemToast(item: {
+  sprite?: string;
+  label: string;
+  quantity: number;
+}) {
+  toast.custom(
+    () =>
+      React.createElement(
+        "span",
+        {
+          className:
+            "flex items-center gap-2 bg-card px-3 py-1 text-sm text-foreground shadow-sm rounded-lg",
+        },
+        item.sprite
+          ? React.createElement("img", {
+              src: item.sprite,
+              alt: item.label,
+              className: "h-8 w-8 object-contain",
+            })
+          : null,
+        React.createElement(
+          "span",
+          { className: "font-medium" },
+          `+${item.quantity.toLocaleString()} ${item.label}`,
+        ),
+      ),
+    { position: "bottom-right", duration: 5000 },
+  );
+}
+
 export type ActiveActionViewModel = {
   skillLabel: string;
   label: string;
@@ -317,6 +368,7 @@ export function useVocationalActiveAction() {
 
   const prevActivityIdRef = useRef<number | null>(null);
   const prevUnitsTotalRef = useRef<number | null>(null);
+  const runningKeyRef = useRef<string | null>(null);
   const prevTravelRef = useRef<{ endsAtMs: number; name: string } | null>(null);
 
   const router = useRouter();
@@ -342,6 +394,15 @@ export function useVocationalActiveAction() {
     try {
       // Every status at once (only one activity can run); priority is applied below.
       const statuses = await fetchActivityStatus();
+      if (statuses) {
+        // An activity this page watched has ended. If the player was looking,
+        // the away summary leaves it out.
+        const runningKey = runningActivityKey(statuses);
+        if (runningKeyRef.current && runningKeyRef.current !== runningKey) {
+          dispatchActiveActionEvent({ kind: "ended" });
+        }
+        runningKeyRef.current = runningKey;
+      }
       const travelJson = statuses?.travel ?? null;
       const gardenJson = statuses?.garden ?? null;
       const gatheringJson = statuses?.gathering ?? null;
@@ -380,7 +441,7 @@ export function useVocationalActiveAction() {
           setGatheringStatus({ expedition: null });
           setHuntingStatus({ expedition: null });
           setDungeonStatus({ run: null });
-          return;
+          return statuses;
         }
       }
 
@@ -393,7 +454,7 @@ export function useVocationalActiveAction() {
           setGatheringStatus({ expedition: null });
           setHuntingStatus({ expedition: null });
           setDungeonStatus({ run: null });
-          return;
+          return statuses;
         }
       }
 
@@ -406,7 +467,7 @@ export function useVocationalActiveAction() {
           setStatus({ activity: null, progress: null, skillProgress: null });
           setHuntingStatus({ expedition: null });
           setDungeonStatus({ run: null });
-          return;
+          return statuses;
         }
       }
 
@@ -418,7 +479,7 @@ export function useVocationalActiveAction() {
         ) {
           setStatus({ activity: null, progress: null, skillProgress: null });
           setDungeonStatus({ run: null });
-          return;
+          return statuses;
         }
       }
 
@@ -426,13 +487,14 @@ export function useVocationalActiveAction() {
         setDungeonStatus(dungeonJson);
         if (dungeonJson.run && dungeonJson.run.status !== "CLAIMED") {
           setStatus({ activity: null, progress: null, skillProgress: null });
-          return;
+          return statuses;
         }
       }
 
       if (vocationJson) setStatus(vocationJson);
+      return statuses;
     } catch {
-      // ignore
+      return null;
     }
   }, []);
 
@@ -938,36 +1000,29 @@ export function useVocationalActiveAction() {
     }
 
     if (unitsTotal > prevUnitsTotal) {
-      const delta = unitsTotal - prevUnitsTotal;
-      for (let i = 0; i < delta; i++) {
-        toast.custom(
-          (_toast) =>
-            React.createElement(
-              "span",
-              {
-                className:
-                  "flex items-center gap-2 bg-card px-3 py-1 text-sm text-foreground shadow-sm rounded-lg",
-              },
-              derived.sprite
-                ? React.createElement("img", {
-                    src: derived.sprite,
-                    alt: derived.label,
-                    className: "h-8 w-8 object-contain",
-                  })
-                : null,
-              React.createElement(
-                "span",
-                { className: "font-medium" },
-                `+${derived.yieldPerUnit} ${derived.label}`,
-              ),
-            ),
-          { position: "bottom-right", duration: 5000 },
-        );
+      const units = unitsTotal - prevUnitsTotal;
+      const item = {
+        sprite: derived.sprite,
+        label: derived.label,
+        quantity: units * derived.yieldPerUnit,
+      };
+      if (units === 1) {
+        showItemToast(item);
+      } else {
+        // The page was asleep (a hidden tab, a locked phone) and its clock just
+        // caught up on a stale status. One toast for the lot, once the server
+        // confirms the session is still running; if it ended meanwhile, the
+        // away summary reports what it really paid.
+        void refresh().then((statuses) => {
+          if (statuses?.vocation?.activity?.id === activityId) {
+            showItemToast(item);
+          }
+        });
       }
     }
 
     prevUnitsTotalRef.current = unitsTotal;
-  }, [status?.activity?.id, derived]);
+  }, [status?.activity?.id, derived, refresh]);
 
   useEffect(() => {
     if (!derived) {

@@ -16,6 +16,17 @@ import { ListItemDialog } from "~/components/game/marketplace/ListItemDialog";
 import { cn } from "~/lib/utils";
 import { useVocationalActiveActionContext } from "~/components/game/actions/VocationalActiveActionProvider";
 import { Button } from "~/components/ui/button";
+import {
+  BookCheck,
+  BookOpen,
+  FlaskConical,
+  Loader2,
+  Shield,
+  ShieldOff,
+  Split,
+  Store,
+  Utensils,
+} from "lucide-react";
 import { SplitStackDialog } from "./SplitStackDialog";
 import { ItemRarityMark } from "~/utils/ui/rarity-mark";
 import { useUserContext } from "~/context/userContext";
@@ -29,6 +40,18 @@ import {
 } from "~/lib/query-keys";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+
+/** Compact borderless actions that share one equal-width row under the item card. */
+const actionClass = "h-8 w-full px-2 text-xs";
+/** The main action is tinted gold rather than solid, so it leads without shouting. */
+const primaryActionClass = cn(
+  actionClass,
+  "bg-primary/15 text-primary hover:bg-primary/25 hover:text-primary",
+);
+const secondaryActionClass = cn(
+  actionClass,
+  "bg-surface-inset/70 text-foreground hover:bg-surface-inset hover:text-foreground",
+);
 
 interface SingleItemTemplateProps {
   item: ItemWithStats;
@@ -88,6 +111,19 @@ export default function SingleItemTemplate({
   const recipeIsLearned =
     isRecipe &&
     (learnedRecipes.data?.learnedRecipeItemIds ?? []).includes(item.itemId);
+  const inInventory = container === "inventory";
+  const canUse = inInventory && canUseConsumable;
+  const isDrink =
+    item.itemType === ItemType.POTION || item.itemType === ItemType.ELIXIR;
+  const canLearn = inInventory && isRecipe;
+  const canSplit = inInventory && (item.quantity ?? 1) > 1;
+  const hasActions =
+    showEquipButton ||
+    showUnequipButton ||
+    canUse ||
+    canLearn ||
+    showListButton ||
+    canSplit;
 
   const { colors } = useRarityColors();
   const hexColor = colors[item.rarity];
@@ -242,83 +278,110 @@ export default function SingleItemTemplate({
         }}
       >
         <ItemDetails item={{ ...item, sprite }} />
-        <div className="mt-4 space-y-2 border-t pt-3">
-          {showEquipButton && (
-            <Button
-              disabled={isActionActive || !meetsLevel}
-              onClick={handleEquipClick}
-              className="w-full"
-            >
-              Equip
-            </Button>
-          )}
-          {showUnequipButton && (
-            <Button
-              disabled={isActionActive}
-              onClick={handleUnequipClick}
-              variant="secondary"
-              className="w-full"
-            >
-              Unequip
-            </Button>
-          )}
-          {container === "inventory" && canUseConsumable && (
-            <Button onClick={handleEat} disabled={isEating} className="w-full">
-              {isEating
-                ? "Using..."
-                : item.itemType === ItemType.POTION ||
-                    item.itemType === ItemType.ELIXIR
-                  ? "Drink"
-                  : "Use"}
-            </Button>
-          )}
-          {showListButton && (
-            <Button
-              onClick={() => {
-                setListDialogOpen(true);
-                setOpen(false);
-              }}
-              variant="secondary"
-              className="w-full"
-            >
-              List on Marketplace
-            </Button>
-          )}
-          {container === "inventory" && isRecipe && (
-            <Button
-              onClick={handleLearnRecipe}
-              disabled={
-                isLearningRecipe || learnedRecipes.isLoading || recipeIsLearned
-              }
-              className="w-full"
-            >
-              {isLearningRecipe
-                ? "Learning..."
-                : learnedRecipes.isLoading
-                  ? "Checking recipe..."
-                  : recipeIsLearned
-                    ? "Recipe learned"
-                    : "Learn recipe"}
-            </Button>
-          )}
-          {container === "inventory" && (item.quantity ?? 1) > 1 && (
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => {
-                setOpen(false);
-                setSplitDialogOpen(true);
-              }}
-            >
-              Split stack
-            </Button>
-          )}
-          {isActionActive && (showEquipButton || showUnequipButton) && (
-            <p className="text-xs text-muted-foreground">
-              Finish or stop your active action to change equipment.
-            </p>
-          )}
-        </div>
+        {hasActions && (
+          <div className="mt-5">
+            <div className="grid auto-cols-fr grid-flow-col gap-2">
+              {showEquipButton && (
+                <Button
+                  disabled={isActionActive || !meetsLevel}
+                  onClick={handleEquipClick}
+                  variant="ghost"
+                  className={primaryActionClass}
+                >
+                  <Shield className="h-3.5 w-3.5" aria-hidden />
+                  Equip
+                </Button>
+              )}
+              {showUnequipButton && (
+                <Button
+                  disabled={isActionActive}
+                  onClick={handleUnequipClick}
+                  variant="ghost"
+                  className={secondaryActionClass}
+                >
+                  <ShieldOff className="h-3.5 w-3.5 opacity-70" aria-hidden />
+                  Unequip
+                </Button>
+              )}
+              {canUse && (
+                <Button
+                  onClick={handleEat}
+                  disabled={isEating}
+                  variant="ghost"
+                  className={primaryActionClass}
+                >
+                  {isEating ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                  ) : isDrink ? (
+                    <FlaskConical className="h-3.5 w-3.5" aria-hidden />
+                  ) : (
+                    <Utensils className="h-3.5 w-3.5" aria-hidden />
+                  )}
+                  {isEating ? "Using..." : isDrink ? "Drink" : "Use"}
+                </Button>
+              )}
+              {canLearn && (
+                <Button
+                  onClick={handleLearnRecipe}
+                  disabled={
+                    isLearningRecipe ||
+                    learnedRecipes.isLoading ||
+                    recipeIsLearned
+                  }
+                  variant="ghost"
+                  className={primaryActionClass}
+                  title="Learn recipe"
+                >
+                  {isLearningRecipe || learnedRecipes.isLoading ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                  ) : recipeIsLearned ? (
+                    <BookCheck className="h-3.5 w-3.5" aria-hidden />
+                  ) : (
+                    <BookOpen className="h-3.5 w-3.5" aria-hidden />
+                  )}
+                  {isLearningRecipe
+                    ? "Learning..."
+                    : recipeIsLearned
+                      ? "Learned"
+                      : "Learn"}
+                </Button>
+              )}
+              {showListButton && (
+                <Button
+                  onClick={() => {
+                    setListDialogOpen(true);
+                    setOpen(false);
+                  }}
+                  variant="ghost"
+                  className={secondaryActionClass}
+                  title="List on the marketplace"
+                >
+                  <Store className="h-3.5 w-3.5 opacity-70" aria-hidden />
+                  Sell
+                </Button>
+              )}
+              {canSplit && (
+                <Button
+                  variant="ghost"
+                  className={secondaryActionClass}
+                  title="Split stack"
+                  onClick={() => {
+                    setOpen(false);
+                    setSplitDialogOpen(true);
+                  }}
+                >
+                  <Split className="h-3.5 w-3.5 opacity-70" aria-hidden />
+                  Split
+                </Button>
+              )}
+            </div>
+            {isActionActive && (showEquipButton || showUnequipButton) && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Finish or stop your active action to change equipment.
+              </p>
+            )}
+          </div>
+        )}
       </ItemDetailsPopoverContent>
       <SplitStackDialog
         item={item}

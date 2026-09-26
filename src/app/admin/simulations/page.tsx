@@ -1,4 +1,4 @@
-import { LevelingDesigner } from "~/components/admin/balance/LevelingDesigner";
+import { SimulationWorkbench } from "~/components/admin/balance/SimulationWorkbench";
 import { requireAdminPageAccess } from "~/server/admin/auth";
 import { loadBalanceContent } from "~/server/balance/content";
 import { loadSavedCurves } from "~/server/balance/leveling";
@@ -6,11 +6,11 @@ import { loadSavedCurves } from "~/server/balance/leveling";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export default async function AdminLevelingPage() {
+export default async function AdminSimulationsPage() {
   await requireAdminPageAccess();
-  const [curves, content] = await Promise.all([
-    loadSavedCurves(),
+  const [content, curves] = await Promise.all([
     loadBalanceContent(),
+    loadSavedCurves(),
   ]);
-  return <LevelingDesigner curves={curves} content={content} />;
+  return <SimulationWorkbench content={content} curves={curves} />;
 }

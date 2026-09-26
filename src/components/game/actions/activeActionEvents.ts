@@ -1,7 +1,11 @@
 export const ACTIVE_ACTION_EVENT = "aergyle:active-action-event";
 
 export type ActiveActionEventDetail = {
-  kind: "changed" | "stop-optimistic";
+  /**
+   * "ended": an activity this page watched running has finished, stopped or
+   * become ready to claim.
+   */
+  kind: "changed" | "stop-optimistic" | "ended";
 };
 
 export function dispatchActiveActionEvent(detail: ActiveActionEventDetail) {

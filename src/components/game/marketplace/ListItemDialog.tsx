@@ -38,7 +38,7 @@ export function ListItemDialog({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="max-h-[90dvh] overflow-y-auto sm:max-w-lg"
+        className="max-h-[90dvh] overflow-y-auto border-0 sm:max-w-lg"
         onCloseAutoFocus={
           returnFocus
             ? (event) => {

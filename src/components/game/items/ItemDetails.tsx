@@ -67,8 +67,18 @@ export function ItemDetails({ item }: { item: ItemDetailsData }) {
             className="h-full w-full rounded-lg object-contain"
           />
         </div>
-        <div className="min-w-0">
-          <RarityBadge rarity={item.rarity} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-3">
+            <RarityBadge rarity={item.rarity} />
+            <span
+              className="inline-flex items-center gap-1.5 rounded-[7px] bg-surface-inset/70 px-2 py-1 text-sm font-semibold tabular-nums text-currency"
+              title="Value"
+              aria-label={`Value ${item.price} coins`}
+            >
+              <CoinsIcon size={16} />
+              {item.price}
+            </span>
+          </div>
           <h3 className="game-item-name mt-2 text-lg font-semibold leading-tight">
             {item.name}
           </h3>
@@ -78,18 +88,18 @@ export function ItemDetails({ item }: { item: ItemDetailsData }) {
             </p>
           )} */}
           <p className="mt-1 text-xs capitalize text-muted-foreground">
-          {item.itemType
-            ?.replace(/_/g, " ")
-            .replace(/([a-z])([A-Z])/g, "$1 $2")
-            .toLowerCase()
-            .replace(/\b\w/g, (char) => char.toUpperCase())}
+            {item.itemType
+              ?.replace(/_/g, " ")
+              .replace(/([a-z])([A-Z])/g, "$1 $2")
+              .toLowerCase()
+              .replace(/\b\w/g, (char) => char.toUpperCase())}
           </p>
         </div>
       </div>
       {item.equipTo && (
         <p
           className={cn(
-            "mb-3 text-xs",
+            "mb-3 text-xs last:mb-0",
             user && !meetsLevel ? "text-danger" : "text-muted-foreground",
           )}
         >
@@ -97,12 +107,12 @@ export function ItemDetails({ item }: { item: ItemDetailsData }) {
         </p>
       )}
       {item.description && (
-        <p className="mb-4 text-sm leading-relaxed text-text-secondary">
+        <p className="mb-4 text-sm leading-relaxed text-text-secondary last:mb-0">
           {item.description}
         </p>
       )}
       {itemHasImmediateHealing(item) ? (
-        <div className="mb-4 rounded-lg border border-border bg-secondary/30 p-3">
+        <div className="mb-4 rounded-lg border border-border bg-secondary/30 p-3 last:mb-0">
           <div className="flex items-center justify-between gap-3 text-xs">
             <span className="font-semibold text-foreground">
               Instant healing
@@ -116,7 +126,7 @@ export function ItemDetails({ item }: { item: ItemDetailsData }) {
       {itemHasTimedEffect(item.itemType) &&
       item.foodEffectSeconds &&
       (item.foodEffectStats?.length ?? 0) > 0 ? (
-        <div className="mb-4 rounded-lg border border-border bg-secondary/30 p-3">
+        <div className="mb-4 rounded-lg border border-border bg-secondary/30 p-3 last:mb-0">
           <div className="mb-2 flex items-center justify-between gap-3 text-xs">
             <span className="font-semibold text-foreground">Timed effect</span>
             <span className="tabular-nums text-muted-foreground">
@@ -150,14 +160,6 @@ export function ItemDetails({ item }: { item: ItemDetailsData }) {
           ))}
         </ul>
       ) : null}
-      <div className="py-2">
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">Value</span>
-          <span className="text-sm text-currency">
-            <CoinsIcon /> {item.price}
-          </span>
-        </div>
-      </div>
     </>
   );
 }

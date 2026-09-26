@@ -33,6 +33,7 @@ const adminNavItems: Array<{ href: string; label: string }> = [
   { href: "/admin/travel", label: "Travel" },
   { href: "/admin/skills", label: "Skills" },
   { href: "/admin/leveling", label: "Leveling" },
+  { href: "/admin/simulations", label: "Simulations" },
   { href: "/admin/character-stats", label: "Character stats" },
   { href: "/admin/moderation", label: "Moderation" },
   { href: "/admin/security", label: "Security" },

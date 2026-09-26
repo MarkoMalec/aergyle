@@ -33,7 +33,9 @@ connect, clients get an `inventory_changed` hello so they can resync.
   sell list (`inventoryQueryKeys`), so every view updates without a refetch. New
   stacks trigger a refetch.
 - The level badge and the skill's progress panel refetch.
-- A stop shows a toast and refreshes the header's active action.
+- A stop refreshes the header's active action and, if the tab is showing, toasts.
+  A hidden tab gets the "while you were away" summary instead (see
+  [VOCATIONS_SYSTEM.md](VOCATIONS_SYSTEM.md#while-you-were-away)).
 
 While the socket is connected, the header does not poll for ticks. When it is not
 (daemon down, no `NEXT_PUBLIC_REALTIME_WS_URL`), the header refreshes at each unit or

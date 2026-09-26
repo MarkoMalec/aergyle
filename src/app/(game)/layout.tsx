@@ -18,7 +18,7 @@ export const revalidate = 0;
 import GameHeader from "~/components/game/ui/Header";
 import SidebarLeft from "~/components/game/ui/Sidebars/SidebarLeft";
 import { VocationalActiveActionProvider } from "~/components/game/actions/VocationalActiveActionProvider";
-import { ActionCompletionDialog } from "~/components/game/actions/ActionCompletionDialog";
+import { ActivitySummaryDialog } from "~/components/game/actions/ActivitySummaryDialog";
 
 export const metadata = {
   title: "Aergyle Game",
@@ -39,7 +39,7 @@ const GameLayout = async ({ children }: { children: React.ReactNode }) => {
   try {
     // Auto-claim any newly completed vocational ticks on page load/refresh.
     // This keeps inventory and user state consistent with the "refresh/visit" model.
-    const vocationalStatus = await settleVocationalTicks(userId);
+    await settleVocationalTicks(userId);
 
     // Settling can change the inventory and XP, so the rest loads after it.
     const [user, initialEquipment, initialLevelData] = await Promise.all([
@@ -54,7 +54,7 @@ const GameLayout = async ({ children }: { children: React.ReactNode }) => {
       loadEquipmentWithItems(userId),
       getXpProgress(userId),
     ]);
-    loaded = { vocationalStatus, user, initialEquipment, initialLevelData };
+    loaded = { user, initialEquipment, initialLevelData };
   } catch (error) {
     // A valid cookie for an account that no longer exists fails above.
     const exists = await prisma.user.findUnique({
@@ -64,7 +64,7 @@ const GameLayout = async ({ children }: { children: React.ReactNode }) => {
     if (!exists) return <StaleSession />;
     throw error;
   }
-  const { vocationalStatus, user, initialEquipment, initialLevelData } = loaded;
+  const { user, initialEquipment, initialLevelData } = loaded;
   if (!user) return <StaleSession />;
 
   return (
@@ -78,9 +78,7 @@ const GameLayout = async ({ children }: { children: React.ReactNode }) => {
             <EquipmentProvider initialEquipment={initialEquipment}>
               <LevelProvider initialLevelData={initialLevelData || undefined}>
                 <VocationalActiveActionProvider>
-                  <ActionCompletionDialog
-                    completions={vocationalStatus.completionSummaries}
-                  />
+                  <ActivitySummaryDialog />
                   <SidebarLeft />
                   <div className="game-content">
                     <GameHeader />

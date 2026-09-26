@@ -127,12 +127,16 @@ async function loadTickers(): Promise<Ticker[]> {
       },
       settle: async (userId) => {
         const claim = await claimVocationalRewards({ userId });
-        if (!claim.summary || (claim.claimedUnits <= 0 && !claim.stopReason)) {
+        if (
+          !claim.actionType ||
+          !claim.resourceName ||
+          (claim.claimedUnits <= 0 && !claim.stopReason)
+        ) {
           return null;
         }
         return {
-          skill: claim.summary.actionType,
-          label: claim.summary.resourceName,
+          skill: claim.actionType,
+          label: claim.resourceName,
           itemChanges: claim.itemChanges,
           newStacks: claim.newStacks,
           stopReason: claim.stopReason,

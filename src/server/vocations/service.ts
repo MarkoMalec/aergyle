@@ -6,10 +6,7 @@ import { assertNoOtherActivity } from "~/server/activity";
 import { countItems } from "~/server/items/consumeItems";
 import { MAX_VOCATION_DURATION_SECONDS } from "~/server/vocations/constants";
 import { computeVocationalProgress } from "~/server/vocations/progress";
-import {
-  claimVocationalRewards,
-  type VocationalCompletionSummary,
-} from "~/server/vocations/claim";
+import { claimVocationalRewards } from "~/server/vocations/claim";
 import {
   computeEffectiveUnitSeconds,
   getToolEfficiencyForAction,
@@ -42,9 +39,6 @@ export type VocationalStatus = {
     xpProgress: number;
     xpRemaining: number;
   } | null;
-  // One-time completion summaries generated during this call.
-  // Intended for UX ("while you were away") dialogs.
-  completionSummaries?: VocationalCompletionSummary[];
 };
 
 type VocationalDebugSnapshot = {
@@ -175,19 +169,8 @@ export async function getVocationalStatus(
   // an activity whose time is up, so the UI doesn't stay stuck at 100%.
   if (progress.unitsClaimable > 0 || progress.isComplete) {
     try {
-      const claim = await claimVocationalRewards({ userId });
-      const nextStatus = await fetchVocationalStatusRaw(userId);
-
-      // UX note: summarize when the activity ended, but skip a plain finish that paid
-      // nothing here (the daemon already granted it all live).
-      const summary = claim.stopReason ? claim.summary : null;
-      const worthShowing =
-        summary &&
-        (summary.stopReason !== "COMPLETED" || claim.claimedUnits > 0);
-
-      return worthShowing
-        ? { ...nextStatus, completionSummaries: [summary] }
-        : nextStatus;
+      await claimVocationalRewards({ userId });
+      return await fetchVocationalStatusRaw(userId);
     } catch (error) {
       // Never take the page down over a failed claim; the next check retries it.
       console.error("[vocations] claim failed", error);

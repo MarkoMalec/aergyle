@@ -96,7 +96,7 @@ const COMBAT_SNAPSHOT_KEYS = [
   "luck",
 ] as const satisfies readonly (keyof DungeonCombatSnapshot)[];
 
-const MONSTER_COMBAT_SELECT = {
+export const MONSTER_COMBAT_SELECT = {
   id: true,
   name: true,
   asset: true,
@@ -113,7 +113,7 @@ type MonsterCombatRow = Prisma.CreatureGetPayload<{
 }>;
 
 // Only enabled monsters are ever part of a dungeon population.
-const ACTIVE_MONSTERS_WHERE = {
+export const ACTIVE_MONSTERS_WHERE = {
   enabled: true,
   creature: { enabled: true, kind: CreatureKind.MONSTER },
 } satisfies Prisma.DungeonMonsterWhereInput;
@@ -125,7 +125,7 @@ async function getDungeonConfig() {
   );
 }
 
-function toMonsterPoolEntry(
+export function toMonsterPoolEntry(
   row: { minCount: number; maxCount: number; creature: MonsterCombatRow },
   drops: DungeonMonsterPoolEntry["drops"],
 ): DungeonMonsterPoolEntry {
