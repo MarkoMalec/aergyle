@@ -1,8 +1,8 @@
 # Atlas equipment pack v1
 
-Twenty-one items created for Aergyle's Wayfarer's Atlas art direction: five weapons and two complete eight-piece armor sets. Sprites were generated and checked before the catalog records were created. Definitions live in [atlasEquipment.ts](../prisma/content/atlasEquipment.ts).
+Twenty-two items created for Aergyle's Wayfarer's Atlas art direction: six weapons and two complete eight-piece armor sets. Sprites were generated and checked before the catalog records were created. Definitions live in [atlasEquipment.ts](../prisma/content/atlasEquipment.ts).
 
-Browse the collection at `/admin/items?collection=atlas-v1`. All 21 templates have been imported into the configured database. Re-running the importer keeps the existing records and their IDs.
+Browse the collection at `/admin/items?collection=atlas-v1`. Re-running the importer keeps existing records and their IDs while adding any missing templates.
 
 ## Equipment sets
 
@@ -29,9 +29,11 @@ These are coordinated armor collections; no additional set-bonus mechanic is int
 | Briarcleaver        | Axe   | Rare           |             10 | 18–29 physical |   650 |
 | Reedwind Bow        | Bow   | Rare           |             20 | 30–46 physical | 1,800 |
 | Cindermaul          | Mace  | Epic           |             35 | 52–78 physical | 4,600 |
+| Ogre Cleaver        | Great Axe, two-handed | Rare |        40 | 38–56 physical | 3,400 |
 | Duskglass Staff     | Staff | Epic           |             50 | 72–108 magic   | 7,800 |
 
 All items are non-stackable, have descriptions, prices, equipment slots and base stats. Their exact stat definitions are maintained in code, rather than duplicated in this guide.
+Ogre Cleaver is a rare drop from Ogres in Blackjaw Stockade.
 
 ## Rarity and level behavior
 
@@ -44,10 +46,10 @@ The values are an initial progression pass. They have not been validated through
 ## Artwork and repeatability
 
 - Generator: built-in image generation. Each selected item is a separate generated sprite.
-- Art archive: [art/items/atlas-equipment-v1](../art/items/atlas-equipment-v1), containing 21 original masters, their exact prompts and [generation.json](../art/items/atlas-equipment-v1/generation.json).
+- Art archive: [art/items/atlas-equipment-v1](../art/items/atlas-equipment-v1), containing 22 original masters, their exact prompts and [generation.json](../art/items/atlas-equipment-v1/generation.json).
 - Runtime sprites: `public/assets/items/armor/*-atlas-v1.png` and `public/assets/items/weapons/*-atlas-v1.png`.
 - Masters retain the generator's native 1254 × 1254 RGBA output. Runtime copies are 256 × 256 RGBA PNGs, resized with `sips`.
-- All 21 runtime sprites total 1,374,741 bytes (approximately 1.31 MiB), with each below 150 KB.
+- Every runtime sprite is below 150 KB.
 - True transparent alpha was checked, including transparent-pixel coverage. Outputs with painted checkerboards were rejected and regenerated before selection.
 - The full collection was visually reviewed at 32, 64 and 128 pixels against the game's dark surface. Rare and Epic frames were also reviewed in the real item-detail component.
 
@@ -64,7 +66,7 @@ npm run db:seed:atlas -- --verify
 npm test
 ```
 
-`--check` is the default read-only preview. `--apply` creates missing templates and their stats. `--verify` checks the stored definitions against the pack. The import was run twice: the first created 21 records, and the second kept the same 21 records. Database verification passed.
+`--check` is the default read-only preview. `--apply` creates missing templates and their stats. `--verify` checks the stored definitions against the pack.
 
 Six focused automated tests cover the collection, sprite files, unscaled template stats, default and explicit rarity creation, exact level boundaries, and equipment validation. The live UI was checked at preview character levels 1 and 50 without modifying a player's inventory.
 

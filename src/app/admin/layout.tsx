@@ -18,7 +18,8 @@ export default async function AdminLayout({
   const admin = await getAdminSession();
   // Signed out, only the login page renders: every other admin page redirects
   // to it on its own (requireAdminPageAccess), so nothing else shows here.
-  if (!admin) return <>{children}</>;
+  // A setup session is the same: it only ever reaches /admin/setup.
+  if (!admin || admin.scope !== "FULL") return <>{children}</>;
 
   const openReports = await countOpenReports();
   return (

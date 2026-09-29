@@ -1,3 +1,4 @@
+import crypto from "crypto";
 // bcryptjs is CommonJS: the default import works both in Next and in plain
 // Node (the admin CLI), where named imports from it fail.
 import bcrypt from "bcryptjs";
@@ -46,4 +47,59 @@ export async function verifyAdminPassword(
 ): Promise<boolean> {
   const matches = await bcrypt.compare(password, passwordHash ?? DUMMY_HASH);
   return matches && Boolean(passwordHash);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Invites                                                                     */
+/* -------------------------------------------------------------------------- */
+
+/** How long a new admin has to finish setup before the invite goes dead. */
+export const ADMIN_INVITE_HOURS = 48;
+
+// No I, L, O or U: nothing that can be misread or misheard when the password
+// is passed on, and no accidental words.
+const INVITE_ALPHABET = "ABCDEFGHJKMNPQRSTVWXYZ23456789";
+const INVITE_GROUPS = 5;
+const INVITE_GROUP_SIZE = 4;
+
+/**
+ * The one-time password an invited admin signs in with once. Generated rather
+ * than chosen, because it is a single factor: for the length of the invite it
+ * is the only thing standing in front of the account.
+ */
+export function generateInvitePassword(): string {
+  const groups: string[] = [];
+  for (let group = 0; group < INVITE_GROUPS; group++) {
+    let chunk = "";
+    for (let index = 0; index < INVITE_GROUP_SIZE; index++) {
+      chunk += INVITE_ALPHABET[crypto.randomInt(INVITE_ALPHABET.length)];
+    }
+    groups.push(chunk);
+  }
+  // ~98 bits, in groups that are easy to read out loud.
+  return groups.join("-");
+}
+
+export type AdminInviteState = {
+  totpSecret: string | null;
+  setupExpiresAt: Date | null;
+  disabled: boolean;
+};
+
+/**
+ * True while the account is waiting for its first setup: no authenticator yet
+ * and the invite has not run out. Only then does the password alone open a
+ * (setup-only) session.
+ */
+export function isInviteOpen(
+  admin: AdminInviteState | null | undefined,
+  now: Date = new Date(),
+): boolean {
+  return Boolean(
+    admin &&
+      !admin.disabled &&
+      admin.totpSecret === null &&
+      admin.setupExpiresAt !== null &&
+      admin.setupExpiresAt > now,
+  );
 }

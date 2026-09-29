@@ -123,6 +123,21 @@ export const CARPENTRY_PLANKS = [
     xpPerUnit: 28,
   },
   {
+    slug: "gloamwood-plank",
+    name: "Gloamwood Plank",
+    description:
+      "A dark rosewood board with a dense grain, suited to precise joinery and resilient fittings.",
+    sourceLogName: "Gloamwood Log",
+    itemType: "MATERIAL",
+    rarity: "EXQUISITE",
+    price: 175,
+    sprite: "/assets/items/resources/planks/gloamwood-plank-carpentry-v1.png",
+    requiredSkillLevel: 110,
+    defaultSeconds: 70,
+    yieldPerUnit: 1,
+    xpPerUnit: 35,
+  },
+  {
     slug: "emberwood-plank",
     name: "Emberwood Plank",
     description:
@@ -136,6 +151,36 @@ export const CARPENTRY_PLANKS = [
     defaultSeconds: 78,
     yieldPerUnit: 1,
     xpPerUnit: 45,
+  },
+  {
+    slug: "ironbark-plank",
+    name: "Ironbark Plank",
+    description:
+      "A heavy honey-brown board with a stubborn grain, prized for structural frames and hard-wearing stock.",
+    sourceLogName: "Ironbark Log",
+    itemType: "MATERIAL",
+    rarity: "ELITE",
+    price: 460,
+    sprite: "/assets/items/resources/planks/ironbark-plank-carpentry-v1.png",
+    requiredSkillLevel: 175,
+    defaultSeconds: 96,
+    yieldPerUnit: 1,
+    xpPerUnit: 55,
+  },
+  {
+    slug: "saltcedar-plank",
+    name: "Saltcedar Plank",
+    description:
+      "A close-grained coastal cedar board whose seasoned red heart shrugs off sea air and strain.",
+    sourceLogName: "Saltcedar Log",
+    itemType: "MATERIAL",
+    rarity: "LEGENDARY",
+    price: 1000,
+    sprite: "/assets/items/resources/planks/saltcedar-plank-carpentry-v1.png",
+    requiredSkillLevel: 210,
+    defaultSeconds: 120,
+    yieldPerUnit: 1,
+    xpPerUnit: 75,
   },
 ] as const satisfies readonly CarpentryPlankDefinition[];
 

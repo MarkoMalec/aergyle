@@ -2,8 +2,10 @@ import React from "react";
 import { notFound } from "next/navigation";
 import { prisma } from "~/lib/prisma";
 import { ItemForm } from "~/components/admin/items/ItemForm";
+import { ItemChainPanel } from "~/components/admin/itemGraph/ItemChainPanel";
 import { StatType } from "~/generated/prisma/enums";
 import { requireAdminPageAccess } from "~/server/admin/auth";
+import { loadItemGraphContent } from "~/server/itemGraph/content";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -15,31 +17,34 @@ export default async function AdminEditItemPage(props: {
   const id = Number(props.params.id);
   if (!Number.isFinite(id)) notFound();
 
-  const item = await prisma.item.findUnique({
-    where: { id },
-    include: {
-      stats: {
-        orderBy: { statType: "asc" },
-        select: { statType: true, value: true, maxValue: true },
+  const [item, graphContent] = await Promise.all([
+    prisma.item.findUnique({
+      where: { id },
+      include: {
+        stats: {
+          orderBy: { statType: "asc" },
+          select: { statType: true, value: true, maxValue: true },
+        },
+        statRarityOverrides: {
+          orderBy: [{ rarity: "asc" }, { statType: "asc" }],
+          select: { statType: true, rarity: true, kind: true, value: true },
+        },
+        toolEfficiencies: {
+          orderBy: { actionType: "asc" },
+          select: { actionType: true, baseEfficiency: true },
+        },
+        statProgressions: {
+          orderBy: [{ unlocksAtRarity: "asc" }, { statType: "asc" }],
+          select: { statType: true, baseValue: true, unlocksAtRarity: true },
+        },
+        foodEffectStats: {
+          orderBy: { statType: "asc" },
+          select: { statType: true, value: true },
+        },
       },
-      statRarityOverrides: {
-        orderBy: [{ rarity: "asc" }, { statType: "asc" }],
-        select: { statType: true, rarity: true, kind: true, value: true },
-      },
-      toolEfficiencies: {
-        orderBy: { actionType: "asc" },
-        select: { actionType: true, baseEfficiency: true },
-      },
-      statProgressions: {
-        orderBy: [{ unlocksAtRarity: "asc" }, { statType: "asc" }],
-        select: { statType: true, baseValue: true, unlocksAtRarity: true },
-      },
-      foodEffectStats: {
-        orderBy: { statType: "asc" },
-        select: { statType: true, value: true },
-      },
-    },
-  });
+    }),
+    loadItemGraphContent(),
+  ]);
 
   if (!item) notFound();
 
@@ -118,12 +123,11 @@ export default async function AdminEditItemPage(props: {
     };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Edit Item</h1>
-        <p className="text-sm text-white/70">ID: {item.id}</p>
-      </div>
-      <ItemForm mode="edit" itemId={item.id} initialValues={initialValues} />
-    </div>
+    <ItemForm
+      mode="edit"
+      itemId={item.id}
+      initialValues={initialValues}
+      chain={<ItemChainPanel content={graphContent} itemId={item.id} />}
+    />
   );
 }

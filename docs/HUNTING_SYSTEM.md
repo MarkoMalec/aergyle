@@ -81,5 +81,7 @@ editor labels them "Defence — used in dungeons only".
 5. Balance live content at `/admin/hunting`. Players browse animals at
    `/animals`, with a profile page per animal.
 
-The starter pack contains eight animals, eight material items, ten hunting
-grounds covering all current world locations, and four duration tiers.
+The hunting catalogue contains thirteen animals, eight material items, ten hunting
+grounds covering all current world locations, and four duration tiers. The five
+additional animals deepen the Goblins Camp through Pirate Island grounds without
+changing the shared drop-material catalogue.

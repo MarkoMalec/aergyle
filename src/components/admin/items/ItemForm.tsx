@@ -1,400 +1,353 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { type FieldErrors, useForm, type UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import toast from "react-hot-toast";
 import {
-  type ItemEquipTo,
+  BarChart3,
+  ChevronLeft,
+  FlaskConical,
+  Gem,
+  Loader2,
+  Save,
+  Sprout,
+  Swords,
+  Tag,
+  Trash2,
+  Undo2,
+} from "lucide-react";
+import {
   ItemRarity,
-  ItemStatRarityOverrideKind,
   ItemType,
   StatType,
   VocationalActionType,
 } from "~/generated/prisma/enums";
-import { getVocationalEfficiencyStatType } from "~/game/vocationStats";
-import { statScalesWithRarity } from "~/utils/itemInstanceStats";
-import { normalizeItemEquipTo } from "~/utils/itemEquipTo";
-import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
+import { Segmented } from "~/components/admin/balance/ui";
+import { NumberInput } from "~/components/admin/fields";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "~/components/ui/select";
+  ConfirmLeaveContext,
+  LEAVE_MESSAGE,
+  useLeaveGuard,
+} from "~/components/admin/leaveGuard";
+import { formatDuration, humanize } from "~/components/admin/players/shared";
+import {
+  SearchSelect,
+  type SearchOption,
+} from "~/components/admin/SearchSelect";
+import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
-import { rarityStyle } from "~/utils/rarity-colors";
+import { normalizeItemEquipTo } from "~/utils/itemEquipTo";
+import {
+  ChoicePicker,
+  controlClass,
+  CsvEditor,
+  CsvToggle,
+  ErrorNote,
+  Field,
+  FormSection,
+  invalidClass,
+  ListEditor,
+  ListRow,
+  numberClass,
+  RarityChip,
+  SpriteTile,
+  Switch,
+  WithSuffix,
+} from "./ItemFormControls";
+import {
+  baseStatsCodec,
+  buildPreviewRows,
+  clampPercent,
+  COMBAT_STAT_TYPES,
+  type CsvCodec,
+  type CsvField,
+  foodEffectStatsCodec,
+  itemFormSchema,
+  itemFormSnapshot,
+  type ItemFormValues,
+  type RarityConfigPreview,
+  statProgressionsCodec,
+  statRarityOverridesCodec,
+  toolEfficienciesCodec,
+} from "./itemFormModel";
+import {
+  isPercentStat,
+  ITEM_TYPE_OPTIONS,
+  rarityColor,
+  rarityLabel,
+  rarityOptions,
+  SKILL_OPTIONS,
+  SLOT_OPTIONS,
+  slotLabel,
+  statLabel,
+  statOptions,
+} from "./itemFormOptions";
+import { type OverrideChange, RarityScalingGrid } from "./RarityScalingGrid";
 
-const ITEM_RARITY_VALUES = Object.values(ItemRarity) as [
-  ItemRarity,
-  ...ItemRarity[],
-];
+const ITEM_RARITY_VALUES = Object.values(ItemRarity) as ItemRarity[];
+const ALL_STAT_TYPES = Object.values(StatType) as StatType[];
+const ALL_ACTION_TYPES = Object.values(
+  VocationalActionType,
+) as VocationalActionType[];
 
-const ITEM_TYPE_VALUES = Object.values(ItemType) as [ItemType, ...ItemType[]];
+const FORM_ID = "item-editor-form";
 
-type ToolEfficiencyRow = {
-  actionType: VocationalActionType;
-  baseEfficiency: number;
+// Picker changes count as edits, like typing does.
+const DIRTY = { shouldDirty: true } as const;
+
+const DEFAULT_VALUES: ItemFormValues = {
+  name: "",
+  sprite: "",
+  price: 0,
+  description: "",
+  rarity: ItemRarity.COMMON,
+  itemType: null,
+  seedGrowSeconds: null,
+  seedYieldItemId: null,
+  seedYieldMin: null,
+  seedYieldMax: null,
+  seedHarvestSeconds: null,
+  seedXp: null,
+  healingAmount: null,
+  foodEffectSeconds: null,
+  equipTo: null,
+  twoHanded: false,
+  stackable: false,
+  maxStackSize: 1,
+  minPhysicalDamage: null,
+  flipNegativeStatsWithRarity: false,
+  maxPhysicalDamage: null,
+  minMagicDamage: null,
+  maxMagicDamage: null,
+  armor: null,
+  requiredLevel: 1,
+  baseStatsCsv: "",
+  toolEfficienciesCsv: "",
+  statProgressionsCsv: "",
+  statRarityOverridesCsv: "",
+  foodEffectStatsCsv: "",
 };
 
-type StatProgressionRow = {
-  statType: StatType;
-  baseValue: number;
-  unlocksAtRarity: ItemRarity;
+/** Where each validated field lives, to point the section bar at errors. */
+const FIELD_PLACES: Partial<
+  Record<keyof ItemFormValues, { label: string; section: string }>
+> = {
+  name: { label: "Name", section: "general" },
+  sprite: { label: "Sprite", section: "general" },
+  price: { label: "Price", section: "general" },
+  requiredLevel: { label: "Required level", section: "general" },
+  maxStackSize: { label: "Stack size", section: "general" },
+  minPhysicalDamage: { label: "Physical damage", section: "equipment" },
+  maxPhysicalDamage: { label: "Physical damage", section: "equipment" },
+  minMagicDamage: { label: "Magic damage", section: "equipment" },
+  maxMagicDamage: { label: "Magic damage", section: "equipment" },
+  armor: { label: "Armor", section: "equipment" },
+  healingAmount: { label: "Instant healing", section: "consumable" },
+  foodEffectSeconds: { label: "Effect duration", section: "consumable" },
+  seedGrowSeconds: { label: "Grow time", section: "seed" },
+  seedHarvestSeconds: { label: "Harvest time", section: "seed" },
+  seedYieldMin: { label: "Harvest amount", section: "seed" },
+  seedYieldMax: { label: "Harvest amount", section: "seed" },
+  seedXp: { label: "Gardening XP", section: "seed" },
 };
 
-type BaseStatRow = {
-  statType: StatType;
-  value: number;
-  maxValue?: number | null;
-};
+const BASE_STAT_OPTIONS = statOptions(
+  (statType) => !COMBAT_STAT_TYPES.has(statType),
+);
+const ALL_STAT_OPTIONS = statOptions();
 
-type StatRarityOverrideRow = {
-  statType: StatType;
-  rarity: ItemRarity;
-  kind: ItemStatRarityOverrideKind;
-  value: number;
-};
+// Proportional tracks with floors: capped tracks would grow before a 1fr
+// track, leaving the stat picker no room on a narrow screen.
+const BASE_COLUMNS =
+  "grid-cols-[minmax(0,1.6fr)_minmax(4.5rem,1fr)_minmax(4.5rem,1fr)_2rem]";
+const TOOL_COLUMNS = "grid-cols-[minmax(0,1.6fr)_minmax(4.5rem,1fr)_2rem]";
+const UNLOCK_COLUMNS =
+  "grid-cols-[minmax(0,1.6fr)_minmax(4rem,0.8fr)_minmax(6rem,1.2fr)_2rem]";
+const BONUS_COLUMNS = "grid-cols-[minmax(0,1.6fr)_minmax(4.5rem,1fr)_2rem]";
 
-type FoodEffectStatRow = {
-  statType: StatType;
-  value: number;
-};
-
-type RarityConfigPreview = {
-  rarity: ItemRarity;
-  statMultiplier: number;
-  sortOrder: number;
-  displayName?: string;
-};
-
-function parseCsvLines(input: string): string[] {
-  return (input ?? "")
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter(Boolean);
+function errorMessage(json: unknown, fallback: string) {
+  return json &&
+    typeof json === "object" &&
+    "error" in json &&
+    typeof json.error === "string"
+    ? json.error
+    : fallback;
 }
 
-function clampPercent(value: number): number {
-  if (!Number.isFinite(value)) return 0;
-  return Math.max(0, Math.min(100, value));
+function toNumber(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
 }
 
-function safeParseFoodEffectStatsCsv(csv: string): {
-  rows: FoodEffectStatRow[];
-  error: string | null;
-} {
-  const lines = parseCsvLines(csv);
-  if (lines.length === 0) return { rows: [], error: null };
-  const startIndex = lines[0]?.toLowerCase().includes("stattype") ? 1 : 0;
-  const rows: FoodEffectStatRow[] = [];
-  const seen = new Set<StatType>();
-
-  for (const [index, line] of lines.slice(startIndex).entries()) {
-    const [statTypeRaw, valueRaw] = line.split(",").map((part) => part.trim());
-    if (!statTypeRaw || !(statTypeRaw in StatType)) {
-      return {
-        rows: [],
-        error: `Invalid food stat on row ${index + 1}: ${statTypeRaw ?? ""}`,
-      };
-    }
-    const statType = statTypeRaw as StatType;
-    const value = Number.parseFloat(valueRaw ?? "");
-    if (!Number.isFinite(value)) {
-      return { rows: [], error: `Invalid food value for ${statType}` };
-    }
-    if (seen.has(statType)) {
-      return { rows: [], error: `Duplicate food stat: ${statType}` };
-    }
-    seen.add(statType);
-    rows.push({ statType, value });
-  }
-
-  return { rows, error: null };
+/** Grows a textarea to show all of its text. */
+function fitToContent(element: HTMLTextAreaElement | null) {
+  if (!element) return;
+  element.style.height = "auto";
+  element.style.height = `${element.scrollHeight}px`;
 }
 
-function foodEffectStatsToCsv(rows: FoodEffectStatRow[]) {
-  if (rows.length === 0) return "";
-  return [
-    "statType,value",
-    ...rows.map((row) => `${row.statType},${row.value}`),
-  ].join("\n");
+function durationHint(seconds: unknown, fallback: string) {
+  const value = toNumber(seconds);
+  return value && value > 0
+    ? `${formatDuration(value)} · ${fallback}`
+    : fallback;
 }
 
-function safeParseToolEfficienciesCsv(csv: string): {
-  rows: ToolEfficiencyRow[];
-  error: string | null;
-} {
-  const lines = parseCsvLines(csv);
-  if (lines.length === 0) return { rows: [], error: null };
+/**
+ * One balance table edited as rows, or as its raw CSV. The rows are written
+ * back to the CSV form field on every change, which is what gets saved.
+ */
+function useCsvList<Row>(
+  form: UseFormReturn<ItemFormValues>,
+  field: CsvField,
+  codec: CsvCodec<Row>,
+  initialCsv: string | undefined,
+) {
+  const [initial] = useState(() => codec.parse(initialCsv ?? ""));
+  const [raw, setRaw] = useState(initial.error !== null);
+  const [error, setError] = useState<string | null>(initial.error);
+  const [rows, setRowsState] = useState<Row[]>(initial.rows);
 
-  const startIndex = lines[0]?.toLowerCase().includes("actiontype") ? 1 : 0;
-  const rows: ToolEfficiencyRow[] = [];
+  const setRows = (next: Row[]) => {
+    setRowsState(next);
+    form.setValue(field, codec.toCsv(next), { shouldDirty: true });
+  };
 
-  for (const [idx, line] of lines.slice(startIndex).entries()) {
-    const [actionTypeRaw, baseRaw] = line.split(",").map((s) => s.trim());
-    if (!actionTypeRaw) continue;
-    if (!(actionTypeRaw in VocationalActionType)) {
-      return {
-        rows: [],
-        error: `Invalid actionType on row ${idx + 1}: ${actionTypeRaw}`,
-      };
-    }
-    const base = clampPercent(Number.parseFloat(baseRaw ?? ""));
-    if (!Number.isFinite(base)) {
-      return {
-        rows: [],
-        error: `Invalid baseEfficiency on row ${idx + 1} for ${actionTypeRaw}`,
-      };
-    }
-    rows.push({
-      actionType: actionTypeRaw as VocationalActionType,
-      baseEfficiency: base,
-    });
-  }
-
-  return { rows, error: null };
-}
-
-function toolEfficienciesToCsv(rows: ToolEfficiencyRow[]): string {
-  if (!rows || rows.length === 0) return "";
-  return [
-    "actionType,baseEfficiency",
-    ...rows.map((r) => `${r.actionType},${clampPercent(r.baseEfficiency)}`),
-  ].join("\n");
-}
-
-function safeParseStatProgressionsCsv(csv: string): {
-  rows: StatProgressionRow[];
-  error: string | null;
-} {
-  const lines = parseCsvLines(csv);
-  if (lines.length === 0) return { rows: [], error: null };
-
-  const startIndex = lines[0]?.toLowerCase().includes("stattype") ? 1 : 0;
-  const rows: StatProgressionRow[] = [];
-
-  for (const [idx, line] of lines.slice(startIndex).entries()) {
-    const [statTypeRaw, baseRaw, unlocksRaw] = line
-      .split(",")
-      .map((s) => s.trim());
-    if (!statTypeRaw || !baseRaw || !unlocksRaw) continue;
-    if (!(statTypeRaw in StatType)) {
-      return {
-        rows: [],
-        error: `Invalid statType on row ${idx + 1}: ${statTypeRaw}`,
-      };
-    }
-    if (!(unlocksRaw in ItemRarity)) {
-      return {
-        rows: [],
-        error: `Invalid unlocksAtRarity on row ${idx + 1}: ${unlocksRaw}`,
-      };
-    }
-
-    const baseValue = Number.parseFloat(baseRaw);
-    if (!Number.isFinite(baseValue)) {
-      return {
-        rows: [],
-        error: `Invalid baseValue on row ${idx + 1} for ${statTypeRaw}`,
-      };
-    }
-
-    rows.push({
-      statType: statTypeRaw as StatType,
-      baseValue,
-      unlocksAtRarity: unlocksRaw as ItemRarity,
-    });
-  }
-
-  return { rows, error: null };
-}
-
-function statProgressionsToCsv(rows: StatProgressionRow[]): string {
-  if (!rows || rows.length === 0) return "";
-  return [
-    "statType,baseValue,unlocksAtRarity",
-    ...rows.map((r) => `${r.statType},${r.baseValue},${r.unlocksAtRarity}`),
-  ].join("\n");
-}
-
-function safeParseBaseStatsCsv(csv: string): {
-  rows: BaseStatRow[];
-  error: string | null;
-} {
-  const lines = parseCsvLines(csv);
-  if (lines.length === 0) return { rows: [], error: null };
-
-  const startIndex = lines[0]?.toLowerCase().includes("stattype") ? 1 : 0;
-  const rows: BaseStatRow[] = [];
-
-  for (const [idx, line] of lines.slice(startIndex).entries()) {
-    const [statTypeRaw, valueRaw, maxRaw] = line
-      .split(",")
-      .map((s) => s.trim());
-    if (!statTypeRaw) continue;
-    if (!(statTypeRaw in StatType)) {
-      return {
-        rows: [],
-        error: `Invalid statType on row ${idx + 1}: ${statTypeRaw}`,
-      };
-    }
-
-    const value = Number.parseFloat(valueRaw ?? "");
-    if (!Number.isFinite(value)) {
-      return {
-        rows: [],
-        error: `Invalid value on row ${idx + 1} for ${statTypeRaw}`,
-      };
-    }
-
-    let maxValue: number | null = null;
-    if (typeof maxRaw === "string" && maxRaw.length > 0) {
-      const parsedMax = Number.parseFloat(maxRaw);
-      if (!Number.isFinite(parsedMax)) {
-        return {
-          rows: [],
-          error: `Invalid maxValue on row ${idx + 1} for ${statTypeRaw}`,
-        };
+  return {
+    rows,
+    raw,
+    error,
+    setRows,
+    add: (row: Row) => setRows([...rows, row]),
+    update: (index: number, patch: Partial<Row>) =>
+      setRows(rows.map((row, i) => (i === index ? { ...row, ...patch } : row))),
+    remove: (index: number) => setRows(rows.filter((_, i) => i !== index)),
+    /** Leaving CSV applies it, or keeps it open and says what's wrong. */
+    toggleRaw: () => {
+      if (!raw) {
+        setRaw(true);
+        setError(null);
+        return;
       }
-      maxValue = parsedMax;
-    }
-
-    rows.push({ statType: statTypeRaw as StatType, value, maxValue });
-  }
-
-  return { rows, error: null };
+      const parsed = codec.parse(form.getValues(field) ?? "");
+      if (parsed.error) {
+        setError(parsed.error);
+        return;
+      }
+      setError(null);
+      setRaw(false);
+      setRows(parsed.rows);
+    },
+  };
 }
 
-function baseStatsToCsv(rows: BaseStatRow[]): string {
-  if (!rows || rows.length === 0) return "";
-  return [
-    "statType,value,maxValue",
-    ...rows.map((r) => `${r.statType},${r.value},${r.maxValue ?? ""}`),
-  ].join("\n");
+/** The section nearest the top of the viewport, for the section bar. */
+function useActiveSection(ids: string[]) {
+  const [active, setActive] = useState(ids[0] ?? "");
+  const key = ids.join(",");
+
+  useEffect(() => {
+    const list = key.split(",");
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      let current = list[0] ?? "";
+      for (const id of list) {
+        const top = document.getElementById(id)?.getBoundingClientRect().top;
+        if (top !== undefined && top <= 140) current = id;
+      }
+      const atBottom =
+        window.innerHeight + window.scrollY >=
+        document.documentElement.scrollHeight - 4;
+      if (atBottom) current = list[list.length - 1] ?? current;
+      setActive(current);
+    };
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+    };
+  }, [key]);
+
+  return active;
 }
 
-function safeParseStatRarityOverridesCsv(csv: string): {
-  rows: StatRarityOverrideRow[];
-  error: string | null;
-} {
-  const lines = parseCsvLines(csv);
-  if (lines.length === 0) return { rows: [], error: null };
-
-  const startIndex = lines[0]?.toLowerCase().includes("stattype") ? 1 : 0;
-  const rows: StatRarityOverrideRow[] = [];
-
-  for (const [idx, line] of lines.slice(startIndex).entries()) {
-    const parts = line.split(",").map((s) => s.trim());
-    const [statTypeRaw, rarityRaw] = parts;
-    const hasKindColumn = parts.length >= 4;
-    const kindRaw = hasKindColumn
-      ? parts[2]
-      : ItemStatRarityOverrideKind.ABSOLUTE;
-    const valueRaw = hasKindColumn ? parts[3] : parts[2];
-    if (!statTypeRaw || !rarityRaw || !valueRaw) continue;
-
-    if (!(statTypeRaw in StatType)) {
-      return {
-        rows: [],
-        error: `Invalid statType on row ${idx + 1}: ${statTypeRaw}`,
-      };
-    }
-    if (!(rarityRaw in ItemRarity)) {
-      return {
-        rows: [],
-        error: `Invalid rarity on row ${idx + 1}: ${rarityRaw}`,
-      };
-    }
-    if (!kindRaw || !(kindRaw in ItemStatRarityOverrideKind)) {
-      return {
-        rows: [],
-        error: `Invalid override kind on row ${idx + 1}: ${kindRaw ?? ""}`,
-      };
-    }
-
-    const value = Number.parseFloat(valueRaw);
-    if (!Number.isFinite(value)) {
-      return {
-        rows: [],
-        error: `Invalid value on row ${idx + 1} for ${statTypeRaw}/${rarityRaw}`,
-      };
-    }
-
-    rows.push({
-      statType: statTypeRaw as StatType,
-      rarity: rarityRaw as ItemRarity,
-      kind: kindRaw as ItemStatRarityOverrideKind,
-      value,
-    });
-  }
-
-  return { rows, error: null };
-}
-
-function statRarityOverridesToCsv(rows: StatRarityOverrideRow[]): string {
-  if (!rows || rows.length === 0) return "";
-  return [
-    "statType,rarity,kind,value",
-    ...rows.map((r) => `${r.statType},${r.rarity},${r.kind},${r.value}`),
-  ].join("\n");
-}
-
-const schema = z.object({
-  name: z.string().min(1),
-  sprite: z.string().min(1),
-  description: z.string().optional(),
-  price: z.coerce.number().min(0),
-  rarity: z.enum(ITEM_RARITY_VALUES).default(ItemRarity.COMMON),
-  itemType: z.enum(ITEM_TYPE_VALUES).nullable().optional(),
-  // Seed / gardening configuration (used only when itemType = SEED)
-  seedGrowSeconds: z.coerce.number().int().nullable().optional(),
-  seedYieldItemId: z.coerce.number().int().nullable().optional(),
-  seedYieldMin: z.coerce.number().int().nullable().optional(),
-  seedYieldMax: z.coerce.number().int().nullable().optional(),
-  seedHarvestSeconds: z.coerce.number().int().nullable().optional(),
-  seedXp: z.coerce.number().int().nullable().optional(),
-  healingAmount: z.coerce.number().int().nullable().optional(),
-  foodEffectSeconds: z.coerce.number().int().nullable().optional(),
-  equipTo: z.string().nullable().optional(),
-  twoHanded: z.coerce.boolean().default(false),
-  stackable: z.coerce.boolean().default(false),
-  maxStackSize: z.coerce.number().int().min(1).default(1),
-  flipNegativeStatsWithRarity: z.coerce.boolean().default(false),
-  minPhysicalDamage: z.coerce.number().nullable().optional(),
-  maxPhysicalDamage: z.coerce.number().nullable().optional(),
-  minMagicDamage: z.coerce.number().nullable().optional(),
-  maxMagicDamage: z.coerce.number().nullable().optional(),
-  armor: z.coerce.number().nullable().optional(),
-  requiredLevel: z.coerce.number().int().min(1).default(1),
-  // Advanced (relationships)
-  baseStatsCsv: z.string().optional(),
-  toolEfficienciesCsv: z.string().optional(),
-  statProgressionsCsv: z.string().optional(),
-  statRarityOverridesCsv: z.string().optional(),
-  foodEffectStatsCsv: z.string().optional(),
-});
-
-type FormValues = z.infer<typeof schema>;
-
-export function ItemForm(props: {
+type ItemFormProps = {
   mode: "create" | "edit";
   itemId?: number;
-  initialValues?: Partial<FormValues>;
-}) {
+  initialValues?: Partial<ItemFormValues>;
+  /** The item's place in the crafting chains, shown after the form. */
+  chain?: React.ReactNode;
+};
+
+export function ItemForm(props: ItemFormProps) {
+  // Discarding remounts the editor, which restores every field and list.
+  const [revision, setRevision] = useState(0);
+  // Whether leaving now would lose edits; the crafting chain asks before it
+  // opens another item.
+  const unsavedRef = useRef(false);
+  const confirmLeave = useCallback(
+    () => !unsavedRef.current || window.confirm(LEAVE_MESSAGE),
+    [],
+  );
+
+  return (
+    <ConfirmLeaveContext.Provider value={confirmLeave}>
+      <div className="mx-auto w-full max-w-6xl space-y-5 pb-12">
+        <ItemEditor
+          key={revision}
+          {...props}
+          unsavedRef={unsavedRef}
+          onDiscard={() => setRevision((value) => value + 1)}
+        />
+        {props.chain ? (
+          <div id="chain" className="scroll-mt-20">
+            {props.chain}
+          </div>
+        ) : null}
+        {props.mode === "edit" && props.itemId ? (
+          <DeleteItemSection
+            itemId={props.itemId}
+            name={
+              props.initialValues?.name ? props.initialValues.name : "this item"
+            }
+          />
+        ) : null}
+      </div>
+    </ConfirmLeaveContext.Provider>
+  );
+}
+
+function ItemEditor(
+  props: ItemFormProps & {
+    unsavedRef: React.MutableRefObject<boolean>;
+    onDiscard: () => void;
+  },
+) {
   const router = useRouter();
+  const isCreate = props.mode === "create";
   const [isSaving, setIsSaving] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-
-  const [seedYieldOptions, setSeedYieldOptions] = useState<Array<{
-    id: number;
-    name: string;
-  }> | null>(null);
-
+  const [saved, setSaved] = useState(false);
+  const [brokenSprite, setBrokenSprite] = useState<string | null>(null);
+  const [seedYieldOptions, setSeedYieldOptions] = useState<
+    SearchOption[] | null
+  >(null);
   const [rarityConfigs, setRarityConfigs] = useState<
     RarityConfigPreview[] | null
   >(null);
@@ -402,72 +355,70 @@ export function ItemForm(props: {
     null,
   );
 
-  const defaults: FormValues = {
-    name: "",
-    sprite: "",
-    price: 0,
-    description: "",
-    rarity: ItemRarity.COMMON,
-    itemType: null,
-    seedGrowSeconds: null,
-    seedYieldItemId: null,
-    seedYieldMin: null,
-    seedYieldMax: null,
-    seedHarvestSeconds: null,
-    seedXp: null,
-    healingAmount: null,
-    foodEffectSeconds: null,
-    equipTo: null,
-    twoHanded: false,
-    stackable: false,
-    maxStackSize: 1,
-    minPhysicalDamage: null,
-    flipNegativeStatsWithRarity: false,
-    maxPhysicalDamage: null,
-    minMagicDamage: null,
-    maxMagicDamage: null,
-    armor: null,
-    requiredLevel: 1,
-    baseStatsCsv: "",
-    toolEfficienciesCsv: "",
-    statProgressionsCsv: "",
-    statRarityOverridesCsv: "",
-    foodEffectStatsCsv: "",
+  const [defaults] = useState<ItemFormValues>(() => ({
+    ...DEFAULT_VALUES,
     ...props.initialValues,
-  };
-
-  const form = useForm<FormValues>({
-    resolver: zodResolver(schema),
+  }));
+  const form = useForm<ItemFormValues>({
+    resolver: zodResolver(itemFormSchema),
     defaultValues: defaults,
   });
+  const values = form.watch();
+  const descriptionField = form.register("description");
+  const errors = form.formState.errors;
 
-  const actionTypes = useMemo(() => Object.values(VocationalActionType), []);
-  const statTypes = useMemo(() => Object.values(StatType), []);
+  const baseStats = useCsvList(
+    form,
+    "baseStatsCsv",
+    baseStatsCodec,
+    defaults.baseStatsCsv,
+  );
+  const tools = useCsvList(
+    form,
+    "toolEfficienciesCsv",
+    toolEfficienciesCodec,
+    defaults.toolEfficienciesCsv,
+  );
+  const progressions = useCsvList(
+    form,
+    "statProgressionsCsv",
+    statProgressionsCodec,
+    defaults.statProgressionsCsv,
+  );
+  const overrides = useCsvList(
+    form,
+    "statRarityOverridesCsv",
+    statRarityOverridesCodec,
+    defaults.statRarityOverridesCsv,
+  );
+  const bonuses = useCsvList(
+    form,
+    "foodEffectStatsCsv",
+    foodEffectStatsCodec,
+    defaults.foodEffectStatsCsv,
+  );
 
-  const itemTypes = useMemo(() => Object.values(ItemType), []);
-  const rarities = useMemo(() => Object.values(ItemRarity), []);
+  const initialSnapshot = useMemo(() => itemFormSnapshot(defaults), [defaults]);
+  const dirty = itemFormSnapshot(values) !== initialSnapshot;
+  const busy = isSaving || saved;
 
-  const watchedBaseStatsCsv = form.watch("baseStatsCsv") ?? "";
-  const watchedToolEfficienciesCsv = form.watch("toolEfficienciesCsv") ?? "";
-  const watchedStatProgressionsCsv = form.watch("statProgressionsCsv") ?? "";
-  const watchedStatRarityOverridesCsv =
-    form.watch("statRarityOverridesCsv") ?? "";
-  const watchedMinPhysicalDamage = form.watch("minPhysicalDamage");
-  const watchedMaxPhysicalDamage = form.watch("maxPhysicalDamage");
-  const watchedMinMagicDamage = form.watch("minMagicDamage");
-  const watchedMaxMagicDamage = form.watch("maxMagicDamage");
-  const watchedArmor = form.watch("armor");
-  const watchedItemType = form.watch("itemType");
-  const watchedEquipTo = form.watch("equipTo") as ItemEquipTo | null;
-  const isWeapon = normalizeItemEquipTo(watchedEquipTo) === "weapon";
-
-  const isSeedItem = watchedItemType === ItemType.SEED;
+  const slot = normalizeItemEquipTo(values.equipTo);
+  const isWeapon = slot === "weapon";
+  const isSeedItem = values.itemType === ItemType.SEED;
   const supportsTimedEffect =
-    watchedItemType === ItemType.FOOD ||
-    watchedItemType === ItemType.POTION ||
-    watchedItemType === ItemType.ELIXIR;
+    values.itemType === ItemType.FOOD ||
+    values.itemType === ItemType.POTION ||
+    values.itemType === ItemType.ELIXIR;
+  const hasCombatValues = [
+    values.minPhysicalDamage,
+    values.maxPhysicalDamage,
+    values.minMagicDamage,
+    values.maxMagicDamage,
+    values.armor,
+  ].some((value) => (toNumber(value) ?? 0) !== 0);
+  const showCombat = slot !== null || hasCombatValues;
 
-  React.useEffect(() => {
+  useEffect(() => {
     let active = true;
 
     // Only fetch when the user actually switches an item to SEED.
@@ -478,24 +429,26 @@ export function ItemForm(props: {
       try {
         const res = await fetch("/api/admin/items", { method: "GET" });
         const json: unknown = await res.json().catch(() => null);
-        if (!res.ok) {
-          throw new Error(
-            json &&
-            typeof json === "object" &&
-            "error" in json &&
-            typeof json.error === "string"
-              ? json.error
-              : "Failed to load items",
-          );
-        }
+        if (!res.ok)
+          throw new Error(errorMessage(json, "Failed to load items"));
 
         const rows = Array.isArray(json) ? (json as unknown[]) : [];
         const parsed = rows
           .map((r) => {
-            const o = r as { id?: unknown; name?: unknown };
+            const o = r as {
+              id?: unknown;
+              name?: unknown;
+              sprite?: unknown;
+              itemType?: unknown;
+            };
             return {
               id: Number(o.id),
               name: typeof o.name === "string" ? o.name : "",
+              image: typeof o.sprite === "string" ? o.sprite : null,
+              detail:
+                typeof o.itemType === "string"
+                  ? humanize(o.itemType)
+                  : undefined,
             };
           })
           .filter((r) => Number.isFinite(r.id) && r.id > 0 && r.name.length > 0)
@@ -514,23 +467,15 @@ export function ItemForm(props: {
     };
   }, [isSeedItem, seedYieldOptions]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     let active = true;
     void (async () => {
       try {
         setRarityConfigsError(null);
         const res = await fetch("/api/admin/rarity/config", { method: "GET" });
         const json: unknown = await res.json().catch(() => null);
-        if (!res.ok) {
-          throw new Error(
-            json &&
-            typeof json === "object" &&
-            "error" in json &&
-            typeof json.error === "string"
-              ? json.error
-              : "Failed to load rarity config",
-          );
-        }
+        if (!res.ok)
+          throw new Error(errorMessage(json, "Failed to load rarity config"));
 
         const rows = Array.isArray(json) ? (json as unknown[]) : [];
         const parsed: RarityConfigPreview[] = rows
@@ -540,6 +485,7 @@ export function ItemForm(props: {
               statMultiplier?: unknown;
               sortOrder?: unknown;
               displayName?: unknown;
+              color?: unknown;
             };
             return {
               rarity: obj.rarity as ItemRarity,
@@ -549,6 +495,7 @@ export function ItemForm(props: {
                 typeof obj.displayName === "string"
                   ? obj.displayName
                   : undefined,
+              color: typeof obj.color === "string" ? obj.color : undefined,
             };
           })
           .filter((r) => Boolean(r.rarity));
@@ -572,13 +519,12 @@ export function ItemForm(props: {
   }, []);
 
   const previewRarities = useMemo<ItemRarity[]>(() => {
-    const canonical = ITEM_RARITY_VALUES as unknown as ItemRarity[];
     const cfgs = rarityConfigs;
-    if (!cfgs || cfgs.length === 0) return canonical;
+    if (!cfgs || cfgs.length === 0) return ITEM_RARITY_VALUES;
 
     const sorted = [...cfgs].sort((a, b) => a.sortOrder - b.sortOrder);
     const inOrder = sorted.map((c) => c.rarity);
-    const remaining = canonical.filter((r) => !inOrder.includes(r));
+    const remaining = ITEM_RARITY_VALUES.filter((r) => !inOrder.includes(r));
     return [...inOrder, ...remaining];
   }, [rarityConfigs]);
 
@@ -591,296 +537,1281 @@ export function ItemForm(props: {
   const previewMultipliers = useMemo(() => {
     const map = new Map<ItemRarity, number>();
     for (const r of previewRarities) map.set(r, 1);
-    if (rarityConfigs) {
-      for (const c of rarityConfigs) {
-        map.set(
-          c.rarity,
-          Number.isFinite(c.statMultiplier) ? c.statMultiplier : 1,
-        );
-      }
+    for (const c of rarityConfigs ?? []) {
+      map.set(
+        c.rarity,
+        Number.isFinite(c.statMultiplier) ? c.statMultiplier : 1,
+      );
     }
     return map;
   }, [rarityConfigs, previewRarities]);
 
-  const previewRows = useMemo(() => {
-    const baseParsed = safeParseBaseStatsCsv(watchedBaseStatsCsv);
-    const toolParsed = safeParseToolEfficienciesCsv(watchedToolEfficienciesCsv);
-    const progParsed = safeParseStatProgressionsCsv(watchedStatProgressionsCsv);
-    const overrideParsed = safeParseStatRarityOverridesCsv(
-      watchedStatRarityOverridesCsv,
-    );
-
-    const parseWatchedNumber = (value: unknown): number => {
-      if (typeof value === "number" && Number.isFinite(value)) return value;
-      const parsed = Number.parseFloat(String(value ?? "0"));
-      return Number.isFinite(parsed) ? parsed : 0;
-    };
-
-    // Mirror server behavior: last duplicate wins for base stats.
-    const baseByStat = new Map<
-      StatType,
-      { value: number; maxValue: number | null }
-    >();
-    for (const r of baseParsed.rows) {
-      baseByStat.set(r.statType, {
-        value: r.value,
-        maxValue:
-          typeof r.maxValue === "number" && Number.isFinite(r.maxValue)
-            ? r.maxValue
-            : null,
-      });
-    }
-
-    // These are edited via dedicated inputs (not the base stats editor), but should
-    // still appear in preview since they become ItemStat rows on save.
-    const combatPairs: Array<[StatType, number]> = [
-      [
-        StatType.PHYSICAL_DAMAGE_MIN,
-        parseWatchedNumber(watchedMinPhysicalDamage),
-      ],
-      [
-        StatType.PHYSICAL_DAMAGE_MAX,
-        parseWatchedNumber(watchedMaxPhysicalDamage),
-      ],
-      [StatType.MAGIC_DAMAGE_MIN, parseWatchedNumber(watchedMinMagicDamage)],
-      [StatType.MAGIC_DAMAGE_MAX, parseWatchedNumber(watchedMaxMagicDamage)],
-      [StatType.ARMOR, parseWatchedNumber(watchedArmor)],
-    ];
-    for (const [statType, value] of combatPairs) {
-      if (value === 0) {
-        baseByStat.delete(statType);
-      } else {
-        baseByStat.set(statType, { value, maxValue: null });
-      }
-    }
-
-    // Tool efficiencies become stats on the user item (scaled by multiplier).
-    // Mirror server behavior: these statTypes exist even if not in base stats.
-    for (const row of toolParsed.rows) {
-      const statType = getVocationalEfficiencyStatType(row.actionType);
-      if (!statType) continue;
-      baseByStat.set(statType, {
-        value: clampPercent(row.baseEfficiency),
-        maxValue: null,
-      });
-    }
-
-    const progByStat = new Map<
-      StatType,
-      Array<{ baseValue: number; unlocksAtRarity: ItemRarity }>
-    >();
-    for (const p of progParsed.rows) {
-      const arr = progByStat.get(p.statType) ?? [];
-      arr.push({ baseValue: p.baseValue, unlocksAtRarity: p.unlocksAtRarity });
-      progByStat.set(p.statType, arr);
-    }
-
-    const statTypesAll = new Set<StatType>([
-      ...baseByStat.keys(),
-      ...progByStat.keys(),
-      ...overrideParsed.rows.map((o) => o.statType),
-    ]);
-    const ordered = Array.from(statTypesAll).sort((a, b) =>
-      String(a).localeCompare(String(b)),
-    );
-
-    return ordered.map((statType) => ({
-      statType,
-      baseValue: baseByStat.get(statType)?.value ?? 0,
-      maxValue: baseByStat.get(statType)?.maxValue ?? null,
-      progressions: progByStat.get(statType) ?? [],
-      overrides: overrideParsed.rows.filter((o) => o.statType === statType),
-    }));
-  }, [
-    watchedBaseStatsCsv,
-    watchedToolEfficienciesCsv,
-    watchedStatProgressionsCsv,
-    watchedStatRarityOverridesCsv,
-    watchedMinPhysicalDamage,
-    watchedMaxPhysicalDamage,
-    watchedMinMagicDamage,
-    watchedMaxMagicDamage,
-    watchedArmor,
-  ]);
-  const scaleForPreview = (
-    baseValue: number,
-    multiplier: number,
-    flipNegatives: boolean,
-  ) => {
-    if (!Number.isFinite(baseValue) || !Number.isFinite(multiplier)) return NaN;
-    if (!flipNegatives) return baseValue * multiplier;
-    if (baseValue >= 0) return baseValue * multiplier;
-    // Example base -5, mult 2.3 => -5 + (1.3 * 5) = +1.5
-    return baseValue + (multiplier - 1) * Math.abs(baseValue);
-  };
-
-  const formatPreviewValue = (value: number) => {
-    if (!Number.isFinite(value)) return "-";
-    const rounded = Math.round(value * 100) / 100;
-    return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(2);
-  };
-
-  const initialToolParse = useMemo(
-    () => safeParseToolEfficienciesCsv(defaults.toolEfficienciesCsv ?? ""),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
+  const rarityChoices = useMemo(
+    () => rarityOptions(previewRarities, rarityConfigs),
+    [previewRarities, rarityConfigs],
   );
 
-  const initialStatParse = useMemo(
-    () => safeParseStatProgressionsCsv(defaults.statProgressionsCsv ?? ""),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
-  );
-
-  const initialOverrideParse = useMemo(
+  const previewRows = useMemo(
     () =>
-      safeParseStatRarityOverridesCsv(defaults.statRarityOverridesCsv ?? ""),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
+      buildPreviewRows({
+        baseStatsCsv: values.baseStatsCsv ?? "",
+        toolEfficienciesCsv: values.toolEfficienciesCsv ?? "",
+        statProgressionsCsv: values.statProgressionsCsv ?? "",
+        statRarityOverridesCsv: values.statRarityOverridesCsv ?? "",
+        minPhysicalDamage: values.minPhysicalDamage,
+        maxPhysicalDamage: values.maxPhysicalDamage,
+        minMagicDamage: values.minMagicDamage,
+        maxMagicDamage: values.maxMagicDamage,
+        armor: values.armor,
+      }),
+    [
+      values.baseStatsCsv,
+      values.toolEfficienciesCsv,
+      values.statProgressionsCsv,
+      values.statRarityOverridesCsv,
+      values.minPhysicalDamage,
+      values.maxPhysicalDamage,
+      values.minMagicDamage,
+      values.maxMagicDamage,
+      values.armor,
+    ],
   );
 
-  const initialBaseParse = useMemo(
-    () => safeParseBaseStatsCsv(defaults.baseStatsCsv ?? ""),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
-  );
-
-  const initialFoodEffectParse = useMemo(
-    () => safeParseFoodEffectStatsCsv(defaults.foodEffectStatsCsv ?? ""),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
-  );
-
-  const [toolMode, setToolMode] = useState<"structured" | "raw">(
-    initialToolParse.error ? "raw" : "structured",
-  );
-  const [toolError, setToolError] = useState<string | null>(
-    initialToolParse.error,
-  );
-  const [toolRows, setToolRows] = useState<ToolEfficiencyRow[]>(
-    initialToolParse.rows,
-  );
-
-  const [progMode, setProgMode] = useState<"structured" | "raw">(
-    initialStatParse.error ? "raw" : "structured",
-  );
-  const [progError, setProgError] = useState<string | null>(
-    initialStatParse.error,
-  );
-  const [progRows, setProgRows] = useState<StatProgressionRow[]>(
-    initialStatParse.rows,
-  );
-
-  const [overrideMode, setOverrideMode] = useState<"structured" | "raw">(
-    initialOverrideParse.error ? "raw" : "structured",
-  );
-  const [overrideError, setOverrideError] = useState<string | null>(
-    initialOverrideParse.error,
-  );
-  const [overrideRows, setOverrideRows] = useState<StatRarityOverrideRow[]>(
-    initialOverrideParse.rows,
-  );
-
-  const overrideStatTypes = useMemo(() => {
-    const set = new Set<StatType>(previewRows.map((r) => r.statType));
-    // Ensure we can still edit existing overrides even if other inputs are cleared.
-    for (const r of overrideRows) set.add(r.statType);
-    const ordered = Array.from(set).sort((a, b) =>
-      String(a).localeCompare(String(b)),
+  const setOverride = (
+    statType: StatType,
+    rarity: ItemRarity,
+    next: OverrideChange,
+  ) => {
+    const matches = (row: { statType: StatType; rarity: ItemRarity }) =>
+      row.statType === statType && row.rarity === rarity;
+    if (next === null) {
+      overrides.setRows(overrides.rows.filter((row) => !matches(row)));
+      return;
+    }
+    const row = { statType, rarity, kind: next.kind, value: next.value };
+    const index = overrides.rows.findIndex(matches);
+    // One override per stat and rarity: replace it in place, drop repeats.
+    overrides.setRows(
+      index === -1
+        ? [...overrides.rows, row]
+        : overrides.rows.flatMap((existing, i) =>
+            i === index ? [row] : matches(existing) ? [] : [existing],
+          ),
     );
-    return ordered.length > 0 ? ordered : statTypes;
-  }, [previewRows, overrideRows, statTypes]);
-
-  const [baseMode, setBaseMode] = useState<"structured" | "raw">(
-    initialBaseParse.error ? "raw" : "structured",
-  );
-  const [baseError, setBaseError] = useState<string | null>(
-    initialBaseParse.error,
-  );
-  const [baseRows, setBaseRows] = useState<BaseStatRow[]>(
-    initialBaseParse.rows,
-  );
-
-  const [foodEffectError, setFoodEffectError] = useState<string | null>(
-    initialFoodEffectParse.error,
-  );
-  const [foodEffectRows, setFoodEffectRows] = useState<FoodEffectStatRow[]>(
-    initialFoodEffectParse.rows,
-  );
-
-  const syncToolRowsToForm = (next: ToolEfficiencyRow[]) => {
-    setToolRows(next);
-    form.setValue("toolEfficienciesCsv", toolEfficienciesToCsv(next), {
-      shouldDirty: true,
-    });
   };
 
-  const syncProgRowsToForm = (next: StatProgressionRow[]) => {
-    setProgRows(next);
-    form.setValue("statProgressionsCsv", statProgressionsToCsv(next), {
-      shouldDirty: true,
-    });
-  };
-
-  const syncOverrideRowsToForm = (next: StatRarityOverrideRow[]) => {
-    setOverrideRows(next);
-    form.setValue("statRarityOverridesCsv", statRarityOverridesToCsv(next), {
-      shouldDirty: true,
-    });
-  };
-
-  const syncBaseRowsToForm = (next: BaseStatRow[]) => {
-    setBaseRows(next);
-    form.setValue("baseStatsCsv", baseStatsToCsv(next), {
-      shouldDirty: true,
-    });
-  };
-
-  const syncFoodEffectRowsToForm = (next: FoodEffectStatRow[]) => {
-    setFoodEffectRows(next);
-    setFoodEffectError(null);
-    form.setValue("foodEffectStatsCsv", foodEffectStatsToCsv(next), {
-      shouldDirty: true,
-    });
-  };
-
-  const onSubmit = async (values: FormValues) => {
+  const onSubmit = async (formValues: ItemFormValues) => {
     setIsSaving(true);
+    let ok = false;
     try {
       const res = await fetch(
-        props.mode === "create"
-          ? "/api/admin/items"
-          : `/api/admin/items/${props.itemId}`,
+        isCreate ? "/api/admin/items" : `/api/admin/items/${props.itemId}`,
         {
-          method: props.mode === "create" ? "POST" : "PATCH",
+          method: isCreate ? "POST" : "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(values),
+          body: JSON.stringify(formValues),
         },
       );
 
       const json: unknown = await res.json().catch(() => null);
       if (!res.ok) {
-        alert(
-          json &&
-            typeof json === "object" &&
-            "error" in json &&
-            typeof json.error === "string"
-            ? json.error
-            : "Failed to save",
-        );
+        toast.error(errorMessage(json, "Failed to save"));
         return;
       }
 
+      ok = true;
+      setSaved(true);
+      toast.success(`${formValues.name} ${isCreate ? "created" : "saved"}`);
       router.push("/admin/items");
       router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save");
     } finally {
-      setIsSaving(false);
+      if (!ok) setIsSaving(false);
     }
   };
 
+  const onInvalid = (fieldErrors: FieldErrors<ItemFormValues>) => {
+    const labels = [
+      ...new Set(
+        (Object.keys(fieldErrors) as Array<keyof ItemFormValues>).map(
+          (name) => FIELD_PLACES[name]?.label ?? humanize(name),
+        ),
+      ),
+    ];
+    toast.error(`Check ${labels.join(", ")} before saving.`);
+  };
+
+  const submit = form.handleSubmit(onSubmit, onInvalid);
+  const submitRef = useRef(submit);
+  submitRef.current = submit;
+  const busyRef = useRef(busy);
+  busyRef.current = busy;
+
+  // ⌘S / Ctrl+S saves, like the Save button.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (
+        (event.metaKey || event.ctrlKey) &&
+        !event.altKey &&
+        !event.shiftKey &&
+        event.key.toLowerCase() === "s"
+      ) {
+        event.preventDefault();
+        if (!busyRef.current) void submitRef.current();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  useLeaveGuard(dirty && !saved);
+  useEffect(() => {
+    props.unsavedRef.current = dirty && !saved;
+  });
+
+  const errorSections = new Set(
+    (Object.keys(errors) as Array<keyof ItemFormValues>).map(
+      (name) => FIELD_PLACES[name]?.section ?? "general",
+    ),
+  );
+  if ([baseStats, tools, progressions].some((list) => list.error !== null)) {
+    errorSections.add("stats");
+  }
+  if (bonuses.error) errorSections.add("consumable");
+  if (overrides.error) errorSections.add("rarity");
+
+  const sections = [
+    { id: "general", label: "General" },
+    ...(supportsTimedEffect ? [{ id: "consumable", label: "Consumable" }] : []),
+    ...(isSeedItem ? [{ id: "seed", label: "Seed" }] : []),
+    { id: "equipment", label: "Equipment" },
+    { id: "stats", label: "Stats" },
+    { id: "rarity", label: "Rarity" },
+    ...(props.chain ? [{ id: "chain", label: "Crafting chain" }] : []),
+  ];
+  const activeSection = useActiveSection(sections.map((section) => section.id));
+
+  // The bar shows the item's name once the header has scrolled away.
+  const headerRef = useRef<HTMLElement>(null);
+  const [pinned, setPinned] = useState(false);
+  useEffect(() => {
+    const header = headerRef.current;
+    if (!header) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setPinned(entry ? !entry.isIntersecting : false),
+      { rootMargin: "-56px 0px 0px 0px" },
+    );
+    observer.observe(header);
+    return () => observer.disconnect();
+  }, []);
+
+  const jumpTo = (event: React.MouseEvent<HTMLAnchorElement>, id: string) => {
+    const target = document.getElementById(id);
+    if (!target) return;
+    event.preventDefault();
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    target.scrollIntoView({
+      behavior: reduceMotion ? "auto" : "smooth",
+      block: "start",
+    });
+    window.history.replaceState(null, "", `#${id}`);
+  };
+
+  const discard = () => {
+    if (window.confirm("Discard your changes to this item?")) props.onDiscard();
+  };
+
+  const name =
+    values.name.trim() !== ""
+      ? values.name.trim()
+      : isCreate
+        ? "New item"
+        : "Untitled item";
+  const color = rarityColor(values.rarity, rarityConfigs);
+  const sprite = values.sprite;
+  const spriteMissing = sprite.trim() !== "" && brokenSprite === sprite.trim();
+  const level = toNumber(values.requiredLevel);
+  const price = toNumber(values.price);
+  const stackSize = toNumber(values.maxStackSize);
+  const facts = [
+    values.itemType ? humanize(values.itemType) : "No type",
+    slot
+      ? `${slotLabel(slot)}${isWeapon && values.twoHanded ? ", two-handed" : ""}`
+      : null,
+    level !== null ? `Level ${level}` : null,
+    price !== null ? `${price.toLocaleString("en-US")} gold` : null,
+    values.stackable && stackSize !== null
+      ? `Stacks to ${stackSize.toLocaleString("en-US")}`
+      : null,
+    props.itemId ? `#${props.itemId}` : null,
+  ].filter(
+    (fact, index, all): fact is string =>
+      Boolean(fact) && all.indexOf(fact) === index,
+  );
+
+  const minPhysical = toNumber(values.minPhysicalDamage);
+  const maxPhysical = toNumber(values.maxPhysicalDamage);
+  const minMagic = toNumber(values.minMagicDamage);
+  const maxMagic = toNumber(values.maxMagicDamage);
+  const yieldMin = toNumber(values.seedYieldMin);
+  const yieldMax = toNumber(values.seedYieldMax);
+  const seedGaps = isSeedItem
+    ? [
+        !(toNumber(values.seedGrowSeconds) ?? 0) ? "grow time" : null,
+        !values.seedYieldItemId ? "what it grows into" : null,
+        !(yieldMin && yieldMin > 0) || yieldMax === null || yieldMax < yieldMin
+          ? "a harvest amount (max at least min)"
+          : null,
+        !(toNumber(values.seedHarvestSeconds) ?? 0) ? "harvest time" : null,
+      ].filter((gap): gap is string => Boolean(gap))
+    : [];
+
+  const statTypesUsedBy = (
+    rows: Array<{ statType: StatType }>,
+    except: number,
+  ) => new Set(rows.filter((_, i) => i !== except).map((row) => row.statType));
+
+  return (
+    <>
+      <header ref={headerRef} className="flex items-center gap-4">
+        <SpriteTile
+          sprite={sprite}
+          color={color}
+          size={64}
+          onMissing={setBrokenSprite}
+        />
+        <div className="w-0 flex-1">
+          <Link
+            href="/admin/items"
+            className="inline-flex items-center gap-0.5 text-xs text-white/45 transition-colors hover:text-white"
+          >
+            <ChevronLeft aria-hidden className="h-3.5 w-3.5" />
+            Items
+          </Link>
+          <h1 className="truncate text-2xl font-bold tracking-tight">{name}</h1>
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-white/50">
+            <RarityChip
+              rarity={values.rarity}
+              color={
+                rarityConfigs?.find((c) => c.rarity === values.rarity)?.color
+              }
+              label={rarityLabel(values.rarity, rarityConfigs)}
+            />
+            {facts.map((fact) => (
+              <span key={fact} className="flex items-center gap-2">
+                <span aria-hidden className="text-white/20">
+                  ·
+                </span>
+                {fact}
+              </span>
+            ))}
+          </div>
+        </div>
+      </header>
+
+      <div
+        className={cn(
+          "sticky top-0 z-30 -mx-3 px-3 py-2 transition-[background-color,box-shadow] duration-200",
+          pinned &&
+            "bg-background/85 shadow-[0_14px_24px_-20px_rgb(0_0_0/0.9)] backdrop-blur-md",
+        )}
+      >
+        <div className="flex items-center gap-3">
+          <div
+            aria-hidden={!pinned}
+            className={cn(
+              "hidden min-w-0 items-center gap-2 overflow-hidden transition-all duration-200 lg:flex",
+              pinned
+                ? "max-w-[220px] opacity-100"
+                : "pointer-events-none max-w-0 opacity-0",
+            )}
+          >
+            <SpriteTile
+              sprite={sprite}
+              color={color}
+              size={28}
+              className="rounded-md"
+            />
+            <span className="truncate text-sm font-semibold">{name}</span>
+          </div>
+          <nav
+            aria-label="Sections"
+            className="flex w-0 flex-1 items-center gap-0.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            {sections.map((section) => (
+              <a
+                key={section.id}
+                href={`#${section.id}`}
+                onClick={(event) => jumpTo(event, section.id)}
+                aria-current={
+                  activeSection === section.id ? "location" : undefined
+                }
+                className={cn(
+                  "flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 py-1.5 text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-amber-400/40",
+                  activeSection === section.id
+                    ? "bg-white/10 text-white"
+                    : "text-white/50 hover:bg-white/5 hover:text-white",
+                )}
+              >
+                {section.label}
+                {errorSections.has(section.id) ? (
+                  <span
+                    className="h-1.5 w-1.5 rounded-full bg-red-400"
+                    title="Needs attention"
+                  />
+                ) : null}
+              </a>
+            ))}
+          </nav>
+          <div className="flex shrink-0 items-center gap-2">
+            <span
+              aria-live="polite"
+              className="hidden items-center gap-1.5 text-xs sm:flex"
+            >
+              {dirty && !saved ? (
+                <>
+                  <span
+                    aria-hidden
+                    className="h-1.5 w-1.5 rounded-full bg-amber-400"
+                  />
+                  <span className="text-amber-200/90">Unsaved changes</span>
+                </>
+              ) : (
+                <span className="text-white/35">
+                  {isCreate
+                    ? "Not created yet"
+                    : saved
+                      ? "Saved"
+                      : "No changes"}
+                </span>
+              )}
+            </span>
+            {dirty && !busy ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 text-white/70"
+                onClick={discard}
+              >
+                <Undo2 aria-hidden className="h-3.5 w-3.5" />
+                Discard
+              </Button>
+            ) : null}
+            <Button
+              type="submit"
+              form={FORM_ID}
+              size="sm"
+              className="h-8 px-3.5"
+              disabled={busy}
+              title="Save (⌘S or Ctrl+S)"
+            >
+              {isSaving ? (
+                <Loader2 aria-hidden className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Save aria-hidden className="h-3.5 w-3.5" />
+              )}
+              {isSaving ? "Saving…" : isCreate ? "Create item" : "Save"}
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <form id={FORM_ID} onSubmit={submit} noValidate className="space-y-5">
+        <input type="hidden" {...form.register("baseStatsCsv")} />
+        <input type="hidden" {...form.register("toolEfficienciesCsv")} />
+        <input type="hidden" {...form.register("statProgressionsCsv")} />
+        <input type="hidden" {...form.register("statRarityOverridesCsv")} />
+        <input type="hidden" {...form.register("foodEffectStatsCsv")} />
+
+        <FormSection id="general" icon={Tag} title="General">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <Field
+              label="Name"
+              htmlFor="item-name"
+              error={errors.name?.message}
+              className="sm:col-span-2"
+            >
+              <input
+                id="item-name"
+                autoFocus={isCreate}
+                autoComplete="off"
+                className={cn(controlClass, errors.name && invalidClass)}
+                {...form.register("name")}
+              />
+            </Field>
+            <Field label="Type" htmlFor="item-type">
+              <ChoicePicker
+                id="item-type"
+                value={values.itemType ?? null}
+                options={ITEM_TYPE_OPTIONS}
+                noneLabel="No type"
+                onChange={(value) => form.setValue("itemType", value, DIRTY)}
+              />
+            </Field>
+            <Field
+              label="Rarity"
+              htmlFor="item-rarity"
+              hint="New copies start at this rarity."
+            >
+              <ChoicePicker
+                id="item-rarity"
+                value={values.rarity}
+                options={rarityChoices}
+                onChange={(value) => {
+                  if (value) form.setValue("rarity", value, DIRTY);
+                }}
+              />
+            </Field>
+            <Field
+              label="Description"
+              htmlFor="item-description"
+              className="sm:col-span-2 xl:col-span-4"
+            >
+              <textarea
+                id="item-description"
+                rows={2}
+                placeholder="What players read about it"
+                className={cn(
+                  controlClass,
+                  "h-auto max-h-72 min-h-[60px] resize-none overflow-y-auto py-2 leading-relaxed",
+                )}
+                {...descriptionField}
+                ref={(element) => {
+                  descriptionField.ref(element);
+                  fitToContent(element);
+                }}
+                onInput={(event) => fitToContent(event.currentTarget)}
+              />
+            </Field>
+            <Field
+              label="Sprite"
+              htmlFor="item-sprite"
+              error={errors.sprite?.message}
+              hint={
+                spriteMissing ? (
+                  <span className="text-amber-200/80">
+                    No image found at this path.
+                  </span>
+                ) : (
+                  "Path of the image under /public."
+                )
+              }
+              className="sm:col-span-2"
+            >
+              <input
+                id="item-sprite"
+                autoComplete="off"
+                spellCheck={false}
+                placeholder="/assets/items/…"
+                className={cn(
+                  controlClass,
+                  "font-mono text-[13px]",
+                  errors.sprite && invalidClass,
+                )}
+                {...form.register("sprite")}
+              />
+            </Field>
+            <Field
+              label="Required level"
+              htmlFor="item-level"
+              error={errors.requiredLevel?.message}
+            >
+              <input
+                id="item-level"
+                type="number"
+                min={1}
+                step={1}
+                inputMode="numeric"
+                className={cn(
+                  controlClass,
+                  numberClass,
+                  errors.requiredLevel && invalidClass,
+                )}
+                {...form.register("requiredLevel")}
+              />
+            </Field>
+            <Field
+              label="Price"
+              htmlFor="item-price"
+              error={errors.price?.message}
+            >
+              <WithSuffix suffix="gold">
+                <input
+                  id="item-price"
+                  type="number"
+                  min={0}
+                  step="any"
+                  inputMode="decimal"
+                  className={cn(
+                    controlClass,
+                    numberClass,
+                    "pr-12",
+                    errors.price && invalidClass,
+                  )}
+                  {...form.register("price")}
+                />
+              </WithSuffix>
+            </Field>
+          </div>
+          <div className="mt-4 flex min-h-[52px] flex-wrap items-center gap-x-5 gap-y-2 rounded-lg bg-white/[0.03] px-3 py-2">
+            <Switch
+              checked={Boolean(values.stackable)}
+              onChange={(checked) => form.setValue("stackable", checked, DIRTY)}
+              label="Stackable"
+              description="Copies share one inventory slot."
+            />
+            {values.stackable ? (
+              <label className="flex items-center gap-2 text-sm text-white/55">
+                Up to
+                <input
+                  type="number"
+                  min={1}
+                  step={1}
+                  inputMode="numeric"
+                  aria-label="Max stack size"
+                  className={cn(
+                    controlClass,
+                    numberClass,
+                    "h-8 w-24",
+                    errors.maxStackSize && invalidClass,
+                  )}
+                  {...form.register("maxStackSize")}
+                />
+                per slot
+              </label>
+            ) : null}
+            {errors.maxStackSize ? (
+              <p role="alert" className="text-[11px] text-red-300">
+                {errors.maxStackSize.message}
+              </p>
+            ) : null}
+          </div>
+        </FormSection>
+
+        {supportsTimedEffect ? (
+          <FormSection
+            id="consumable"
+            icon={FlaskConical}
+            title="Consumable"
+            description="What using it does."
+          >
+            <div className="grid gap-6 xl:grid-cols-2 xl:gap-x-10">
+              <div className="grid content-start gap-4 sm:grid-cols-2">
+                <Field
+                  label="Instant healing"
+                  htmlFor="item-healing"
+                  error={errors.healingAmount?.message}
+                  hint="Health restored right away."
+                >
+                  <WithSuffix suffix="HP">
+                    <input
+                      id="item-healing"
+                      type="number"
+                      min={0}
+                      step={1}
+                      inputMode="numeric"
+                      className={cn(
+                        controlClass,
+                        numberClass,
+                        "pr-10",
+                        errors.healingAmount && invalidClass,
+                      )}
+                      {...form.register("healingAmount")}
+                    />
+                  </WithSuffix>
+                </Field>
+                <Field
+                  label="Effect duration"
+                  htmlFor="item-duration"
+                  error={errors.foodEffectSeconds?.message}
+                  hint={durationHint(
+                    values.foodEffectSeconds,
+                    "How long the bonuses last.",
+                  )}
+                >
+                  <WithSuffix suffix="sec">
+                    <input
+                      id="item-duration"
+                      type="number"
+                      min={0}
+                      step={1}
+                      inputMode="numeric"
+                      className={cn(
+                        controlClass,
+                        numberClass,
+                        "pr-11",
+                        errors.foodEffectSeconds && invalidClass,
+                      )}
+                      {...form.register("foodEffectSeconds")}
+                    />
+                  </WithSuffix>
+                </Field>
+              </div>
+              <ListEditor
+                title="Timed bonuses"
+                description="Last for the effect duration. Using another timed consumable replaces them."
+                columns={BONUS_COLUMNS}
+                headers={["Stat", "Bonus", ""]}
+                count={bonuses.rows.length}
+                addLabel="Add bonus"
+                addDisabled={bonuses.rows.length >= ALL_STAT_TYPES.length}
+                onAdd={() => {
+                  const used = new Set(bonuses.rows.map((row) => row.statType));
+                  const statType = ALL_STAT_OPTIONS.find(
+                    (option) => !used.has(option.value),
+                  )?.value;
+                  if (statType) bonuses.add({ statType, value: 0 });
+                }}
+                empty="No timed bonuses. Add one"
+                raw={bonuses.raw}
+                onToggleRaw={bonuses.toggleRaw}
+                error={bonuses.error}
+                rawEditor={
+                  <CsvEditor
+                    format={foodEffectStatsCodec.format}
+                    example={foodEffectStatsCodec.example}
+                    textarea={form.register("foodEffectStatsCsv")}
+                    onApply={bonuses.toggleRaw}
+                  />
+                }
+              >
+                {bonuses.rows.map((row, index) => {
+                  const taken = statTypesUsedBy(bonuses.rows, index);
+                  return (
+                    <ListRow
+                      key={index}
+                      columns={BONUS_COLUMNS}
+                      removeLabel={`Remove ${statLabel(row.statType)}`}
+                      onRemove={() => bonuses.remove(index)}
+                    >
+                      <ChoicePicker
+                        compact
+                        ariaLabel="Stat"
+                        value={row.statType}
+                        options={ALL_STAT_OPTIONS.filter(
+                          (option) => !taken.has(option.value),
+                        )}
+                        onChange={(value) => {
+                          if (value) bonuses.update(index, { statType: value });
+                        }}
+                      />
+                      <StatValueInput
+                        percent={isPercentStat(row.statType)}
+                        label="Bonus"
+                        value={row.value}
+                        onChange={(value) => bonuses.update(index, { value })}
+                      />
+                    </ListRow>
+                  );
+                })}
+              </ListEditor>
+            </div>
+          </FormSection>
+        ) : null}
+
+        {isSeedItem ? (
+          <FormSection
+            id="seed"
+            icon={Sprout}
+            title="Seed"
+            description="How it grows in a garden plot."
+          >
+            {seedGaps.length > 0 ? (
+              <div className="mb-4">
+                <ErrorNote tone="warning">
+                  Players can&apos;t plant it until it has {seedGaps.join(", ")}
+                  .
+                </ErrorNote>
+              </div>
+            ) : null}
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <Field
+                label="Grows into"
+                hint={seedYieldOptions === null ? "Loading items…" : undefined}
+                className="sm:col-span-2"
+              >
+                <SearchSelect
+                  options={seedYieldOptions ?? []}
+                  value={values.seedYieldItemId ?? null}
+                  onChange={(id) => form.setValue("seedYieldItemId", id, DIRTY)}
+                  noneLabel="Nothing yet"
+                  className="h-9 rounded-lg border-0 bg-white/[0.06] px-3 shadow-none hover:bg-white/[0.08]"
+                />
+              </Field>
+              <Field
+                label="Harvest amount"
+                htmlFor="seed-yield-min"
+                error={
+                  errors.seedYieldMin?.message ?? errors.seedYieldMax?.message
+                }
+                hint="Items per plot, from min to max."
+                className="sm:col-span-2"
+              >
+                <div className="flex items-center gap-1.5">
+                  <input
+                    id="seed-yield-min"
+                    type="number"
+                    min={1}
+                    step={1}
+                    inputMode="numeric"
+                    placeholder="Min"
+                    aria-label="Harvest amount minimum"
+                    className={cn(controlClass, numberClass)}
+                    {...form.register("seedYieldMin")}
+                  />
+                  <span aria-hidden className="text-white/30">
+                    –
+                  </span>
+                  <input
+                    type="number"
+                    min={1}
+                    step={1}
+                    inputMode="numeric"
+                    placeholder="Max"
+                    aria-label="Harvest amount maximum"
+                    className={cn(controlClass, numberClass)}
+                    {...form.register("seedYieldMax")}
+                  />
+                </div>
+              </Field>
+              <Field
+                label="Grow time"
+                htmlFor="seed-grow"
+                error={errors.seedGrowSeconds?.message}
+                hint={durationHint(
+                  values.seedGrowSeconds,
+                  "From planting until ready.",
+                )}
+              >
+                <WithSuffix suffix="sec">
+                  <input
+                    id="seed-grow"
+                    type="number"
+                    min={1}
+                    step={1}
+                    inputMode="numeric"
+                    className={cn(
+                      controlClass,
+                      numberClass,
+                      "pr-11",
+                      errors.seedGrowSeconds && invalidClass,
+                    )}
+                    {...form.register("seedGrowSeconds")}
+                  />
+                </WithSuffix>
+              </Field>
+              <Field
+                label="Harvest time"
+                htmlFor="seed-harvest"
+                error={errors.seedHarvestSeconds?.message}
+                hint={durationHint(
+                  values.seedHarvestSeconds,
+                  "To harvest one plot.",
+                )}
+              >
+                <WithSuffix suffix="sec">
+                  <input
+                    id="seed-harvest"
+                    type="number"
+                    min={1}
+                    step={1}
+                    inputMode="numeric"
+                    className={cn(
+                      controlClass,
+                      numberClass,
+                      "pr-11",
+                      errors.seedHarvestSeconds && invalidClass,
+                    )}
+                    {...form.register("seedHarvestSeconds")}
+                  />
+                </WithSuffix>
+              </Field>
+              <Field
+                label="Gardening XP"
+                htmlFor="seed-xp"
+                error={errors.seedXp?.message}
+                hint="Per plot harvested."
+              >
+                <input
+                  id="seed-xp"
+                  type="number"
+                  min={1}
+                  step={1}
+                  inputMode="numeric"
+                  className={cn(
+                    controlClass,
+                    numberClass,
+                    errors.seedXp && invalidClass,
+                  )}
+                  {...form.register("seedXp")}
+                />
+              </Field>
+            </div>
+          </FormSection>
+        ) : null}
+
+        <FormSection id="equipment" icon={Swords} title="Equipment">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <Field
+              label="Slot"
+              htmlFor="item-slot"
+              hint={
+                slot === "weapon" || slot === "offhand"
+                  ? "Shields go in the off hand; one-handed weapons fit either hand."
+                  : undefined
+              }
+              className="xl:col-span-2"
+            >
+              <ChoicePicker
+                id="item-slot"
+                value={slot}
+                options={SLOT_OPTIONS}
+                noneLabel="Not equippable"
+                onChange={(value) => form.setValue("equipTo", value, DIRTY)}
+              />
+            </Field>
+            {isWeapon ? (
+              <Field
+                label="Handedness"
+                hint={
+                  values.twoHanded
+                    ? "Takes the main hand and keeps the off hand empty."
+                    : "Fits the main hand or the off hand."
+                }
+                className="xl:col-span-2"
+              >
+                <Segmented
+                  label="Handedness"
+                  value={values.twoHanded ? "two" : "one"}
+                  options={[
+                    { value: "one", label: "One-handed" },
+                    { value: "two", label: "Two-handed" },
+                  ]}
+                  onChange={(value) =>
+                    form.setValue("twoHanded", value === "two", DIRTY)
+                  }
+                  className="bg-white/[0.06] p-0.5"
+                />
+              </Field>
+            ) : null}
+          </div>
+          {showCombat ? (
+            <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              {(
+                [
+                  [
+                    "Physical damage",
+                    "minPhysicalDamage",
+                    "maxPhysicalDamage",
+                    minPhysical,
+                    maxPhysical,
+                  ],
+                  [
+                    "Magic damage",
+                    "minMagicDamage",
+                    "maxMagicDamage",
+                    minMagic,
+                    maxMagic,
+                  ],
+                ] as const
+              ).map(([label, minName, maxName, min, max]) => (
+                <Field
+                  key={label}
+                  label={label}
+                  htmlFor={`item-${minName}`}
+                  error={errors[minName]?.message ?? errors[maxName]?.message}
+                  hint={
+                    min !== null && max !== null && min > max ? (
+                      <span className="text-amber-200/80">
+                        The minimum is above the maximum.
+                      </span>
+                    ) : undefined
+                  }
+                >
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      id={`item-${minName}`}
+                      type="number"
+                      step="any"
+                      inputMode="decimal"
+                      placeholder="Min"
+                      aria-label={`${label} minimum`}
+                      className={cn(controlClass, numberClass)}
+                      {...form.register(minName)}
+                    />
+                    <span aria-hidden className="text-white/30">
+                      –
+                    </span>
+                    <input
+                      type="number"
+                      step="any"
+                      inputMode="decimal"
+                      placeholder="Max"
+                      aria-label={`${label} maximum`}
+                      className={cn(controlClass, numberClass)}
+                      {...form.register(maxName)}
+                    />
+                  </div>
+                </Field>
+              ))}
+              <Field
+                label="Armor"
+                htmlFor="item-armor"
+                error={errors.armor?.message}
+              >
+                <input
+                  id="item-armor"
+                  type="number"
+                  step="any"
+                  inputMode="decimal"
+                  className={cn(controlClass, numberClass)}
+                  {...form.register("armor")}
+                />
+              </Field>
+            </div>
+          ) : (
+            <p className="mt-3 text-sm text-white/40">
+              Damage and armor apply to equipped items. Pick a slot to set them.
+            </p>
+          )}
+        </FormSection>
+
+        <FormSection
+          id="stats"
+          icon={BarChart3}
+          title="Stats"
+          description="Values are for Common; the rarity grid below shows what every rarity gets."
+        >
+          <div className="grid gap-7 xl:grid-cols-2 xl:gap-x-10">
+            <ListEditor
+              title="Base stats"
+              description="Always on, then scaled by rarity. Damage and armor are set under Equipment."
+              columns={BASE_COLUMNS}
+              headers={["Stat", "Value", "Cap", ""]}
+              count={baseStats.rows.length}
+              addLabel="Add stat"
+              onAdd={() => {
+                const used = new Set(baseStats.rows.map((row) => row.statType));
+                const statType = !used.has(StatType.CARRYING_CAPACITY)
+                  ? StatType.CARRYING_CAPACITY
+                  : BASE_STAT_OPTIONS.find((option) => !used.has(option.value))
+                      ?.value ?? StatType.CARRYING_CAPACITY;
+                baseStats.add({ statType, value: 0, maxValue: null });
+              }}
+              empty="No base stats. Add one"
+              raw={baseStats.raw}
+              onToggleRaw={baseStats.toggleRaw}
+              error={baseStats.error}
+              rawEditor={
+                <CsvEditor
+                  format={baseStatsCodec.format}
+                  example={baseStatsCodec.example}
+                  textarea={form.register("baseStatsCsv")}
+                  onApply={baseStats.toggleRaw}
+                />
+              }
+            >
+              {baseStats.rows.map((row, index) => (
+                <ListRow
+                  key={index}
+                  columns={BASE_COLUMNS}
+                  removeLabel={`Remove ${statLabel(row.statType)}`}
+                  onRemove={() => baseStats.remove(index)}
+                >
+                  <ChoicePicker
+                    compact
+                    ariaLabel="Stat"
+                    value={row.statType}
+                    options={BASE_STAT_OPTIONS}
+                    onChange={(value) => {
+                      if (value) baseStats.update(index, { statType: value });
+                    }}
+                  />
+                  <StatValueInput
+                    percent={isPercentStat(row.statType)}
+                    label="Value"
+                    value={row.value}
+                    onChange={(value) => baseStats.update(index, { value })}
+                  />
+                  <NumberInput
+                    step="0.01"
+                    aria-label="Cap"
+                    placeholder="No cap"
+                    className={cn(controlClass, numberClass, "h-8")}
+                    value={row.maxValue ?? null}
+                    onValueChange={(value) =>
+                      baseStats.update(index, { maxValue: value })
+                    }
+                  />
+                </ListRow>
+              ))}
+            </ListEditor>
+            <div className="space-y-7">
+              <ListEditor
+                title="Unlocks by rarity"
+                description="Stats gained from a rarity upward, added to any base value."
+                columns={UNLOCK_COLUMNS}
+                headers={["Stat", "Value", "From", ""]}
+                count={progressions.rows.length}
+                addLabel="Add unlock"
+                onAdd={() =>
+                  progressions.add({
+                    statType: ALL_STAT_OPTIONS[0]!.value,
+                    baseValue: 0,
+                    unlocksAtRarity: ItemRarity.COMMON,
+                  })
+                }
+                empty="No rarity unlocks. Add one"
+                raw={progressions.raw}
+                onToggleRaw={progressions.toggleRaw}
+                error={progressions.error}
+                rawEditor={
+                  <CsvEditor
+                    format={statProgressionsCodec.format}
+                    example={statProgressionsCodec.example}
+                    textarea={form.register("statProgressionsCsv")}
+                    onApply={progressions.toggleRaw}
+                  />
+                }
+              >
+                {progressions.rows.map((row, index) => (
+                  <ListRow
+                    key={index}
+                    columns={UNLOCK_COLUMNS}
+                    removeLabel={`Remove ${statLabel(row.statType)}`}
+                    onRemove={() => progressions.remove(index)}
+                  >
+                    <ChoicePicker
+                      compact
+                      ariaLabel="Stat"
+                      value={row.statType}
+                      options={ALL_STAT_OPTIONS}
+                      onChange={(value) => {
+                        if (value)
+                          progressions.update(index, { statType: value });
+                      }}
+                    />
+                    <StatValueInput
+                      percent={isPercentStat(row.statType)}
+                      label="Value"
+                      value={row.baseValue}
+                      onChange={(value) =>
+                        progressions.update(index, { baseValue: value })
+                      }
+                    />
+                    <ChoicePicker
+                      compact
+                      ariaLabel="Unlocks at rarity"
+                      value={row.unlocksAtRarity}
+                      options={rarityChoices}
+                      onChange={(value) => {
+                        if (value)
+                          progressions.update(index, {
+                            unlocksAtRarity: value,
+                          });
+                      }}
+                    />
+                  </ListRow>
+                ))}
+              </ListEditor>
+
+              <ListEditor
+                title="Tool efficiency"
+                description="Faster skilling while equipped, in percent. Scales with rarity."
+                columns={TOOL_COLUMNS}
+                headers={["Skill", "Bonus", ""]}
+                count={tools.rows.length}
+                addLabel="Add skill"
+                onAdd={() => {
+                  const used = new Set(tools.rows.map((row) => row.actionType));
+                  tools.add({
+                    actionType:
+                      SKILL_OPTIONS.find((option) => !used.has(option.value))
+                        ?.value ?? ALL_ACTION_TYPES[0]!,
+                    baseEfficiency: 0,
+                  });
+                }}
+                empty="No tool efficiency. Add a skill"
+                raw={tools.raw}
+                onToggleRaw={tools.toggleRaw}
+                error={tools.error}
+                rawEditor={
+                  <CsvEditor
+                    format={toolEfficienciesCodec.format}
+                    example={toolEfficienciesCodec.example}
+                    textarea={form.register("toolEfficienciesCsv")}
+                    onApply={tools.toggleRaw}
+                  />
+                }
+              >
+                {tools.rows.map((row, index) => (
+                  <ListRow
+                    key={index}
+                    columns={TOOL_COLUMNS}
+                    removeLabel={`Remove ${humanize(row.actionType)}`}
+                    onRemove={() => tools.remove(index)}
+                  >
+                    <ChoicePicker
+                      compact
+                      ariaLabel="Skill"
+                      value={row.actionType}
+                      options={SKILL_OPTIONS}
+                      onChange={(value) => {
+                        if (value) tools.update(index, { actionType: value });
+                      }}
+                    />
+                    <StatValueInput
+                      percent
+                      label="Bonus"
+                      value={row.baseEfficiency}
+                      min={0}
+                      max={100}
+                      onChange={(value) =>
+                        tools.update(index, {
+                          baseEfficiency: clampPercent(value),
+                        })
+                      }
+                    />
+                  </ListRow>
+                ))}
+              </ListEditor>
+            </div>
+          </div>
+        </FormSection>
+
+        <FormSection
+          id="rarity"
+          icon={Gem}
+          title="Rarity scaling"
+          description={
+            rarityConfigs === null
+              ? "Loading the rarity multipliers…"
+              : "What each rarity gets. Click a value to set it for this item only."
+          }
+          actions={
+            <CsvToggle
+              raw={overrides.raw}
+              onToggle={overrides.toggleRaw}
+              title={
+                overrides.raw ? "Back to the grid" : "Edit the overrides as CSV"
+              }
+            />
+          }
+        >
+          <div className="space-y-4">
+            {rarityConfigsError ? (
+              <ErrorNote>{rarityConfigsError}</ErrorNote>
+            ) : null}
+            {overrides.error ? <ErrorNote>{overrides.error}</ErrorNote> : null}
+            <RarityScalingGrid
+              rows={previewRows}
+              rarities={previewRarities}
+              configs={rarityConfigs}
+              multipliers={previewMultipliers}
+              rarityIndex={rarityIndex}
+              equipTo={slot}
+              flipNegatives={Boolean(values.flipNegativeStatsWithRarity)}
+              itemRarity={values.rarity}
+              onOverride={overrides.raw ? null : setOverride}
+            />
+            {overrides.raw ? (
+              <CsvEditor
+                format={statRarityOverridesCodec.format}
+                example={statRarityOverridesCodec.example}
+                textarea={form.register("statRarityOverridesCsv")}
+                onApply={overrides.toggleRaw}
+              />
+            ) : null}
+            <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+              <Switch
+                checked={Boolean(values.flipNegativeStatsWithRarity)}
+                onChange={(checked) =>
+                  form.setValue("flipNegativeStatsWithRarity", checked, DIRTY)
+                }
+                label="Negative stats improve with rarity"
+                description="A −5 Movement speed at Common can turn positive at high rarities."
+              />
+              {previewRows.length > 0 ? (
+                <ul className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-white/40">
+                  <li className="flex items-center gap-1.5">
+                    <span className="rounded bg-amber-400/[0.14] px-1 font-semibold text-amber-300/80">
+                      =
+                    </span>
+                    Exact value
+                  </li>
+                  <li className="flex items-center gap-1.5">
+                    <span className="rounded bg-amber-400/[0.14] px-1 font-semibold text-amber-300/80">
+                      ×
+                    </span>
+                    Own multiplier
+                  </li>
+                  <li className="flex items-center gap-1.5">
+                    <span
+                      aria-hidden
+                      className="h-3 w-3 rounded-sm bg-white/[0.08]"
+                    />
+                    This item&apos;s rarity
+                  </li>
+                  <li>
+                    <Link
+                      href="/admin/rarity"
+                      className="text-white/55 underline-offset-2 transition-colors hover:text-white hover:underline"
+                    >
+                      Global multipliers
+                    </Link>
+                  </li>
+                </ul>
+              ) : null}
+            </div>
+          </div>
+        </FormSection>
+      </form>
+    </>
+  );
+}
+
+/** A stat value in a list row, with a % when the stat is a percentage. */
+function StatValueInput(props: {
+  percent: boolean;
+  label: string;
+  value: number;
+  min?: number;
+  max?: number;
+  onChange: (value: number) => void;
+}) {
+  const input = (
+    <NumberInput
+      step="0.01"
+      min={props.min}
+      max={props.max}
+      aria-label={props.label}
+      className={cn(controlClass, numberClass, "h-8", props.percent && "pr-7")}
+      value={props.value}
+      // An emptied field keeps its value until something is typed.
+      onValueChange={(value) => {
+        if (value !== null) props.onChange(value);
+      }}
+    />
+  );
+  return props.percent ? <WithSuffix suffix="%">{input}</WithSuffix> : input;
+}
+
+function DeleteItemSection(props: { itemId: number; name: string }) {
+  const router = useRouter();
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const onDelete = async () => {
-    if (!props.itemId) return;
-    if (!confirm("Delete this item?")) return;
+    if (
+      !window.confirm(
+        `Delete ${props.name}?\n\nEvery copy players own is deleted with it. This can't be undone.`,
+      )
+    ) {
+      return;
+    }
 
     setIsDeleting(true);
     try {
@@ -889,16 +1820,10 @@ export function ItemForm(props: {
       });
       const json: unknown = await res.json().catch(() => null);
       if (!res.ok) {
-        alert(
-          json &&
-            typeof json === "object" &&
-            "error" in json &&
-            typeof json.error === "string"
-            ? json.error
-            : "Failed to delete",
-        );
+        toast.error(errorMessage(json, "Failed to delete"));
         return;
       }
+      toast.success(`${props.name} deleted`);
       router.push("/admin/items");
       router.refresh();
     } finally {
@@ -907,1392 +1832,28 @@ export function ItemForm(props: {
   };
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-      <input type="hidden" {...form.register("baseStatsCsv")} />
-      <input type="hidden" {...form.register("toolEfficienciesCsv")} />
-      <input type="hidden" {...form.register("statProgressionsCsv")} />
-      <input type="hidden" {...form.register("statRarityOverridesCsv")} />
-      <input type="hidden" {...form.register("foodEffectStatsCsv")} />
-
-      <div
-        className={cn(
-          "h-16 w-16 rounded-md border border-gray-800/60 bg-gray-900/20 bg-contain bg-center bg-no-repeat",
-          !form.watch("sprite") && "opacity-50",
-        )}
-        style={
-          form.watch("sprite")
-            ? { backgroundImage: `url(${form.watch("sprite")})` }
-            : {}
-        }
-      />
-
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div className="space-y-2">
-          <div className="text-sm text-white/80">Name</div>
-          <Input {...form.register("name")} />
-        </div>
-
-        <div className="flex-1 space-y-2">
-          <div className="text-sm text-white/80">Sprite URL</div>
-          <Input {...form.register("sprite")} />
-        </div>
-
-        <div className="space-y-2">
-          <div className="text-sm text-white/80">Item Description</div>
-          <Input {...form.register("description")} />
-        </div>
-        <div className="space-y-2">
-          <div className="text-sm text-white/80">Price</div>
-          <Input type="number" {...form.register("price")} />
-        </div>
-        <div className="space-y-2">
-          <div className="text-sm text-white/80">Required Level</div>
-          <Input type="number" {...form.register("requiredLevel")} />
-        </div>
-        <div className="space-y-2">
-          <div className="text-sm text-white/80">Rarity</div>
-          <Select
-            value={form.watch("rarity")}
-            onValueChange={(v) => form.setValue("rarity", v as ItemRarity)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select rarity" />
-            </SelectTrigger>
-            <SelectContent>
-              {rarities.map((r) => (
-                <SelectItem key={r} value={r}>
-                  {r}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-          <div className="text-sm text-white/80">Item Type</div>
-          <Select
-            value={form.watch("itemType") ?? "__null"}
-            onValueChange={(v) =>
-              form.setValue("itemType", v === "__null" ? null : (v as ItemType))
-            }
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__null">—</SelectItem>
-              {itemTypes.map((t) => (
-                <SelectItem key={t} value={t}>
-                  {t}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-          <div className="text-sm text-white/80">Equip To</div>
-          <Input
-            placeholder="weapon, offhand, chest, fellingAxe, ..."
-            {...form.register("equipTo")}
-          />
-          <div className="text-xs text-white/50">
-            Note: equipTo is a schema enum; enter a valid value. Shields use
-            offhand; one-handed weapons fit either hand.
-          </div>
-        </div>
-        <div className="space-y-2">
-          <div className="text-sm text-white/80">Handedness</div>
-          <Select
-            value={isWeapon && form.watch("twoHanded") ? "two" : "one"}
-            onValueChange={(v) =>
-              form.setValue("twoHanded", v === "two", { shouldDirty: true })
-            }
-            disabled={!isWeapon}
-          >
-            <SelectTrigger aria-label="Handedness">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="one">One-handed</SelectItem>
-              <SelectItem value="two">Two-handed</SelectItem>
-            </SelectContent>
-          </Select>
-          <div className="text-xs text-white/50">
-            {isWeapon
-              ? "Two-handed weapons take the main hand and keep the off hand empty."
-              : "Weapons only: set Equip To to weapon to choose."}
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <div className="text-sm text-white/80">Stackable</div>
-          <Select
-            value={String(form.watch("stackable"))}
-            onValueChange={(v) => form.setValue("stackable", v === "true")}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="false">No</SelectItem>
-              <SelectItem value="true">Yes</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-          <div className="text-sm text-white/80">Max Stack Size</div>
-          <Input type="number" {...form.register("maxStackSize")} />
-        </div>
-
-        <div className="space-y-2 md:col-span-2">
-          <div className="text-sm text-white/80">Negative stat scaling</div>
-          <label className="flex items-center gap-2 text-xs text-white/70">
-            <input
-              type="checkbox"
-              className="h-4 w-4"
-              checked={Boolean(form.watch("flipNegativeStatsWithRarity"))}
-              onChange={(e) =>
-                form.setValue("flipNegativeStatsWithRarity", e.target.checked, {
-                  shouldDirty: true,
-                })
-              }
-            />
-            On higher rarities, negative stats trend toward positive
-          </label>
-          <div className="text-xs text-white/50">
-            Example: MOVEMENT_SPEED -5 at COMMON can become + at high rarities.
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div className="space-y-2">
-          <div className="text-sm text-white/80">Min Physical</div>
-          <Input type="number" {...form.register("minPhysicalDamage")} />
-        </div>
-        <div className="space-y-2">
-          <div className="text-sm text-white/80">Max Physical</div>
-          <Input type="number" {...form.register("maxPhysicalDamage")} />
-        </div>
-        <div className="space-y-2">
-          <div className="text-sm text-white/80">Armor</div>
-          <Input type="number" {...form.register("armor")} />
-        </div>
-        <div className="space-y-2">
-          <div className="text-sm text-white/80">Min Magic</div>
-          <Input type="number" {...form.register("minMagicDamage")} />
-        </div>
-        <div className="space-y-2">
-          <div className="text-sm text-white/80">Max Magic</div>
-          <Input type="number" {...form.register("maxMagicDamage")} />
-        </div>
-      </div>
-
-      {supportsTimedEffect ? (
-        <div className="max-w-xs space-y-2 rounded-lg border border-gray-800/60 p-4">
-          <div className="text-sm font-semibold text-white">
-            Instant healing
-          </div>
-          <div className="text-xs text-white/60">
-            Health restored immediately when this item is consumed.
-          </div>
-          <Input type="number" {...form.register("healingAmount")} />
-        </div>
-      ) : null}
-
-      {supportsTimedEffect ? (
-        <div className="space-y-4 rounded-lg border border-gray-800/60 p-4">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <div className="text-sm font-semibold text-white">
-                Timed consumable effect
-              </div>
-              <div className="text-xs text-white/60">
-                Consuming this item applies these bonuses until the duration
-                expires. Another timed consumable replaces the active effect.
-              </div>
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={foodEffectRows.length >= statTypes.length}
-              onClick={() => {
-                const nextStatType = statTypes.find(
-                  (statType) =>
-                    !foodEffectRows.some((row) => row.statType === statType),
-                );
-                if (!nextStatType) return;
-                syncFoodEffectRowsToForm([
-                  ...foodEffectRows,
-                  { statType: nextStatType, value: 0 },
-                ]);
-              }}
-            >
-              Add bonus
-            </Button>
-          </div>
-
-          <div className="max-w-xs space-y-2">
-            <div className="text-sm text-white/80">Duration (seconds)</div>
-            <Input type="number" {...form.register("foodEffectSeconds")} />
-          </div>
-
-          {foodEffectError ? (
-            <div className="rounded-md border border-danger/50 bg-danger/10 p-3 text-xs text-danger">
-              {foodEffectError}
-            </div>
-          ) : null}
-
-          {foodEffectRows.length === 0 ? (
-            <div className="text-xs text-white/50">
-              No timed bonuses configured.
-            </div>
+    <FormSection
+      id="delete"
+      icon={Trash2}
+      tone="danger"
+      title="Delete item"
+      description="Removes it for good, with every copy players own and any recipe that makes it. It can't be deleted while something still uses it: an ingredient, drop, shop offer, quest, garden plot, settlement project or market history."
+      actions={
+        <Button
+          type="button"
+          variant="destructive"
+          size="sm"
+          disabled={isDeleting}
+          onClick={onDelete}
+        >
+          {isDeleting ? (
+            <Loader2 aria-hidden className="h-3.5 w-3.5 animate-spin" />
           ) : (
-            <div className="space-y-2">
-              {foodEffectRows.map((row, index) => (
-                <div
-                  key={`${row.statType}-${index}`}
-                  className="grid grid-cols-12 items-end gap-2"
-                >
-                  <div className="col-span-12 space-y-1 sm:col-span-7">
-                    <div className="text-xs text-white/60">Stat</div>
-                    <Select
-                      value={row.statType}
-                      onValueChange={(value) => {
-                        const next = foodEffectRows.slice();
-                        next[index] = {
-                          ...next[index]!,
-                          statType: value as StatType,
-                        };
-                        syncFoodEffectRowsToForm(next);
-                      }}
-                    >
-                      <SelectTrigger className="h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {statTypes
-                          .filter(
-                            (statType) =>
-                              statType === row.statType ||
-                              !foodEffectRows.some(
-                                (otherRow, otherIndex) =>
-                                  otherIndex !== index &&
-                                  otherRow.statType === statType,
-                              ),
-                          )
-                          .map((statType) => (
-                            <SelectItem key={statType} value={statType}>
-                              {statType}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="col-span-8 space-y-1 sm:col-span-3">
-                    <div className="text-xs text-white/60">Bonus value</div>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      className="h-9"
-                      value={row.value}
-                      onChange={(event) => {
-                        const value = Number.parseFloat(
-                          event.target.value || "0",
-                        );
-                        const next = foodEffectRows.slice();
-                        next[index] = {
-                          ...next[index]!,
-                          value: Number.isFinite(value) ? value : 0,
-                        };
-                        syncFoodEffectRowsToForm(next);
-                      }}
-                    />
-                  </div>
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="sm"
-                    className="col-span-4 h-9 sm:col-span-2"
-                    onClick={() =>
-                      syncFoodEffectRowsToForm(
-                        foodEffectRows.filter(
-                          (_, rowIndex) => rowIndex !== index,
-                        ),
-                      )
-                    }
-                  >
-                    Remove
-                  </Button>
-                </div>
-              ))}
-            </div>
+            <Trash2 aria-hidden className="h-3.5 w-3.5" />
           )}
-        </div>
-      ) : null}
-
-      <div className="space-y-3 rounded-lg border border-gray-800/60 p-4">
-        <div>
-          <div className="text-sm font-semibold text-white">Advanced</div>
-          <div className="text-xs text-white/60">
-            Configure base stats, progressive stats and tool efficiencies.
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <div className="text-sm text-white/80">Base Stats</div>
-              <div className="text-xs text-white/50">
-                Always applied (then scaled by rarity multiplier). Use this for
-                backpacks (capacity) and movement speed.
-              </div>
-            </div>
-            {baseMode === "structured" ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-8 px-2"
-                onClick={() => {
-                  syncBaseRowsToForm([
-                    ...baseRows,
-                    {
-                      statType: StatType.CARRYING_CAPACITY,
-                      value: 0,
-                      maxValue: null,
-                    },
-                  ]);
-                }}
-              >
-                Add
-              </Button>
-            ) : null}
-          </div>
-
-          {baseError ? (
-            <div className="rounded-md border border-gray-800/60 bg-gray-900/20 p-3 text-xs text-white/70">
-              {baseError}
-            </div>
-          ) : null}
-
-          {baseMode === "structured" ? (
-            <div className="space-y-2">
-              {baseRows.length === 0 ? (
-                <div className="text-xs text-white/50">No base stats set.</div>
-              ) : null}
-
-              {baseRows.map((row, index) => (
-                <div
-                  key={`${row.statType}-${index}`}
-                  className="grid grid-cols-12 items-end gap-2"
-                >
-                  <div className="col-span-12 space-y-1 sm:col-span-4">
-                    <div className="text-xs text-white/60">Stat</div>
-                    <Select
-                      value={row.statType}
-                      onValueChange={(v) => {
-                        const next = baseRows.slice();
-                        next[index] = {
-                          ...next[index]!,
-                          statType: v as StatType,
-                        };
-                        syncBaseRowsToForm(next);
-                      }}
-                    >
-                      <SelectTrigger className="h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {statTypes
-                          .filter(
-                            (t) =>
-                              t !== StatType.PHYSICAL_DAMAGE_MIN &&
-                              t !== StatType.PHYSICAL_DAMAGE_MAX &&
-                              t !== StatType.MAGIC_DAMAGE_MIN &&
-                              t !== StatType.MAGIC_DAMAGE_MAX &&
-                              t !== StatType.ARMOR,
-                          )
-                          .map((t) => (
-                            <SelectItem key={t} value={t}>
-                              {t}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="col-span-12 space-y-1 sm:col-span-4">
-                    <div className="text-xs text-white/60">Value (COMMON)</div>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      className="h-9"
-                      value={row.value}
-                      onChange={(e) => {
-                        const nextVal = Number.parseFloat(
-                          e.target.value || "0",
-                        );
-                        const next = baseRows.slice();
-                        next[index] = {
-                          ...next[index]!,
-                          value: Number.isFinite(nextVal) ? nextVal : 0,
-                        };
-                        syncBaseRowsToForm(next);
-                      }}
-                    />
-                  </div>
-
-                  <div className="col-span-12 space-y-1 sm:col-span-4">
-                    <div className="text-xs text-white/60">Max (cap)</div>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      className="h-9"
-                      value={row.maxValue ?? ""}
-                      placeholder="(no cap)"
-                      onChange={(e) => {
-                        const raw = e.target.value;
-                        const next = baseRows.slice();
-                        if (!raw) {
-                          next[index] = { ...next[index]!, maxValue: null };
-                          syncBaseRowsToForm(next);
-                          return;
-                        }
-                        const parsed = Number.parseFloat(raw);
-                        next[index] = {
-                          ...next[index]!,
-                          maxValue: Number.isFinite(parsed) ? parsed : null,
-                        };
-                        syncBaseRowsToForm(next);
-                      }}
-                    />
-                  </div>
-
-                  <div className="col-span-12">
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="sm"
-                      className="ml-auto block h-9 px-2 text-xs"
-                      onClick={() => {
-                        const next = baseRows.filter((_, i) => i !== index);
-                        syncBaseRowsToForm(next);
-                      }}
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                </div>
-              ))}
-
-              <Button
-                type="button"
-                className="h-auto p-0 text-xs"
-                onClick={() => {
-                  setBaseMode("raw");
-                  setBaseError(null);
-                }}
-              >
-                Edit as raw CSV
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <div className="text-xs text-white/50">
-                Raw CSV format:{" "}
-                <span className="font-mono">statType,value,maxValue</span>
-              </div>
-              <textarea
-                className={cn(
-                  "flex min-h-[120px] w-full rounded-md border bg-gray-900/40 px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
-                )}
-                placeholder={
-                  "statType,value,maxValue\nCARRYING_CAPACITY,13,\nMOVEMENT_SPEED,-5,-1"
-                }
-                {...form.register("baseStatsCsv")}
-              />
-              <div className="flex items-center justify-between gap-3">
-                <div className="text-xs text-white/50">
-                  One row per base stat.
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const parsed = safeParseBaseStatsCsv(
-                      form.getValues("baseStatsCsv") ?? "",
-                    );
-                    if (parsed.error) {
-                      setBaseError(parsed.error);
-                      return;
-                    }
-                    setBaseError(null);
-                    setBaseMode("structured");
-                    syncBaseRowsToForm(parsed.rows);
-                  }}
-                >
-                  Use structured editor
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <div className="text-sm text-white/80">Tool Efficiencies</div>
-                <div className="text-xs text-white/50">
-                  Bonus efficiency (percent) for a vocation action when this
-                  item is equipped.
-                </div>
-              </div>
-              {toolMode === "structured" ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-8 px-2"
-                  onClick={() => {
-                    syncToolRowsToForm([
-                      ...toolRows,
-                      {
-                        actionType: actionTypes[0]!,
-                        baseEfficiency: 0,
-                      },
-                    ]);
-                  }}
-                >
-                  Add
-                </Button>
-              ) : null}
-            </div>
-
-            {toolError ? (
-              <div className="rounded-md border border-gray-800/60 bg-gray-900/20 p-3 text-xs text-white/70">
-                {toolError}
-              </div>
-            ) : null}
-
-            {toolMode === "structured" ? (
-              <div className="space-y-2">
-                {toolRows.length === 0 ? (
-                  <div className="text-xs text-white/50">
-                    No tool efficiencies set.
-                  </div>
-                ) : null}
-
-                {toolRows.map((row, index) => (
-                  <div
-                    key={`${row.actionType}-${index}`}
-                    className="grid grid-cols-12 items-end gap-2"
-                  >
-                    <div className="col-span-12 space-y-1 sm:col-span-6">
-                      <div className="text-xs text-white/60">Action</div>
-                      <Select
-                        value={row.actionType}
-                        onValueChange={(v) => {
-                          const next = toolRows.slice();
-                          next[index] = {
-                            ...next[index]!,
-                            actionType: v as VocationalActionType,
-                          };
-                          syncToolRowsToForm(next);
-                        }}
-                      >
-                        <SelectTrigger className="h-9">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {actionTypes.map((t) => (
-                            <SelectItem key={t} value={t}>
-                              {t}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="col-span-8 space-y-1 sm:col-span-6">
-                      <div className="text-xs text-white/60">
-                        Base % (COMMON)
-                      </div>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        className="h-9"
-                        value={row.baseEfficiency}
-                        onChange={(e) => {
-                          const nextVal = clampPercent(
-                            Number.parseFloat(e.target.value || "0"),
-                          );
-                          const next = toolRows.slice();
-                          next[index] = {
-                            ...next[index]!,
-                            baseEfficiency: nextVal,
-                          };
-                          syncToolRowsToForm(next);
-                        }}
-                      />
-                    </div>
-
-                    <div className="col-span-12">
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="sm"
-                        className="ml-auto block h-9 px-2 text-xs"
-                        onClick={() => {
-                          const next = toolRows.filter((_, i) => i !== index);
-                          syncToolRowsToForm(next);
-                        }}
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-
-                <div className="text-xs text-white/50">
-                  Higher rarities scale via global rarity config.
-                </div>
-                <Button
-                  type="button"
-                  className="h-auto p-0 text-xs"
-                  onClick={() => {
-                    setToolMode("raw");
-                    setToolError(null);
-                  }}
-                >
-                  Edit as raw CSV
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <div className="text-xs text-white/50">
-                  Raw CSV format:{" "}
-                  <span className="font-mono">actionType,baseEfficiency</span>
-                </div>
-                <textarea
-                  className={cn(
-                    "flex min-h-[140px] w-full rounded-md border bg-gray-900/40 px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
-                  )}
-                  placeholder={
-                    "actionType,baseEfficiency\nWOODCUTTING,10\nMINING,5"
-                  }
-                  {...form.register("toolEfficienciesCsv")}
-                />
-                <div className="flex items-center justify-between gap-3">
-                  <div className="text-xs text-white/50">
-                    One row per tool bonus (percent at COMMON rarity).
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      const parsed = safeParseToolEfficienciesCsv(
-                        form.getValues("toolEfficienciesCsv") ?? "",
-                      );
-                      if (parsed.error) {
-                        setToolError(parsed.error);
-                        return;
-                      }
-                      setToolError(null);
-                      setToolMode("structured");
-                      syncToolRowsToForm(parsed.rows);
-                    }}
-                  >
-                    Use structured editor
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <div className="text-sm text-white/80">Stat Progressions</div>
-                <div className="text-xs text-white/50">
-                  Defines which stats an item gains and when they unlock by
-                  rarity.
-                </div>
-              </div>
-              {progMode === "structured" ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-8 px-2"
-                  onClick={() => {
-                    syncProgRowsToForm([
-                      ...progRows,
-                      {
-                        statType: statTypes[0]!,
-                        baseValue: 0,
-                        unlocksAtRarity: ItemRarity.COMMON,
-                      },
-                    ]);
-                  }}
-                >
-                  Add
-                </Button>
-              ) : null}
-            </div>
-
-            {progError ? (
-              <div className="rounded-md border border-gray-800/60 bg-gray-900/20 p-3 text-xs text-white/70">
-                {progError}
-              </div>
-            ) : null}
-
-            {progMode === "structured" ? (
-              <div className="space-y-2">
-                {progRows.length === 0 ? (
-                  <div className="text-xs text-white/50">
-                    No stat progressions set.
-                  </div>
-                ) : null}
-
-                {progRows.map((row, index) => (
-                  <div
-                    key={`${row.statType}-${row.unlocksAtRarity}-${index}`}
-                    className="grid grid-cols-12 items-end gap-2"
-                  >
-                    <div className="col-span-12 space-y-1 sm:col-span-12">
-                      <div className="text-xs text-white/60">Stat</div>
-                      <Select
-                        value={row.statType}
-                        onValueChange={(v) => {
-                          const next = progRows.slice();
-                          next[index] = {
-                            ...next[index]!,
-                            statType: v as StatType,
-                          };
-                          syncProgRowsToForm(next);
-                        }}
-                      >
-                        <SelectTrigger className="h-9">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {statTypes.map((t) => (
-                            <SelectItem key={t} value={t}>
-                              {t}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="col-span-6 space-y-1 sm:col-span-6">
-                      <div className="text-xs text-white/60">Base (COMMON)</div>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        className="h-9"
-                        value={row.baseValue}
-                        onChange={(e) => {
-                          const nextVal = Number.parseFloat(
-                            e.target.value || "0",
-                          );
-                          const next = progRows.slice();
-                          next[index] = {
-                            ...next[index]!,
-                            baseValue: Number.isFinite(nextVal) ? nextVal : 0,
-                          };
-                          syncProgRowsToForm(next);
-                        }}
-                      />
-                    </div>
-
-                    <div className="col-span-6 space-y-1 sm:col-span-6">
-                      <div className="text-xs text-white/60">Unlocks At</div>
-                      <Select
-                        value={row.unlocksAtRarity}
-                        onValueChange={(v) => {
-                          const next = progRows.slice();
-                          next[index] = {
-                            ...next[index]!,
-                            unlocksAtRarity: v as ItemRarity,
-                          };
-                          syncProgRowsToForm(next);
-                        }}
-                      >
-                        <SelectTrigger className="h-9">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {rarities.map((r) => (
-                            <SelectItem key={r} value={r}>
-                              {r}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="col-span-12">
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="sm"
-                        className="col-span-12 ml-auto block h-9 px-2 text-xs"
-                        onClick={() => {
-                          const next = progRows.filter((_, i) => i !== index);
-                          syncProgRowsToForm(next);
-                        }}
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-
-                <div className="text-xs text-white/50">
-                  Final stat values are scaled by rarity multipliers.
-                </div>
-                <Button
-                  type="button"
-                  variant="link"
-                  className="h-auto p-0 text-xs"
-                  onClick={() => {
-                    setProgMode("raw");
-                    setProgError(null);
-                  }}
-                >
-                  Edit as raw CSV
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <div className="text-xs text-white/50">
-                  Raw CSV format:{" "}
-                  <span className="font-mono">
-                    statType,baseValue,unlocksAtRarity
-                  </span>
-                </div>
-                <textarea
-                  className={cn(
-                    "flex min-h-[140px] w-full rounded-md border bg-gray-900/40 px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
-                  )}
-                  placeholder={
-                    "statType,baseValue,unlocksAtRarity\nCRITICAL_CHANCE,5,COMMON\nLIFESTEAL,3,DIVINE"
-                  }
-                  {...form.register("statProgressionsCsv")}
-                />
-                <div className="flex items-center justify-between gap-3">
-                  <div className="text-xs text-white/50">
-                    One row per stat unlock at a rarity tier.
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      const parsed = safeParseStatProgressionsCsv(
-                        form.getValues("statProgressionsCsv") ?? "",
-                      );
-                      if (parsed.error) {
-                        setProgError(parsed.error);
-                        return;
-                      }
-                      setProgError(null);
-                      setProgMode("structured");
-                      syncProgRowsToForm(parsed.rows);
-                    }}
-                  >
-                    Use structured editor
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <div className="text-sm text-white/80">
-                  Item Stat Balance (by rarity)
-                </div>
-                <div className="text-xs text-white/50">
-                  Override the multiplier for one item/stat/rarity, or set an
-                  exact final value. This never changes other items.
-                </div>
-              </div>
-              {overrideMode === "structured" ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-8 px-2"
-                  onClick={() => {
-                    syncOverrideRowsToForm([
-                      ...overrideRows,
-                      {
-                        statType: overrideStatTypes[0]!,
-                        rarity: ItemRarity.COMMON,
-                        kind: ItemStatRarityOverrideKind.MULTIPLIER,
-                        value: 1,
-                      },
-                    ]);
-                  }}
-                >
-                  Add
-                </Button>
-              ) : null}
-            </div>
-
-            {overrideError ? (
-              <div className="rounded-md border border-gray-800/60 bg-gray-900/20 p-3 text-xs text-white/70">
-                {overrideError}
-              </div>
-            ) : null}
-
-            {overrideMode === "structured" ? (
-              <div className="space-y-2">
-                {overrideRows.length === 0 ? (
-                  <div className="text-xs text-white/50">No overrides set.</div>
-                ) : null}
-
-                {overrideRows.map((row, index) => (
-                  <div
-                    key={`${row.statType}-${row.rarity}-${index}`}
-                    className="grid grid-cols-12 items-end gap-2"
-                  >
-                    <div className="col-span-12 space-y-1 sm:col-span-12">
-                      <div className="text-xs text-white/60">Stat</div>
-                      <Select
-                        value={row.statType}
-                        onValueChange={(v) => {
-                          const next = overrideRows.slice();
-                          next[index] = {
-                            ...next[index]!,
-                            statType: v as StatType,
-                          };
-                          syncOverrideRowsToForm(next);
-                        }}
-                      >
-                        <SelectTrigger className="h-9">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {overrideStatTypes.map((t) => (
-                            <SelectItem key={t} value={t}>
-                              {t}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="col-span-4 space-y-1">
-                      <div className="text-xs text-white/60">Rarity</div>
-                      <Select
-                        value={row.rarity}
-                        onValueChange={(v) => {
-                          const next = overrideRows.slice();
-                          next[index] = {
-                            ...next[index]!,
-                            rarity: v as ItemRarity,
-                          };
-                          syncOverrideRowsToForm(next);
-                        }}
-                      >
-                        <SelectTrigger className="h-9">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {rarities.map((r) => (
-                            <SelectItem key={r} value={r}>
-                              {r}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="col-span-4 space-y-1">
-                      <div className="text-xs text-white/60">Rule</div>
-                      <Select
-                        value={row.kind}
-                        onValueChange={(v) => {
-                          const next = overrideRows.slice();
-                          next[index] = {
-                            ...next[index]!,
-                            kind: v as ItemStatRarityOverrideKind,
-                          };
-                          syncOverrideRowsToForm(next);
-                        }}
-                      >
-                        <SelectTrigger className="h-9">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem
-                            value={ItemStatRarityOverrideKind.MULTIPLIER}
-                          >
-                            Multiplier
-                          </SelectItem>
-                          <SelectItem
-                            value={ItemStatRarityOverrideKind.ABSOLUTE}
-                          >
-                            Final value
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="col-span-4 space-y-1">
-                      <div className="text-xs text-white/60">
-                        {row.kind === ItemStatRarityOverrideKind.MULTIPLIER
-                          ? "Multiplier"
-                          : "Final value"}
-                      </div>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        className="h-9"
-                        value={row.value}
-                        onChange={(e) => {
-                          const nextVal = Number.parseFloat(
-                            e.target.value || "0",
-                          );
-                          const next = overrideRows.slice();
-                          next[index] = {
-                            ...next[index]!,
-                            value: Number.isFinite(nextVal) ? nextVal : 0,
-                          };
-                          syncOverrideRowsToForm(next);
-                        }}
-                      />
-                    </div>
-
-                    <div className="col-span-12">
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="sm"
-                        className="col-span-12 ml-auto block h-9 px-2 text-xs"
-                        onClick={() => {
-                          const next = overrideRows.filter(
-                            (_, i) => i !== index,
-                          );
-                          syncOverrideRowsToForm(next);
-                        }}
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-
-                <div className="text-xs text-white/50">
-                  A multiplier replaces the global rarity multiplier only for
-                  this item and stat. A final value bypasses scaling.
-                </div>
-                <Button
-                  type="button"
-                  variant="link"
-                  className="h-auto p-0 text-xs"
-                  onClick={() => {
-                    setOverrideMode("raw");
-                    setOverrideError(null);
-                  }}
-                >
-                  Edit as raw CSV
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <div className="text-xs text-white/50">
-                  Raw CSV format:{" "}
-                  <span className="font-mono">statType,rarity,kind,value</span>
-                </div>
-                <textarea
-                  className={cn(
-                    "flex min-h-[140px] w-full rounded-md border bg-gray-900/40 px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
-                  )}
-                  placeholder={
-                    "statType,rarity,kind,value\nPHYSICAL_DAMAGE_MAX,LEGENDARY,MULTIPLIER,1.15\nMOVEMENT_SPEED,EPIC,ABSOLUTE,-1"
-                  }
-                  {...form.register("statRarityOverridesCsv")}
-                />
-                <div className="flex items-center justify-between gap-3">
-                  <div className="text-xs text-white/50">
-                    One row per (stat, rarity) override.
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      const parsed = safeParseStatRarityOverridesCsv(
-                        form.getValues("statRarityOverridesCsv") ?? "",
-                      );
-                      if (parsed.error) {
-                        setOverrideError(parsed.error);
-                        return;
-                      }
-                      setOverrideError(null);
-                      setOverrideMode("structured");
-                      syncOverrideRowsToForm(parsed.rows);
-                    }}
-                  >
-                    Use structured editor
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {isSeedItem ? (
-          <div className="rounded-md border border-gray-800/60 bg-gray-900/20 p-3">
-            <div className="text-sm text-white/80">Seed settings</div>
-            <div className="text-xs text-white/60">
-              Only used when Item Type is{" "}
-              <span className="font-mono">SEED</span>.
-            </div>
-
-            <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-              <div className="space-y-2">
-                <div className="text-sm text-white/80">Grow seconds</div>
-                <Input type="number" {...form.register("seedGrowSeconds")} />
-              </div>
-
-              <div className="space-y-2">
-                <div className="text-sm text-white/80">Harvest seconds</div>
-                <Input type="number" {...form.register("seedHarvestSeconds")} />
-              </div>
-
-              <div className="space-y-2">
-                <div className="text-sm text-white/80">
-                  Gardening XP per plot
-                </div>
-                <Input type="number" min={1} {...form.register("seedXp")} />
-              </div>
-
-              <div className="space-y-2 md:col-span-2">
-                <div className="text-sm text-white/80">Yield item</div>
-                <Select
-                  value={
-                    form.watch("seedYieldItemId")
-                      ? String(form.watch("seedYieldItemId"))
-                      : "__null"
-                  }
-                  onValueChange={(v) =>
-                    form.setValue(
-                      "seedYieldItemId",
-                      v === "__null" ? null : Number(v),
-                      { shouldDirty: true },
-                    )
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select yield item" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__null">—</SelectItem>
-                    {(seedYieldOptions ?? []).map((opt) => (
-                      <SelectItem key={opt.id} value={String(opt.id)}>
-                        {opt.name} (#{opt.id})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {seedYieldOptions === null ? (
-                  <div className="text-xs text-white/50">Loading items…</div>
-                ) : null}
-              </div>
-
-              <div className="space-y-2">
-                <div className="text-sm text-white/80">Yield min</div>
-                <Input type="number" {...form.register("seedYieldMin")} />
-              </div>
-
-              <div className="space-y-2">
-                <div className="text-sm text-white/80">Yield max</div>
-                <Input type="number" {...form.register("seedYieldMax")} />
-              </div>
-            </div>
-          </div>
-        ) : null}
-
-        <div className="rounded-md border border-gray-800/60 bg-gray-900/20 p-3">
-          <div className="text-sm text-white/80">Rarity config (global)</div>
-          <div className="text-xs text-white/60">
-            Rarity multipliers, colors, upgrade rules, and display names are
-            configured globally (not per item).
-          </div>
-          <div className="mt-2">
-            <Button asChild variant="outline" size="sm">
-              <Link href="/admin/rarity">Open Rarity Config</Link>
-            </Button>
-          </div>
-
-          <div className="mt-3 space-y-2">
-            <div className="text-xs text-white/70">
-              Preview: stat values by rarity
-            </div>
-            <div className="text-[11px] text-white/50">
-              Uses global <span className="font-mono">statMultiplier</span> and
-              progression unlock rarity.
-            </div>
-
-            {rarityConfigs === null ? (
-              <div className="text-xs text-white/50">
-                Loading rarity config…
-              </div>
-            ) : null}
-
-            {rarityConfigsError ? (
-              <div className="text-xs text-white/50">{rarityConfigsError}</div>
-            ) : null}
-
-            <div className="overflow-x-auto rounded-md border border-gray-800/60">
-              <table className="w-full text-xs">
-                <thead className="bg-gray-900/50 text-white/80">
-                  <tr>
-                    <th className="sticky left-0 z-10 bg-gray-900/50 px-2 py-1.5 text-left">
-                      Stat
-                    </th>
-                    {previewRarities.map((r) => (
-                      <th
-                        key={r}
-                        className="whitespace-nowrap px-2 py-1.5 text-right"
-                      >
-                        <span
-                          className="rarity-badge border px-[2px] py-[3px]"
-                          style={rarityStyle(r)}
-                          data-rarity={r}
-                        >
-                          {r}
-                        </span>
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {previewRows.length === 0 ? (
-                    <tr>
-                      <td
-                        className="px-2 py-2 text-white/50"
-                        colSpan={1 + previewRarities.length}
-                      >
-                        No base stats or progressions to preview.
-                      </td>
-                    </tr>
-                  ) : (
-                    previewRows.map((row) => (
-                      <tr
-                        key={row.statType}
-                        className="border-t border-gray-800/60"
-                      >
-                        <td className="sticky left-0 z-10 bg-gray-950 px-2 py-1.5 font-mono text-[11px] text-white/80">
-                          {row.statType}
-                        </td>
-                        {previewRarities.map((rarity) => {
-                          const currentIdx = rarityIndex.get(rarity) ?? 0;
-                          const unlockedSum = row.progressions
-                            .filter((p) => {
-                              const unlockIdx = rarityIndex.get(
-                                p.unlocksAtRarity,
-                              );
-                              return (
-                                unlockIdx !== undefined &&
-                                unlockIdx <= currentIdx
-                              );
-                            })
-                            .reduce((acc, p) => acc + p.baseValue, 0);
-
-                          const hasAny =
-                            row.baseValue !== 0 || unlockedSum !== 0;
-                          const mult = statScalesWithRarity(
-                            row.statType,
-                            watchedEquipTo,
-                          )
-                            ? previewMultipliers.get(rarity) ?? 1
-                            : 1;
-                          const baseTotal = row.baseValue + unlockedSum;
-                          const override = row.overrides?.find(
-                            (o) => o.rarity === rarity,
-                          );
-
-                          const overrideValueIsValid =
-                            typeof override?.value === "number" &&
-                            Number.isFinite(override.value);
-                          const effectiveMultiplier =
-                            overrideValueIsValid &&
-                            override?.kind ===
-                              ItemStatRarityOverrideKind.MULTIPLIER
-                              ? override.value
-                              : mult;
-                          let total =
-                            overrideValueIsValid &&
-                            override?.kind ===
-                              ItemStatRarityOverrideKind.ABSOLUTE
-                              ? override.value
-                              : scaleForPreview(
-                                  baseTotal,
-                                  effectiveMultiplier,
-                                  Boolean(
-                                    form.getValues(
-                                      "flipNegativeStatsWithRarity",
-                                    ),
-                                  ),
-                                );
-
-                          if (
-                            typeof row.maxValue === "number" &&
-                            Number.isFinite(row.maxValue)
-                          ) {
-                            total = Math.min(total, row.maxValue);
-                          }
-
-                          return (
-                            <td
-                              key={rarity}
-                              className="whitespace-nowrap px-2 py-1.5 text-right text-white/80"
-                            >
-                              {overrideValueIsValid
-                                ? formatPreviewValue(total)
-                                : hasAny
-                                  ? formatPreviewValue(total)
-                                  : "-"}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between gap-3">
-        <Button type="submit" disabled={isSaving}>
-          {isSaving ? "Saving..." : props.mode === "create" ? "Create" : "Save"}
+          {isDeleting ? "Deleting…" : "Delete item"}
         </Button>
-
-        {props.mode === "edit" ? (
-          <Button
-            type="button"
-            variant="destructive"
-            disabled={isDeleting}
-            onClick={onDelete}
-          >
-            {isDeleting ? "Deleting..." : "Delete"}
-          </Button>
-        ) : null}
-      </div>
-    </form>
+      }
+    />
   );
 }

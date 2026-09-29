@@ -422,6 +422,192 @@ export const HUNTING_CREATURES = [
       },
     ],
   },
+  {
+    name: "Briarback Badger",
+    description:
+      "A low, powerful badger with a pale head stripe and bramble-tough shoulder fur.",
+    asset: "/assets/creatures/animals/briarback-badger-hunting-v1.png",
+    attackStyle: "MELEE",
+    attackChance: 0.16,
+    damageMin: 6,
+    damageMax: 11,
+    drops: [
+      {
+        itemName: "Raw Hide",
+        baseChance: 0.64,
+        minQuantity: 1,
+        maxQuantity: 2,
+        requiredHuntingLevel: 20,
+      },
+      {
+        itemName: "Small Bones",
+        baseChance: 0.55,
+        minQuantity: 1,
+        maxQuantity: 3,
+        requiredHuntingLevel: 20,
+      },
+      {
+        itemName: "Sharp Fang",
+        baseChance: 0.24,
+        minQuantity: 1,
+        maxQuantity: 2,
+        requiredHuntingLevel: 24,
+      },
+    ],
+  },
+  {
+    name: "Snowhorn Ram",
+    description:
+      "A stone-grey alpine ram whose heavy pale horns make a dangerous downhill charge.",
+    asset: "/assets/creatures/animals/snowhorn-ram-hunting-v1.png",
+    attackStyle: "MELEE",
+    attackChance: 0.23,
+    damageMin: 10,
+    damageMax: 18,
+    drops: [
+      {
+        itemName: "Game Meat",
+        baseChance: 0.88,
+        minQuantity: 2,
+        maxQuantity: 4,
+        requiredHuntingLevel: 36,
+      },
+      {
+        itemName: "Raw Hide",
+        baseChance: 0.72,
+        minQuantity: 1,
+        maxQuantity: 2,
+        requiredHuntingLevel: 38,
+      },
+      {
+        itemName: "Curved Horn",
+        baseChance: 0.68,
+        minQuantity: 1,
+        maxQuantity: 2,
+        requiredHuntingLevel: 42,
+      },
+      {
+        itemName: "Thick Fur",
+        baseChance: 0.36,
+        minQuantity: 1,
+        maxQuantity: 2,
+        requiredHuntingLevel: 44,
+      },
+    ],
+  },
+  {
+    name: "Ruin Viper",
+    description:
+      "A thick-bodied viper that keeps still among old stone until its sudden, painful strike.",
+    asset: "/assets/creatures/animals/ruin-viper-hunting-v1.png",
+    attackStyle: "MELEE",
+    attackChance: 0.34,
+    damageMin: 14,
+    damageMax: 24,
+    drops: [
+      {
+        itemName: "Sharp Fang",
+        baseChance: 0.72,
+        minQuantity: 1,
+        maxQuantity: 3,
+        requiredHuntingLevel: 52,
+      },
+      {
+        itemName: "Raw Hide",
+        baseChance: 0.58,
+        minQuantity: 1,
+        maxQuantity: 2,
+        requiredHuntingLevel: 54,
+      },
+      {
+        itemName: "Small Bones",
+        baseChance: 0.4,
+        minQuantity: 1,
+        maxQuantity: 3,
+        requiredHuntingLevel: 52,
+      },
+    ],
+  },
+  {
+    name: "Cinder Jackal",
+    description:
+      "A lean soot-coloured jackal whose patient packs haunt the hot, brittle slopes.",
+    asset: "/assets/creatures/animals/cinder-jackal-hunting-v1.png",
+    attackStyle: "MELEE",
+    attackChance: 0.42,
+    damageMin: 20,
+    damageMax: 32,
+    drops: [
+      {
+        itemName: "Thick Fur",
+        baseChance: 0.68,
+        minQuantity: 1,
+        maxQuantity: 2,
+        requiredHuntingLevel: 70,
+      },
+      {
+        itemName: "Sharp Fang",
+        baseChance: 0.7,
+        minQuantity: 1,
+        maxQuantity: 3,
+        requiredHuntingLevel: 74,
+      },
+      {
+        itemName: "Animal Sinew",
+        baseChance: 0.52,
+        minQuantity: 1,
+        maxQuantity: 2,
+        requiredHuntingLevel: 70,
+      },
+      {
+        itemName: "Small Bones",
+        baseChance: 0.44,
+        minQuantity: 2,
+        maxQuantity: 4,
+        requiredHuntingLevel: 70,
+      },
+    ],
+  },
+  {
+    name: "Mangrove Panther",
+    description:
+      "A blue-black island cat that stalks low through tangled roots before striking with full weight.",
+    asset: "/assets/creatures/animals/mangrove-panther-hunting-v1.png",
+    attackStyle: "MELEE",
+    attackChance: 0.48,
+    damageMin: 26,
+    damageMax: 40,
+    drops: [
+      {
+        itemName: "Thick Fur",
+        baseChance: 0.78,
+        minQuantity: 1,
+        maxQuantity: 3,
+        requiredHuntingLevel: 84,
+      },
+      {
+        itemName: "Sharp Fang",
+        baseChance: 0.72,
+        minQuantity: 1,
+        maxQuantity: 3,
+        requiredHuntingLevel: 86,
+      },
+      {
+        itemName: "Animal Sinew",
+        baseChance: 0.64,
+        minQuantity: 1,
+        maxQuantity: 3,
+        requiredHuntingLevel: 84,
+      },
+      {
+        itemName: "Raw Hide",
+        baseChance: 0.56,
+        minQuantity: 1,
+        maxQuantity: 2,
+        requiredHuntingLevel: 80,
+      },
+    ],
+  },
 ] as const satisfies readonly HuntingCreatureDefinition[];
 
 type GroundDefinition = {
@@ -513,6 +699,7 @@ export const HUNTING_GROUNDS = [
       { name: "Wild Boar", encounterWeight: 4 },
       { name: "Grey Wolf", encounterWeight: 3 },
       { name: "Ashback Bear", encounterWeight: 0.5 },
+      { name: "Briarback Badger", encounterWeight: 2 },
     ],
   },
   {
@@ -544,6 +731,7 @@ export const HUNTING_GROUNDS = [
     creatures: [
       { name: "Mountain Goat", encounterWeight: 5 },
       { name: "Frostfang Lynx", encounterWeight: 2 },
+      { name: "Snowhorn Ram", encounterWeight: 3 },
     ],
   },
   {
@@ -560,6 +748,7 @@ export const HUNTING_GROUNDS = [
       { name: "Red Deer", encounterWeight: 3 },
       { name: "Grey Wolf", encounterWeight: 3 },
       { name: "Ashback Bear", encounterWeight: 1 },
+      { name: "Ruin Viper", encounterWeight: 2.5 },
     ],
   },
   {
@@ -575,6 +764,7 @@ export const HUNTING_GROUNDS = [
     creatures: [
       { name: "Mountain Goat", encounterWeight: 3 },
       { name: "Ashback Bear", encounterWeight: 2 },
+      { name: "Cinder Jackal", encounterWeight: 3 },
     ],
   },
   {
@@ -590,6 +780,7 @@ export const HUNTING_GROUNDS = [
     creatures: [
       { name: "Marsh Crocodile", encounterWeight: 4 },
       { name: "Wild Boar", encounterWeight: 2 },
+      { name: "Mangrove Panther", encounterWeight: 1.5 },
     ],
   },
 ] as const satisfies readonly GroundDefinition[];

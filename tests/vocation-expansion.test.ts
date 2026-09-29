@@ -108,22 +108,22 @@ function inspectRgbaPng(png: Buffer): PngInspection {
   };
 }
 
-void test("the pack contains six distinct resources for every requested vocation", () => {
-  assert.equal(VOCATION_EXPANSION.length, 24);
-  assert.equal(new Set(VOCATION_EXPANSION.map((item) => item.slug)).size, 24);
-  assert.equal(new Set(VOCATION_EXPANSION.map((item) => item.name)).size, 24);
-  assert.equal(new Set(VOCATION_EXPANSION.map(vocationSpritePath)).size, 24);
+void test("the pack retains its original tiers and adds three mining, woodcutting, and blacksmithing resources", () => {
+  assert.equal(VOCATION_EXPANSION.length, 33);
+  assert.equal(new Set(VOCATION_EXPANSION.map((item) => item.slug)).size, 33);
+  assert.equal(new Set(VOCATION_EXPANSION.map((item) => item.name)).size, 33);
+  assert.equal(new Set(VOCATION_EXPANSION.map(vocationSpritePath)).size, 33);
 
-  for (const actionType of [
-    "MINING",
-    "WOODCUTTING",
-    "FISHING",
-    "BLACKSMITHING",
+  for (const [actionType, expectedCount] of [
+    ["MINING", 9],
+    ["WOODCUTTING", 9],
+    ["FISHING", 6],
+    ["BLACKSMITHING", 9],
   ] as const) {
     const resources = VOCATION_EXPANSION.filter(
       (resource) => resource.actionType === actionType,
     );
-    assert.equal(resources.length, 6, actionType);
+    assert.equal(resources.length, expectedCount, actionType);
     const ordered = [...resources].sort(
       (a, b) => a.requiredSkillLevel - b.requiredSkillLevel,
     );
@@ -134,6 +134,46 @@ void test("the pack contains six distinct resources for every requested vocation
       assert.ok(ordered[index]!.xpPerUnit >= ordered[index - 1]!.xpPerUnit);
       assert.ok(ordered[index]!.price >= ordered[index - 1]!.price);
     }
+  }
+});
+
+void test("the new endgame material bands have complete ore, log, and profitable ingot recipes", () => {
+  const byName = new Map(
+    VOCATION_EXPANSION.map((resource) => [resource.name, resource]),
+  );
+  const bands = [
+    {
+      ore: "Sunstone Ore",
+      log: "Gloamwood Log",
+      ingot: "Sunsteel Ingot",
+      location: "Ruins of Caldrath",
+    },
+    {
+      ore: "Umbracite Ore",
+      log: "Ironbark Log",
+      ingot: "Umbrasteel Ingot",
+      location: "Mount Doom",
+    },
+    {
+      ore: "Tideglass Ore",
+      log: "Saltcedar Log",
+      ingot: "Tideglass Ingot",
+      location: "Pirate Island",
+    },
+  ] as const;
+
+  for (const band of bands) {
+    const ore = byName.get(band.ore);
+    const log = byName.get(band.log);
+    const ingot = byName.get(band.ingot);
+    assert.equal(ore?.itemType, "ORE");
+    assert.equal(log?.itemType, "LOG");
+    assert.equal(ingot?.itemType, "INGOT");
+    assert.ok(ore?.locations.includes(band.location as never));
+    assert.ok(log?.locations.includes(band.location as never));
+    assert.ok(ingot?.locations.includes(band.location as never));
+    assert.ok(ingot!.requirements.some((entry) => entry.itemName === band.ore));
+    assert.ok(ingot!.requirements.some((entry) => entry.itemName === "Coal"));
   }
 });
 

@@ -14,13 +14,15 @@ import {
   meetsItemLevelRequirement,
 } from "../src/utils/inventoryClient";
 
-void test("the pack contains five distinct weapons and complete Rare/Epic armor sets", () => {
-  assert.equal(ATLAS_EQUIPMENT.length, 21);
-  assert.equal(new Set(ATLAS_EQUIPMENT.map((item) => item.slug)).size, 21);
-  assert.equal(new Set(ATLAS_EQUIPMENT.map((item) => item.name)).size, 21);
+void test("the pack contains six distinct weapons and complete Rare/Epic armor sets", () => {
+  assert.equal(ATLAS_EQUIPMENT.length, 22);
+  assert.equal(new Set(ATLAS_EQUIPMENT.map((item) => item.slug)).size, 22);
+  assert.equal(new Set(ATLAS_EQUIPMENT.map((item) => item.name)).size, 22);
   const weapons = ATLAS_EQUIPMENT.filter((item) => !item.set);
-  assert.equal(weapons.length, 5);
-  assert.equal(new Set(weapons.map((item) => item.itemType)).size, 5);
+  assert.equal(weapons.length, 6);
+  assert.equal(new Set(weapons.map((item) => item.itemType)).size, 6);
+  const ogreCleaver = weapons.find((item) => item.slug === "ogre-cleaver");
+  assert.equal(ogreCleaver?.twoHanded, true);
   for (const [set, level, rarity] of [
     ["trailwarden", 1, "RARE"],
     ["duskwarden", 50, "EPIC"],
@@ -40,7 +42,7 @@ void test("the pack contains five distinct weapons and complete Rare/Epic armor 
 });
 
 void test("all item definitions point to separate, optimized RGBA sprites", () => {
-  assert.equal(new Set(ATLAS_EQUIPMENT.map(atlasSpritePath)).size, 21);
+  assert.equal(new Set(ATLAS_EQUIPMENT.map(atlasSpritePath)).size, 22);
   for (const item of ATLAS_EQUIPMENT) {
     const sprite = readFileSync(
       new URL(`../public${atlasSpritePath(item)}`, import.meta.url),
@@ -62,6 +64,7 @@ void test("template and indexed stats stay at base values without applying rarit
     assert.equal(data.minMagicDamage, item.stats.MAGIC_DAMAGE_MIN ?? 0);
     assert.equal(data.maxMagicDamage, item.stats.MAGIC_DAMAGE_MAX ?? 0);
     assert.equal(data.rarity, item.rarity);
+    assert.equal(data.twoHanded, item.twoHanded ?? false);
     assert.equal(data.stackable, false);
     assert.equal(data.maxStackSize, 1);
     assert.deepEqual(

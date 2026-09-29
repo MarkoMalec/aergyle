@@ -1,0 +1,8 @@
+Use case: stylized-concept
+Asset type: Aergyle inventory weapon sprite, master artwork
+Input image role: Ogre sprite visual reference only; extract its cleaver's physical design language, not the character.
+Primary request: One isolated two-handed Ogre Cleaver, a broad slightly wedge-shaped soot-black iron butcher blade with a battered spine, edge nicks, one lower-corner punch-hole, stout dark-ash handle, iron collar, and worn black leather grip.
+Style/medium: Polished hand-painted fantasy RPG inventory art with lightly faceted brushwork, chunky mass, crisp silhouette, restrained design, three clear value groups, and broad material planes.
+Composition/framing: Lower-left grip to upper-right blade at about 45 degrees; around 80 percent canvas coverage with even transparent margins; readable at 32px.
+Lighting/mood: Warm-neutral upper-left key, cool desaturated teal-grey self-shadows, restrained edge highlights.
+Constraints: Genuine transparent RGBA canvas; no hands, character, sheath, extras, text, frame, floor, cast shadow, glow, particles, magic, watermark, checkerboard, black or white backdrop, ornate engraving, glowing runes, or blood.

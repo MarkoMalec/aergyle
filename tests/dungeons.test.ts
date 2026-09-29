@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { COMPONENT_ITEMS } from "../prisma/content/componentExpansion";
 import { ALCHEMY_ITEMS } from "../prisma/content/alchemy";
+import { ATLAS_EQUIPMENT } from "../prisma/content/atlasEquipment";
 import { DUNGEON_MONSTERS, DUNGEONS } from "../prisma/content/dungeons";
 import { HUNTING_ITEMS } from "../prisma/content/hunting";
 import { TAILORING_ITEMS } from "../prisma/content/tailoring";
@@ -347,7 +348,7 @@ void test("recommended health is stable, scales with population and pack size, a
   assert.equal(unwinnable, null);
 });
 
-void test("dungeon content places the starter vault and the rare troll source with valid loot", () => {
+void test("dungeon content places boss-and-minion dungeon groups with valid loot", () => {
   const locations = new Set(
     WORLD_ATLAS_LOCATION_MARKERS.map((location) => location.name),
   );
@@ -357,6 +358,7 @@ void test("dungeon content places the starter vault and the rare troll source wi
     ...COMPONENT_ITEMS.map((item) => item.name),
     ...TAILORING_ITEMS.map((item) => item.name),
     ...ALCHEMY_ITEMS.map((item) => item.name),
+    ...ATLAS_EQUIPMENT.map((item) => item.name),
     "Wooden Dagger",
   ]);
 
@@ -364,10 +366,33 @@ void test("dungeon content places the starter vault and the rare troll source wi
   const trollCavern = DUNGEONS.find(
     (dungeon) => dungeon.name === "Trollbreaker Cavern",
   );
+  const caveTrollGrotto = DUNGEONS.find(
+    (dungeon) => dungeon.name === "Drowned Mouth Grotto",
+  );
+  const ogreStockade = DUNGEONS.find(
+    (dungeon) => dungeon.name === "Blackjaw Stockade",
+  );
   assert.equal(starter?.locationName, "Crownhold");
   assert.deepEqual(starter?.locationAliases, ["Valedor"]);
   assert.equal(trollCavern?.locationName, "Frostcrown Peaks");
   assert.ok(trollCavern && trollCavern.requiredLevel >= 65);
+  assert.deepEqual(trollCavern?.monsters, [
+    { name: "Stoneback Troll", minCount: 1, maxCount: 1 },
+    { name: "Trollhound", minCount: 4, maxCount: 6 },
+  ]);
+  assert.equal(caveTrollGrotto?.locationName, "Frostcrown Peaks");
+  assert.deepEqual(caveTrollGrotto?.monsters, [
+    { name: "Cave Troll", minCount: 1, maxCount: 1 },
+    { name: "Trollhound", minCount: 3, maxCount: 5 },
+  ]);
+  assert.equal(ogreStockade?.locationName, "Goblins Camp");
+  assert.deepEqual(ogreStockade?.monsters, [
+    { name: "Ogre", minCount: 1, maxCount: 1 },
+    { name: "Orc", minCount: 3, maxCount: 5 },
+    { name: "Warg", minCount: 2, maxCount: 3 },
+  ]);
+  assert.equal(ogreStockade?.packSize, 2);
+  assert.equal(caveTrollGrotto?.packSize, 2);
   for (const dungeon of DUNGEONS) {
     assert.ok(locations.has(dungeon.locationName));
     assert.ok(dungeon.durationSeconds >= 60);
@@ -403,5 +428,55 @@ void test("dungeon content places the starter vault and the rare troll source wi
   assert.ok(
     (trollBlood?.baseChance ?? 1) <= 0.12,
     "Troll Blood must remain a rare drop",
+  );
+
+  const caveTroll = DUNGEON_MONSTERS.find(
+    (monster) => monster.name === "Cave Troll",
+  );
+  assert.equal(
+    caveTroll?.asset,
+    "/assets/creatures/monsters/rare/cave-troll.png",
+  );
+  assert.ok(
+    (caveTroll?.health ?? 0) < (troll?.health ?? 0),
+    "Cave Troll should be a weaker lead-in to Stoneback Troll",
+  );
+
+  const ogre = DUNGEON_MONSTERS.find((monster) => monster.name === "Ogre");
+  assert.equal(ogre?.asset, "/assets/creatures/monsters/rare/ogre.png");
+  assert.deepEqual(
+    ogre?.drops.find((drop) => drop.itemName === "Ogre Cleaver"),
+    {
+      itemName: "Ogre Cleaver",
+      baseChance: 0.025,
+      minQuantity: 1,
+      maxQuantity: 1,
+      requiredLevel: 40,
+    },
+  );
+  assert.ok(
+    (ogre?.health ?? 0) < (caveTroll?.health ?? 0),
+    "Ogre should lead into the Cave Troll encounter",
+  );
+
+  const orc = DUNGEON_MONSTERS.find((monster) => monster.name === "Orc");
+  const warg = DUNGEON_MONSTERS.find((monster) => monster.name === "Warg");
+  const trollhound = DUNGEON_MONSTERS.find(
+    (monster) => monster.name === "Trollhound",
+  );
+  assert.equal(orc?.asset, "/assets/creatures/monsters/common/orc.png");
+  assert.equal(warg?.asset, "/assets/creatures/monsters/common/warg.png");
+  assert.equal(
+    trollhound?.asset,
+    "/assets/creatures/monsters/common/trollhound.png",
+  );
+  assert.ok(
+    (orc?.health ?? Infinity) < (ogre?.health ?? 0) &&
+      (warg?.health ?? Infinity) < (ogre?.health ?? 0),
+    "Orcs and wargs should remain ogre minions",
+  );
+  assert.ok(
+    (trollhound?.health ?? Infinity) < (caveTroll?.health ?? 0),
+    "Trollhounds should remain troll minions",
   );
 });

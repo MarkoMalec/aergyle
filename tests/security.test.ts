@@ -17,7 +17,11 @@ import {
   totpUri,
   verifyTotp,
 } from "../src/server/admin/totp";
-import { adminPasswordProblem } from "../src/server/admin/credentials";
+import {
+  adminPasswordProblem,
+  generateInvitePassword,
+  isInviteOpen,
+} from "../src/server/admin/credentials";
 import {
   createRateLimiter,
   getClientIp,
@@ -213,6 +217,16 @@ void test("every admin page checks the admin session itself", () => {
   const adminDir = path.join(root, "src/app/admin");
   for (const page of filesNamed(adminDir, "page.tsx")) {
     if (page.endsWith(path.join("admin", "login", "page.tsx"))) continue;
+    if (page.endsWith(path.join("admin", "setup", "page.tsx"))) {
+      // Reached on one factor, so it takes the setup guard instead, which
+      // turns a finished admin away again.
+      const source = readFileSync(page, "utf8");
+      assert.ok(
+        source.includes("requireAdminSetupSession()"),
+        "the setup page must call requireAdminSetupSession()",
+      );
+      continue;
+    }
     // A page may rely on a guard in its own segment's layouts (not the root
     // admin layout, which doesn't re-render on navigation).
     let guarded = readFileSync(page, "utf8").includes("requireAdminPageAccess()");
@@ -233,8 +247,41 @@ void test("every admin API handler checks the admin session", () => {
   for (const route of filesNamed(path.join(root, "src/app/api/admin"), "route.ts")) {
     if (route.includes(path.join("admin", "session"))) continue;
     const source = readFileSync(route, "utf8");
+    if (route.includes(path.join("admin", "setup"))) {
+      // Same exception, and it must refuse anything but a SETUP session.
+      assert.match(source, /session\.scope !== "SETUP"/);
+      continue;
+    }
     const handlers = source.match(/^export async function (GET|POST|PUT|PATCH|DELETE)/gm) ?? [];
     const guards = source.match(/requireAdminApiAccess\(/g) ?? [];
     assert.equal(guards.length, handlers.length, path.relative(root, route));
   }
+});
+
+/* ------------------------------------------------------ admin invites */
+
+void test("an invite is only open before it expires and before enrolment", () => {
+  const future = new Date(Date.now() + 60_000);
+  const past = new Date(Date.now() - 60_000);
+  const open = { totpSecret: null, setupExpiresAt: future, disabled: false };
+
+  assert.equal(isInviteOpen(open), true);
+  // Already set up: the password alone must never be enough again.
+  assert.equal(isInviteOpen({ ...open, totpSecret: "sealed" }), false);
+  assert.equal(isInviteOpen({ ...open, setupExpiresAt: past }), false);
+  assert.equal(isInviteOpen({ ...open, setupExpiresAt: null }), false);
+  assert.equal(isInviteOpen({ ...open, disabled: true }), false);
+  assert.equal(isInviteOpen(null), false);
+});
+
+void test("invite passwords are unguessable and easy to read back", () => {
+  const passwords = Array.from({ length: 200 }, () => generateInvitePassword());
+
+  for (const password of passwords) {
+    // Five groups of four, from an alphabet with no I, L, O or U.
+    assert.match(password, /^[ABCDEFGHJKMNPQRSTVWXYZ23456789]{4}(-[ABCDEFGHJKMNPQRSTVWXYZ23456789]{4}){4}$/);
+    // Long enough to pass the same rule real passwords are held to.
+    assert.equal(adminPasswordProblem(password), null);
+  }
+  assert.equal(new Set(passwords).size, passwords.length);
 });

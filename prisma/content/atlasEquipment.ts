@@ -15,6 +15,7 @@ export interface AtlasItemDefinition {
   description: string;
   itemType: ItemType;
   equipTo: ItemEquipTo;
+  twoHanded?: boolean;
   rarity: ItemRarity;
   requiredLevel: number;
   price: number;
@@ -58,7 +59,7 @@ function armor(
   };
 }
 
-/** Five weapons and two complete, eight-slot armor sets. No implicit set bonuses. */
+/** Six weapons and two complete, eight-slot armor sets. No implicit set bonuses. */
 export const ATLAS_EQUIPMENT: readonly AtlasItemDefinition[] = [
   {
     slug: "wayfarer-shortblade",
@@ -132,6 +133,25 @@ export const ATLAS_EQUIPMENT: readonly AtlasItemDefinition[] = [
       ATTACK_SPEED: 0.55,
       ARMOR: 12,
       HEALTH: 40,
+    },
+  },
+  {
+    slug: "ogre-cleaver",
+    set: null,
+    name: "Ogre Cleaver",
+    description:
+      "A butcher's blade wrenched from an ogre's hand. Its black iron slab has no finesse, only an edge heavy enough to break a guard.",
+    itemType: "GREATAXE",
+    equipTo: "weapon",
+    twoHanded: true,
+    rarity: "RARE",
+    requiredLevel: 40,
+    price: 3400,
+    stats: {
+      PHYSICAL_DAMAGE_MIN: 38,
+      PHYSICAL_DAMAGE_MAX: 56,
+      ATTACK_SPEED: 0.65,
+      CRITICAL_DAMAGE: 6,
     },
   },
   {
@@ -331,6 +351,7 @@ export function atlasItemCreateData(
     sprite: atlasSpritePath(item),
     itemType: item.itemType,
     equipTo: item.equipTo,
+    twoHanded: item.twoHanded ?? false,
     rarity: item.rarity,
     requiredLevel: item.requiredLevel,
     stackable: false,

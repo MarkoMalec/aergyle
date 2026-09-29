@@ -24,7 +24,11 @@ export function AdminLoginForm({ next }: { next: string }) {
         body: JSON.stringify({ username, password, code }),
       });
       if (response.ok) {
-        window.location.assign(next);
+        const data = (await response.json().catch(() => null)) as {
+          setup?: boolean;
+        } | null;
+        // A first sign-in on an invite goes to setup, not to the dashboard.
+        window.location.assign(data?.setup ? "/admin/setup" : next);
         return;
       }
       const data = (await response.json().catch(() => null)) as {
@@ -97,7 +101,6 @@ export function AdminLoginForm({ next }: { next: string }) {
             autoComplete="one-time-code"
             pattern="\d{6}"
             maxLength={6}
-            required
             placeholder="000000"
             value={code}
             onChange={(event) =>
@@ -106,7 +109,8 @@ export function AdminLoginForm({ next }: { next: string }) {
             className="h-12 border-white/10 bg-black/25 text-center font-mono text-xl tracking-[0.5em] placeholder:tracking-[0.5em] placeholder:text-muted-foreground/40"
           />
           <p className="text-xs text-muted-foreground">
-            The 6-digit code from your authenticator app (e.g. Authy).
+            The 6-digit code from your authenticator app (e.g. Authy). Leave
+            it empty if you are signing in on an invite for the first time.
           </p>
         </div>
       </div>
@@ -124,7 +128,7 @@ export function AdminLoginForm({ next }: { next: string }) {
       <Button
         type="submit"
         className="mt-6 h-11 w-full"
-        disabled={pending || code.length !== 6}
+        disabled={pending || (code.length !== 0 && code.length !== 6)}
       >
         {pending ? (
           <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
@@ -135,8 +139,8 @@ export function AdminLoginForm({ next }: { next: string }) {
       </Button>
 
       <p className="mt-5 text-center text-xs text-muted-foreground">
-        Lost your authenticator? Reset access from the server with the admin
-        CLI.
+        Lost your authenticator? Ask for a new invite; it is issued from the
+        server with the admin CLI.
       </p>
     </form>
   );

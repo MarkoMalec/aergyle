@@ -12,10 +12,15 @@ import { adminSessionCookieName } from "~/server/admin/constants";
 import {
   ADMIN_LOCKOUT_MINUTES,
   ADMIN_MAX_FAILED_LOGINS,
+  isInviteOpen,
   normalizeAdminUsername,
   verifyAdminPassword,
 } from "~/server/admin/credentials";
-import { openTotpSecret, verifyTotp } from "~/server/admin/totp";
+import {
+  generateTotpSecret,
+  openTotpSecret,
+  verifyTotp,
+} from "~/server/admin/totp";
 import { isSameOriginRequest } from "~/server/security/origin";
 import { sharedRateLimiter } from "~/server/security/rateLimit";
 
@@ -71,7 +76,7 @@ export async function POST(request: Request) {
     username.length > 64 ||
     !password ||
     password.length > 256 ||
-    !/^\d{6}$/.test(code)
+    (code !== "" && !/^\d{6}$/.test(code))
   ) {
     return NextResponse.json(
       { error: "Enter your username, password and the 6-digit code." },
@@ -100,8 +105,37 @@ export async function POST(request: Request) {
   // The password is always checked, even for unknown usernames, so response
   // times don't reveal which accounts exist.
   const passwordOk = await verifyAdminPassword(password, admin?.passwordHash);
+
+  // An open invite: the one-time password is the only factor there is yet, so
+  // it buys nothing but a session that can reach /admin/setup and no further.
+  if (admin && passwordOk && isInviteOpen(admin, now)) {
+    await prisma.adminUser.update({
+      where: { id: admin.id },
+      data: { failedLogins: 0, lockedUntil: null },
+    });
+    attemptsByIp.reset(ip);
+    const session = await createAdminSession(
+      admin.id,
+      { ip, userAgent },
+      { scope: "SETUP", pendingTotpSecret: generateTotpSecret() },
+    );
+    await recordAdminAudit({
+      adminId: admin.id,
+      username: admin.username,
+      action: "login.setup",
+      ip,
+    });
+    const response = NextResponse.json({ ok: true, setup: true });
+    response.cookies.set(
+      adminSessionCookieName(),
+      session.token,
+      adminCookieOptions(session.expiresAt),
+    );
+    return response;
+  }
+
   let counter: number | null = null;
-  if (admin && !admin.disabled && passwordOk) {
+  if (admin?.totpSecret && !admin.disabled && passwordOk && code) {
     const secret = await openTotpSecret(admin.totpSecret, password);
     counter = secret ? verifyTotp(secret, code) : null;
     // A code that already opened a session can't open another one.

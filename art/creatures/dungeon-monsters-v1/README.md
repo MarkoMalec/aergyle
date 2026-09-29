@@ -36,6 +36,8 @@ relying on rarity glows or particle effects.
 | Name | Subject prompt | Runtime sprite |
 | --- | --- | --- |
 | Tunnel Goblin | Wiry olive-green scavenger with patched leather, rag-wrapped feet, crude buckler, and chipped cleaver | `/assets/creatures/monsters/common/tunnel-goblin.png` |
+| Goblin | Wiry olive-green scavenger with a long pinched nose, patchwork leather vest, rust-red scarf, rag-wrapped feet, notched short sword, and stolen lantern | `/assets/creatures/monsters/low-level/goblin.png` |
+| Bomber Goblin | Soot-stained olive-green saboteur with patched charcoal hood, singed leather apron, firepot bandolier, hooked striker, and a single lit matte-black iron bomb | `/assets/creatures/monsters/common/bomber-goblin.png` |
 | Rattlebone Skeleton | Lean skeleton with cracked ribs, burial-cloth scraps, tarnished cap, battered shield, and notched short sword | `/assets/creatures/monsters/common/rattlebone-skeleton.png` |
 | Mire Ooze | Translucent swamp-green crawling mound with pebbles, two small bone fragments, thick pseudopods, and two dim amber motes | `/assets/creatures/monsters/common/mire-ooze.png` |
 | Cavefang Spider | Dog-sized charcoal subterranean spider with dusty joint plates, enlarged fangs, and an original pale marking | `/assets/creatures/monsters/common/cavefang-spider.png` |
@@ -45,15 +47,19 @@ relying on rarity glows or particle effects.
 | Rootling | Knee-high animated creature of knotted roots and damp bark with thorny crown, moss patches, and pale green eyes | `/assets/creatures/monsters/common/rootling.png` |
 | Plague Rat | Oversized charcoal-brown rat with chipped incisors, red-brown eyes, aggressive posture, and broken-tag rope collar | `/assets/creatures/monsters/common/plague-rat.png` |
 | Scalehide Troglodyte | Stocky slate-olive reptilian cave humanoid with blunt snout, spinal ridge, thick tail, hide loincloth, and stone club | `/assets/creatures/monsters/common/scalehide-troglodyte.png` |
+| Orc | Lean charcoal-olive raider with deep-set amber eyes, small tusks, patched black leather, dark-red sash, wrapped forearms, and crude hooked spear | `/assets/creatures/monsters/common/orc.png` |
+| Warg | Lean smoke-black and dark-russet wolf-like raiding hound with scarred muzzle, torn ears, studded collar, and broken tether chain | `/assets/creatures/monsters/common/warg.png` |
+| Trollhound | Low-slung pale blue-grey cave hound with sparse wet ash fur, ragged ears, broad underhung jaw, milky eyes, rope collar, and chipped bone tag | `/assets/creatures/monsters/common/trollhound.png` |
 
 ## Rare room-anchor enemies
 
 | Name | Subject prompt | Runtime sprite |
 | --- | --- | --- |
 | Ironhide Ogre | Towering grey-brown brute in scavenged iron plates and hides, carrying a huge square-headed stone maul | `/assets/creatures/monsters/rare/ironhide-ogre.png` |
+| Ogre | Broad-shouldered red-ochre raider with a lopsided warted nose, mismatched eyes, sagging jowls, uneven tusks, patchy black hair, wolf-pelt cape, leather harness, and chipped dark-iron cleaver | `/assets/creatures/monsters/rare/ogre.png` |
+| Cave Troll | Huge pale blue-grey cave brute with a lopsided bald head, wandering bewildered eyes, floppy ears, a single crooked tusk, patched hide loincloth, and chipped wooden club | `/assets/creatures/monsters/rare/cave-troll.png` |
 | Stoneback Troll | Huge long-armed grey-green cave predator with natural slate plates along its spine and forearms | `/assets/creatures/monsters/rare/stoneback-troll.png` |
 | Tomb Sentinel | Towering empty dark-iron plate armor with restrained teal visor light, kite shield, flanged mace, and torn tabard | `/assets/creatures/monsters/rare/tomb-sentinel.png` |
 | Miremaw Hydra | Massive swamp reptile with exactly three serpentine heads, one crocodilian body, four legs, and a thick tail | `/assets/creatures/monsters/rare/miremaw-hydra.png` |
 | Emberhorn Minotaur | Towering dark-umber bull humanoid with mineral-streaked horns, iron harness, leather kilt, and two-handed axe | `/assets/creatures/monsters/rare/emberhorn-minotaur.png` |
 | Hollow Wyrm | Huge wingless subterranean dragon-like beast with four legs, horned head, charcoal-blue scales, pale belly, and crystal chips | `/assets/creatures/monsters/rare/hollow-wyrm.png` |
-

@@ -2102,7 +2102,12 @@ model AdminUser {
   username        String    @unique @db.VarChar(32)
   passwordHash    String    @db.VarChar(255)
   // Authenticator secret, encrypted with a key derived from the password.
-  totpSecret      String    @db.VarChar(255)
+  // Null while an invite is open: the account has no authenticator yet.
+  totpSecret      String?   @db.VarChar(255)
+  // Set by `npm run admin -- invite`. While it is in the future and there is
+  // no totpSecret, the one-time password alone signs in, and only to finish
+  // setup. Cleared once setup completes.
+  setupExpiresAt  DateTime?
   // Last accepted code step, so a code someone watched being typed can't be reused.
   totpLastCounter Int?
   disabled        Boolean   @default(false)
@@ -2117,17 +2122,29 @@ model AdminUser {
   reviewedReports MessageReport[]
 }
 
+// A SETUP session is one factor (the invite's one-time password) and reaches
+// only /admin/setup; finishing setup replaces it with a FULL one.
+enum AdminSessionScope {
+  FULL
+  SETUP
+}
+
 model AdminSession {
-  id         String    @id @default(cuid())
-  adminId    String
+  id                String            @id @default(cuid())
+  adminId           String
   // SHA-256 of the cookie token; the token itself is never stored.
-  tokenHash  String    @unique @db.Char(64)
-  ip         String?   @db.VarChar(64)
-  userAgent  String?   @db.VarChar(255)
-  createdAt  DateTime  @default(now())
-  lastSeenAt DateTime  @default(now())
-  expiresAt  DateTime
-  revokedAt  DateTime?
+  tokenHash         String            @unique @db.Char(64)
+  scope             AdminSessionScope @default(FULL)
+  // The authenticator secret offered during setup. Unsealed, because the
+  // password that seals it does not exist yet; it is on screen as the QR code
+  // for the same few minutes, and goes away when the session does.
+  pendingTotpSecret String?           @db.VarChar(255)
+  ip                String?           @db.VarChar(64)
+  userAgent         String?           @db.VarChar(255)
+  createdAt         DateTime          @default(now())
+  lastSeenAt        DateTime          @default(now())
+  expiresAt         DateTime
+  revokedAt         DateTime?
 
   admin AdminUser @relation(fields: [adminId], references: [id], onDelete: Cascade)
 

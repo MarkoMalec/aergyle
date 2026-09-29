@@ -76,6 +76,7 @@ async function main() {
             "rarity",
             "itemType",
             "equipTo",
+            "twoHanded",
             "requiredLevel",
             "stackable",
             "maxStackSize",

@@ -16,3 +16,6 @@ export function adminSessionCookieName(): string {
 export const ADMIN_LOGIN_PATH = "/admin/login";
 /** Signs in and out; reachable without an admin session. */
 export const ADMIN_SESSION_API_PATH = "/api/admin/session";
+/** Where an invited admin picks a password and enrols an authenticator. */
+export const ADMIN_SETUP_PATH = "/admin/setup";
+export const ADMIN_SETUP_API_PATH = "/api/admin/setup";

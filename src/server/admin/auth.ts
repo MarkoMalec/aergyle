@@ -10,9 +10,11 @@ import { getClientIp } from "~/server/security/rateLimit";
 import { isSafeMethod, isSameOriginRequest } from "~/server/security/origin";
 import {
   ADMIN_LOGIN_PATH,
+  ADMIN_SETUP_PATH,
   adminSessionCookieName,
   usesSecureCookies,
 } from "./constants";
+import type { AdminSessionScope } from "~/generated/prisma/enums";
 
 /**
  * /admin has its own accounts and sessions, separate from player sign-in.
@@ -21,8 +23,10 @@ import {
  * ADMIN_SESSION_MAX_AGE_SECONDS, or sooner when idle.
  */
 
-export const ADMIN_SESSION_MAX_AGE_SECONDS = 8 * 60 * 60;
-export const ADMIN_SESSION_IDLE_SECONDS = 60 * 60;
+export const ADMIN_SESSION_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
+export const ADMIN_SESSION_IDLE_SECONDS = 24 * 60 * 60;
+/** Long enough to scan a QR code and pick a password, not longer. */
+export const ADMIN_SETUP_SESSION_SECONDS = 20 * 60;
 // Recording activity on every request would be one write per click.
 const TOUCH_AFTER_MS = 60_000;
 
@@ -31,6 +35,8 @@ export type AdminSessionInfo = {
   adminId: string;
   username: string;
   expiresAt: Date;
+  /** SETUP reaches only /admin/setup; everything else needs FULL. */
+  scope: AdminSessionScope;
 };
 
 export function hashSessionToken(token: string): string {
@@ -50,13 +56,26 @@ export function adminCookieOptions(expiresAt: Date) {
 export async function createAdminSession(
   adminId: string,
   meta: { ip: string; userAgent: string | null },
+  options: {
+    scope?: AdminSessionScope;
+    /** The authenticator secret a SETUP session is enrolling. */
+    pendingTotpSecret?: string;
+  } = {},
 ) {
   const token = crypto.randomBytes(32).toString("base64url");
-  const expiresAt = new Date(Date.now() + ADMIN_SESSION_MAX_AGE_SECONDS * 1000);
+  const scope = options.scope ?? "FULL";
+  // A setup session is one factor, so it lasts minutes rather than days.
+  const lifetimeSeconds =
+    scope === "SETUP"
+      ? ADMIN_SETUP_SESSION_SECONDS
+      : ADMIN_SESSION_MAX_AGE_SECONDS;
+  const expiresAt = new Date(Date.now() + lifetimeSeconds * 1000);
   await prisma.adminSession.create({
     data: {
       adminId,
       tokenHash: hashSessionToken(token),
+      scope,
+      pendingTotpSecret: options.pendingTotpSecret ?? null,
       ip: meta.ip,
       userAgent: meta.userAgent?.slice(0, 255) ?? null,
       expiresAt,
@@ -75,6 +94,7 @@ async function loadSession(token: string | undefined) {
       expiresAt: true,
       lastSeenAt: true,
       revokedAt: true,
+      scope: true,
       admin: { select: { id: true, username: true, disabled: true } },
     },
   });
@@ -98,6 +118,7 @@ async function loadSession(token: string | undefined) {
     adminId: session.admin.id,
     username: session.admin.username,
     expiresAt: session.expiresAt,
+    scope: session.scope,
   } satisfies AdminSessionInfo;
 }
 
@@ -115,6 +136,19 @@ export const getAdminSession = cache(
 export async function requireAdminPageAccess(): Promise<AdminSessionInfo> {
   const admin = await getAdminSession();
   if (!admin) redirect(ADMIN_LOGIN_PATH);
+  // Signed in on the invite's one-time password alone: finish setup first.
+  if (admin.scope !== "FULL") redirect(ADMIN_SETUP_PATH);
+  return admin;
+}
+
+/**
+ * The setup page and its API, which are the only things a SETUP session may
+ * reach. A finished admin is sent back to the dashboard.
+ */
+export async function requireAdminSetupSession(): Promise<AdminSessionInfo> {
+  const admin = await getAdminSession();
+  if (!admin) redirect(ADMIN_LOGIN_PATH);
+  if (admin.scope === "FULL") redirect("/admin");
   return admin;
 }
 
@@ -129,6 +163,13 @@ export async function requireAdminApiAccess(
   const admin = await getAdminSession();
   if (!admin) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  // A setup session carries an admin cookie but is not an admin yet.
+  if (admin.scope !== "FULL") {
+    return NextResponse.json(
+      { error: "Finish setting up your account first." },
+      { status: 403 },
+    );
   }
   if (!isSafeMethod(req.method)) {
     if (!isSameOriginRequest(req.headers)) {

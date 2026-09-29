@@ -118,7 +118,17 @@ void test("starter Hunting content covers every world location with selectable g
 
 void test("every animal has danger settings, an asset, and a valid material table", () => {
   const itemNames = new Set(HUNTING_ITEMS.map((item) => item.name));
-  assert.ok(HUNTING_CREATURES.length >= 6);
+  assert.ok(HUNTING_CREATURES.length >= 13);
+  assert.deepEqual(
+    HUNTING_CREATURES.slice(-5).map((creature) => creature.name),
+    [
+      "Briarback Badger",
+      "Snowhorn Ram",
+      "Ruin Viper",
+      "Cinder Jackal",
+      "Mangrove Panther",
+    ],
+  );
   for (const creature of HUNTING_CREATURES) {
     assert.match(creature.asset, /^\/assets\/creatures\/animals\//);
     assert.ok(creature.attackChance >= 0 && creature.attackChance <= 1);

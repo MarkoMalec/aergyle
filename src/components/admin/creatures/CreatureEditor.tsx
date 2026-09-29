@@ -79,7 +79,7 @@ const COPY = {
     description:
       "Monsters fight until one side falls. Every defeated monster rolls its own drop table; drop chances are capped at 95% and never shown to players.",
     levelLabel: "Character level",
-    newAsset: "/assets/creatures/monsters/goblin.png",
+    newAsset: "/assets/creatures/monsters/low-level/goblin.png",
   },
 } as const;
 

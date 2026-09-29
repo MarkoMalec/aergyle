@@ -111,7 +111,7 @@ function inspectRgbaPng(png: Buffer): PngInspection {
 }
 
 void test("Carpentry defines one plank for every live log species", () => {
-  assert.equal(CARPENTRY_PLANKS.length, 8);
+  assert.equal(CARPENTRY_PLANKS.length, 11);
   assert.deepEqual(
     new Set(CARPENTRY_PLANKS.map((plank) => plank.sourceLogName)),
     new Set([
@@ -122,7 +122,10 @@ void test("Carpentry defines one plank for every live log species", () => {
       "Ash Log",
       "Frostpine Log",
       "Elderwood Log",
+      "Gloamwood Log",
       "Emberwood Log",
+      "Ironbark Log",
+      "Saltcedar Log",
     ]),
   );
   assert.equal(
@@ -132,6 +135,21 @@ void test("Carpentry defines one plank for every live log species", () => {
   assert.equal(
     new Set(CARPENTRY_PLANKS.map((plank) => plank.sprite)).size,
     CARPENTRY_PLANKS.length,
+  );
+});
+
+void test("the three new logs each remain useful through a matching Carpentry plank", () => {
+  assert.deepEqual(
+    CARPENTRY_PLANKS.filter((plank) =>
+      ["Gloamwood Log", "Ironbark Log", "Saltcedar Log"].includes(
+        plank.sourceLogName,
+      ),
+    ).map((plank) => [plank.sourceLogName, plank.name]),
+    [
+      ["Gloamwood Log", "Gloamwood Plank"],
+      ["Ironbark Log", "Ironbark Plank"],
+      ["Saltcedar Log", "Saltcedar Plank"],
+    ],
   );
 });
 

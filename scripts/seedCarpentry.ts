@@ -27,8 +27,8 @@ const prisma = new PrismaClient({
 });
 
 async function validateDefinitions() {
-  if (CARPENTRY_PLANKS.length !== 8) {
-    throw new Error("Carpentry must define one plank for each of eight logs");
+  if (CARPENTRY_PLANKS.length !== 11) {
+    throw new Error("Carpentry must define one plank for each of eleven logs");
   }
   if (
     new Set(CARPENTRY_PLANKS.map((plank) => plank.name)).size !==

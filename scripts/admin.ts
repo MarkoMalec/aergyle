@@ -3,7 +3,11 @@
  * every sign-in takes the password plus a code from an authenticator app
  * (Authy, 1Password, Google Authenticator, Bitwarden...).
  *
- *   npm run admin -- create <username>   new admin: password, then authenticator
+ *   npm run admin -- invite <username>   hand the account to someone else:
+ *                                        prints a one-time password they use
+ *                                        once, then pick their own password
+ *                                        and enrol their authenticator
+ *   npm run admin -- create <username>   new admin at this terminal
  *   npm run admin -- reset <username>    new password and authenticator; ends every session
  *   npm run admin -- disable <username>  blocks sign-in and ends every session
  *   npm run admin -- enable <username>   allows sign-in again
@@ -20,10 +24,13 @@ import QRCode from "qrcode";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 import { PrismaClient } from "../src/generated/prisma/client";
 import {
+  ADMIN_INVITE_HOURS,
   ADMIN_USERNAME_PATTERN,
   TOTP_ISSUER,
   adminPasswordProblem,
+  generateInvitePassword,
   hashAdminPassword,
+  isInviteOpen,
   normalizeAdminUsername,
 } from "../src/server/admin/credentials";
 import {
@@ -35,6 +42,9 @@ import {
 
 const USAGE = `Usage: npm run admin -- <command> [username]
 
+  invite <username>   Invite someone: prints a one-time password they finish
+                      setting up with themselves. Also re-invites an existing
+                      admin who lost their authenticator.
   create <username>   Create an admin (password, then authenticator setup)
   reset <username>    New password and authenticator; ends every session
   disable <username>  Block sign-in and end every session
@@ -150,11 +160,15 @@ async function main() {
     for (const admin of admins) {
       const state = admin.disabled
         ? "disabled"
-        : admin.lockedUntil && admin.lockedUntil > new Date()
-          ? `locked until ${admin.lockedUntil.toLocaleTimeString()}`
-          : "active";
+        : isInviteOpen(admin)
+          ? `invited until ${admin.setupExpiresAt?.toLocaleString() ?? ""}`
+          : admin.totpSecret === null
+            ? "invite expired"
+            : admin.lockedUntil && admin.lockedUntil > new Date()
+              ? `locked until ${admin.lockedUntil.toLocaleTimeString()}`
+              : "active";
       console.log(
-        `${admin.username.padEnd(24)} ${state.padEnd(24)} sessions: ${admin._count.sessions}   last sign-in: ${admin.lastLoginAt?.toLocaleString() ?? "never"}`,
+        `${admin.username.padEnd(20)} ${state.padEnd(34)} sessions: ${admin._count.sessions}   last sign-in: ${admin.lastLoginAt?.toLocaleString() ?? "never"}`,
       );
     }
     return;
@@ -164,6 +178,58 @@ async function main() {
   const username = normalizeAdminUsername(rawUsername);
 
   switch (command) {
+    case "invite": {
+      const existing = await prisma.adminUser.findUnique({ where: { username } });
+      if (!existing && !ADMIN_USERNAME_PATTERN.test(username)) {
+        throw new Error(
+          "Usernames are 3-32 characters: a-z, 0-9, dot, dash, underscore; starting and ending with a letter or digit.",
+        );
+      }
+
+      const password = generateInvitePassword();
+      const setupExpiresAt = new Date(
+        Date.now() + ADMIN_INVITE_HOURS * 60 * 60_000,
+      );
+      const invite = {
+        passwordHash: await hashAdminPassword(password),
+        // No authenticator until they enrol their own.
+        totpSecret: null,
+        totpLastCounter: null,
+        setupExpiresAt,
+        disabled: false,
+        failedLogins: 0,
+        lockedUntil: null,
+      };
+
+      const admin = existing
+        ? await prisma.adminUser.update({ where: { id: existing.id }, data: invite })
+        : await prisma.adminUser.create({ data: { username, ...invite } });
+
+      // A re-invite replaces the account's credentials, so anything signed in
+      // on the old ones stops there.
+      const { count } = await prisma.adminSession.updateMany({
+        where: { adminId: admin.id, revokedAt: null },
+        data: { revokedAt: new Date(), pendingTotpSecret: null },
+      });
+      await audit(admin, existing ? "cli.reinvite" : "cli.invite");
+
+      console.log(
+        `\n${existing ? "Re-invited" : "Invited"} "${username}"${
+          count > 0 ? ` and ended ${count} session(s)` : ""
+        }.\n`,
+      );
+      console.log("  Username:           " + username);
+      console.log("  One-time password:  " + password);
+      console.log(
+        `  Valid until:        ${setupExpiresAt.toLocaleString()} (${ADMIN_INVITE_HOURS}h)\n`,
+      );
+      console.log("They sign in at /admin/login with those two and leave the code");
+      console.log("box empty. They then pick their own password and scan a QR code;");
+      console.log("this password stops working the moment they finish.\n");
+      console.log("Send it over something private, and not in the same message as");
+      console.log("the username if you can help it.");
+      break;
+    }
     case "create": {
       if (!ADMIN_USERNAME_PATTERN.test(username)) {
         throw new Error(

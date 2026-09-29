@@ -139,4 +139,8 @@ screens link to these profiles instead of showing loot inline.
 
 The starter content adds the Goblin (drops Cloth Scraps, Small Bones, Dusk Oil
 and, rarely, a Wooden Dagger) and Gloamvault, an Easy 15-minute dungeon in
-Crownhold holding 2–4 goblins. The seeder expects those items to exist already.
+Crownhold holding 2–4 goblins. The level-40 Blackjaw Stockade at Goblins Camp
+pits one Ogre alongside 3–5 Orcs and 2–3 Wargs. At Frostcrown Peaks, the
+level-50 Drowned Mouth Grotto holds one Cave Troll with 3–5 Trollhounds, while
+the level-65 Trollbreaker Cavern has one Stoneback Troll with 4–6 Trollhounds.
+The seeder expects every listed drop item to exist already.

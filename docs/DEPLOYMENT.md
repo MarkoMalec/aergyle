@@ -159,6 +159,7 @@ authenticator app (Authy, 1Password, Google Authenticator...). Accounts are
 managed from a terminal that can reach the database:
 
 ```
+npm run admin -- invite <username>   # hand an account to someone else (below)
 npm run admin -- create <username>   # password, then scan the QR code
 npm run admin -- reset <username>    # new password + authenticator, ends all sessions
 npm run admin -- disable <username>  # blocks sign-in, ends all sessions
@@ -167,9 +168,35 @@ npm run admin -- list
 ```
 
 Sessions are server-side (the cookie holds a random token; only its SHA-256 is
-stored), last 8 hours, and end after an hour of inactivity. Every sign-in and
+stored), last 7 days, and end after a day of inactivity. Every sign-in and
 every change made through `/admin` is written to the audit log, visible under
 `/admin/security`, where you can also end your other sessions.
+
+#### Inviting someone else
+
+`create` and `reset` both need you at the terminal with the phone in your hand,
+because the authenticator secret is encrypted with the account's password and
+so can only be enrolled once that password is known. `invite` moves both steps
+to the other person:
+
+```
+npm run admin -- invite marko
+```
+
+It prints a generated one-time password, good for 48 hours. Send it and the
+username over something private. They sign in at `/admin/login` with those two,
+leaving the code box empty, and land on `/admin/setup`, which is the only page
+that session can reach. There they pick their own password and scan a QR code;
+finishing both writes them in one go, spends the invite and signs them in.
+
+Run `invite` against an existing admin to re-invite them — useful when someone
+loses their phone. It replaces their password, drops their authenticator and
+ends every session they had, so the old credentials stop working immediately.
+`list` shows who is still `invited` and who has finished.
+
+An open invite is a single factor, so it is generated rather than chosen,
+expires, is single-use, and the account can do nothing at all until setup is
+finished.
 
 ## Images
 

@@ -22,6 +22,7 @@ const adminNavItems: Array<{ href: string; label: string }> = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/players", label: "Players" },
   { href: "/admin/items", label: "Items" },
+  { href: "/admin/item-graph", label: "Item graph" },
   { href: "/admin/gardening", label: "Gardening" },
   { href: "/admin/gathering", label: "Gathering" },
   { href: "/admin/hunting", label: "Hunting" },

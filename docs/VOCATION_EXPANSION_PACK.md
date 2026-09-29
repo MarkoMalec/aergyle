@@ -1,30 +1,30 @@
 # Atlas vocation expansion v1
 
-This additive content pack introduces 24 new vocation resources: six each for Mining, Woodcutting, Fishing and Blacksmithing. Definitions live in [`prisma/content/vocationExpansion.ts`](../prisma/content/vocationExpansion.ts); the idempotent importer is [`scripts/seedVocationExpansion.ts`](../scripts/seedVocationExpansion.ts).
+This additive content pack began with 24 vocation resources (six each for Mining, Woodcutting, Fishing and Blacksmithing). It now adds three more ores, logs, and blacksmithing ingots, for 33 resources in all. Definitions live in [`prisma/content/vocationExpansion.ts`](../prisma/content/vocationExpansion.ts); the idempotent importer is [`scripts/seedVocationExpansion.ts`](../scripts/seedVocationExpansion.ts).
 
 ## Locations and access
 
 The six placeholder landmarks from the world atlas are now database-backed locations with enforced player-level requirements. Resource actions also retain their separate vocation-skill requirement.
 
-| Location          | Player level | New resources                                                                                     |
-| ----------------- | -----------: | ------------------------------------------------------------------------------------------------- |
-| Citadel           |            1 | Copper Ore, Tin Ore, Pine Log, Willow Log, Silver Minnow, River Trout, Copper Ingot, Bronze Ingot |
-| Goblins Camp      |           40 | Silver Ore, Ash Log, Bog Pike, Steel Ingot                                                        |
-| Frostcrown Peaks  |           50 | Frostsilver Ore, Frostpine Log, Frostscale Char, Frostsilver Ingot                                |
-| Ruins of Caldrath |           80 | Cobalt Ore, Elderwood Log, Caldrath Eel, Cobalt Ingot                                             |
-| Mount Doom        |          150 | Obsidian Ore, Emberwood Log, Doomsteel Ingot                                                      |
-| Pirate Island     |          200 | Blackfin Tuna                                                                                     |
+| Location          | Player level | Resources                                                                                          |
+| ----------------- | -----------: | -------------------------------------------------------------------------------------------------- |
+| Citadel           |            1 | Copper Ore, Tin Ore, Pine Log, Willow Log, Silver Minnow, River Trout, Copper Ingot, Bronze Ingot  |
+| Goblins Camp      |           40 | Silver Ore, Ash Log, Bog Pike, Steel Ingot                                                         |
+| Frostcrown Peaks  |           50 | Frostsilver Ore, Frostpine Log, Frostscale Char, Frostsilver Ingot                                 |
+| Ruins of Caldrath |           80 | Cobalt Ore, Sunstone Ore, Elderwood Log, Gloamwood Log, Caldrath Eel, Cobalt Ingot, Sunsteel Ingot |
+| Mount Doom        |          150 | Obsidian Ore, Umbracite Ore, Emberwood Log, Ironbark Log, Doomsteel Ingot, Umbrasteel Ingot        |
+| Pirate Island     |          200 | Tideglass Ore, Saltcedar Log, Blackfin Tuna, Tideglass Ingot                                       |
 
 Citadel also exposes the existing Coal and Iron ore resources. Existing locations and resource records remain in place.
 
 ## Progression balance
 
-| Skill         | Resource progression (required skill level)                                                                             |
-| ------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| Mining        | Copper Ore (1), Tin Ore (10), Silver Ore (40), Frostsilver Ore (50), Cobalt Ore (80), Obsidian Ore (150)                |
-| Woodcutting   | Pine Log (1), Willow Log (10), Ash Log (40), Frostpine Log (50), Elderwood Log (80), Emberwood Log (150)                |
-| Fishing       | Silver Minnow (1), River Trout (10), Bog Pike (40), Frostscale Char (50), Caldrath Eel (80), Blackfin Tuna (200)        |
-| Blacksmithing | Copper Ingot (1), Bronze Ingot (10), Steel Ingot (40), Frostsilver Ingot (50), Cobalt Ingot (80), Doomsteel Ingot (150) |
+| Skill         | Resource progression (required skill level)                                                                                                                                                  |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Mining        | Copper Ore (1), Tin Ore (10), Silver Ore (40), Frostsilver Ore (50), Cobalt Ore (80), Sunstone Ore (110), Obsidian Ore (150), Umbracite Ore (175), Tideglass Ore (210)                       |
+| Woodcutting   | Pine Log (1), Willow Log (10), Ash Log (40), Frostpine Log (50), Elderwood Log (80), Gloamwood Log (110), Emberwood Log (150), Ironbark Log (175), Saltcedar Log (210)                       |
+| Fishing       | Silver Minnow (1), River Trout (10), Bog Pike (40), Frostscale Char (50), Caldrath Eel (80), Blackfin Tuna (200)                                                                             |
+| Blacksmithing | Copper Ingot (1), Bronze Ingot (10), Steel Ingot (40), Frostsilver Ingot (50), Cobalt Ingot (80), Sunsteel Ingot (110), Doomsteel Ingot (150), Umbrasteel Ingot (175), Tideglass Ingot (210) |
 
 Time, XP and value rise with the skill and destination thresholds. Values are an initial economy pass based on the live catalog's 5-gold Worm, 1-gold Coal and 2-gold Iron ore. They should be revisited after playtesting travel cadence, marketplace supply and tool efficiency.
 
@@ -41,14 +41,17 @@ Fishing consumes the selected bait stack per completed catch:
 
 Blacksmithing consumes the following materials per completed ingot:
 
-| Output            | Inputs                                    |
-| ----------------- | ----------------------------------------- |
-| Copper Ingot      | 2 Copper Ore + 1 Coal                     |
-| Bronze Ingot      | 1 Copper Ingot + 2 Tin Ore + 1 Coal       |
-| Steel Ingot       | 2 Iron ore + 3 Coal                       |
-| Frostsilver Ingot | 2 Frostsilver Ore + 1 Silver Ore + 3 Coal |
-| Cobalt Ingot      | 3 Cobalt Ore + 4 Coal                     |
-| Doomsteel Ingot   | 2 Obsidian Ore + 1 Cobalt Ingot + 5 Coal  |
+| Output            | Inputs                                        |
+| ----------------- | --------------------------------------------- |
+| Copper Ingot      | 2 Copper Ore + 1 Coal                         |
+| Bronze Ingot      | 1 Copper Ingot + 2 Tin Ore + 1 Coal           |
+| Steel Ingot       | 2 Iron ore + 3 Coal                           |
+| Frostsilver Ingot | 2 Frostsilver Ore + 1 Silver Ore + 3 Coal     |
+| Cobalt Ingot      | 3 Cobalt Ore + 4 Coal                         |
+| Sunsteel Ingot    | 2 Sunstone Ore + 1 Steel Ingot + 4 Coal       |
+| Doomsteel Ingot   | 2 Obsidian Ore + 1 Cobalt Ingot + 5 Coal      |
+| Umbrasteel Ingot  | 2 Umbracite Ore + 1 Doomsteel Ingot + 5 Coal  |
+| Tideglass Ingot   | 3 Tideglass Ore + 1 Umbrasteel Ingot + 6 Coal |
 
 The vocation service validates one craftable unit at start, consumes inputs transactionally when rewards are claimed, limits output to available inputs and stops an activity when its selected bait or materials are exhausted.
 
@@ -56,8 +59,8 @@ The vocation service validates one craftable unit at start, consumes inputs tran
 
 - Generator: built-in image generation, one request per resource.
 - Direction: the Wayfarer's Atlas faceted-field-specimen rules in [`GAME_DESIGN_SYSTEM.md`](GAME_DESIGN_SYSTEM.md).
-- Archive: [`art/items/vocation-expansion-v1`](../art/items/vocation-expansion-v1) contains 24 generated masters, the exact assembled prompt set and generation metadata.
-- Runtime: 24 separate 256×256 RGBA PNGs under `public/assets/items/resources/{ores,logs,fish,ingots}`.
+- Archive: [`art/items/vocation-expansion-v1`](../art/items/vocation-expansion-v1) contains the initial 24 generated masters; [`art/items/resource-expansion-v2`](../art/items/resource-expansion-v2) contains the nine additive masters and their prompt record.
+- Runtime: 33 separate 256×256 RGBA PNGs under `public/assets/items/resources/{ores,logs,fish,ingots}`.
 - Export: each master is normalized to roughly 190–215px of occupied subject space on a transparent 256×256 canvas. Rarity light, shadows, labels and borders remain UI responsibilities.
 
 ## Import and verification
