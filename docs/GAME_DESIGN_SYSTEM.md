@@ -237,7 +237,7 @@ The existing raster coin stack remains a small currency identifier at 14–18px.
 
 ## 18. Backgrounds
 
-The normal play canvas is dark ink with a single soft green atmospheric light, approximately `#4B675328` fading to transparent across 55% of the field. It contains no moving particles, dashboard grid or heavy noise texture.
+The normal play canvas is dark ink with a single soft green atmospheric light, approximately `#4B675328` fading to transparent across 55% of the field. Over that sits a static map weave: a 200px major grid subdivided by a 50px minor grid, both in `--primary` at 7.5% and 3% alpha, under a 45° hairline hatch spaced 8px in `--foreground` at 3%. The weave is masked by a circular falloff centred on the top-left of the shell, solid through the first quarter of the radius and fully transparent by the bottom-right corner, so the field quietens as the eye travels down the page. It reads as surveyed atlas paper rather than a dashboard, and panels stay opaque over it. The recipe is the `bg-game-weave` and `mask-weave-fade` utilities in `tailwind.config.ts`, painted by `GameBackdrop` fixed behind the shell; tune the alphas, spacing and falloff there. The canvas still carries no moving particles and no heavy noise texture.
 
 The homepage/authentication may use `homepage/background1.jpg`, covered by a dark ink gradient strong enough for all reading surfaces. The existing heroine remains foreground art on the homepage. Avoid covering her face with text.
 

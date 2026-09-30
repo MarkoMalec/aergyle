@@ -1,5 +1,12 @@
 import type { Config } from "tailwindcss";
 
+const plugin = require("tailwindcss/plugin");
+
+// Circular falloff for the game backdrop: solid through the top-left of
+// the shell, fully transparent by the bottom-right corner.
+const WEAVE_FADE =
+  "radial-gradient(circle farthest-corner at 0% 0%, #000 25%, transparent 90%)";
+
 const config = {
   darkMode: ["class"],
   content: [
@@ -20,6 +27,16 @@ const config = {
     extend: {
       backgroundImage: {
         homepage: "url('/assets/homepage/background1.jpg')",
+        // Game shell backdrop: a fine diagonal weave over a 50px minor /
+        // 200px major map grid, faded out by WEAVE_FADE above.
+        // Painted by <GameBackdrop />; tune both here.
+        "game-weave": [
+          "repeating-linear-gradient(45deg, hsl(var(--foreground) / 0.02) 0 1px, transparent 1px 8px)",
+          "repeating-linear-gradient(to right, hsl(var(--primary) / 0.065) 0 1px, transparent 1px 200px)",
+          "repeating-linear-gradient(to bottom, hsl(var(--primary) / 0.065) 0 1px, transparent 1px 200px)",
+          "repeating-linear-gradient(to right, hsl(var(--primary) / 0.02) 0 1px, transparent 1px 50px)",
+          "repeating-linear-gradient(to bottom, hsl(var(--primary) / 0.02) 0 1px, transparent 1px 50px)",
+        ].join(", "),
       },
       fontFamily: {
         display: ["var(--font-display)"],
@@ -110,7 +127,17 @@ const config = {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [
+    require("tailwindcss-animate"),
+    plugin(({ addUtilities }: { addUtilities: (u: object) => void }) => {
+      addUtilities({
+        ".mask-weave-fade": {
+          maskImage: WEAVE_FADE,
+          WebkitMaskImage: WEAVE_FADE,
+        },
+      });
+    }),
+  ],
 } satisfies Config;
 
 export default config;

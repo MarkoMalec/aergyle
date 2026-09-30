@@ -1,5 +1,12 @@
 # Character stats
 
+> **Planned changes:** the stat list and combat math are due to be reworked:
+> armor against every hit with a level-scaled K, Magic Resist as a
+> resistance, one Evasion stat countered by Accuracy, attack speed from the
+> weapon only, and Mana, Mana Regen and Experience Gain removed. Read
+> [COMBAT_BALANCE_DESIGN.md](COMBAT_BALANCE_DESIGN.md) before adding or
+> changing a stat.
+
 Gameplay uses `getCharacterStatSnapshot(userId)` from `src/server/stats.ts` as
 the server-authoritative view of a character. It combines each source once:
 

@@ -90,10 +90,10 @@ export function SidebarHeader({
             className="h-[54px] w-[54px] shrink-0 object-contain"
           />
           <span className="grid min-w-0 gap-0.5 leading-none">
-            <span className="truncate text-[13px] font-semibold">
-              {user?.name ?? "Wayfarer"}
+            <span className="truncate text-[18px] font-semibold">
+              <span className="font-light">@</span>{user?.name ?? "Wayfarer"}
             </span>
-            <span className="text-[11px] text-muted-foreground">
+            <span className="text-[11px] text-muted-foreground ml-[18px]">
               Level {levelData?.level ?? user?.level ?? 1}
             </span>
           </span>

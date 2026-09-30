@@ -2,6 +2,8 @@
 
 The game’s visual and asset specification is [GAME_DESIGN_SYSTEM.md](docs/GAME_DESIGN_SYSTEM.md). Start there before changing player UI or creating new artwork. See the [visual audit](docs/design/VISUAL_AUDIT.md) and [verification record](docs/design/VERIFICATION.md).
 
+The game's balance rules are [COMBAT_BALANCE_DESIGN.md](docs/COMBAT_BALANCE_DESIGN.md): the agreed stat and combat model, and the principles every balance change follows. [FORMULA_REFERENCE.md](docs/FORMULA_REFERENCE.md) lists every formula the game runs today. Read both before changing stats, formulas or item numbers.
+
 The [Atlas equipment pack](docs/ATLAS_EQUIPMENT_PACK.md) contains 21 generated item sprites, five weapons, and the Rare Trailwarden and Epic Duskwarden armor sets, with an additive database importer.
 
 The [Atlas vocation expansion](docs/VOCATION_EXPANSION_PACK.md) adds 24 location-gated Mining, Woodcutting, Fishing and Blacksmithing resources with balanced input recipes and matching sprites.

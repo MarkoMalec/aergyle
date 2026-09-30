@@ -15,6 +15,7 @@ import { settleVocationalTicks } from "./settle";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+import GameBackdrop from "~/components/game/ui/GameBackdrop";
 import GameHeader from "~/components/game/ui/Header";
 import SidebarLeft from "~/components/game/ui/Sidebars/SidebarLeft";
 import { VocationalActiveActionProvider } from "~/components/game/actions/VocationalActiveActionProvider";
@@ -69,6 +70,7 @@ const GameLayout = async ({ children }: { children: React.ReactNode }) => {
 
   return (
     <div className="game-shell">
+      <GameBackdrop />
       <a href="#game-content" className="game-skip-link">
         Skip to game content
       </a>

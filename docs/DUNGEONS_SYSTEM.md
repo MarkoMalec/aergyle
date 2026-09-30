@@ -49,6 +49,12 @@ hunting and equipment changes are blocked until it is claimed or left.
 
 ## Combat resolution
 
+> **Planned change:** the strike formulas below are due to be replaced by one
+> shared strike with armor against every hit and a level-scaled armor K. See
+> [COMBAT_BALANCE_DESIGN.md](COMBAT_BALANCE_DESIGN.md) before changing combat
+> math, and [FORMULA_REFERENCE.md](FORMULA_REFERENCE.md) for every formula as
+> it runs today.
+
 `src/server/dungeons/resolver.ts` is pure and deterministic for a given seed,
 so a claim retried after a full inventory resolves identically.
 
