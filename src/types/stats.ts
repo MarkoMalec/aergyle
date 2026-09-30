@@ -208,7 +208,7 @@ export const STAT_METADATA: Record<StatType, StatMetadata> = {
   // Defensive
   ARMOR: {
     label: "Armor",
-    description: "Reduces physical damage taken",
+    description: "Reduces all damage taken; stronger enemies need more",
     category: StatCategory.DEFENSIVE,
     color: "#64748b",
     icon: "🛡️",
@@ -217,12 +217,12 @@ export const STAT_METADATA: Record<StatType, StatMetadata> = {
   },
   MAGIC_RESIST: {
     label: "Magic Resist",
-    description: "Reduces magic damage taken",
+    description: "Reduces magic damage taken, after armor",
     category: StatCategory.DEFENSIVE,
     color: "#a78bfa",
     icon: "🔮",
     priority: 11,
-    formatType: "number",
+    formatType: "percentage",
   },
   EVASION_MELEE: {
     label: "Evasion (Melee)",

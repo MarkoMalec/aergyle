@@ -49,11 +49,10 @@ hunting and equipment changes are blocked until it is claimed or left.
 
 ## Combat resolution
 
-> **Planned change:** the strike formulas below are due to be replaced by one
-> shared strike with armor against every hit and a level-scaled armor K. See
-> [COMBAT_BALANCE_DESIGN.md](COMBAT_BALANCE_DESIGN.md) before changing combat
-> math, and [FORMULA_REFERENCE.md](FORMULA_REFERENCE.md) for every formula as
-> it runs today.
+> The combat model and its reasons are in
+> [COMBAT_BALANCE_DESIGN.md](COMBAT_BALANCE_DESIGN.md); read it before
+> changing combat math. [FORMULA_REFERENCE.md](FORMULA_REFERENCE.md) lists
+> every formula as it runs.
 
 `src/server/dungeons/resolver.ts` is pure and deterministic for a given seed,
 so a claim retried after a full inventory resolves identically.
@@ -73,18 +72,27 @@ so a claim retried after a full inventory resolves identically.
   who kill slowly.
 - Monsters killed in a round drop loot only if the character survives that
   round. If both fall in the same round, the run is a defeat.
-- **Character strike:** monster evasion can avoid it. Otherwise it deals
-  physical damage × `100 / (100 + monster armor)` plus magic damage ×
-  `100 / (100 + monster magic resist)`. A critical hit multiplies it by
-  `criticalDamage / 100`, and a monster block halves it.
-- **Monster strike** (`resolveCreatureStrike` in `src/server/combat/rules.ts`,
-  shared with Hunting retaliation): the evasion matching its attack style can
-  avoid it. Otherwise it deals physical damage × `100 / (100 + armor)` plus
-  magic damage × `100 / (100 + magic resist)`. If it has a damage type, it adds
-  elemental damage × `(1 − resistance / 100)` using Fire, Cold (for Ice),
-  Lightning or Poison resistance. Critical hits use `critDamage / 100` (at
-  least ×1). The character's block halves the strike.
-- Evasion and block are capped at 75%.
+- **Armor K:** armor reduces every hit by `K / (K + armor)`, where K is the
+  armor that halves damage from an attacker of that level
+  (`armorK0 + armorK1 × level`, from `CombatConfig`). Monsters strike with K
+  from the dungeon's level (the higher of the dungeon's and its location's
+  requirement); the character strikes with K from its own level. Both are
+  fixed in the run's `combatSnapshot.rules` when it starts.
+- **Character strike** (`resolveCharacterStrike`): monster evasion can avoid
+  it. Otherwise physical damage (halved if the monster blocks) plus magic
+  damage × `(1 − monster Magic Resist %)` is reduced by the monster's armor,
+  then a critical hit multiplies it by `criticalDamage / 100`.
+- **Monster strike** (`resolveCreatureStrike`, shared with Hunting
+  retaliation): the evasion matching its attack style can avoid it. Otherwise
+  physical damage (halved if the character blocks) plus magic damage ×
+  `(1 − Magic Resist %)` plus elemental damage × `(1 − resistance %)` (Fire,
+  Cold for Ice, Lightning or Poison) is reduced by the character's armor.
+  Critical hits use `critDamage / 100` (at least ×1).
+- Evasion and block are capped at 75%, resistances at 75%, and a shield
+  can't block a spell.
+- A run started before these rules existed (no `rules` in its snapshot)
+  resolves with the original ones: K = 100, armor against physical damage
+  only, Magic Resist as a rating, and block on any hit.
 - Every defeated monster rolls each drop independently. Luck raises drop
   chances through the shared expedition formula; chances are capped at 95%.
 - A run that exceeds 10,000 combat rounds counts as a defeat. This only

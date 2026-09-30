@@ -1,10 +1,13 @@
 import {
-  criticalMultiplier,
-  percentChance,
-  protectionMultiplier,
+  LEGACY_STRIKE_RULES,
+  parseStrikeRules,
+  resolveCharacterStrike,
   resolveCreatureStrike,
+  strikeRulesFor,
   type CharacterDefenses,
+  type CombatConfig,
   type CreatureAttackProfile,
+  type StrikeRules,
 } from "~/server/combat/rules";
 import {
   createLootTally,
@@ -54,6 +57,46 @@ export type DungeonDeathRules = {
   quantityPercent: number;
 };
 
+/** How strikes are mitigated in both directions, fixed when a run starts. */
+export type DungeonCombatRules = {
+  /** Monsters striking the character: K from the dungeon's level. */
+  incoming: StrikeRules;
+  /** The character striking monsters: K from the character's level. */
+  outgoing: StrikeRules;
+};
+
+/** Runs whose snapshot predates combat rules resolve with the original model. */
+export const LEGACY_DUNGEON_RULES: DungeonCombatRules = {
+  incoming: LEGACY_STRIKE_RULES,
+  outgoing: LEGACY_STRIKE_RULES,
+};
+
+/**
+ * Current rules for a run. `dungeonLevel` is the higher of the dungeon's and
+ * its location's required level.
+ */
+export function dungeonCombatRules(
+  dungeonLevel: number,
+  characterLevel: number,
+  config?: CombatConfig,
+): DungeonCombatRules {
+  return {
+    incoming: strikeRulesFor(dungeonLevel, config),
+    outgoing: strikeRulesFor(characterLevel, config),
+  };
+}
+
+export function parseDungeonCombatRules(value: unknown): DungeonCombatRules {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return LEGACY_DUNGEON_RULES;
+  }
+  const row = value as Record<string, unknown>;
+  return {
+    incoming: parseStrikeRules(row.incoming),
+    outgoing: parseStrikeRules(row.outgoing),
+  };
+}
+
 export type DungeonOutcome = "CLEARED" | "DEFEATED";
 
 export type DungeonEncounterReport = {
@@ -89,6 +132,8 @@ export type DungeonResolutionInput = {
   /** Monsters fighting the character at once; 1 = one at a time. */
   packSize: number;
   deathRules: DungeonDeathRules;
+  /** Omitted: the original combat model (see StrikeRules). */
+  rules?: DungeonCombatRules;
   random?: () => number;
 };
 
@@ -133,33 +178,6 @@ export function isFightableMonster(
     monster.maxCount >= 1 &&
     monster.maxCount >= monster.minCount
   );
-}
-
-function rollRange(minimum: number, maximum: number, random: () => number) {
-  const low = Math.max(0, Math.min(minimum, maximum));
-  const high = Math.max(low, maximum);
-  return low + random() * (high - low);
-}
-
-// Character stats are fractional (items scale with rarity), so their damage is
-// rolled continuously rather than in whole numbers.
-function characterStrike(
-  monster: DungeonMonsterPoolEntry,
-  combat: DungeonCombatSnapshot,
-  random: () => number,
-) {
-  if (random() < percentChance(monster.evasion, 75)) {
-    return { damage: 0, critical: false };
-  }
-  let damage =
-    rollRange(combat.physicalDamageMin, combat.physicalDamageMax, random) *
-      protectionMultiplier(monster.armor) +
-    rollRange(combat.magicDamageMin, combat.magicDamageMax, random) *
-      protectionMultiplier(monster.magicResist);
-  const critical = random() < percentChance(combat.criticalChance, 100);
-  if (critical) damage *= criticalMultiplier(combat.criticalDamage);
-  if (random() < percentChance(monster.blockChance, 75)) damage *= 0.5;
-  return { damage, critical };
 }
 
 /** A defeated character keeps only some stacks, each heavily reduced. */
@@ -209,6 +227,7 @@ export function resolveDungeonRun(
 ): DungeonResolution {
   const random = input.random ?? Math.random;
   const { combat } = input;
+  const rules = input.rules ?? LEGACY_DUNGEON_RULES;
   // Luck improves monster drops through the shared expedition formula.
   const modifiers = calculateExpeditionRewardModifiers({
     skillLevel: 1,
@@ -282,7 +301,12 @@ export function resolveDungeonRun(
     while (strikes >= 1 && pack.length > 0) {
       strikes -= 1;
       const target = pack[0]!;
-      const strike = characterStrike(target.monster, combat, random);
+      const strike = resolveCharacterStrike(
+        combat,
+        target.monster,
+        random,
+        rules.outgoing,
+      );
       target.health -= strike.damage;
       if (strike.critical) criticalHits += 1;
       if (target.health <= 0) slain.push(pack.shift()!.monster);
@@ -291,7 +315,12 @@ export function resolveDungeonRun(
     if (pack.length === 0) strikes %= 1;
 
     for (const monster of attackers) {
-      const blow = resolveCreatureStrike(monster, combat, random);
+      const blow = resolveCreatureStrike(
+        monster,
+        combat,
+        random,
+        rules.incoming,
+      );
       if (blow.evaded) evaded += 1;
       if (blow.blocked) blocked += 1;
       const damage = Math.min(health, blow.damage);

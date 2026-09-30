@@ -3,6 +3,7 @@ import { CreatureKind } from "~/generated/prisma/enums";
 import { DungeonAdminClient } from "~/components/admin/dungeons/DungeonAdminClient";
 import { prisma } from "~/lib/prisma";
 import { getStatGrowthRules } from "~/server/stats";
+import { getCombatConfig } from "~/server/combat/config";
 import { requireAdminPageAccess } from "~/server/admin/auth";
 
 export const dynamic = "force-dynamic";
@@ -10,53 +11,62 @@ export const revalidate = 0;
 
 export default async function AdminDungeonsPage() {
   await requireAdminPageAccess();
-  const [config, dungeons, monsters, locations, items, activeRuns, statGrowth] =
-    await Promise.all([
-      prisma.dungeonConfig.findUnique({ where: { id: 1 } }),
-      prisma.dungeon.findMany({
-        orderBy: [
-          { location: { name: "asc" } },
-          { sortOrder: "asc" },
-          { name: "asc" },
-        ],
-        include: {
-          location: { select: { name: true } },
-          monsters: {
-            select: {
-              creatureId: true,
-              enabled: true,
-              minCount: true,
-              maxCount: true,
-            },
-          },
-          _count: { select: { runs: { where: { claimedAt: null } } } },
-        },
-      }),
-      prisma.creature.findMany({
-        where: { kind: CreatureKind.MONSTER },
-        orderBy: { name: "asc" },
-        include: {
-          drops: {
-            orderBy: [{ requiredLevel: "asc" }, { id: "asc" }],
-            include: {
-              item: {
-                select: { id: true, name: true, sprite: true, rarity: true },
-              },
-            },
+  const [
+    config,
+    dungeons,
+    monsters,
+    locations,
+    items,
+    activeRuns,
+    statGrowth,
+    combatConfig,
+  ] = await Promise.all([
+    prisma.dungeonConfig.findUnique({ where: { id: 1 } }),
+    prisma.dungeon.findMany({
+      orderBy: [
+        { location: { name: "asc" } },
+        { sortOrder: "asc" },
+        { name: "asc" },
+      ],
+      include: {
+        location: { select: { name: true } },
+        monsters: {
+          select: {
+            creatureId: true,
+            enabled: true,
+            minCount: true,
+            maxCount: true,
           },
         },
-      }),
-      prisma.location.findMany({
-        orderBy: { name: "asc" },
-        select: { id: true, name: true },
-      }),
-      prisma.item.findMany({
-        orderBy: { name: "asc" },
-        select: { id: true, name: true, sprite: true, rarity: true },
-      }),
-      prisma.userDungeonRun.count({ where: { claimedAt: null } }),
-      getStatGrowthRules(),
-    ]);
+        _count: { select: { runs: { where: { claimedAt: null } } } },
+      },
+    }),
+    prisma.creature.findMany({
+      where: { kind: CreatureKind.MONSTER },
+      orderBy: { name: "asc" },
+      include: {
+        drops: {
+          orderBy: [{ requiredLevel: "asc" }, { id: "asc" }],
+          include: {
+            item: {
+              select: { id: true, name: true, sprite: true, rarity: true },
+            },
+          },
+        },
+      },
+    }),
+    prisma.location.findMany({
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, requiredLevel: true },
+    }),
+    prisma.item.findMany({
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, sprite: true, rarity: true },
+    }),
+    prisma.userDungeonRun.count({ where: { claimedAt: null } }),
+    getStatGrowthRules(),
+    getCombatConfig(),
+  ]);
 
   const stats = [
     { label: "Dungeons", value: dungeons.length },
@@ -139,6 +149,7 @@ export default async function AdminDungeonsPage() {
         locations={locations}
         items={items}
         statGrowth={statGrowth}
+        combatConfig={combatConfig}
       />
     </div>
   );

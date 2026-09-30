@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { combatAtLevel, gearForLevel } from "../src/game/balance/combat";
+import { DEFAULT_COMBAT_CONFIG } from "../src/server/combat/rules";
 import type { BalanceContent, BalanceItem, BalanceResource } from "../src/game/balance/content";
 import {
   applyPreset,
@@ -125,6 +126,7 @@ function content(patch: Partial<BalanceContent>): BalanceContent {
     items: [],
     rarities: [],
     statGrowth: getDefaultStatGrowthRules(),
+    combat: DEFAULT_COMBAT_CONFIG,
     vocationMaxSeconds: 8 * 3_600,
     ...patch,
   };

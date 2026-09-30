@@ -1,0 +1,7195 @@
+{
+  "generatedAt": "2026-09-30T14:33:49.934Z",
+  "combat": {
+    "armorK0": 50,
+    "armorK1": 3
+  },
+  "growthChanges": [
+    {
+      "statType": "MAGIC_RESIST",
+      "before": {
+        "baseValue": 0,
+        "perLevel": 0.3,
+        "maxBonus": null
+      },
+      "after": {
+        "baseValue": 0,
+        "perLevel": 0.1,
+        "maxBonus": 10
+      }
+    },
+    {
+      "statType": "ATTACK_SPEED",
+      "before": {
+        "baseValue": 1,
+        "perLevel": 0.004,
+        "maxBonus": 0.4
+      },
+      "after": {
+        "baseValue": 1,
+        "perLevel": 0,
+        "maxBonus": null
+      }
+    }
+  ],
+  "items": [
+    {
+      "id": 19,
+      "name": "Wooden Sword",
+      "rarity": "COMMON",
+      "note": null,
+      "before": {
+        "level": 1,
+        "equipTo": "weapon",
+        "itemType": "SWORD",
+        "stats": [
+          {
+            "statType": "ATTACK_SPEED",
+            "value": 1.2,
+            "maxValue": null
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 3,
+            "maxValue": null
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MAX",
+            "value": 7,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 1,
+        "equipTo": "weapon",
+        "itemType": "SWORD",
+        "stats": [
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 3.8,
+            "maxValue": null
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MAX",
+            "value": 6,
+            "maxValue": null
+          },
+          {
+            "statType": "ATTACK_SPEED",
+            "value": 1.2,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 3.8
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MAX",
+            "value": 6
+          },
+          {
+            "statType": "ATTACK_SPEED",
+            "value": 1.2
+          }
+        ]
+      }
+    },
+    {
+      "id": 20,
+      "name": "Wooden Dagger",
+      "rarity": "COMMON",
+      "note": null,
+      "before": {
+        "level": 1,
+        "equipTo": "weapon",
+        "itemType": "DAGGER",
+        "stats": [
+          {
+            "statType": "CRITICAL_CHANCE",
+            "value": 5,
+            "maxValue": null
+          },
+          {
+            "statType": "ATTACK_SPEED",
+            "value": 1.5,
+            "maxValue": null
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 2,
+            "maxValue": null
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MAX",
+            "value": 5,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 1,
+        "equipTo": "weapon",
+        "itemType": "DAGGER",
+        "stats": [
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 3,
+            "maxValue": null
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MAX",
+            "value": 5,
+            "maxValue": null
+          },
+          {
+            "statType": "ATTACK_SPEED",
+            "value": 1.5,
+            "maxValue": null
+          },
+          {
+            "statType": "CRITICAL_CHANCE",
+            "value": 3,
+            "maxValue": 6
+          }
+        ],
+        "worn": [
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 3
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MAX",
+            "value": 5
+          },
+          {
+            "statType": "ATTACK_SPEED",
+            "value": 1.5
+          },
+          {
+            "statType": "CRITICAL_CHANCE",
+            "value": 3
+          }
+        ]
+      }
+    },
+    {
+      "id": 21,
+      "name": "Wooden Axe",
+      "rarity": "COMMON",
+      "note": null,
+      "before": {
+        "level": 1,
+        "equipTo": "weapon",
+        "itemType": "AXE",
+        "stats": [
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 5,
+            "maxValue": null
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MAX",
+            "value": 10,
+            "maxValue": null
+          },
+          {
+            "statType": "ATTACK_SPEED",
+            "value": 0.9,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 1,
+        "equipTo": "weapon",
+        "itemType": "AXE",
+        "stats": [
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 4.7,
+            "maxValue": null
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MAX",
+            "value": 9,
+            "maxValue": null
+          },
+          {
+            "statType": "ATTACK_SPEED",
+            "value": 0.9,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 4.7
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MAX",
+            "value": 9
+          },
+          {
+            "statType": "ATTACK_SPEED",
+            "value": 0.9
+          }
+        ]
+      }
+    },
+    {
+      "id": 22,
+      "name": "Wooden Mace",
+      "rarity": "COMMON",
+      "note": null,
+      "before": {
+        "level": 1,
+        "equipTo": "weapon",
+        "itemType": "MACE",
+        "stats": [
+          {
+            "statType": "ATTACK_SPEED",
+            "value": 1,
+            "maxValue": null
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 4,
+            "maxValue": null
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MAX",
+            "value": 8,
+            "maxValue": null
+          },
+          {
+            "statType": "ARMOR",
+            "value": 2,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 1,
+        "equipTo": "weapon",
+        "itemType": "MACE",
+        "stats": [
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 4.8,
+            "maxValue": null
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MAX",
+            "value": 7,
+            "maxValue": null
+          },
+          {
+            "statType": "ATTACK_SPEED",
+            "value": 1,
+            "maxValue": null
+          },
+          {
+            "statType": "ARMOR",
+            "value": 6,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 4.8
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MAX",
+            "value": 7
+          },
+          {
+            "statType": "ATTACK_SPEED",
+            "value": 1
+          },
+          {
+            "statType": "ARMOR",
+            "value": 6
+          }
+        ]
+      }
+    },
+    {
+      "id": 23,
+      "name": "Silver Revolver",
+      "rarity": "RARE",
+      "note": null,
+      "before": {
+        "level": 5,
+        "equipTo": "weapon",
+        "itemType": "SWORD",
+        "stats": [
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 20.25,
+            "maxValue": null
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MAX",
+            "value": 33.75,
+            "maxValue": null
+          },
+          {
+            "statType": "ATTACK_SPEED",
+            "value": 2.43,
+            "maxValue": null
+          },
+          {
+            "statType": "CRITICAL_CHANCE",
+            "value": 13.5,
+            "maxValue": null
+          },
+          {
+            "statType": "ACCURACY",
+            "value": 20.25,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 200,
+        "equipTo": "weapon",
+        "itemType": "SWORD",
+        "stats": [
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 88,
+            "maxValue": null
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MAX",
+            "value": 146,
+            "maxValue": null
+          },
+          {
+            "statType": "ATTACK_SPEED",
+            "value": 2.43,
+            "maxValue": null
+          },
+          {
+            "statType": "CRITICAL_CHANCE",
+            "value": 4.2,
+            "maxValue": 8.4
+          },
+          {
+            "statType": "ACCURACY",
+            "value": 30,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 118.8
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MAX",
+            "value": 197.1
+          },
+          {
+            "statType": "ATTACK_SPEED",
+            "value": 2.43
+          },
+          {
+            "statType": "CRITICAL_CHANCE",
+            "value": 5.67
+          },
+          {
+            "statType": "ACCURACY",
+            "value": 40.5
+          }
+        ]
+      }
+    },
+    {
+      "id": 24,
+      "name": "Iron Shield",
+      "rarity": "UNCOMMON",
+      "note": "Was a sword in the weapon slot; now an off-hand shield.",
+      "before": {
+        "level": 3,
+        "equipTo": "weapon",
+        "itemType": "SWORD",
+        "stats": [
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 1.15,
+            "maxValue": null
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MAX",
+            "value": 3.45,
+            "maxValue": null
+          },
+          {
+            "statType": "ARMOR",
+            "value": 28.75,
+            "maxValue": null
+          },
+          {
+            "statType": "BLOCK_CHANCE",
+            "value": 17.25,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 57.5,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 25,
+        "equipTo": "offhand",
+        "itemType": "SHIELD",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 13,
+            "maxValue": null
+          },
+          {
+            "statType": "BLOCK_CHANCE",
+            "value": 10.7,
+            "maxValue": 21.5
+          },
+          {
+            "statType": "HEALTH",
+            "value": 18,
+            "maxValue": null
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 1.4,
+            "maxValue": null
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MAX",
+            "value": 3.3,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 14.3
+          },
+          {
+            "statType": "BLOCK_CHANCE",
+            "value": 11.77
+          },
+          {
+            "statType": "HEALTH",
+            "value": 19.8
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 1.54
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MAX",
+            "value": 3.63
+          }
+        ]
+      }
+    },
+    {
+      "id": 25,
+      "name": "Gold Helmet",
+      "rarity": "UNCOMMON",
+      "note": null,
+      "before": {
+        "level": 5,
+        "equipTo": "head",
+        "itemType": "HELMET",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 17.25,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 34.5,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 5.75,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 15,
+        "equipTo": "head",
+        "itemType": "HELMET",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 8,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 8,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 2.5,
+            "maxValue": 5
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 8.8
+          },
+          {
+            "statType": "HEALTH",
+            "value": 8.8
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 2.75
+          }
+        ]
+      }
+    },
+    {
+      "id": 26,
+      "name": "Gold Chestplate",
+      "rarity": "UNCOMMON",
+      "note": null,
+      "before": {
+        "level": 5,
+        "equipTo": "chest",
+        "itemType": "CHESTPLATE",
+        "stats": [
+          {
+            "statType": "HEALTH",
+            "value": 59,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH_REGEN",
+            "value": 2.3,
+            "maxValue": null
+          },
+          {
+            "statType": "ARMOR",
+            "value": 34,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 15,
+        "equipTo": "chest",
+        "itemType": "CHESTPLATE",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 16,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 16,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH_REGEN",
+            "value": 0.45,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 17.6
+          },
+          {
+            "statType": "HEALTH",
+            "value": 17.6
+          },
+          {
+            "statType": "HEALTH_REGEN",
+            "value": 0.495
+          }
+        ]
+      }
+    },
+    {
+      "id": 27,
+      "name": "Dragonscale Shoulder Pads",
+      "rarity": "RARE",
+      "note": null,
+      "before": {
+        "level": 8,
+        "equipTo": "pauldrons",
+        "itemType": "PAULDRONS",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 27,
+            "maxValue": null
+          },
+          {
+            "statType": "FIRE_RESIST",
+            "value": 20.25,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 54,
+            "maxValue": null
+          },
+          {
+            "statType": "CRITICAL_DAMAGE",
+            "value": 13.5,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 150,
+        "equipTo": "pauldrons",
+        "itemType": "PAULDRONS",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 35,
+            "maxValue": null
+          },
+          {
+            "statType": "FIRE_RESIST",
+            "value": 3.9,
+            "maxValue": 7.8
+          },
+          {
+            "statType": "HEALTH",
+            "value": 41,
+            "maxValue": null
+          },
+          {
+            "statType": "CRITICAL_DAMAGE",
+            "value": 9,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 47.25
+          },
+          {
+            "statType": "FIRE_RESIST",
+            "value": 5.265
+          },
+          {
+            "statType": "HEALTH",
+            "value": 55.35
+          },
+          {
+            "statType": "CRITICAL_DAMAGE",
+            "value": 12.15
+          }
+        ]
+      }
+    },
+    {
+      "id": 28,
+      "name": "Gold Gloves",
+      "rarity": "UNCOMMON",
+      "note": null,
+      "before": {
+        "level": 5,
+        "equipTo": "gloves",
+        "itemType": "GLOVES",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 11.5,
+            "maxValue": null
+          },
+          {
+            "statType": "ATTACK_SPEED",
+            "value": 0.12,
+            "maxValue": null
+          },
+          {
+            "statType": "ACCURACY",
+            "value": 9.2,
+            "maxValue": null
+          },
+          {
+            "statType": "CRITICAL_CHANCE",
+            "value": 3.45,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 15,
+        "equipTo": "gloves",
+        "itemType": "GLOVES",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 5,
+            "maxValue": null
+          },
+          {
+            "statType": "ACCURACY",
+            "value": 2,
+            "maxValue": null
+          },
+          {
+            "statType": "CRITICAL_CHANCE",
+            "value": 1,
+            "maxValue": 2
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 5.5
+          },
+          {
+            "statType": "ACCURACY",
+            "value": 2.2
+          },
+          {
+            "statType": "CRITICAL_CHANCE",
+            "value": 1.1
+          }
+        ]
+      }
+    },
+    {
+      "id": 29,
+      "name": "Gold Boots",
+      "rarity": "UNCOMMON",
+      "note": null,
+      "before": {
+        "level": 5,
+        "equipTo": "boots",
+        "itemType": "BOOTS",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 13.8,
+            "maxValue": null
+          },
+          {
+            "statType": "MOVEMENT_SPEED",
+            "value": 11.5,
+            "maxValue": null
+          },
+          {
+            "statType": "EVASION_MELEE",
+            "value": 5.75,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 28.75,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 15,
+        "equipTo": "boots",
+        "itemType": "BOOTS",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 6,
+            "maxValue": null
+          },
+          {
+            "statType": "MOVEMENT_SPEED",
+            "value": 1,
+            "maxValue": 2
+          },
+          {
+            "statType": "EVASION_MELEE",
+            "value": 1,
+            "maxValue": 2
+          },
+          {
+            "statType": "HEALTH",
+            "value": 5,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 6.6
+          },
+          {
+            "statType": "MOVEMENT_SPEED",
+            "value": 1.1
+          },
+          {
+            "statType": "EVASION_MELEE",
+            "value": 1.1
+          },
+          {
+            "statType": "HEALTH",
+            "value": 5.5
+          }
+        ]
+      }
+    },
+    {
+      "id": 30,
+      "name": "Leather Belt",
+      "rarity": "COMMON",
+      "note": null,
+      "before": {
+        "level": 3,
+        "equipTo": "belt",
+        "itemType": "BELT",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 5,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 40,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH_REGEN",
+            "value": 1,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 5,
+        "equipTo": "belt",
+        "itemType": "BELT",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 3,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 3,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH_REGEN",
+            "value": 0.08,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 3
+          },
+          {
+            "statType": "HEALTH",
+            "value": 3
+          },
+          {
+            "statType": "HEALTH_REGEN",
+            "value": 0.08
+          }
+        ]
+      }
+    },
+    {
+      "id": 31,
+      "name": "Gold Ring",
+      "rarity": "UNCOMMON",
+      "note": null,
+      "before": {
+        "level": 4,
+        "equipTo": "ring",
+        "itemType": "RING",
+        "stats": [
+          {
+            "statType": "CRITICAL_CHANCE",
+            "value": 5.75,
+            "maxValue": null
+          },
+          {
+            "statType": "GOLD_FIND",
+            "value": 11.5,
+            "maxValue": null
+          },
+          {
+            "statType": "LUCK",
+            "value": 5.75,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 15,
+        "equipTo": "ring",
+        "itemType": "RING",
+        "stats": [
+          {
+            "statType": "CRITICAL_CHANCE",
+            "value": 1.4,
+            "maxValue": 2.8
+          },
+          {
+            "statType": "GOLD_FIND",
+            "value": 2.9,
+            "maxValue": 5.8
+          },
+          {
+            "statType": "LUCK",
+            "value": 1,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "CRITICAL_CHANCE",
+            "value": 1.54
+          },
+          {
+            "statType": "GOLD_FIND",
+            "value": 3.19
+          },
+          {
+            "statType": "LUCK",
+            "value": 1.1
+          }
+        ]
+      }
+    },
+    {
+      "id": 32,
+      "name": "Diamond Ring",
+      "rarity": "EPIC",
+      "note": null,
+      "before": {
+        "level": 10,
+        "equipTo": "ring",
+        "itemType": "RING",
+        "stats": [
+          {
+            "statType": "CRITICAL_CHANCE",
+            "value": 12.8,
+            "maxValue": null
+          },
+          {
+            "statType": "CRITICAL_DAMAGE",
+            "value": 24,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 16,
+            "maxValue": null
+          },
+          {
+            "statType": "GOLD_FIND",
+            "value": 32,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 240,
+        "equipTo": "ring",
+        "itemType": "RING",
+        "stats": [
+          {
+            "statType": "CRITICAL_CHANCE",
+            "value": 2.6,
+            "maxValue": 5.2
+          },
+          {
+            "statType": "CRITICAL_DAMAGE",
+            "value": 13,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 4.1,
+            "maxValue": 8.2
+          },
+          {
+            "statType": "GOLD_FIND",
+            "value": 6,
+            "maxValue": 12
+          }
+        ],
+        "worn": [
+          {
+            "statType": "CRITICAL_CHANCE",
+            "value": 4.42
+          },
+          {
+            "statType": "CRITICAL_DAMAGE",
+            "value": 22.1
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 6.97
+          },
+          {
+            "statType": "GOLD_FIND",
+            "value": 10.2
+          }
+        ]
+      }
+    },
+    {
+      "id": 33,
+      "name": "Gold Necklace",
+      "rarity": "UNCOMMON",
+      "note": null,
+      "before": {
+        "level": 5,
+        "equipTo": "necklace",
+        "itemType": "NECKLACE",
+        "stats": [
+          {
+            "statType": "HEALTH",
+            "value": 57.5,
+            "maxValue": null
+          },
+          {
+            "statType": "MANA",
+            "value": 34.5,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 9.2,
+            "maxValue": null
+          },
+          {
+            "statType": "EXPERIENCE_GAIN",
+            "value": 5.75,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 15,
+        "equipTo": "necklace",
+        "itemType": "NECKLACE",
+        "stats": [
+          {
+            "statType": "HEALTH",
+            "value": 8,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 2.4,
+            "maxValue": 4.8
+          }
+        ],
+        "worn": [
+          {
+            "statType": "HEALTH",
+            "value": 8.8
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 2.64
+          }
+        ]
+      }
+    },
+    {
+      "id": 34,
+      "name": "Gold Amulet",
+      "rarity": "RARE",
+      "note": null,
+      "before": {
+        "level": 6,
+        "equipTo": "amulet",
+        "itemType": "AMULET",
+        "stats": [
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 16.2,
+            "maxValue": null
+          },
+          {
+            "statType": "MANA",
+            "value": 108,
+            "maxValue": null
+          },
+          {
+            "statType": "MANA_REGEN",
+            "value": 4.05,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_DAMAGE_MIN",
+            "value": 6,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_DAMAGE_MAX",
+            "value": 13,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 15,
+        "equipTo": "amulet",
+        "itemType": "AMULET",
+        "stats": [
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 2.4,
+            "maxValue": 4.8
+          },
+          {
+            "statType": "MAGIC_DAMAGE_MIN",
+            "value": 1.2,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_DAMAGE_MAX",
+            "value": 2.7,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 3.24
+          },
+          {
+            "statType": "MAGIC_DAMAGE_MIN",
+            "value": 1.62
+          },
+          {
+            "statType": "MAGIC_DAMAGE_MAX",
+            "value": 3.645
+          }
+        ]
+      }
+    },
+    {
+      "id": 37,
+      "name": "Tin Sword",
+      "rarity": "COMMON",
+      "note": null,
+      "before": {
+        "level": 5,
+        "equipTo": "weapon",
+        "itemType": "SWORD",
+        "stats": [
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 5,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 5,
+        "equipTo": "weapon",
+        "itemType": "SWORD",
+        "stats": [
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 9,
+            "maxValue": null
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MAX",
+            "value": 15,
+            "maxValue": null
+          },
+          {
+            "statType": "ATTACK_SPEED",
+            "value": 1,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 9
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MAX",
+            "value": 15
+          },
+          {
+            "statType": "ATTACK_SPEED",
+            "value": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": 50,
+      "name": "Wayfarer Shortblade",
+      "rarity": "RARE",
+      "note": null,
+      "before": {
+        "level": 1,
+        "equipTo": "weapon",
+        "itemType": "SWORD",
+        "stats": [
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 5,
+            "maxValue": null
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MAX",
+            "value": 9,
+            "maxValue": null
+          },
+          {
+            "statType": "ATTACK_SPEED",
+            "value": 0.95,
+            "maxValue": null
+          },
+          {
+            "statType": "ACCURACY",
+            "value": 2,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 10,
+        "equipTo": "weapon",
+        "itemType": "SWORD",
+        "stats": [
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 15,
+            "maxValue": null
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MAX",
+            "value": 24,
+            "maxValue": null
+          },
+          {
+            "statType": "ATTACK_SPEED",
+            "value": 0.95,
+            "maxValue": null
+          },
+          {
+            "statType": "ACCURACY",
+            "value": 4,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 20.25
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MAX",
+            "value": 32.4
+          },
+          {
+            "statType": "ATTACK_SPEED",
+            "value": 0.95
+          },
+          {
+            "statType": "ACCURACY",
+            "value": 5.4
+          }
+        ]
+      }
+    },
+    {
+      "id": 51,
+      "name": "Briarcleaver",
+      "rarity": "RARE",
+      "note": null,
+      "before": {
+        "level": 10,
+        "equipTo": "weapon",
+        "itemType": "AXE",
+        "stats": [
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 18,
+            "maxValue": null
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MAX",
+            "value": 29,
+            "maxValue": null
+          },
+          {
+            "statType": "ATTACK_SPEED",
+            "value": 0.8,
+            "maxValue": null
+          },
+          {
+            "statType": "CRITICAL_DAMAGE",
+            "value": 8,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 30,
+        "equipTo": "weapon",
+        "itemType": "AXE",
+        "stats": [
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 41,
+            "maxValue": null
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MAX",
+            "value": 76,
+            "maxValue": null
+          },
+          {
+            "statType": "ATTACK_SPEED",
+            "value": 0.8,
+            "maxValue": null
+          },
+          {
+            "statType": "CRITICAL_DAMAGE",
+            "value": 14,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 55.35
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MAX",
+            "value": 102.6
+          },
+          {
+            "statType": "ATTACK_SPEED",
+            "value": 0.8
+          },
+          {
+            "statType": "CRITICAL_DAMAGE",
+            "value": 18.9
+          }
+        ]
+      }
+    },
+    {
+      "id": 52,
+      "name": "Reedwind Bow",
+      "rarity": "RARE",
+      "note": null,
+      "before": {
+        "level": 20,
+        "equipTo": "weapon",
+        "itemType": "BOW",
+        "stats": [
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 30,
+            "maxValue": null
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MAX",
+            "value": 46,
+            "maxValue": null
+          },
+          {
+            "statType": "ATTACK_SPEED",
+            "value": 1,
+            "maxValue": null
+          },
+          {
+            "statType": "ACCURACY",
+            "value": 12,
+            "maxValue": null
+          },
+          {
+            "statType": "CRITICAL_CHANCE",
+            "value": 5,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 60,
+        "equipTo": "weapon",
+        "itemType": "BOW",
+        "stats": [
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 71,
+            "maxValue": null
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MAX",
+            "value": 106,
+            "maxValue": null
+          },
+          {
+            "statType": "ATTACK_SPEED",
+            "value": 1,
+            "maxValue": null
+          },
+          {
+            "statType": "ACCURACY",
+            "value": 10,
+            "maxValue": null
+          },
+          {
+            "statType": "CRITICAL_CHANCE",
+            "value": 2.8,
+            "maxValue": 5.6
+          }
+        ],
+        "worn": [
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 95.85
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MAX",
+            "value": 143.1
+          },
+          {
+            "statType": "ATTACK_SPEED",
+            "value": 1
+          },
+          {
+            "statType": "ACCURACY",
+            "value": 13.5
+          },
+          {
+            "statType": "CRITICAL_CHANCE",
+            "value": 3.78
+          }
+        ]
+      }
+    },
+    {
+      "id": 53,
+      "name": "Cindermaul",
+      "rarity": "EPIC",
+      "note": null,
+      "before": {
+        "level": 35,
+        "equipTo": "weapon",
+        "itemType": "MACE",
+        "stats": [
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 52,
+            "maxValue": null
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MAX",
+            "value": 78,
+            "maxValue": null
+          },
+          {
+            "statType": "ATTACK_SPEED",
+            "value": 0.55,
+            "maxValue": null
+          },
+          {
+            "statType": "ARMOR",
+            "value": 12,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 40,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 120,
+        "equipTo": "weapon",
+        "itemType": "MACE",
+        "stats": [
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 251,
+            "maxValue": null
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MAX",
+            "value": 377,
+            "maxValue": null
+          },
+          {
+            "statType": "ATTACK_SPEED",
+            "value": 0.55,
+            "maxValue": null
+          },
+          {
+            "statType": "ARMOR",
+            "value": 29,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 63,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 426.7
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MAX",
+            "value": 640.9
+          },
+          {
+            "statType": "ATTACK_SPEED",
+            "value": 0.55
+          },
+          {
+            "statType": "ARMOR",
+            "value": 49.3
+          },
+          {
+            "statType": "HEALTH",
+            "value": 107.1
+          }
+        ]
+      }
+    },
+    {
+      "id": 54,
+      "name": "Duskglass Staff",
+      "rarity": "EPIC",
+      "note": "Mana removed; its secondary budget goes to critical chance.",
+      "before": {
+        "level": 50,
+        "equipTo": "weapon",
+        "itemType": "STAFF",
+        "stats": [
+          {
+            "statType": "ATTACK_SPEED",
+            "value": 0.85,
+            "maxValue": null
+          },
+          {
+            "statType": "MANA",
+            "value": 80,
+            "maxValue": null
+          },
+          {
+            "statType": "MANA_REGEN",
+            "value": 2,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_DAMAGE_MIN",
+            "value": 72,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_DAMAGE_MAX",
+            "value": 108,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 260,
+        "equipTo": "weapon",
+        "itemType": "STAFF",
+        "stats": [
+          {
+            "statType": "MAGIC_DAMAGE_MIN",
+            "value": 451,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_DAMAGE_MAX",
+            "value": 676,
+            "maxValue": null
+          },
+          {
+            "statType": "ATTACK_SPEED",
+            "value": 0.85,
+            "maxValue": null
+          },
+          {
+            "statType": "CRITICAL_CHANCE",
+            "value": 8.6,
+            "maxValue": 17.2
+          }
+        ],
+        "worn": [
+          {
+            "statType": "MAGIC_DAMAGE_MIN",
+            "value": 766.7
+          },
+          {
+            "statType": "MAGIC_DAMAGE_MAX",
+            "value": 1149.2
+          },
+          {
+            "statType": "ATTACK_SPEED",
+            "value": 0.85
+          },
+          {
+            "statType": "CRITICAL_CHANCE",
+            "value": 14.62
+          }
+        ]
+      }
+    },
+    {
+      "id": 55,
+      "name": "Trailwarden Helm",
+      "rarity": "RARE",
+      "note": null,
+      "before": {
+        "level": 1,
+        "equipTo": "head",
+        "itemType": "HELMET",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 6,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 12,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 1,
+        "equipTo": "head",
+        "itemType": "HELMET",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 5,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 5,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 6.75
+          },
+          {
+            "statType": "HEALTH",
+            "value": 6.75
+          }
+        ]
+      }
+    },
+    {
+      "id": 56,
+      "name": "Trailwarden Jerkin",
+      "rarity": "RARE",
+      "note": null,
+      "before": {
+        "level": 1,
+        "equipTo": "chest",
+        "itemType": "CHESTPLATE",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 12,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 24,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 1,
+        "equipTo": "chest",
+        "itemType": "CHESTPLATE",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 10,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 9,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 13.5
+          },
+          {
+            "statType": "HEALTH",
+            "value": 12.15
+          }
+        ]
+      }
+    },
+    {
+      "id": 57,
+      "name": "Trailwarden Pauldrons",
+      "rarity": "RARE",
+      "note": null,
+      "before": {
+        "level": 1,
+        "equipTo": "pauldrons",
+        "itemType": "PAULDRONS",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 5,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 10,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 1,
+        "equipTo": "pauldrons",
+        "itemType": "PAULDRONS",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 4,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 4,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 5.4
+          },
+          {
+            "statType": "HEALTH",
+            "value": 5.4
+          }
+        ]
+      }
+    },
+    {
+      "id": 58,
+      "name": "Trailwarden Bracers",
+      "rarity": "RARE",
+      "note": null,
+      "before": {
+        "level": 1,
+        "equipTo": "bracers",
+        "itemType": "BRACERS",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 3,
+            "maxValue": null
+          },
+          {
+            "statType": "ACCURACY",
+            "value": 2,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 1,
+        "equipTo": "bracers",
+        "itemType": "BRACERS",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 3,
+            "maxValue": null
+          },
+          {
+            "statType": "ACCURACY",
+            "value": 1,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 4.05
+          },
+          {
+            "statType": "ACCURACY",
+            "value": 1.35
+          }
+        ]
+      }
+    },
+    {
+      "id": 59,
+      "name": "Trailwarden Gloves",
+      "rarity": "RARE",
+      "note": null,
+      "before": {
+        "level": 1,
+        "equipTo": "gloves",
+        "itemType": "GLOVES",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 3,
+            "maxValue": null
+          },
+          {
+            "statType": "ATTACK_SPEED",
+            "value": 0.04,
+            "maxValue": null
+          },
+          {
+            "statType": "CRITICAL_CHANCE",
+            "value": 1,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 1,
+        "equipTo": "gloves",
+        "itemType": "GLOVES",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 3,
+            "maxValue": null
+          },
+          {
+            "statType": "CRITICAL_CHANCE",
+            "value": 1.3,
+            "maxValue": 2.6
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 4.05
+          },
+          {
+            "statType": "CRITICAL_CHANCE",
+            "value": 1.755
+          }
+        ]
+      }
+    },
+    {
+      "id": 60,
+      "name": "Trailwarden Belt",
+      "rarity": "RARE",
+      "note": null,
+      "before": {
+        "level": 1,
+        "equipTo": "belt",
+        "itemType": "BELT",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 3,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 16,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 1,
+        "equipTo": "belt",
+        "itemType": "BELT",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 3,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 3,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 4.05
+          },
+          {
+            "statType": "HEALTH",
+            "value": 4.05
+          }
+        ]
+      }
+    },
+    {
+      "id": 61,
+      "name": "Trailwarden Greaves",
+      "rarity": "RARE",
+      "note": null,
+      "before": {
+        "level": 1,
+        "equipTo": "greaves",
+        "itemType": "GREAVES",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 8,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 16,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 1,
+        "equipTo": "greaves",
+        "itemType": "GREAVES",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 7,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 6,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 9.45
+          },
+          {
+            "statType": "HEALTH",
+            "value": 8.1
+          }
+        ]
+      }
+    },
+    {
+      "id": 62,
+      "name": "Trailwarden Boots",
+      "rarity": "RARE",
+      "note": null,
+      "before": {
+        "level": 1,
+        "equipTo": "boots",
+        "itemType": "BOOTS",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 4,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 8,
+            "maxValue": null
+          },
+          {
+            "statType": "MOVEMENT_SPEED",
+            "value": 2,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 1,
+        "equipTo": "boots",
+        "itemType": "BOOTS",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 4,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 2,
+            "maxValue": null
+          },
+          {
+            "statType": "MOVEMENT_SPEED",
+            "value": 1.1,
+            "maxValue": 2.2
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 5.4
+          },
+          {
+            "statType": "HEALTH",
+            "value": 2.7
+          },
+          {
+            "statType": "MOVEMENT_SPEED",
+            "value": 1.485
+          }
+        ]
+      }
+    },
+    {
+      "id": 63,
+      "name": "Duskwarden Helm",
+      "rarity": "EPIC",
+      "note": null,
+      "before": {
+        "level": 50,
+        "equipTo": "head",
+        "itemType": "HELMET",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 44,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 90,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 10,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 300,
+        "equipTo": "head",
+        "itemType": "HELMET",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 77,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 105,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 5.8,
+            "maxValue": 11.6
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 130.9
+          },
+          {
+            "statType": "HEALTH",
+            "value": 178.5
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 9.86
+          }
+        ]
+      }
+    },
+    {
+      "id": 64,
+      "name": "Duskwarden Cuirass",
+      "rarity": "EPIC",
+      "note": null,
+      "before": {
+        "level": 50,
+        "equipTo": "chest",
+        "itemType": "CHESTPLATE",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 86,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 180,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 18,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 300,
+        "equipTo": "chest",
+        "itemType": "CHESTPLATE",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 148,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 203,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 11.1,
+            "maxValue": 22.2
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 251.6
+          },
+          {
+            "statType": "HEALTH",
+            "value": 345.1
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 18.87
+          }
+        ]
+      }
+    },
+    {
+      "id": 65,
+      "name": "Duskwarden Pauldrons",
+      "rarity": "EPIC",
+      "note": null,
+      "before": {
+        "level": 50,
+        "equipTo": "pauldrons",
+        "itemType": "PAULDRONS",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 38,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 70,
+            "maxValue": null
+          },
+          {
+            "statType": "FIRE_RESIST",
+            "value": 8,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 300,
+        "equipTo": "pauldrons",
+        "itemType": "PAULDRONS",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 65,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 89,
+            "maxValue": null
+          },
+          {
+            "statType": "FIRE_RESIST",
+            "value": 6.1,
+            "maxValue": 12.2
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 110.5
+          },
+          {
+            "statType": "HEALTH",
+            "value": 151.3
+          },
+          {
+            "statType": "FIRE_RESIST",
+            "value": 10.37
+          }
+        ]
+      }
+    },
+    {
+      "id": 66,
+      "name": "Duskwarden Vambraces",
+      "rarity": "EPIC",
+      "note": null,
+      "before": {
+        "level": 50,
+        "equipTo": "bracers",
+        "itemType": "BRACERS",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 28,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 8,
+            "maxValue": null
+          },
+          {
+            "statType": "ACCURACY",
+            "value": 8,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 300,
+        "equipTo": "bracers",
+        "itemType": "BRACERS",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 47,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 3.6,
+            "maxValue": 7.2
+          },
+          {
+            "statType": "ACCURACY",
+            "value": 19,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 79.9
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 6.12
+          },
+          {
+            "statType": "ACCURACY",
+            "value": 32.3
+          }
+        ]
+      }
+    },
+    {
+      "id": 67,
+      "name": "Duskwarden Gauntlets",
+      "rarity": "EPIC",
+      "note": null,
+      "before": {
+        "level": 50,
+        "equipTo": "gloves",
+        "itemType": "GLOVES",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 26,
+            "maxValue": null
+          },
+          {
+            "statType": "ATTACK_SPEED",
+            "value": 0.12,
+            "maxValue": null
+          },
+          {
+            "statType": "CRITICAL_CHANCE",
+            "value": 4,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 300,
+        "equipTo": "gloves",
+        "itemType": "GLOVES",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 47,
+            "maxValue": null
+          },
+          {
+            "statType": "CRITICAL_CHANCE",
+            "value": 3,
+            "maxValue": 6
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 79.9
+          },
+          {
+            "statType": "CRITICAL_CHANCE",
+            "value": 5.1
+          }
+        ]
+      }
+    },
+    {
+      "id": 68,
+      "name": "Duskwarden Girdle",
+      "rarity": "EPIC",
+      "note": null,
+      "before": {
+        "level": 50,
+        "equipTo": "belt",
+        "itemType": "BELT",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 24,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 100,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH_REGEN",
+            "value": 1.8,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 300,
+        "equipTo": "belt",
+        "itemType": "BELT",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 47,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 65,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH_REGEN",
+            "value": 1.85,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 79.9
+          },
+          {
+            "statType": "HEALTH",
+            "value": 110.5
+          },
+          {
+            "statType": "HEALTH_REGEN",
+            "value": 3.145
+          }
+        ]
+      }
+    },
+    {
+      "id": 69,
+      "name": "Duskwarden Greaves",
+      "rarity": "EPIC",
+      "note": null,
+      "before": {
+        "level": 50,
+        "equipTo": "greaves",
+        "itemType": "GREAVES",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 62,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 120,
+            "maxValue": null
+          },
+          {
+            "statType": "COLD_RESIST",
+            "value": 8,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 300,
+        "equipTo": "greaves",
+        "itemType": "GREAVES",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 107,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 146,
+            "maxValue": null
+          },
+          {
+            "statType": "COLD_RESIST",
+            "value": 10,
+            "maxValue": 20
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 181.9
+          },
+          {
+            "statType": "HEALTH",
+            "value": 248.2
+          },
+          {
+            "statType": "COLD_RESIST",
+            "value": 17
+          }
+        ]
+      }
+    },
+    {
+      "id": 70,
+      "name": "Duskwarden Sabatons",
+      "rarity": "EPIC",
+      "note": null,
+      "before": {
+        "level": 50,
+        "equipTo": "boots",
+        "itemType": "BOOTS",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 32,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 60,
+            "maxValue": null
+          },
+          {
+            "statType": "MOVEMENT_SPEED",
+            "value": 6,
+            "maxValue": null
+          },
+          {
+            "statType": "EVASION_MELEE",
+            "value": 4,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 300,
+        "equipTo": "boots",
+        "itemType": "BOOTS",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 53,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 65,
+            "maxValue": null
+          },
+          {
+            "statType": "MOVEMENT_SPEED",
+            "value": 2.2,
+            "maxValue": 4.4
+          },
+          {
+            "statType": "EVASION_MELEE",
+            "value": 2.2,
+            "maxValue": 4.4
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 90.1
+          },
+          {
+            "statType": "HEALTH",
+            "value": 110.5
+          },
+          {
+            "statType": "MOVEMENT_SPEED",
+            "value": 3.74
+          },
+          {
+            "statType": "EVASION_MELEE",
+            "value": 3.74
+          }
+        ]
+      }
+    },
+    {
+      "id": 153,
+      "name": "Fieldweave Gloves",
+      "rarity": "COMMON",
+      "note": null,
+      "before": {
+        "level": 1,
+        "equipTo": "gloves",
+        "itemType": "GLOVES",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 1,
+            "maxValue": null
+          },
+          {
+            "statType": "GATHERING_EFFICIENCY",
+            "value": 2,
+            "maxValue": null
+          },
+          {
+            "statType": "LUCK",
+            "value": 1,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 1,
+        "equipTo": "gloves",
+        "itemType": "GLOVES",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 1,
+            "maxValue": null
+          },
+          {
+            "statType": "GATHERING_EFFICIENCY",
+            "value": 1,
+            "maxValue": null
+          },
+          {
+            "statType": "LUCK",
+            "value": 1,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 1
+          },
+          {
+            "statType": "GATHERING_EFFICIENCY",
+            "value": 1
+          },
+          {
+            "statType": "LUCK",
+            "value": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": 154,
+      "name": "Fieldweave Trailboots",
+      "rarity": "COMMON",
+      "note": null,
+      "before": {
+        "level": 3,
+        "equipTo": "boots",
+        "itemType": "BOOTS",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 2,
+            "maxValue": null
+          },
+          {
+            "statType": "GATHERING_EFFICIENCY",
+            "value": 3,
+            "maxValue": null
+          },
+          {
+            "statType": "MOVEMENT_SPEED",
+            "value": 2,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 3,
+        "equipTo": "boots",
+        "itemType": "BOOTS",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 2,
+            "maxValue": null
+          },
+          {
+            "statType": "GATHERING_EFFICIENCY",
+            "value": 1,
+            "maxValue": null
+          },
+          {
+            "statType": "MOVEMENT_SPEED",
+            "value": 1.1,
+            "maxValue": 2.2
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 2
+          },
+          {
+            "statType": "GATHERING_EFFICIENCY",
+            "value": 1
+          },
+          {
+            "statType": "MOVEMENT_SPEED",
+            "value": 1.1
+          }
+        ]
+      }
+    },
+    {
+      "id": 155,
+      "name": "Fieldweave Leggings",
+      "rarity": "UNCOMMON",
+      "note": null,
+      "before": {
+        "level": 7,
+        "equipTo": "greaves",
+        "itemType": "GREAVES",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 3,
+            "maxValue": null
+          },
+          {
+            "statType": "GATHERING_EFFICIENCY",
+            "value": 4,
+            "maxValue": null
+          },
+          {
+            "statType": "LUCK",
+            "value": 1,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 7,
+        "equipTo": "greaves",
+        "itemType": "GREAVES",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 4,
+            "maxValue": null
+          },
+          {
+            "statType": "GATHERING_EFFICIENCY",
+            "value": 2,
+            "maxValue": null
+          },
+          {
+            "statType": "LUCK",
+            "value": 1,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 4.4
+          },
+          {
+            "statType": "GATHERING_EFFICIENCY",
+            "value": 2.2
+          },
+          {
+            "statType": "LUCK",
+            "value": 1.1
+          }
+        ]
+      }
+    },
+    {
+      "id": 156,
+      "name": "Fieldweave Tunic",
+      "rarity": "RARE",
+      "note": null,
+      "before": {
+        "level": 12,
+        "equipTo": "chest",
+        "itemType": "CHESTPLATE",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 4,
+            "maxValue": null
+          },
+          {
+            "statType": "GATHERING_EFFICIENCY",
+            "value": 5,
+            "maxValue": null
+          },
+          {
+            "statType": "LUCK",
+            "value": 2,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 12,
+        "equipTo": "chest",
+        "itemType": "CHESTPLATE",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 7,
+            "maxValue": null
+          },
+          {
+            "statType": "GATHERING_EFFICIENCY",
+            "value": 3,
+            "maxValue": null
+          },
+          {
+            "statType": "LUCK",
+            "value": 2,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 9.45
+          },
+          {
+            "statType": "GATHERING_EFFICIENCY",
+            "value": 4.05
+          },
+          {
+            "statType": "LUCK",
+            "value": 2.7
+          }
+        ]
+      }
+    },
+    {
+      "id": 179,
+      "name": "Ironroot Band",
+      "rarity": "COMMON",
+      "note": null,
+      "before": {
+        "level": 1,
+        "equipTo": "ring",
+        "itemType": "RING",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 1,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 8,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 1,
+        "equipTo": "ring",
+        "itemType": "RING",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 3,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 3,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 3
+          },
+          {
+            "statType": "HEALTH",
+            "value": 3
+          }
+        ]
+      }
+    },
+    {
+      "id": 180,
+      "name": "Tinker's Brass Signet",
+      "rarity": "UNCOMMON",
+      "note": null,
+      "before": {
+        "level": 3,
+        "equipTo": "ring",
+        "itemType": "RING",
+        "stats": [
+          {
+            "statType": "ACCURACY",
+            "value": 3,
+            "maxValue": null
+          },
+          {
+            "statType": "LUCK",
+            "value": 1,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 10,
+        "equipTo": "ring",
+        "itemType": "RING",
+        "stats": [
+          {
+            "statType": "ACCURACY",
+            "value": 2,
+            "maxValue": null
+          },
+          {
+            "statType": "LUCK",
+            "value": 1,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ACCURACY",
+            "value": 2.2
+          },
+          {
+            "statType": "LUCK",
+            "value": 1.1
+          }
+        ]
+      }
+    },
+    {
+      "id": 181,
+      "name": "Pilgrim's Bronze Ankh",
+      "rarity": "COMMON",
+      "note": null,
+      "before": {
+        "level": 2,
+        "equipTo": "amulet",
+        "itemType": "AMULET",
+        "stats": [
+          {
+            "statType": "PRAYER_POINTS",
+            "value": 5,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 2,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 1,
+        "equipTo": "amulet",
+        "itemType": "AMULET",
+        "stats": [
+          {
+            "statType": "PRAYER_POINTS",
+            "value": 2,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 2.3,
+            "maxValue": 4.6
+          }
+        ],
+        "worn": [
+          {
+            "statType": "PRAYER_POINTS",
+            "value": 2
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 2.3
+          }
+        ]
+      }
+    },
+    {
+      "id": 182,
+      "name": "Fordstone Talisman",
+      "rarity": "UNCOMMON",
+      "note": null,
+      "before": {
+        "level": 4,
+        "equipTo": "amulet",
+        "itemType": "AMULET",
+        "stats": [
+          {
+            "statType": "COLD_RESIST",
+            "value": 4,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 6,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 60,
+        "equipTo": "amulet",
+        "itemType": "AMULET",
+        "stats": [
+          {
+            "statType": "COLD_RESIST",
+            "value": 3.8,
+            "maxValue": 7.6
+          },
+          {
+            "statType": "HEALTH",
+            "value": 23,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "COLD_RESIST",
+            "value": 4.18
+          },
+          {
+            "statType": "HEALTH",
+            "value": 25.3
+          }
+        ]
+      }
+    },
+    {
+      "id": 183,
+      "name": "Rowan Bead Necklace",
+      "rarity": "UNCOMMON",
+      "note": "Had only Mana and Mana Regen; now a warding charm.",
+      "before": {
+        "level": 5,
+        "equipTo": "necklace",
+        "itemType": "NECKLACE",
+        "stats": [
+          {
+            "statType": "MANA",
+            "value": 12,
+            "maxValue": null
+          },
+          {
+            "statType": "MANA_REGEN",
+            "value": 0.25,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 10,
+        "equipTo": "necklace",
+        "itemType": "NECKLACE",
+        "stats": [
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 2.4,
+            "maxValue": 4.8
+          },
+          {
+            "statType": "HEALTH_REGEN",
+            "value": 0.18,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 2.64
+          },
+          {
+            "statType": "HEALTH_REGEN",
+            "value": 0.198
+          }
+        ]
+      }
+    },
+    {
+      "id": 185,
+      "name": "Buckler",
+      "rarity": "COMMON",
+      "note": null,
+      "before": {
+        "level": 1,
+        "equipTo": "offhand",
+        "itemType": "SHIELD",
+        "stats": [
+          {
+            "statType": "BLOCK_CHANCE",
+            "value": 1,
+            "maxValue": 3
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 2,
+            "maxValue": null
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MAX",
+            "value": 5,
+            "maxValue": null
+          },
+          {
+            "statType": "ARMOR",
+            "value": 5,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 1,
+        "equipTo": "offhand",
+        "itemType": "SHIELD",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 6,
+            "maxValue": null
+          },
+          {
+            "statType": "BLOCK_CHANCE",
+            "value": 10,
+            "maxValue": 20.1
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 0.4,
+            "maxValue": null
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MAX",
+            "value": 1,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 6
+          },
+          {
+            "statType": "BLOCK_CHANCE",
+            "value": 10
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 0.4
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MAX",
+            "value": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": 186,
+      "name": "Bearded Greataxe",
+      "rarity": "COMMON",
+      "note": "Had no speed of its own, so it swung at the unarmed 1.0.",
+      "before": {
+        "level": 1,
+        "equipTo": "weapon",
+        "itemType": "GREATAXE",
+        "stats": [
+          {
+            "statType": "CRITICAL_DAMAGE",
+            "value": 155,
+            "maxValue": 160
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 44,
+            "maxValue": null
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MAX",
+            "value": 49,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 20,
+        "equipTo": "weapon",
+        "itemType": "GREATAXE",
+        "stats": [
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 51,
+            "maxValue": null
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MAX",
+            "value": 70,
+            "maxValue": null
+          },
+          {
+            "statType": "ATTACK_SPEED",
+            "value": 0.7,
+            "maxValue": null
+          },
+          {
+            "statType": "CRITICAL_DAMAGE",
+            "value": 18,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 51
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MAX",
+            "value": 70
+          },
+          {
+            "statType": "ATTACK_SPEED",
+            "value": 0.7
+          },
+          {
+            "statType": "CRITICAL_DAMAGE",
+            "value": 18
+          }
+        ]
+      }
+    },
+    {
+      "id": 187,
+      "name": "Embervein Sword",
+      "rarity": "EXQUISITE",
+      "note": null,
+      "before": {
+        "level": 1,
+        "equipTo": "weapon",
+        "itemType": "SWORD",
+        "stats": [
+          {
+            "statType": "ATTACK_SPEED",
+            "value": 1.1,
+            "maxValue": null
+          },
+          {
+            "statType": "LIFESTEAL",
+            "value": 2,
+            "maxValue": null
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 120,
+            "maxValue": null
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MAX",
+            "value": 140,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 340,
+        "equipTo": "weapon",
+        "itemType": "SWORD",
+        "stats": [
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 328,
+            "maxValue": null
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MAX",
+            "value": 546,
+            "maxValue": null
+          },
+          {
+            "statType": "ATTACK_SPEED",
+            "value": 1.1,
+            "maxValue": null
+          },
+          {
+            "statType": "LIFESTEAL",
+            "value": 6,
+            "maxValue": 12
+          }
+        ],
+        "worn": [
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 492
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MAX",
+            "value": 819
+          },
+          {
+            "statType": "ATTACK_SPEED",
+            "value": 1.1
+          },
+          {
+            "statType": "LIFESTEAL",
+            "value": 9
+          }
+        ]
+      }
+    },
+    {
+      "id": 249,
+      "name": "Mossweave Hood",
+      "rarity": "UNCOMMON",
+      "note": null,
+      "before": {
+        "level": 18,
+        "equipTo": "head",
+        "itemType": "HELMET",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 7,
+            "maxValue": null
+          },
+          {
+            "statType": "GATHERING_EFFICIENCY",
+            "value": 2,
+            "maxValue": null
+          },
+          {
+            "statType": "LUCK",
+            "value": 1,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 30,
+        "equipTo": "head",
+        "itemType": "HELMET",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 5,
+            "maxValue": null
+          },
+          {
+            "statType": "GATHERING_EFFICIENCY",
+            "value": 2,
+            "maxValue": null
+          },
+          {
+            "statType": "LUCK",
+            "value": 1,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 5.5
+          },
+          {
+            "statType": "GATHERING_EFFICIENCY",
+            "value": 2.2
+          },
+          {
+            "statType": "LUCK",
+            "value": 1.1
+          }
+        ]
+      }
+    },
+    {
+      "id": 250,
+      "name": "Mossweave Vest",
+      "rarity": "UNCOMMON",
+      "note": null,
+      "before": {
+        "level": 18,
+        "equipTo": "chest",
+        "itemType": "CHESTPLATE",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 14,
+            "maxValue": null
+          },
+          {
+            "statType": "GATHERING_EFFICIENCY",
+            "value": 3,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 6,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 30,
+        "equipTo": "chest",
+        "itemType": "CHESTPLATE",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 10,
+            "maxValue": null
+          },
+          {
+            "statType": "GATHERING_EFFICIENCY",
+            "value": 4,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 26,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 11
+          },
+          {
+            "statType": "GATHERING_EFFICIENCY",
+            "value": 4.4
+          },
+          {
+            "statType": "HEALTH",
+            "value": 28.6
+          }
+        ]
+      }
+    },
+    {
+      "id": 251,
+      "name": "Mossweave Mantle",
+      "rarity": "UNCOMMON",
+      "note": null,
+      "before": {
+        "level": 18,
+        "equipTo": "pauldrons",
+        "itemType": "PAULDRONS",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 9,
+            "maxValue": null
+          },
+          {
+            "statType": "GATHERING_EFFICIENCY",
+            "value": 2,
+            "maxValue": null
+          },
+          {
+            "statType": "HUNTING_EFFICIENCY",
+            "value": 2,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 30,
+        "equipTo": "pauldrons",
+        "itemType": "PAULDRONS",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 5,
+            "maxValue": null
+          },
+          {
+            "statType": "GATHERING_EFFICIENCY",
+            "value": 2,
+            "maxValue": null
+          },
+          {
+            "statType": "HUNTING_EFFICIENCY",
+            "value": 2,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 5.5
+          },
+          {
+            "statType": "GATHERING_EFFICIENCY",
+            "value": 2.2
+          },
+          {
+            "statType": "HUNTING_EFFICIENCY",
+            "value": 2.2
+          }
+        ]
+      }
+    },
+    {
+      "id": 252,
+      "name": "Mossweave Bracers",
+      "rarity": "UNCOMMON",
+      "note": null,
+      "before": {
+        "level": 18,
+        "equipTo": "bracers",
+        "itemType": "BRACERS",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 5,
+            "maxValue": null
+          },
+          {
+            "statType": "GATHERING_EFFICIENCY",
+            "value": 2,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 30,
+        "equipTo": "bracers",
+        "itemType": "BRACERS",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 3,
+            "maxValue": null
+          },
+          {
+            "statType": "GATHERING_EFFICIENCY",
+            "value": 2,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 3.3
+          },
+          {
+            "statType": "GATHERING_EFFICIENCY",
+            "value": 2.2
+          }
+        ]
+      }
+    },
+    {
+      "id": 253,
+      "name": "Mossweave Gloves",
+      "rarity": "UNCOMMON",
+      "note": null,
+      "before": {
+        "level": 18,
+        "equipTo": "gloves",
+        "itemType": "GLOVES",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 4,
+            "maxValue": null
+          },
+          {
+            "statType": "GATHERING_EFFICIENCY",
+            "value": 3,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 30,
+        "equipTo": "gloves",
+        "itemType": "GLOVES",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 3,
+            "maxValue": null
+          },
+          {
+            "statType": "GATHERING_EFFICIENCY",
+            "value": 2,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 3.3
+          },
+          {
+            "statType": "GATHERING_EFFICIENCY",
+            "value": 2.2
+          }
+        ]
+      }
+    },
+    {
+      "id": 254,
+      "name": "Mossweave Trousers",
+      "rarity": "UNCOMMON",
+      "note": null,
+      "before": {
+        "level": 18,
+        "equipTo": "greaves",
+        "itemType": "GREAVES",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 10,
+            "maxValue": null
+          },
+          {
+            "statType": "GATHERING_EFFICIENCY",
+            "value": 2,
+            "maxValue": null
+          },
+          {
+            "statType": "MOVEMENT_SPEED",
+            "value": 1,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 30,
+        "equipTo": "greaves",
+        "itemType": "GREAVES",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 8,
+            "maxValue": null
+          },
+          {
+            "statType": "GATHERING_EFFICIENCY",
+            "value": 3,
+            "maxValue": null
+          },
+          {
+            "statType": "MOVEMENT_SPEED",
+            "value": 2.4,
+            "maxValue": 4.8
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 8.8
+          },
+          {
+            "statType": "GATHERING_EFFICIENCY",
+            "value": 3.3
+          },
+          {
+            "statType": "MOVEMENT_SPEED",
+            "value": 2.64
+          }
+        ]
+      }
+    },
+    {
+      "id": 255,
+      "name": "Mossweave Trailboots",
+      "rarity": "UNCOMMON",
+      "note": null,
+      "before": {
+        "level": 18,
+        "equipTo": "boots",
+        "itemType": "BOOTS",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 6,
+            "maxValue": null
+          },
+          {
+            "statType": "GATHERING_EFFICIENCY",
+            "value": 1,
+            "maxValue": null
+          },
+          {
+            "statType": "MOVEMENT_SPEED",
+            "value": 3,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 30,
+        "equipTo": "boots",
+        "itemType": "BOOTS",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 4,
+            "maxValue": null
+          },
+          {
+            "statType": "GATHERING_EFFICIENCY",
+            "value": 1,
+            "maxValue": null
+          },
+          {
+            "statType": "MOVEMENT_SPEED",
+            "value": 1.2,
+            "maxValue": 2.4
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 4.4
+          },
+          {
+            "statType": "GATHERING_EFFICIENCY",
+            "value": 1.1
+          },
+          {
+            "statType": "MOVEMENT_SPEED",
+            "value": 1.32
+          }
+        ]
+      }
+    },
+    {
+      "id": 256,
+      "name": "Mossweave Utility Belt",
+      "rarity": "UNCOMMON",
+      "note": null,
+      "before": {
+        "level": 18,
+        "equipTo": "belt",
+        "itemType": "BELT",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 4,
+            "maxValue": null
+          },
+          {
+            "statType": "CARRYING_CAPACITY",
+            "value": 5,
+            "maxValue": null
+          },
+          {
+            "statType": "LUCK",
+            "value": 1,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 30,
+        "equipTo": "belt",
+        "itemType": "BELT",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 3,
+            "maxValue": null
+          },
+          {
+            "statType": "CARRYING_CAPACITY",
+            "value": 2,
+            "maxValue": null
+          },
+          {
+            "statType": "LUCK",
+            "value": 1,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 3.3
+          },
+          {
+            "statType": "CARRYING_CAPACITY",
+            "value": 2.2
+          },
+          {
+            "statType": "LUCK",
+            "value": 1.1
+          }
+        ]
+      }
+    },
+    {
+      "id": 257,
+      "name": "Ironbark Helm",
+      "rarity": "RARE",
+      "note": null,
+      "before": {
+        "level": 38,
+        "equipTo": "head",
+        "itemType": "HELMET",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 10,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 5,
+            "maxValue": null
+          },
+          {
+            "statType": "WOODCUTTING_EFFICIENCY",
+            "value": 1,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 40,
+        "equipTo": "head",
+        "itemType": "HELMET",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 14,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 17,
+            "maxValue": null
+          },
+          {
+            "statType": "WOODCUTTING_EFFICIENCY",
+            "value": 2,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 18.9
+          },
+          {
+            "statType": "HEALTH",
+            "value": 22.95
+          },
+          {
+            "statType": "WOODCUTTING_EFFICIENCY",
+            "value": 2.7
+          }
+        ]
+      }
+    },
+    {
+      "id": 258,
+      "name": "Ironbark Cuirass",
+      "rarity": "RARE",
+      "note": null,
+      "before": {
+        "level": 38,
+        "equipTo": "chest",
+        "itemType": "CHESTPLATE",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 25,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 14,
+            "maxValue": null
+          },
+          {
+            "statType": "CARRYING_CAPACITY",
+            "value": 6,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 40,
+        "equipTo": "chest",
+        "itemType": "CHESTPLATE",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 28,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 32,
+            "maxValue": null
+          },
+          {
+            "statType": "CARRYING_CAPACITY",
+            "value": 6,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 37.8
+          },
+          {
+            "statType": "HEALTH",
+            "value": 43.2
+          },
+          {
+            "statType": "CARRYING_CAPACITY",
+            "value": 8.1
+          }
+        ]
+      }
+    },
+    {
+      "id": 259,
+      "name": "Ironbark Pauldrons",
+      "rarity": "RARE",
+      "note": null,
+      "before": {
+        "level": 38,
+        "equipTo": "pauldrons",
+        "itemType": "PAULDRONS",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 16,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 5,
+            "maxValue": null
+          },
+          {
+            "statType": "BLOCK_CHANCE",
+            "value": 1,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 40,
+        "equipTo": "pauldrons",
+        "itemType": "PAULDRONS",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 12,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 14,
+            "maxValue": null
+          },
+          {
+            "statType": "BLOCK_CHANCE",
+            "value": 1.2,
+            "maxValue": 2.4
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 16.2
+          },
+          {
+            "statType": "HEALTH",
+            "value": 18.9
+          },
+          {
+            "statType": "BLOCK_CHANCE",
+            "value": 1.62
+          }
+        ]
+      }
+    },
+    {
+      "id": 260,
+      "name": "Ironbark Bracers",
+      "rarity": "RARE",
+      "note": null,
+      "before": {
+        "level": 38,
+        "equipTo": "bracers",
+        "itemType": "BRACERS",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 8,
+            "maxValue": null
+          },
+          {
+            "statType": "WOODCUTTING_EFFICIENCY",
+            "value": 2,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 40,
+        "equipTo": "bracers",
+        "itemType": "BRACERS",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 9,
+            "maxValue": null
+          },
+          {
+            "statType": "WOODCUTTING_EFFICIENCY",
+            "value": 2,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 12.15
+          },
+          {
+            "statType": "WOODCUTTING_EFFICIENCY",
+            "value": 2.7
+          }
+        ]
+      }
+    },
+    {
+      "id": 261,
+      "name": "Ironbark Gauntlets",
+      "rarity": "RARE",
+      "note": null,
+      "before": {
+        "level": 38,
+        "equipTo": "gloves",
+        "itemType": "GLOVES",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 7,
+            "maxValue": null
+          },
+          {
+            "statType": "WOODCUTTING_EFFICIENCY",
+            "value": 2,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 40,
+        "equipTo": "gloves",
+        "itemType": "GLOVES",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 9,
+            "maxValue": null
+          },
+          {
+            "statType": "WOODCUTTING_EFFICIENCY",
+            "value": 2,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 12.15
+          },
+          {
+            "statType": "WOODCUTTING_EFFICIENCY",
+            "value": 2.7
+          }
+        ]
+      }
+    },
+    {
+      "id": 262,
+      "name": "Ironbark Greaves",
+      "rarity": "RARE",
+      "note": null,
+      "before": {
+        "level": 38,
+        "equipTo": "greaves",
+        "itemType": "GREAVES",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 20,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 8,
+            "maxValue": null
+          },
+          {
+            "statType": "CARRYING_CAPACITY",
+            "value": 4,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 40,
+        "equipTo": "greaves",
+        "itemType": "GREAVES",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 20,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 23,
+            "maxValue": null
+          },
+          {
+            "statType": "CARRYING_CAPACITY",
+            "value": 5,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 27
+          },
+          {
+            "statType": "HEALTH",
+            "value": 31.05
+          },
+          {
+            "statType": "CARRYING_CAPACITY",
+            "value": 6.75
+          }
+        ]
+      }
+    },
+    {
+      "id": 263,
+      "name": "Ironbark Sabatons",
+      "rarity": "RARE",
+      "note": null,
+      "before": {
+        "level": 38,
+        "equipTo": "boots",
+        "itemType": "BOOTS",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 12,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 4,
+            "maxValue": null
+          },
+          {
+            "statType": "BLOCK_CHANCE",
+            "value": 1,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 40,
+        "equipTo": "boots",
+        "itemType": "BOOTS",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 10,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 12,
+            "maxValue": null
+          },
+          {
+            "statType": "BLOCK_CHANCE",
+            "value": 1,
+            "maxValue": 2
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 13.5
+          },
+          {
+            "statType": "HEALTH",
+            "value": 16.2
+          },
+          {
+            "statType": "BLOCK_CHANCE",
+            "value": 1.35
+          }
+        ]
+      }
+    },
+    {
+      "id": 264,
+      "name": "Ironbark Girdle",
+      "rarity": "RARE",
+      "note": null,
+      "before": {
+        "level": 38,
+        "equipTo": "belt",
+        "itemType": "BELT",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 8,
+            "maxValue": null
+          },
+          {
+            "statType": "CARRYING_CAPACITY",
+            "value": 10,
+            "maxValue": null
+          },
+          {
+            "statType": "WOODCUTTING_EFFICIENCY",
+            "value": 1,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 40,
+        "equipTo": "belt",
+        "itemType": "BELT",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 9,
+            "maxValue": null
+          },
+          {
+            "statType": "CARRYING_CAPACITY",
+            "value": 2,
+            "maxValue": null
+          },
+          {
+            "statType": "WOODCUTTING_EFFICIENCY",
+            "value": 1,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 12.15
+          },
+          {
+            "statType": "CARRYING_CAPACITY",
+            "value": 2.7
+          },
+          {
+            "statType": "WOODCUTTING_EFFICIENCY",
+            "value": 1.35
+          }
+        ]
+      }
+    },
+    {
+      "id": 265,
+      "name": "Frostsilver Helm",
+      "rarity": "EXQUISITE",
+      "note": null,
+      "before": {
+        "level": 65,
+        "equipTo": "head",
+        "itemType": "HELMET",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 15,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 3,
+            "maxValue": null
+          },
+          {
+            "statType": "COLD_RESIST",
+            "value": 5,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 100,
+        "equipTo": "head",
+        "itemType": "HELMET",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 25,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 3.5,
+            "maxValue": 7
+          },
+          {
+            "statType": "COLD_RESIST",
+            "value": 4.5,
+            "maxValue": 9
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 37.5
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 5.25
+          },
+          {
+            "statType": "COLD_RESIST",
+            "value": 6.75
+          }
+        ]
+      }
+    },
+    {
+      "id": 266,
+      "name": "Frostsilver Cuirass",
+      "rarity": "EXQUISITE",
+      "note": null,
+      "before": {
+        "level": 65,
+        "equipTo": "chest",
+        "itemType": "CHESTPLATE",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 36,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 6,
+            "maxValue": null
+          },
+          {
+            "statType": "COLD_RESIST",
+            "value": 8,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 10,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 100,
+        "equipTo": "chest",
+        "itemType": "CHESTPLATE",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 47,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 6,
+            "maxValue": 12
+          },
+          {
+            "statType": "COLD_RESIST",
+            "value": 7.7,
+            "maxValue": 15.4
+          },
+          {
+            "statType": "HEALTH",
+            "value": 64,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 70.5
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 9
+          },
+          {
+            "statType": "COLD_RESIST",
+            "value": 11.55
+          },
+          {
+            "statType": "HEALTH",
+            "value": 96
+          }
+        ]
+      }
+    },
+    {
+      "id": 267,
+      "name": "Frostsilver Pauldrons",
+      "rarity": "EXQUISITE",
+      "note": null,
+      "before": {
+        "level": 65,
+        "equipTo": "pauldrons",
+        "itemType": "PAULDRONS",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 22,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 3,
+            "maxValue": null
+          },
+          {
+            "statType": "COLD_RESIST",
+            "value": 6,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 100,
+        "equipTo": "pauldrons",
+        "itemType": "PAULDRONS",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 21,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 3,
+            "maxValue": 6
+          },
+          {
+            "statType": "COLD_RESIST",
+            "value": 3.8,
+            "maxValue": 7.6
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 31.5
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 4.5
+          },
+          {
+            "statType": "COLD_RESIST",
+            "value": 5.7
+          }
+        ]
+      }
+    },
+    {
+      "id": 268,
+      "name": "Frostsilver Bracers",
+      "rarity": "EXQUISITE",
+      "note": null,
+      "before": {
+        "level": 65,
+        "equipTo": "bracers",
+        "itemType": "BRACERS",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 12,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 2,
+            "maxValue": null
+          },
+          {
+            "statType": "MINING_EFFICIENCY",
+            "value": 1,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 100,
+        "equipTo": "bracers",
+        "itemType": "BRACERS",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 15,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 2.1,
+            "maxValue": 4.2
+          },
+          {
+            "statType": "MINING_EFFICIENCY",
+            "value": 2,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 22.5
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 3.15
+          },
+          {
+            "statType": "MINING_EFFICIENCY",
+            "value": 3
+          }
+        ]
+      }
+    },
+    {
+      "id": 269,
+      "name": "Frostsilver Gauntlets",
+      "rarity": "EXQUISITE",
+      "note": null,
+      "before": {
+        "level": 65,
+        "equipTo": "gloves",
+        "itemType": "GLOVES",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 10,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 2,
+            "maxValue": null
+          },
+          {
+            "statType": "MINING_EFFICIENCY",
+            "value": 2,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 100,
+        "equipTo": "gloves",
+        "itemType": "GLOVES",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 15,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 2.1,
+            "maxValue": 4.2
+          },
+          {
+            "statType": "MINING_EFFICIENCY",
+            "value": 2,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 22.5
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 3.15
+          },
+          {
+            "statType": "MINING_EFFICIENCY",
+            "value": 3
+          }
+        ]
+      }
+    },
+    {
+      "id": 270,
+      "name": "Frostsilver Greaves",
+      "rarity": "EXQUISITE",
+      "note": null,
+      "before": {
+        "level": 65,
+        "equipTo": "greaves",
+        "itemType": "GREAVES",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 29,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 4,
+            "maxValue": null
+          },
+          {
+            "statType": "COLD_RESIST",
+            "value": 7,
+            "maxValue": null
+          },
+          {
+            "statType": "FISHING_EFFICIENCY",
+            "value": 1,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 100,
+        "equipTo": "greaves",
+        "itemType": "GREAVES",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 34,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 4.3,
+            "maxValue": 8.6
+          },
+          {
+            "statType": "COLD_RESIST",
+            "value": 5.5,
+            "maxValue": 11
+          },
+          {
+            "statType": "FISHING_EFFICIENCY",
+            "value": 4,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 51
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 6.45
+          },
+          {
+            "statType": "COLD_RESIST",
+            "value": 8.25
+          },
+          {
+            "statType": "FISHING_EFFICIENCY",
+            "value": 6
+          }
+        ]
+      }
+    },
+    {
+      "id": 271,
+      "name": "Frostsilver Sabatons",
+      "rarity": "EXQUISITE",
+      "note": null,
+      "before": {
+        "level": 65,
+        "equipTo": "boots",
+        "itemType": "BOOTS",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 16,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 2,
+            "maxValue": null
+          },
+          {
+            "statType": "COLD_RESIST",
+            "value": 5,
+            "maxValue": null
+          },
+          {
+            "statType": "MOVEMENT_SPEED",
+            "value": 1,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 100,
+        "equipTo": "boots",
+        "itemType": "BOOTS",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 17,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 2.1,
+            "maxValue": 4.2
+          },
+          {
+            "statType": "COLD_RESIST",
+            "value": 2.8,
+            "maxValue": 5.6
+          },
+          {
+            "statType": "MOVEMENT_SPEED",
+            "value": 1.4,
+            "maxValue": 2.8
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 25.5
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 3.15
+          },
+          {
+            "statType": "COLD_RESIST",
+            "value": 4.2
+          },
+          {
+            "statType": "MOVEMENT_SPEED",
+            "value": 2.1
+          }
+        ]
+      }
+    },
+    {
+      "id": 272,
+      "name": "Frostsilver Girdle",
+      "rarity": "EXQUISITE",
+      "note": null,
+      "before": {
+        "level": 65,
+        "equipTo": "belt",
+        "itemType": "BELT",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 10,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 2,
+            "maxValue": null
+          },
+          {
+            "statType": "COLD_RESIST",
+            "value": 4,
+            "maxValue": null
+          },
+          {
+            "statType": "FISHING_EFFICIENCY",
+            "value": 2,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 100,
+        "equipTo": "belt",
+        "itemType": "BELT",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 15,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 1.9,
+            "maxValue": 3.8
+          },
+          {
+            "statType": "COLD_RESIST",
+            "value": 2.5,
+            "maxValue": 5
+          },
+          {
+            "statType": "FISHING_EFFICIENCY",
+            "value": 2,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 22.5
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 2.85
+          },
+          {
+            "statType": "COLD_RESIST",
+            "value": 3.75
+          },
+          {
+            "statType": "FISHING_EFFICIENCY",
+            "value": 3
+          }
+        ]
+      }
+    },
+    {
+      "id": 273,
+      "name": "Cinderweave Cowl",
+      "rarity": "EPIC",
+      "note": null,
+      "before": {
+        "level": 105,
+        "equipTo": "head",
+        "itemType": "HELMET",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 20,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 4,
+            "maxValue": null
+          },
+          {
+            "statType": "FIRE_RESIST",
+            "value": 6,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 180,
+        "equipTo": "head",
+        "itemType": "HELMET",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 34,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 4.4,
+            "maxValue": 8.8
+          },
+          {
+            "statType": "FIRE_RESIST",
+            "value": 5.6,
+            "maxValue": 11.2
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 57.8
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 7.48
+          },
+          {
+            "statType": "FIRE_RESIST",
+            "value": 9.52
+          }
+        ]
+      }
+    },
+    {
+      "id": 274,
+      "name": "Cinderweave Coat",
+      "rarity": "EPIC",
+      "note": null,
+      "before": {
+        "level": 105,
+        "equipTo": "chest",
+        "itemType": "CHESTPLATE",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 48,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 8,
+            "maxValue": null
+          },
+          {
+            "statType": "FIRE_RESIST",
+            "value": 12,
+            "maxValue": null
+          },
+          {
+            "statType": "HEALTH",
+            "value": 16,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 180,
+        "equipTo": "chest",
+        "itemType": "CHESTPLATE",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 65,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 7.5,
+            "maxValue": 15
+          },
+          {
+            "statType": "FIRE_RESIST",
+            "value": 9.6,
+            "maxValue": 19.2
+          },
+          {
+            "statType": "HEALTH",
+            "value": 110,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 110.5
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 12.75
+          },
+          {
+            "statType": "FIRE_RESIST",
+            "value": 16.32
+          },
+          {
+            "statType": "HEALTH",
+            "value": 187
+          }
+        ]
+      }
+    },
+    {
+      "id": 275,
+      "name": "Cinderweave Mantle",
+      "rarity": "EPIC",
+      "note": null,
+      "before": {
+        "level": 105,
+        "equipTo": "pauldrons",
+        "itemType": "PAULDRONS",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 28,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 4,
+            "maxValue": null
+          },
+          {
+            "statType": "FIRE_RESIST",
+            "value": 7,
+            "maxValue": null
+          },
+          {
+            "statType": "HUNTING_EFFICIENCY",
+            "value": 1,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 180,
+        "equipTo": "pauldrons",
+        "itemType": "PAULDRONS",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 29,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 3.3,
+            "maxValue": 6.6
+          },
+          {
+            "statType": "FIRE_RESIST",
+            "value": 4.2,
+            "maxValue": 8.4
+          },
+          {
+            "statType": "HUNTING_EFFICIENCY",
+            "value": 4,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 49.3
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 5.61
+          },
+          {
+            "statType": "FIRE_RESIST",
+            "value": 7.14
+          },
+          {
+            "statType": "HUNTING_EFFICIENCY",
+            "value": 6.8
+          }
+        ]
+      }
+    },
+    {
+      "id": 276,
+      "name": "Cinderweave Wraps",
+      "rarity": "EPIC",
+      "note": null,
+      "before": {
+        "level": 105,
+        "equipTo": "bracers",
+        "itemType": "BRACERS",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 14,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 2,
+            "maxValue": null
+          },
+          {
+            "statType": "FIRE_RESIST",
+            "value": 4,
+            "maxValue": null
+          },
+          {
+            "statType": "HUNTING_EFFICIENCY",
+            "value": 1,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 180,
+        "equipTo": "bracers",
+        "itemType": "BRACERS",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 21,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 2.4,
+            "maxValue": 4.8
+          },
+          {
+            "statType": "FIRE_RESIST",
+            "value": 3.1,
+            "maxValue": 6.2
+          },
+          {
+            "statType": "HUNTING_EFFICIENCY",
+            "value": 3,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 35.7
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 4.08
+          },
+          {
+            "statType": "FIRE_RESIST",
+            "value": 5.27
+          },
+          {
+            "statType": "HUNTING_EFFICIENCY",
+            "value": 5.1
+          }
+        ]
+      }
+    },
+    {
+      "id": 277,
+      "name": "Cinderweave Gloves",
+      "rarity": "EPIC",
+      "note": null,
+      "before": {
+        "level": 105,
+        "equipTo": "gloves",
+        "itemType": "GLOVES",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 12,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 2,
+            "maxValue": null
+          },
+          {
+            "statType": "FIRE_RESIST",
+            "value": 4,
+            "maxValue": null
+          },
+          {
+            "statType": "HUNTING_EFFICIENCY",
+            "value": 2,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 180,
+        "equipTo": "gloves",
+        "itemType": "GLOVES",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 21,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 2.4,
+            "maxValue": 4.8
+          },
+          {
+            "statType": "FIRE_RESIST",
+            "value": 3.1,
+            "maxValue": 6.2
+          },
+          {
+            "statType": "HUNTING_EFFICIENCY",
+            "value": 3,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 35.7
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 4.08
+          },
+          {
+            "statType": "FIRE_RESIST",
+            "value": 5.27
+          },
+          {
+            "statType": "HUNTING_EFFICIENCY",
+            "value": 5.1
+          }
+        ]
+      }
+    },
+    {
+      "id": 278,
+      "name": "Cinderweave Leggings",
+      "rarity": "EPIC",
+      "note": null,
+      "before": {
+        "level": 105,
+        "equipTo": "greaves",
+        "itemType": "GREAVES",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 38,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 5,
+            "maxValue": null
+          },
+          {
+            "statType": "FIRE_RESIST",
+            "value": 9,
+            "maxValue": null
+          },
+          {
+            "statType": "MOVEMENT_SPEED",
+            "value": 1,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 180,
+        "equipTo": "greaves",
+        "itemType": "GREAVES",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 47,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 5.4,
+            "maxValue": 10.8
+          },
+          {
+            "statType": "FIRE_RESIST",
+            "value": 6.9,
+            "maxValue": 13.8
+          },
+          {
+            "statType": "MOVEMENT_SPEED",
+            "value": 3.4,
+            "maxValue": 6.8
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 79.9
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 9.18
+          },
+          {
+            "statType": "FIRE_RESIST",
+            "value": 11.73
+          },
+          {
+            "statType": "MOVEMENT_SPEED",
+            "value": 5.78
+          }
+        ]
+      }
+    },
+    {
+      "id": 279,
+      "name": "Cinderweave Ashboots",
+      "rarity": "EPIC",
+      "note": null,
+      "before": {
+        "level": 105,
+        "equipTo": "boots",
+        "itemType": "BOOTS",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 20,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 2,
+            "maxValue": null
+          },
+          {
+            "statType": "FIRE_RESIST",
+            "value": 5,
+            "maxValue": null
+          },
+          {
+            "statType": "MOVEMENT_SPEED",
+            "value": 2,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 180,
+        "equipTo": "boots",
+        "itemType": "BOOTS",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 23,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 2.7,
+            "maxValue": 5.4
+          },
+          {
+            "statType": "FIRE_RESIST",
+            "value": 3.4,
+            "maxValue": 6.8
+          },
+          {
+            "statType": "MOVEMENT_SPEED",
+            "value": 1.7,
+            "maxValue": 3.4
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 39.1
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 4.59
+          },
+          {
+            "statType": "FIRE_RESIST",
+            "value": 5.78
+          },
+          {
+            "statType": "MOVEMENT_SPEED",
+            "value": 2.89
+          }
+        ]
+      }
+    },
+    {
+      "id": 280,
+      "name": "Cinderweave Sash",
+      "rarity": "EPIC",
+      "note": null,
+      "before": {
+        "level": 105,
+        "equipTo": "belt",
+        "itemType": "BELT",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 14,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 2,
+            "maxValue": null
+          },
+          {
+            "statType": "FIRE_RESIST",
+            "value": 4,
+            "maxValue": null
+          },
+          {
+            "statType": "CARRYING_CAPACITY",
+            "value": 8,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 180,
+        "equipTo": "belt",
+        "itemType": "BELT",
+        "stats": [
+          {
+            "statType": "ARMOR",
+            "value": 21,
+            "maxValue": null
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 2.4,
+            "maxValue": 4.8
+          },
+          {
+            "statType": "FIRE_RESIST",
+            "value": 3.1,
+            "maxValue": 6.2
+          },
+          {
+            "statType": "CARRYING_CAPACITY",
+            "value": 4,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "ARMOR",
+            "value": 35.7
+          },
+          {
+            "statType": "MAGIC_RESIST",
+            "value": 4.08
+          },
+          {
+            "statType": "FIRE_RESIST",
+            "value": 5.27
+          },
+          {
+            "statType": "CARRYING_CAPACITY",
+            "value": 6.8
+          }
+        ]
+      }
+    },
+    {
+      "id": 317,
+      "name": "Ogre Cleaver",
+      "rarity": "RARE",
+      "note": "Dropped by the Ogre in Blackjaw Stockade (100).",
+      "before": {
+        "level": 40,
+        "equipTo": "weapon",
+        "itemType": "GREATAXE",
+        "stats": [
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 38,
+            "maxValue": null
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MAX",
+            "value": 56,
+            "maxValue": null
+          },
+          {
+            "statType": "ATTACK_SPEED",
+            "value": 0.65,
+            "maxValue": null
+          },
+          {
+            "statType": "CRITICAL_DAMAGE",
+            "value": 6,
+            "maxValue": null
+          }
+        ]
+      },
+      "after": {
+        "level": 100,
+        "equipTo": "weapon",
+        "itemType": "GREATAXE",
+        "stats": [
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 246,
+            "maxValue": null
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MAX",
+            "value": 333,
+            "maxValue": null
+          },
+          {
+            "statType": "ATTACK_SPEED",
+            "value": 0.65,
+            "maxValue": null
+          },
+          {
+            "statType": "CRITICAL_DAMAGE",
+            "value": 26,
+            "maxValue": null
+          }
+        ],
+        "worn": [
+          {
+            "statType": "PHYSICAL_DAMAGE_MIN",
+            "value": 332.1
+          },
+          {
+            "statType": "PHYSICAL_DAMAGE_MAX",
+            "value": 449.55
+          },
+          {
+            "statType": "ATTACK_SPEED",
+            "value": 0.65
+          },
+          {
+            "statType": "CRITICAL_DAMAGE",
+            "value": 35.1
+          }
+        ]
+      }
+    }
+  ],
+  "monsters": [
+    {
+      "id": 9,
+      "name": "Bomber Goblin",
+      "level": 60,
+      "rank": "normal",
+      "damageScale": 2.787,
+      "inDungeon": true,
+      "before": {
+        "id": 9,
+        "name": "Bomber Goblin",
+        "damageMin": 5,
+        "damageMax": 8,
+        "magicDamageMin": 0,
+        "magicDamageMax": 0,
+        "elementalDamageMin": 5,
+        "elementalDamageMax": 6,
+        "health": 35,
+        "armor": 15,
+        "magicResist": 0
+      },
+      "after": {
+        "health": 478,
+        "armor": 58,
+        "magicResist": 0,
+        "damageMin": 17,
+        "damageMax": 27,
+        "magicDamageMin": 0,
+        "magicDamageMax": 0,
+        "elementalDamageMin": 16,
+        "elementalDamageMax": 20
+      }
+    },
+    {
+      "id": 11,
+      "name": "Tunnel goblin",
+      "level": 100,
+      "rank": "normal",
+      "damageScale": 0.878,
+      "inDungeon": true,
+      "before": {
+        "id": 11,
+        "name": "Tunnel goblin",
+        "damageMin": 10,
+        "damageMax": 15,
+        "magicDamageMin": 0,
+        "magicDamageMax": 0,
+        "elementalDamageMin": 0,
+        "elementalDamageMax": 0,
+        "health": 50,
+        "armor": 30,
+        "magicResist": 30
+      },
+      "after": {
+        "health": 819,
+        "armor": 88,
+        "magicResist": 30,
+        "damageMin": 16,
+        "damageMax": 24,
+        "magicDamageMin": 0,
+        "magicDamageMax": 0,
+        "elementalDamageMin": 0,
+        "elementalDamageMax": 0
+      }
+    },
+    {
+      "id": 12,
+      "name": "Mire ooze",
+      "level": 80,
+      "rank": "normal",
+      "damageScale": 1.411,
+      "inDungeon": false,
+      "before": {
+        "id": 12,
+        "name": "Mire ooze",
+        "damageMin": 1,
+        "damageMax": 3,
+        "magicDamageMin": 0,
+        "magicDamageMax": 0,
+        "elementalDamageMin": 5,
+        "elementalDamageMax": 10,
+        "health": 80,
+        "armor": 20,
+        "magicResist": 20
+      },
+      "after": {
+        "health": 643,
+        "armor": 73,
+        "magicResist": 20,
+        "damageMin": 3,
+        "damageMax": 8,
+        "magicDamageMin": 0,
+        "magicDamageMax": 0,
+        "elementalDamageMin": 14,
+        "elementalDamageMax": 27
+      }
+    },
+    {
+      "id": 13,
+      "name": "Puddle Slime",
+      "level": 45,
+      "rank": "normal",
+      "damageScale": 1.411,
+      "inDungeon": false,
+      "before": {
+        "id": 13,
+        "name": "Puddle Slime",
+        "damageMin": 0,
+        "damageMax": 0,
+        "magicDamageMin": 40,
+        "magicDamageMax": 55,
+        "elementalDamageMin": 0,
+        "elementalDamageMax": 0,
+        "health": 100,
+        "armor": 10,
+        "magicResist": 10
+      },
+      "after": {
+        "health": 360,
+        "armor": 46,
+        "magicResist": 10,
+        "damageMin": 0,
+        "damageMax": 0,
+        "magicDamageMin": 13,
+        "magicDamageMax": 18,
+        "elementalDamageMin": 0,
+        "elementalDamageMax": 0
+      }
+    },
+    {
+      "id": 14,
+      "name": "Cavefang Spider",
+      "level": 230,
+      "rank": "normal",
+      "damageScale": 1.411,
+      "inDungeon": false,
+      "before": {
+        "id": 14,
+        "name": "Cavefang Spider",
+        "damageMin": 60,
+        "damageMax": 80,
+        "magicDamageMin": 0,
+        "magicDamageMax": 0,
+        "elementalDamageMin": 30,
+        "elementalDamageMax": 40,
+        "health": 80,
+        "armor": 40,
+        "magicResist": 30
+      },
+      "after": {
+        "health": 1844,
+        "armor": 185,
+        "magicResist": 30,
+        "damageMin": 40,
+        "damageMax": 53,
+        "magicDamageMin": 0,
+        "magicDamageMax": 0,
+        "elementalDamageMin": 20,
+        "elementalDamageMax": 27
+      }
+    },
+    {
+      "id": 15,
+      "name": "Rattlebone Skeleton",
+      "level": 260,
+      "rank": "normal",
+      "damageScale": 1.411,
+      "inDungeon": false,
+      "before": {
+        "id": 15,
+        "name": "Rattlebone Skeleton",
+        "damageMin": 50,
+        "damageMax": 90,
+        "magicDamageMin": 0,
+        "magicDamageMax": 0,
+        "elementalDamageMin": 0,
+        "elementalDamageMax": 0,
+        "health": 90,
+        "armor": 60,
+        "magicResist": 60
+      },
+      "after": {
+        "health": 2081,
+        "armor": 208,
+        "magicResist": 60,
+        "damageMin": 56,
+        "damageMax": 102,
+        "magicDamageMin": 0,
+        "magicDamageMax": 0,
+        "elementalDamageMin": 0,
+        "elementalDamageMax": 0
+      }
+    },
+    {
+      "id": 16,
+      "name": "Bat",
+      "level": 130,
+      "rank": "normal",
+      "damageScale": 1.411,
+      "inDungeon": false,
+      "before": {
+        "id": 16,
+        "name": "Bat",
+        "damageMin": 60,
+        "damageMax": 70,
+        "magicDamageMin": 0,
+        "magicDamageMax": 0,
+        "elementalDamageMin": 0,
+        "elementalDamageMax": 0,
+        "health": 90,
+        "armor": 50,
+        "magicResist": 40
+      },
+      "after": {
+        "health": 1057,
+        "armor": 110,
+        "magicResist": 40,
+        "damageMin": 37,
+        "damageMax": 45,
+        "magicDamageMin": 0,
+        "magicDamageMax": 0,
+        "elementalDamageMin": 0,
+        "elementalDamageMax": 0
+      }
+    },
+    {
+      "id": 17,
+      "name": "Carrion Hound",
+      "level": 150,
+      "rank": "normal",
+      "damageScale": 1.411,
+      "inDungeon": false,
+      "before": {
+        "id": 17,
+        "name": "Carrion Hound",
+        "damageMin": 70,
+        "damageMax": 90,
+        "magicDamageMin": 0,
+        "magicDamageMax": 0,
+        "elementalDamageMin": 0,
+        "elementalDamageMax": 0,
+        "health": 80,
+        "armor": 0,
+        "magicResist": 0
+      },
+      "after": {
+        "health": 1214,
+        "armor": 125,
+        "magicResist": 0,
+        "damageMin": 41,
+        "damageMax": 52,
+        "magicDamageMin": 0,
+        "magicDamageMax": 0,
+        "elementalDamageMin": 0,
+        "elementalDamageMax": 0
+      }
+    },
+    {
+      "id": 20,
+      "name": "Goblin",
+      "level": 35,
+      "rank": "normal",
+      "damageScale": 7.466,
+      "inDungeon": true,
+      "before": {
+        "id": 20,
+        "name": "Goblin",
+        "damageMin": 1,
+        "damageMax": 3,
+        "magicDamageMin": 0,
+        "magicDamageMax": 0,
+        "elementalDamageMin": 0,
+        "elementalDamageMax": 0,
+        "health": 18,
+        "armor": 2,
+        "magicResist": 0
+      },
+      "after": {
+        "health": 283,
+        "armor": 39,
+        "magicResist": 0,
+        "damageMin": 34,
+        "damageMax": 102,
+        "magicDamageMin": 0,
+        "magicDamageMax": 0,
+        "elementalDamageMin": 0,
+        "elementalDamageMax": 0
+      }
+    },
+    {
+      "id": 21,
+      "name": "Stoneback Troll",
+      "level": 305,
+      "rank": "boss",
+      "damageScale": 1.411,
+      "inDungeon": true,
+      "before": {
+        "id": 21,
+        "name": "Stoneback Troll",
+        "damageMin": 38,
+        "damageMax": 58,
+        "magicDamageMin": 0,
+        "magicDamageMax": 0,
+        "elementalDamageMin": 0,
+        "elementalDamageMax": 0,
+        "health": 520,
+        "armor": 46,
+        "magicResist": 12
+      },
+      "after": {
+        "health": 16233,
+        "armor": 483,
+        "magicResist": 12,
+        "damageMin": 131,
+        "damageMax": 200,
+        "magicDamageMin": 0,
+        "magicDamageMax": 0,
+        "elementalDamageMin": 0,
+        "elementalDamageMax": 0
+      }
+    },
+    {
+      "id": 32,
+      "name": "Cave Troll",
+      "level": 185,
+      "rank": "boss",
+      "damageScale": 1.073,
+      "inDungeon": true,
+      "before": {
+        "id": 32,
+        "name": "Cave Troll",
+        "damageMin": 24,
+        "damageMax": 36,
+        "magicDamageMin": 0,
+        "magicDamageMax": 0,
+        "elementalDamageMin": 0,
+        "elementalDamageMax": 0,
+        "health": 310,
+        "armor": 20,
+        "magicResist": 4
+      },
+      "after": {
+        "health": 9933,
+        "armor": 303,
+        "magicResist": 4,
+        "damageMin": 62,
+        "damageMax": 94,
+        "magicDamageMin": 0,
+        "magicDamageMax": 0,
+        "elementalDamageMin": 0,
+        "elementalDamageMax": 0
+      }
+    },
+    {
+      "id": 33,
+      "name": "Orc",
+      "level": 100,
+      "rank": "normal",
+      "damageScale": 0.878,
+      "inDungeon": true,
+      "before": {
+        "id": 33,
+        "name": "Orc",
+        "damageMin": 9,
+        "damageMax": 14,
+        "magicDamageMin": 0,
+        "magicDamageMax": 0,
+        "elementalDamageMin": 0,
+        "elementalDamageMax": 0,
+        "health": 82,
+        "armor": 5,
+        "magicResist": 0
+      },
+      "after": {
+        "health": 819,
+        "armor": 88,
+        "magicResist": 0,
+        "damageMin": 16,
+        "damageMax": 24,
+        "magicDamageMin": 0,
+        "magicDamageMax": 0,
+        "elementalDamageMin": 0,
+        "elementalDamageMax": 0
+      }
+    },
+    {
+      "id": 34,
+      "name": "Warg",
+      "level": 100,
+      "rank": "normal",
+      "damageScale": 0.878,
+      "inDungeon": true,
+      "before": {
+        "id": 34,
+        "name": "Warg",
+        "damageMin": 10,
+        "damageMax": 16,
+        "magicDamageMin": 0,
+        "magicDamageMax": 0,
+        "elementalDamageMin": 0,
+        "elementalDamageMax": 0,
+        "health": 100,
+        "armor": 4,
+        "magicResist": 0
+      },
+      "after": {
+        "health": 819,
+        "armor": 88,
+        "magicResist": 0,
+        "damageMin": 15,
+        "damageMax": 24,
+        "magicDamageMin": 0,
+        "magicDamageMax": 0,
+        "elementalDamageMin": 0,
+        "elementalDamageMax": 0
+      }
+    },
+    {
+      "id": 35,
+      "name": "Ogre",
+      "level": 105,
+      "rank": "elite",
+      "damageScale": 0.878,
+      "inDungeon": true,
+      "before": {
+        "id": 35,
+        "name": "Ogre",
+        "damageMin": 17,
+        "damageMax": 27,
+        "magicDamageMin": 0,
+        "magicDamageMax": 0,
+        "elementalDamageMin": 0,
+        "elementalDamageMax": 0,
+        "health": 225,
+        "armor": 14,
+        "magicResist": 2
+      },
+      "after": {
+        "health": 1990,
+        "armor": 128,
+        "magicResist": 2,
+        "damageMin": 21,
+        "damageMax": 33,
+        "magicDamageMin": 0,
+        "magicDamageMax": 0,
+        "elementalDamageMin": 0,
+        "elementalDamageMax": 0
+      }
+    },
+    {
+      "id": 36,
+      "name": "Trollhound",
+      "level": 180,
+      "rank": "normal",
+      "damageScale": 1.073,
+      "inDungeon": true,
+      "before": {
+        "id": 36,
+        "name": "Trollhound",
+        "damageMin": 13,
+        "damageMax": 19,
+        "magicDamageMin": 0,
+        "magicDamageMax": 0,
+        "elementalDamageMin": 0,
+        "elementalDamageMax": 0,
+        "health": 130,
+        "armor": 8,
+        "magicResist": 2
+      },
+      "after": {
+        "health": 1451,
+        "armor": 148,
+        "magicResist": 2,
+        "damageMin": 34,
+        "damageMax": 50,
+        "magicDamageMin": 0,
+        "magicDamageMax": 0,
+        "elementalDamageMin": 0,
+        "elementalDamageMax": 0
+      }
+    }
+  ],
+  "animals": [
+    {
+      "id": 1,
+      "name": "Meadow Hare",
+      "home": 1,
+      "attackChance": 0.01,
+      "before": {
+        "damageMin": 1,
+        "damageMax": 2
+      },
+      "after": {
+        "damageMin": 6,
+        "damageMax": 10
+      }
+    },
+    {
+      "id": 2,
+      "name": "Red Deer",
+      "home": 1,
+      "attackChance": 0.05,
+      "before": {
+        "damageMin": 3,
+        "damageMax": 7
+      },
+      "after": {
+        "damageMin": 6,
+        "damageMax": 11
+      }
+    },
+    {
+      "id": 3,
+      "name": "Wild Boar",
+      "home": 1,
+      "attackChance": 0.18,
+      "before": {
+        "damageMin": 6,
+        "damageMax": 12
+      },
+      "after": {
+        "damageMin": 7,
+        "damageMax": 14
+      }
+    },
+    {
+      "id": 4,
+      "name": "Grey Wolf",
+      "home": 1,
+      "attackChance": 0.24,
+      "before": {
+        "damageMin": 7,
+        "damageMax": 14
+      },
+      "after": {
+        "damageMin": 8,
+        "damageMax": 15
+      }
+    },
+    {
+      "id": 5,
+      "name": "Marsh Crocodile",
+      "home": 40,
+      "attackChance": 0.3,
+      "before": {
+        "damageMin": 10,
+        "damageMax": 18
+      },
+      "after": {
+        "damageMin": 43,
+        "damageMax": 79
+      }
+    },
+    {
+      "id": 6,
+      "name": "Mountain Goat",
+      "home": 50,
+      "attackChance": 0.1,
+      "before": {
+        "damageMin": 5,
+        "damageMax": 10
+      },
+      "after": {
+        "damageMin": 39,
+        "damageMax": 72
+      }
+    },
+    {
+      "id": 7,
+      "name": "Frostfang Lynx",
+      "home": 50,
+      "attackChance": 0.32,
+      "before": {
+        "damageMin": 12,
+        "damageMax": 21
+      },
+      "after": {
+        "damageMin": 53,
+        "damageMax": 98
+      }
+    },
+    {
+      "id": 8,
+      "name": "Ashback Bear",
+      "home": 40,
+      "attackChance": 0.38,
+      "before": {
+        "damageMin": 16,
+        "damageMax": 28
+      },
+      "after": {
+        "damageMin": 47,
+        "damageMax": 87
+      }
+    },
+    {
+      "id": 27,
+      "name": "Briarback Badger",
+      "home": 40,
+      "attackChance": 0.16,
+      "before": {
+        "damageMin": 6,
+        "damageMax": 11
+      },
+      "after": {
+        "damageMin": 35,
+        "damageMax": 66
+      }
+    },
+    {
+      "id": 28,
+      "name": "Snowhorn Ram",
+      "home": 50,
+      "attackChance": 0.23,
+      "before": {
+        "damageMin": 10,
+        "damageMax": 18
+      },
+      "after": {
+        "damageMin": 47,
+        "damageMax": 87
+      }
+    },
+    {
+      "id": 29,
+      "name": "Ruin Viper",
+      "home": 80,
+      "attackChance": 0.34,
+      "before": {
+        "damageMin": 14,
+        "damageMax": 24
+      },
+      "after": {
+        "damageMin": 82,
+        "damageMax": 152
+      }
+    },
+    {
+      "id": 30,
+      "name": "Cinder Jackal",
+      "home": 150,
+      "attackChance": 0.42,
+      "before": {
+        "damageMin": 20,
+        "damageMax": 32
+      },
+      "after": {
+        "damageMin": 160,
+        "damageMax": 297
+      }
+    },
+    {
+      "id": 31,
+      "name": "Mangrove Panther",
+      "home": 200,
+      "attackChance": 0.48,
+      "before": {
+        "damageMin": 26,
+        "damageMax": 40
+      },
+      "after": {
+        "damageMin": 224,
+        "damageMax": 415
+      }
+    }
+  ],
+  "grounds": [
+    {
+      "id": 1,
+      "name": "Crownwood Fringe",
+      "location": "Valedor",
+      "level": 1,
+      "before": {
+        "accidentDamageMin": 1,
+        "accidentDamageMax": 2
+      },
+      "after": {
+        "accidentDamageMin": 2,
+        "accidentDamageMax": 4
+      }
+    },
+    {
+      "id": 2,
+      "name": "Sunmeadow Fields",
+      "location": "Greenveil Plains",
+      "level": 1,
+      "before": {
+        "accidentDamageMin": 1,
+        "accidentDamageMax": 4
+      },
+      "after": {
+        "accidentDamageMin": 2,
+        "accidentDamageMax": 4
+      }
+    },
+    {
+      "id": 3,
+      "name": "Oldstone Burrows",
+      "location": "Greenveil Plains",
+      "level": 1,
+      "before": {
+        "accidentDamageMin": 2,
+        "accidentDamageMax": 5
+      },
+      "after": {
+        "accidentDamageMin": 2,
+        "accidentDamageMax": 4
+      }
+    },
+    {
+      "id": 4,
+      "name": "Riverward Copse",
+      "location": "Citadel",
+      "level": 1,
+      "before": {
+        "accidentDamageMin": 2,
+        "accidentDamageMax": 6
+      },
+      "after": {
+        "accidentDamageMin": 2,
+        "accidentDamageMax": 4
+      }
+    },
+    {
+      "id": 5,
+      "name": "Ashwood Thicket",
+      "location": "Goblins Camp",
+      "level": 40,
+      "before": {
+        "accidentDamageMin": 3,
+        "accidentDamageMax": 8
+      },
+      "after": {
+        "accidentDamageMin": 8,
+        "accidentDamageMax": 18
+      }
+    },
+    {
+      "id": 6,
+      "name": "Reedfen Tracks",
+      "location": "Goblins Camp",
+      "level": 40,
+      "before": {
+        "accidentDamageMin": 4,
+        "accidentDamageMax": 10
+      },
+      "after": {
+        "accidentDamageMin": 8,
+        "accidentDamageMax": 18
+      }
+    },
+    {
+      "id": 7,
+      "name": "Whitepine Slopes",
+      "location": "Frostcrown Peaks",
+      "level": 50,
+      "before": {
+        "accidentDamageMin": 5,
+        "accidentDamageMax": 12
+      },
+      "after": {
+        "accidentDamageMin": 9,
+        "accidentDamageMax": 21
+      }
+    },
+    {
+      "id": 8,
+      "name": "Broken Gardens",
+      "location": "Ruins of Caldrath",
+      "level": 80,
+      "before": {
+        "accidentDamageMin": 5,
+        "accidentDamageMax": 13
+      },
+      "after": {
+        "accidentDamageMin": 14,
+        "accidentDamageMax": 32
+      }
+    },
+    {
+      "id": 9,
+      "name": "Cinderwood Shelf",
+      "location": "Mount Doom",
+      "level": 150,
+      "before": {
+        "accidentDamageMin": 7,
+        "accidentDamageMax": 16
+      },
+      "after": {
+        "accidentDamageMin": 25,
+        "accidentDamageMax": 58
+      }
+    },
+    {
+      "id": 10,
+      "name": "Mangrove Channels",
+      "location": "Pirate Island",
+      "level": 200,
+      "before": {
+        "accidentDamageMin": 6,
+        "accidentDamageMax": 15
+      },
+      "after": {
+        "accidentDamageMin": 33,
+        "accidentDamageMax": 76
+      }
+    },
+    {
+      "id": 11,
+      "name": "Crownwood Fringe",
+      "location": "Crownhold",
+      "level": 1,
+      "before": {
+        "accidentDamageMin": 1,
+        "accidentDamageMax": 3
+      },
+      "after": {
+        "accidentDamageMin": 2,
+        "accidentDamageMax": 4
+      }
+    }
+  ],
+  "dungeons": [
+    {
+      "id": 1,
+      "name": "Gloamvault",
+      "location": "Valedor",
+      "locationLevel": 1,
+      "durationSeconds": 60,
+      "packSize": 1,
+      "before": {
+        "requiredLevel": 1,
+        "xpReward": 12,
+        "durationSeconds": 60,
+        "difficulty": "EASY"
+      },
+      "after": {
+        "requiredLevel": 60,
+        "durationSeconds": 10800,
+        "difficulty": "NORMAL",
+        "xpReward": 12450
+      }
+    },
+    {
+      "id": 2,
+      "name": "Trollbreaker Cavern",
+      "location": "Frostcrown Peaks",
+      "locationLevel": 50,
+      "durationSeconds": 1800,
+      "packSize": 2,
+      "before": {
+        "requiredLevel": 65,
+        "xpReward": 380,
+        "durationSeconds": 1800,
+        "difficulty": "HARD"
+      },
+      "after": {
+        "requiredLevel": 300,
+        "durationSeconds": 21600,
+        "difficulty": "DEADLY",
+        "xpReward": 46500
+      }
+    },
+    {
+      "id": 3,
+      "name": "Gloamvault",
+      "location": "Crownhold",
+      "locationLevel": 1,
+      "durationSeconds": 900,
+      "packSize": 1,
+      "before": {
+        "requiredLevel": 1,
+        "xpReward": 12,
+        "durationSeconds": 900,
+        "difficulty": "EASY"
+      },
+      "after": {
+        "requiredLevel": 35,
+        "durationSeconds": 7200,
+        "difficulty": "NORMAL",
+        "xpReward": 7550
+      }
+    },
+    {
+      "id": 4,
+      "name": "Drowned Mouth Grotto",
+      "location": "Frostcrown Peaks",
+      "locationLevel": 50,
+      "durationSeconds": 1500,
+      "packSize": 2,
+      "before": {
+        "requiredLevel": 50,
+        "xpReward": 250,
+        "durationSeconds": 1500,
+        "difficulty": "NORMAL"
+      },
+      "after": {
+        "requiredLevel": 180,
+        "durationSeconds": 18000,
+        "difficulty": "HARD",
+        "xpReward": 29750
+      }
+    },
+    {
+      "id": 5,
+      "name": "Blackjaw Stockade",
+      "location": "Goblins Camp",
+      "locationLevel": 40,
+      "durationSeconds": 1200,
+      "packSize": 2,
+      "before": {
+        "requiredLevel": 40,
+        "xpReward": 175,
+        "durationSeconds": 1200,
+        "difficulty": "NORMAL"
+      },
+      "after": {
+        "requiredLevel": 100,
+        "durationSeconds": 14400,
+        "difficulty": "HARD",
+        "xpReward": 19000
+      }
+    }
+  ],
+  "checks": {
+    "dungeons": [
+      {
+        "id": 1,
+        "name": "Gloamvault",
+        "location": "Valedor",
+        "level": 60,
+        "reference": {
+          "survival": 0.75,
+          "damageShare": 0.82
+        },
+        "plus10": {
+          "survival": 1,
+          "damageShare": 0.57
+        },
+        "plus25": {
+          "survival": 1,
+          "damageShare": 0.35
+        },
+        "newcomer": null,
+        "bestGear": {
+          "survival": 0.79,
+          "damageShare": 0.81
+        },
+        "gear": [
+          "Reedwind Bow",
+          "Iron Shield",
+          "Ironbark Helm",
+          "Ironbark Cuirass",
+          "Ironbark Pauldrons",
+          "Ironbark Bracers",
+          "Ironbark Gauntlets",
+          "Ironbark Greaves",
+          "Ironbark Sabatons",
+          "Ironbark Girdle",
+          "Fordstone Talisman",
+          "Gold Necklace",
+          "Ironroot Band",
+          "Gold Ring"
+        ]
+      },
+      {
+        "id": 2,
+        "name": "Trollbreaker Cavern",
+        "location": "Frostcrown Peaks",
+        "level": 300,
+        "reference": {
+          "survival": 0.6,
+          "damageShare": 0.94
+        },
+        "plus10": {
+          "survival": 0.87,
+          "damageShare": 0.88
+        },
+        "plus25": {
+          "survival": 1,
+          "damageShare": 0.79
+        },
+        "newcomer": null,
+        "bestGear": {
+          "survival": 1,
+          "damageShare": 0.5
+        },
+        "gear": [
+          "Duskglass Staff",
+          "Duskwarden Helm",
+          "Duskwarden Cuirass",
+          "Duskwarden Pauldrons",
+          "Duskwarden Vambraces",
+          "Duskwarden Gauntlets",
+          "Duskwarden Greaves",
+          "Duskwarden Sabatons",
+          "Duskwarden Girdle",
+          "Fordstone Talisman",
+          "Gold Necklace",
+          "Ironroot Band",
+          "Diamond Ring"
+        ]
+      },
+      {
+        "id": 3,
+        "name": "Gloamvault",
+        "location": "Crownhold",
+        "level": 35,
+        "reference": {
+          "survival": 0.73,
+          "damageShare": 0.78
+        },
+        "plus10": {
+          "survival": 1,
+          "damageShare": 0.47
+        },
+        "plus25": {
+          "survival": 1,
+          "damageShare": 0.25
+        },
+        "newcomer": {
+          "survival": 0,
+          "damageShare": 1
+        },
+        "bestGear": {
+          "survival": 0.4,
+          "damageShare": 0.9
+        },
+        "gear": [
+          "Briarcleaver",
+          "Iron Shield",
+          "Gold Helmet",
+          "Gold Chestplate",
+          "Trailwarden Pauldrons",
+          "Trailwarden Bracers",
+          "Gold Gloves",
+          "Trailwarden Greaves",
+          "Gold Boots",
+          "Trailwarden Belt",
+          "Gold Amulet",
+          "Gold Necklace",
+          "Ironroot Band",
+          "Gold Ring"
+        ]
+      },
+      {
+        "id": 4,
+        "name": "Drowned Mouth Grotto",
+        "location": "Frostcrown Peaks",
+        "level": 180,
+        "reference": {
+          "survival": 0.61,
+          "damageShare": 0.92
+        },
+        "plus10": {
+          "survival": 0.96,
+          "damageShare": 0.82
+        },
+        "plus25": {
+          "survival": 1,
+          "damageShare": 0.68
+        },
+        "newcomer": null,
+        "bestGear": {
+          "survival": 0.16,
+          "damageShare": 0.98
+        },
+        "gear": [
+          "Cindermaul",
+          "Iron Shield",
+          "Cinderweave Cowl",
+          "Cinderweave Coat",
+          "Dragonscale Shoulder Pads",
+          "Cinderweave Wraps",
+          "Cinderweave Gloves",
+          "Cinderweave Leggings",
+          "Cinderweave Ashboots",
+          "Cinderweave Sash",
+          "Fordstone Talisman",
+          "Gold Necklace",
+          "Ironroot Band",
+          "Gold Ring"
+        ]
+      },
+      {
+        "id": 5,
+        "name": "Blackjaw Stockade",
+        "location": "Goblins Camp",
+        "level": 100,
+        "reference": {
+          "survival": 0.75,
+          "damageShare": 0.88
+        },
+        "plus10": {
+          "survival": 0.98,
+          "damageShare": 0.72
+        },
+        "plus25": {
+          "survival": 1,
+          "damageShare": 0.53
+        },
+        "newcomer": null,
+        "bestGear": {
+          "survival": 0.7,
+          "damageShare": 0.88
+        },
+        "gear": [
+          "Ogre Cleaver",
+          "Frostsilver Helm",
+          "Frostsilver Cuirass",
+          "Frostsilver Pauldrons",
+          "Frostsilver Bracers",
+          "Frostsilver Gauntlets",
+          "Frostsilver Greaves",
+          "Frostsilver Sabatons",
+          "Frostsilver Girdle",
+          "Fordstone Talisman",
+          "Gold Necklace",
+          "Ironroot Band",
+          "Gold Ring"
+        ]
+      }
+    ],
+    "hunting": [
+      {
+        "id": 1,
+        "name": "Crownwood Fringe",
+        "location": "Valedor",
+        "level": 1,
+        "byDuration": [
+          {
+            "label": "1 hour",
+            "damageShare": 0
+          },
+          {
+            "label": "2 hours",
+            "damageShare": 0.01
+          },
+          {
+            "label": "3 hours",
+            "damageShare": 0.02
+          },
+          {
+            "label": "4 hours",
+            "damageShare": 0.04
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "name": "Sunmeadow Fields",
+        "location": "Greenveil Plains",
+        "level": 1,
+        "byDuration": [
+          {
+            "label": "1 hour",
+            "damageShare": 0
+          },
+          {
+            "label": "2 hours",
+            "damageShare": 0.01
+          },
+          {
+            "label": "3 hours",
+            "damageShare": 0.01
+          },
+          {
+            "label": "4 hours",
+            "damageShare": 0.03
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "name": "Oldstone Burrows",
+        "location": "Greenveil Plains",
+        "level": 1,
+        "byDuration": [
+          {
+            "label": "1 hour",
+            "damageShare": 0
+          },
+          {
+            "label": "2 hours",
+            "damageShare": 0.01
+          },
+          {
+            "label": "3 hours",
+            "damageShare": 0.02
+          },
+          {
+            "label": "4 hours",
+            "damageShare": 0.04
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "name": "Riverward Copse",
+        "location": "Citadel",
+        "level": 1,
+        "byDuration": [
+          {
+            "label": "1 hour",
+            "damageShare": 0.01
+          },
+          {
+            "label": "2 hours",
+            "damageShare": 0.02
+          },
+          {
+            "label": "3 hours",
+            "damageShare": 0.04
+          },
+          {
+            "label": "4 hours",
+            "damageShare": 0.07
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "name": "Ashwood Thicket",
+        "location": "Goblins Camp",
+        "level": 40,
+        "byDuration": [
+          {
+            "label": "1 hour",
+            "damageShare": 0.01
+          },
+          {
+            "label": "2 hours",
+            "damageShare": 0.02
+          },
+          {
+            "label": "3 hours",
+            "damageShare": 0.04
+          },
+          {
+            "label": "4 hours",
+            "damageShare": 0.06
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "name": "Reedfen Tracks",
+        "location": "Goblins Camp",
+        "level": 40,
+        "byDuration": [
+          {
+            "label": "1 hour",
+            "damageShare": 0.01
+          },
+          {
+            "label": "2 hours",
+            "damageShare": 0.03
+          },
+          {
+            "label": "3 hours",
+            "damageShare": 0.05
+          },
+          {
+            "label": "4 hours",
+            "damageShare": 0.09
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "name": "Whitepine Slopes",
+        "location": "Frostcrown Peaks",
+        "level": 50,
+        "byDuration": [
+          {
+            "label": "1 hour",
+            "damageShare": 0.01
+          },
+          {
+            "label": "2 hours",
+            "damageShare": 0.03
+          },
+          {
+            "label": "3 hours",
+            "damageShare": 0.07
+          },
+          {
+            "label": "4 hours",
+            "damageShare": 0.11
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "name": "Broken Gardens",
+        "location": "Ruins of Caldrath",
+        "level": 80,
+        "byDuration": [
+          {
+            "label": "1 hour",
+            "damageShare": 0.01
+          },
+          {
+            "label": "2 hours",
+            "damageShare": 0.03
+          },
+          {
+            "label": "3 hours",
+            "damageShare": 0.05
+          },
+          {
+            "label": "4 hours",
+            "damageShare": 0.09
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "name": "Cinderwood Shelf",
+        "location": "Mount Doom",
+        "level": 150,
+        "byDuration": [
+          {
+            "label": "1 hour",
+            "damageShare": 0.01
+          },
+          {
+            "label": "2 hours",
+            "damageShare": 0.04
+          },
+          {
+            "label": "3 hours",
+            "damageShare": 0.09
+          },
+          {
+            "label": "4 hours",
+            "damageShare": 0.14
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "name": "Mangrove Channels",
+        "location": "Pirate Island",
+        "level": 200,
+        "byDuration": [
+          {
+            "label": "1 hour",
+            "damageShare": 0.01
+          },
+          {
+            "label": "2 hours",
+            "damageShare": 0.03
+          },
+          {
+            "label": "3 hours",
+            "damageShare": 0.06
+          },
+          {
+            "label": "4 hours",
+            "damageShare": 0.1
+          }
+        ]
+      },
+      {
+        "id": 11,
+        "name": "Crownwood Fringe",
+        "location": "Crownhold",
+        "level": 1,
+        "byDuration": [
+          {
+            "label": "1 hour",
+            "damageShare": 0
+          },
+          {
+            "label": "2 hours",
+            "damageShare": 0
+          },
+          {
+            "label": "3 hours",
+            "damageShare": 0.01
+          },
+          {
+            "label": "4 hours",
+            "damageShare": 0.01
+          }
+        ]
+      }
+    ],
+    "calibration": [
+      {
+        "dungeon": "Gloamvault (Crownhold)",
+        "level": 35,
+        "target": 0.75,
+        "scale": 7.466,
+        "monsters": [
+          "Goblin"
+        ]
+      },
+      {
+        "dungeon": "Gloamvault (Valedor)",
+        "level": 60,
+        "target": 0.75,
+        "scale": 2.787,
+        "monsters": [
+          "Bomber Goblin"
+        ]
+      },
+      {
+        "dungeon": "Blackjaw Stockade (Goblins Camp)",
+        "level": 100,
+        "target": 0.75,
+        "scale": 0.878,
+        "monsters": [
+          "Tunnel goblin",
+          "Orc",
+          "Warg",
+          "Ogre"
+        ]
+      },
+      {
+        "dungeon": "Drowned Mouth Grotto (Frostcrown Peaks)",
+        "level": 180,
+        "target": 0.65,
+        "scale": 1.073,
+        "monsters": [
+          "Cave Troll",
+          "Trollhound"
+        ]
+      },
+      {
+        "dungeon": "Trollbreaker Cavern (Frostcrown Peaks)",
+        "level": 300,
+        "target": 0.65,
+        "scale": 1.411,
+        "monsters": [
+          "Stoneback Troll"
+        ]
+      }
+    ]
+  },
+  "budgets": [
+    {
+      "level": 1,
+      "armorK": 53,
+      "armorSet": 39,
+      "weapon": 6,
+      "referenceHealth": 130,
+      "referenceDamage": 11,
+      "normalMonster": {
+        "health": 36,
+        "damage": 2,
+        "armor": 13
+      },
+      "xpShare": 0
+    },
+    {
+      "level": 15,
+      "armorK": 95,
+      "armorSet": 65,
+      "weapon": 25.6,
+      "referenceHealth": 312,
+      "referenceDamage": 43,
+      "normalMonster": {
+        "health": 136,
+        "damage": 5,
+        "armor": 24
+      },
+      "xpShare": 0
+    },
+    {
+      "level": 40,
+      "armorK": 170,
+      "armorSet": 111,
+      "weapon": 60.6,
+      "referenceHealth": 637,
+      "referenceDamage": 100,
+      "normalMonster": {
+        "health": 321,
+        "damage": 10,
+        "armor": 43
+      },
+      "xpShare": 0.01
+    },
+    {
+      "level": 60,
+      "armorK": 230,
+      "armorSet": 149,
+      "weapon": 88.6,
+      "referenceHealth": 897,
+      "referenceDamage": 149,
+      "normalMonster": {
+        "health": 478,
+        "damage": 14,
+        "armor": 58
+      },
+      "xpShare": 0.01
+    },
+    {
+      "level": 100,
+      "armorK": 350,
+      "armorSet": 223,
+      "weapon": 144.6,
+      "referenceHealth": 1417,
+      "referenceDamage": 256,
+      "normalMonster": {
+        "health": 819,
+        "damage": 23,
+        "armor": 88
+      },
+      "xpShare": 0.05
+    },
+    {
+      "level": 120,
+      "armorK": 410,
+      "armorSet": 260,
+      "weapon": 172.6,
+      "referenceHealth": 1677,
+      "referenceDamage": 306,
+      "normalMonster": {
+        "health": 978,
+        "damage": 27,
+        "armor": 103
+      },
+      "xpShare": 0.08
+    },
+    {
+      "level": 150,
+      "armorK": 500,
+      "armorSet": 315,
+      "weapon": 214.6,
+      "referenceHealth": 2067,
+      "referenceDamage": 379,
+      "normalMonster": {
+        "health": 1214,
+        "damage": 33,
+        "armor": 125
+      },
+      "xpShare": 0.13
+    },
+    {
+      "level": 180,
+      "armorK": 590,
+      "armorSet": 371,
+      "weapon": 256.6,
+      "referenceHealth": 2457,
+      "referenceDamage": 453,
+      "normalMonster": {
+        "health": 1451,
+        "damage": 39,
+        "armor": 148
+      },
+      "xpShare": 0.21
+    },
+    {
+      "level": 200,
+      "armorK": 650,
+      "armorSet": 408,
+      "weapon": 284.6,
+      "referenceHealth": 2717,
+      "referenceDamage": 503,
+      "normalMonster": {
+        "health": 1608,
+        "damage": 43,
+        "armor": 163
+      },
+      "xpShare": 0.27
+    },
+    {
+      "level": 240,
+      "armorK": 770,
+      "armorSet": 482,
+      "weapon": 340.6,
+      "referenceHealth": 3237,
+      "referenceDamage": 601,
+      "normalMonster": {
+        "health": 1923,
+        "damage": 52,
+        "armor": 193
+      },
+      "xpShare": 0.43
+    },
+    {
+      "level": 260,
+      "armorK": 830,
+      "armorSet": 519,
+      "weapon": 368.6,
+      "referenceHealth": 3497,
+      "referenceDamage": 650,
+      "normalMonster": {
+        "health": 2081,
+        "damage": 56,
+        "armor": 208
+      },
+      "xpShare": 0.52
+    },
+    {
+      "level": 300,
+      "armorK": 950,
+      "armorSet": 593,
+      "weapon": 424.6,
+      "referenceHealth": 4017,
+      "referenceDamage": 749,
+      "normalMonster": {
+        "health": 2396,
+        "damage": 64,
+        "armor": 238
+      },
+      "xpShare": 0.74
+    },
+    {
+      "level": 340,
+      "armorK": 1070,
+      "armorSet": 667,
+      "weapon": 480.6,
+      "referenceHealth": 4537,
+      "referenceDamage": 847,
+      "normalMonster": {
+        "health": 2711,
+        "damage": 73,
+        "armor": 268
+      },
+      "xpShare": 1
+    }
+  ]
+}

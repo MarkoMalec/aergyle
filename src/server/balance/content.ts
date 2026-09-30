@@ -11,6 +11,7 @@ import {
 import { GARDEN_TILE_COUNT } from "~/server/garden/service";
 import { isFightableMonster } from "~/server/dungeons/resolver";
 import { getStatGrowthRules } from "~/server/stats";
+import { getCombatConfig } from "~/server/combat/config";
 import { MAX_VOCATION_DURATION_SECONDS } from "~/server/vocations/constants";
 
 /** Every balance input the admin simulators read, in one round of queries. */
@@ -27,6 +28,7 @@ export async function loadBalanceContent(): Promise<BalanceContent> {
     items,
     rarities,
     statGrowth,
+    combat,
   ] = await Promise.all([
     prisma.vocationalResource.findMany({
       orderBy: [{ actionType: "asc" }, { requiredSkillLevel: "asc" }, { id: "asc" }],
@@ -146,6 +148,7 @@ export async function loadBalanceContent(): Promise<BalanceContent> {
       select: { rarity: true, displayName: true, statMultiplier: true },
     }),
     getStatGrowthRules(),
+    getCombatConfig(),
   ]);
 
   return {
@@ -257,6 +260,7 @@ export async function loadBalanceContent(): Promise<BalanceContent> {
       multiplier: rarity.statMultiplier,
     })),
     statGrowth,
+    combat,
     vocationMaxSeconds: MAX_VOCATION_DURATION_SECONDS,
   };
 }

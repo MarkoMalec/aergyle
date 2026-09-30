@@ -489,14 +489,17 @@ export function CreatureEditor(props: {
                   />
                   <NumberField
                     label="Armor"
+                    hint="Equal to the attacker's K halves its damage (K = 200 at level 50)."
                     value={creature.armor}
                     min={0}
                     onChange={(value) => update(creature.id, { armor: value })}
                   />
                   <NumberField
-                    label="Magic resist"
+                    label="Magic resist % (max 75)"
+                    hint="On top of armor. Negative is a weakness to magic."
                     value={creature.magicResist}
-                    min={0}
+                    min={-100}
+                    max={75}
                     onChange={(value) =>
                       update(creature.id, { magicResist: value })
                     }

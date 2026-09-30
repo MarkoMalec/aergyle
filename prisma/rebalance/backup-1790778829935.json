@@ -1,0 +1,2981 @@
+{
+  "takenAt": "2026-09-30T14:33:49.935Z",
+  "items": [
+    {
+      "id": 19,
+      "name": "Wooden Sword",
+      "requiredLevel": 1,
+      "equipTo": "weapon",
+      "itemType": "SWORD",
+      "minPhysicalDamage": 3,
+      "maxPhysicalDamage": 7,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 0,
+      "stats": [
+        {
+          "statType": "ATTACK_SPEED",
+          "value": 1.2,
+          "maxValue": null
+        },
+        {
+          "statType": "PHYSICAL_DAMAGE_MIN",
+          "value": 3,
+          "maxValue": null
+        },
+        {
+          "statType": "PHYSICAL_DAMAGE_MAX",
+          "value": 7,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "name": "Wooden Dagger",
+      "requiredLevel": 1,
+      "equipTo": "weapon",
+      "itemType": "DAGGER",
+      "minPhysicalDamage": 2,
+      "maxPhysicalDamage": 5,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 0,
+      "stats": [
+        {
+          "statType": "CRITICAL_CHANCE",
+          "value": 5,
+          "maxValue": null
+        },
+        {
+          "statType": "ATTACK_SPEED",
+          "value": 1.5,
+          "maxValue": null
+        },
+        {
+          "statType": "PHYSICAL_DAMAGE_MIN",
+          "value": 2,
+          "maxValue": null
+        },
+        {
+          "statType": "PHYSICAL_DAMAGE_MAX",
+          "value": 5,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "name": "Wooden Axe",
+      "requiredLevel": 1,
+      "equipTo": "weapon",
+      "itemType": "AXE",
+      "minPhysicalDamage": 5,
+      "maxPhysicalDamage": 10,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 0,
+      "stats": [
+        {
+          "statType": "PHYSICAL_DAMAGE_MIN",
+          "value": 5,
+          "maxValue": null
+        },
+        {
+          "statType": "PHYSICAL_DAMAGE_MAX",
+          "value": 10,
+          "maxValue": null
+        },
+        {
+          "statType": "ATTACK_SPEED",
+          "value": 0.9,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "name": "Wooden Mace",
+      "requiredLevel": 1,
+      "equipTo": "weapon",
+      "itemType": "MACE",
+      "minPhysicalDamage": 4,
+      "maxPhysicalDamage": 8,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 2,
+      "stats": [
+        {
+          "statType": "ATTACK_SPEED",
+          "value": 1,
+          "maxValue": null
+        },
+        {
+          "statType": "PHYSICAL_DAMAGE_MIN",
+          "value": 4,
+          "maxValue": null
+        },
+        {
+          "statType": "PHYSICAL_DAMAGE_MAX",
+          "value": 8,
+          "maxValue": null
+        },
+        {
+          "statType": "ARMOR",
+          "value": 2,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "name": "Silver Revolver",
+      "requiredLevel": 5,
+      "equipTo": "weapon",
+      "itemType": "SWORD",
+      "minPhysicalDamage": 20,
+      "maxPhysicalDamage": 33,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 0,
+      "stats": [
+        {
+          "statType": "PHYSICAL_DAMAGE_MIN",
+          "value": 20.25,
+          "maxValue": null
+        },
+        {
+          "statType": "PHYSICAL_DAMAGE_MAX",
+          "value": 33.75,
+          "maxValue": null
+        },
+        {
+          "statType": "ATTACK_SPEED",
+          "value": 2.43,
+          "maxValue": null
+        },
+        {
+          "statType": "CRITICAL_CHANCE",
+          "value": 13.5,
+          "maxValue": null
+        },
+        {
+          "statType": "ACCURACY",
+          "value": 20.25,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "name": "Iron Shield",
+      "requiredLevel": 3,
+      "equipTo": "weapon",
+      "itemType": "SWORD",
+      "minPhysicalDamage": 1,
+      "maxPhysicalDamage": 3,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 28,
+      "stats": [
+        {
+          "statType": "PHYSICAL_DAMAGE_MIN",
+          "value": 1.15,
+          "maxValue": null
+        },
+        {
+          "statType": "PHYSICAL_DAMAGE_MAX",
+          "value": 3.45,
+          "maxValue": null
+        },
+        {
+          "statType": "ARMOR",
+          "value": 28.75,
+          "maxValue": null
+        },
+        {
+          "statType": "BLOCK_CHANCE",
+          "value": 17.25,
+          "maxValue": null
+        },
+        {
+          "statType": "HEALTH",
+          "value": 57.5,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "name": "Gold Helmet",
+      "requiredLevel": 5,
+      "equipTo": "head",
+      "itemType": "HELMET",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 17,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 17.25,
+          "maxValue": null
+        },
+        {
+          "statType": "HEALTH",
+          "value": 34.5,
+          "maxValue": null
+        },
+        {
+          "statType": "MAGIC_RESIST",
+          "value": 5.75,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "name": "Gold Chestplate",
+      "requiredLevel": 5,
+      "equipTo": "chest",
+      "itemType": "CHESTPLATE",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 34,
+      "stats": [
+        {
+          "statType": "HEALTH",
+          "value": 59,
+          "maxValue": null
+        },
+        {
+          "statType": "HEALTH_REGEN",
+          "value": 2.3,
+          "maxValue": null
+        },
+        {
+          "statType": "ARMOR",
+          "value": 34,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "name": "Dragonscale Shoulder Pads",
+      "requiredLevel": 8,
+      "equipTo": "pauldrons",
+      "itemType": "PAULDRONS",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 27,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 27,
+          "maxValue": null
+        },
+        {
+          "statType": "FIRE_RESIST",
+          "value": 20.25,
+          "maxValue": null
+        },
+        {
+          "statType": "HEALTH",
+          "value": 54,
+          "maxValue": null
+        },
+        {
+          "statType": "CRITICAL_DAMAGE",
+          "value": 13.5,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "name": "Gold Gloves",
+      "requiredLevel": 5,
+      "equipTo": "gloves",
+      "itemType": "GLOVES",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 11,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 11.5,
+          "maxValue": null
+        },
+        {
+          "statType": "ATTACK_SPEED",
+          "value": 0.12,
+          "maxValue": null
+        },
+        {
+          "statType": "ACCURACY",
+          "value": 9.2,
+          "maxValue": null
+        },
+        {
+          "statType": "CRITICAL_CHANCE",
+          "value": 3.45,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 29,
+      "name": "Gold Boots",
+      "requiredLevel": 5,
+      "equipTo": "boots",
+      "itemType": "BOOTS",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 13,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 13.8,
+          "maxValue": null
+        },
+        {
+          "statType": "MOVEMENT_SPEED",
+          "value": 11.5,
+          "maxValue": null
+        },
+        {
+          "statType": "EVASION_MELEE",
+          "value": 5.75,
+          "maxValue": null
+        },
+        {
+          "statType": "HEALTH",
+          "value": 28.75,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "name": "Leather Belt",
+      "requiredLevel": 3,
+      "equipTo": "belt",
+      "itemType": "BELT",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 5,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 5,
+          "maxValue": null
+        },
+        {
+          "statType": "HEALTH",
+          "value": 40,
+          "maxValue": null
+        },
+        {
+          "statType": "HEALTH_REGEN",
+          "value": 1,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 31,
+      "name": "Gold Ring",
+      "requiredLevel": 4,
+      "equipTo": "ring",
+      "itemType": "RING",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 0,
+      "stats": [
+        {
+          "statType": "CRITICAL_CHANCE",
+          "value": 5.75,
+          "maxValue": null
+        },
+        {
+          "statType": "GOLD_FIND",
+          "value": 11.5,
+          "maxValue": null
+        },
+        {
+          "statType": "LUCK",
+          "value": 5.75,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "name": "Diamond Ring",
+      "requiredLevel": 10,
+      "equipTo": "ring",
+      "itemType": "RING",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 0,
+      "stats": [
+        {
+          "statType": "CRITICAL_CHANCE",
+          "value": 12.8,
+          "maxValue": null
+        },
+        {
+          "statType": "CRITICAL_DAMAGE",
+          "value": 24,
+          "maxValue": null
+        },
+        {
+          "statType": "MAGIC_RESIST",
+          "value": 16,
+          "maxValue": null
+        },
+        {
+          "statType": "GOLD_FIND",
+          "value": 32,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 33,
+      "name": "Gold Necklace",
+      "requiredLevel": 5,
+      "equipTo": "necklace",
+      "itemType": "NECKLACE",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 0,
+      "stats": [
+        {
+          "statType": "HEALTH",
+          "value": 57.5,
+          "maxValue": null
+        },
+        {
+          "statType": "MANA",
+          "value": 34.5,
+          "maxValue": null
+        },
+        {
+          "statType": "MAGIC_RESIST",
+          "value": 9.2,
+          "maxValue": null
+        },
+        {
+          "statType": "EXPERIENCE_GAIN",
+          "value": 5.75,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 34,
+      "name": "Gold Amulet",
+      "requiredLevel": 6,
+      "equipTo": "amulet",
+      "itemType": "AMULET",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 6,
+      "maxMagicDamage": 13,
+      "armor": 0,
+      "stats": [
+        {
+          "statType": "MAGIC_RESIST",
+          "value": 16.2,
+          "maxValue": null
+        },
+        {
+          "statType": "MANA",
+          "value": 108,
+          "maxValue": null
+        },
+        {
+          "statType": "MANA_REGEN",
+          "value": 4.05,
+          "maxValue": null
+        },
+        {
+          "statType": "MAGIC_DAMAGE_MIN",
+          "value": 6,
+          "maxValue": null
+        },
+        {
+          "statType": "MAGIC_DAMAGE_MAX",
+          "value": 13,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 37,
+      "name": "Tin Sword",
+      "requiredLevel": 5,
+      "equipTo": "weapon",
+      "itemType": "SWORD",
+      "minPhysicalDamage": 5,
+      "maxPhysicalDamage": 9,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 0,
+      "stats": [
+        {
+          "statType": "PHYSICAL_DAMAGE_MIN",
+          "value": 5,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 50,
+      "name": "Wayfarer Shortblade",
+      "requiredLevel": 1,
+      "equipTo": "weapon",
+      "itemType": "SWORD",
+      "minPhysicalDamage": 5,
+      "maxPhysicalDamage": 9,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 0,
+      "stats": [
+        {
+          "statType": "PHYSICAL_DAMAGE_MIN",
+          "value": 5,
+          "maxValue": null
+        },
+        {
+          "statType": "PHYSICAL_DAMAGE_MAX",
+          "value": 9,
+          "maxValue": null
+        },
+        {
+          "statType": "ATTACK_SPEED",
+          "value": 0.95,
+          "maxValue": null
+        },
+        {
+          "statType": "ACCURACY",
+          "value": 2,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 51,
+      "name": "Briarcleaver",
+      "requiredLevel": 10,
+      "equipTo": "weapon",
+      "itemType": "AXE",
+      "minPhysicalDamage": 18,
+      "maxPhysicalDamage": 29,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 0,
+      "stats": [
+        {
+          "statType": "PHYSICAL_DAMAGE_MIN",
+          "value": 18,
+          "maxValue": null
+        },
+        {
+          "statType": "PHYSICAL_DAMAGE_MAX",
+          "value": 29,
+          "maxValue": null
+        },
+        {
+          "statType": "ATTACK_SPEED",
+          "value": 0.8,
+          "maxValue": null
+        },
+        {
+          "statType": "CRITICAL_DAMAGE",
+          "value": 8,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 52,
+      "name": "Reedwind Bow",
+      "requiredLevel": 20,
+      "equipTo": "weapon",
+      "itemType": "BOW",
+      "minPhysicalDamage": 30,
+      "maxPhysicalDamage": 46,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 0,
+      "stats": [
+        {
+          "statType": "PHYSICAL_DAMAGE_MIN",
+          "value": 30,
+          "maxValue": null
+        },
+        {
+          "statType": "PHYSICAL_DAMAGE_MAX",
+          "value": 46,
+          "maxValue": null
+        },
+        {
+          "statType": "ATTACK_SPEED",
+          "value": 1,
+          "maxValue": null
+        },
+        {
+          "statType": "ACCURACY",
+          "value": 12,
+          "maxValue": null
+        },
+        {
+          "statType": "CRITICAL_CHANCE",
+          "value": 5,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 53,
+      "name": "Cindermaul",
+      "requiredLevel": 35,
+      "equipTo": "weapon",
+      "itemType": "MACE",
+      "minPhysicalDamage": 52,
+      "maxPhysicalDamage": 78,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 12,
+      "stats": [
+        {
+          "statType": "PHYSICAL_DAMAGE_MIN",
+          "value": 52,
+          "maxValue": null
+        },
+        {
+          "statType": "PHYSICAL_DAMAGE_MAX",
+          "value": 78,
+          "maxValue": null
+        },
+        {
+          "statType": "ATTACK_SPEED",
+          "value": 0.55,
+          "maxValue": null
+        },
+        {
+          "statType": "ARMOR",
+          "value": 12,
+          "maxValue": null
+        },
+        {
+          "statType": "HEALTH",
+          "value": 40,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 54,
+      "name": "Duskglass Staff",
+      "requiredLevel": 50,
+      "equipTo": "weapon",
+      "itemType": "STAFF",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 72,
+      "maxMagicDamage": 108,
+      "armor": 0,
+      "stats": [
+        {
+          "statType": "ATTACK_SPEED",
+          "value": 0.85,
+          "maxValue": null
+        },
+        {
+          "statType": "MANA",
+          "value": 80,
+          "maxValue": null
+        },
+        {
+          "statType": "MANA_REGEN",
+          "value": 2,
+          "maxValue": null
+        },
+        {
+          "statType": "MAGIC_DAMAGE_MIN",
+          "value": 72,
+          "maxValue": null
+        },
+        {
+          "statType": "MAGIC_DAMAGE_MAX",
+          "value": 108,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 55,
+      "name": "Trailwarden Helm",
+      "requiredLevel": 1,
+      "equipTo": "head",
+      "itemType": "HELMET",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 6,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 6,
+          "maxValue": null
+        },
+        {
+          "statType": "HEALTH",
+          "value": 12,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 56,
+      "name": "Trailwarden Jerkin",
+      "requiredLevel": 1,
+      "equipTo": "chest",
+      "itemType": "CHESTPLATE",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 12,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 12,
+          "maxValue": null
+        },
+        {
+          "statType": "HEALTH",
+          "value": 24,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 57,
+      "name": "Trailwarden Pauldrons",
+      "requiredLevel": 1,
+      "equipTo": "pauldrons",
+      "itemType": "PAULDRONS",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 5,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 5,
+          "maxValue": null
+        },
+        {
+          "statType": "HEALTH",
+          "value": 10,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 58,
+      "name": "Trailwarden Bracers",
+      "requiredLevel": 1,
+      "equipTo": "bracers",
+      "itemType": "BRACERS",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 3,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 3,
+          "maxValue": null
+        },
+        {
+          "statType": "ACCURACY",
+          "value": 2,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 59,
+      "name": "Trailwarden Gloves",
+      "requiredLevel": 1,
+      "equipTo": "gloves",
+      "itemType": "GLOVES",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 3,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 3,
+          "maxValue": null
+        },
+        {
+          "statType": "ATTACK_SPEED",
+          "value": 0.04,
+          "maxValue": null
+        },
+        {
+          "statType": "CRITICAL_CHANCE",
+          "value": 1,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 60,
+      "name": "Trailwarden Belt",
+      "requiredLevel": 1,
+      "equipTo": "belt",
+      "itemType": "BELT",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 3,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 3,
+          "maxValue": null
+        },
+        {
+          "statType": "HEALTH",
+          "value": 16,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 61,
+      "name": "Trailwarden Greaves",
+      "requiredLevel": 1,
+      "equipTo": "greaves",
+      "itemType": "GREAVES",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 8,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 8,
+          "maxValue": null
+        },
+        {
+          "statType": "HEALTH",
+          "value": 16,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 62,
+      "name": "Trailwarden Boots",
+      "requiredLevel": 1,
+      "equipTo": "boots",
+      "itemType": "BOOTS",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 4,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 4,
+          "maxValue": null
+        },
+        {
+          "statType": "HEALTH",
+          "value": 8,
+          "maxValue": null
+        },
+        {
+          "statType": "MOVEMENT_SPEED",
+          "value": 2,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 63,
+      "name": "Duskwarden Helm",
+      "requiredLevel": 50,
+      "equipTo": "head",
+      "itemType": "HELMET",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 44,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 44,
+          "maxValue": null
+        },
+        {
+          "statType": "HEALTH",
+          "value": 90,
+          "maxValue": null
+        },
+        {
+          "statType": "MAGIC_RESIST",
+          "value": 10,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 64,
+      "name": "Duskwarden Cuirass",
+      "requiredLevel": 50,
+      "equipTo": "chest",
+      "itemType": "CHESTPLATE",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 86,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 86,
+          "maxValue": null
+        },
+        {
+          "statType": "HEALTH",
+          "value": 180,
+          "maxValue": null
+        },
+        {
+          "statType": "MAGIC_RESIST",
+          "value": 18,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 65,
+      "name": "Duskwarden Pauldrons",
+      "requiredLevel": 50,
+      "equipTo": "pauldrons",
+      "itemType": "PAULDRONS",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 38,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 38,
+          "maxValue": null
+        },
+        {
+          "statType": "HEALTH",
+          "value": 70,
+          "maxValue": null
+        },
+        {
+          "statType": "FIRE_RESIST",
+          "value": 8,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 66,
+      "name": "Duskwarden Vambraces",
+      "requiredLevel": 50,
+      "equipTo": "bracers",
+      "itemType": "BRACERS",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 28,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 28,
+          "maxValue": null
+        },
+        {
+          "statType": "MAGIC_RESIST",
+          "value": 8,
+          "maxValue": null
+        },
+        {
+          "statType": "ACCURACY",
+          "value": 8,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 67,
+      "name": "Duskwarden Gauntlets",
+      "requiredLevel": 50,
+      "equipTo": "gloves",
+      "itemType": "GLOVES",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 26,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 26,
+          "maxValue": null
+        },
+        {
+          "statType": "ATTACK_SPEED",
+          "value": 0.12,
+          "maxValue": null
+        },
+        {
+          "statType": "CRITICAL_CHANCE",
+          "value": 4,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 68,
+      "name": "Duskwarden Girdle",
+      "requiredLevel": 50,
+      "equipTo": "belt",
+      "itemType": "BELT",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 24,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 24,
+          "maxValue": null
+        },
+        {
+          "statType": "HEALTH",
+          "value": 100,
+          "maxValue": null
+        },
+        {
+          "statType": "HEALTH_REGEN",
+          "value": 1.8,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 69,
+      "name": "Duskwarden Greaves",
+      "requiredLevel": 50,
+      "equipTo": "greaves",
+      "itemType": "GREAVES",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 62,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 62,
+          "maxValue": null
+        },
+        {
+          "statType": "HEALTH",
+          "value": 120,
+          "maxValue": null
+        },
+        {
+          "statType": "COLD_RESIST",
+          "value": 8,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 70,
+      "name": "Duskwarden Sabatons",
+      "requiredLevel": 50,
+      "equipTo": "boots",
+      "itemType": "BOOTS",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 32,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 32,
+          "maxValue": null
+        },
+        {
+          "statType": "HEALTH",
+          "value": 60,
+          "maxValue": null
+        },
+        {
+          "statType": "MOVEMENT_SPEED",
+          "value": 6,
+          "maxValue": null
+        },
+        {
+          "statType": "EVASION_MELEE",
+          "value": 4,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 153,
+      "name": "Fieldweave Gloves",
+      "requiredLevel": 1,
+      "equipTo": "gloves",
+      "itemType": "GLOVES",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 1,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 1,
+          "maxValue": null
+        },
+        {
+          "statType": "GATHERING_EFFICIENCY",
+          "value": 2,
+          "maxValue": null
+        },
+        {
+          "statType": "LUCK",
+          "value": 1,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 154,
+      "name": "Fieldweave Trailboots",
+      "requiredLevel": 3,
+      "equipTo": "boots",
+      "itemType": "BOOTS",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 2,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 2,
+          "maxValue": null
+        },
+        {
+          "statType": "GATHERING_EFFICIENCY",
+          "value": 3,
+          "maxValue": null
+        },
+        {
+          "statType": "MOVEMENT_SPEED",
+          "value": 2,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 155,
+      "name": "Fieldweave Leggings",
+      "requiredLevel": 7,
+      "equipTo": "greaves",
+      "itemType": "GREAVES",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 3,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 3,
+          "maxValue": null
+        },
+        {
+          "statType": "GATHERING_EFFICIENCY",
+          "value": 4,
+          "maxValue": null
+        },
+        {
+          "statType": "LUCK",
+          "value": 1,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 156,
+      "name": "Fieldweave Tunic",
+      "requiredLevel": 12,
+      "equipTo": "chest",
+      "itemType": "CHESTPLATE",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 4,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 4,
+          "maxValue": null
+        },
+        {
+          "statType": "GATHERING_EFFICIENCY",
+          "value": 5,
+          "maxValue": null
+        },
+        {
+          "statType": "LUCK",
+          "value": 2,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 179,
+      "name": "Ironroot Band",
+      "requiredLevel": 1,
+      "equipTo": "ring",
+      "itemType": "RING",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 1,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 1,
+          "maxValue": null
+        },
+        {
+          "statType": "HEALTH",
+          "value": 8,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 180,
+      "name": "Tinker's Brass Signet",
+      "requiredLevel": 3,
+      "equipTo": "ring",
+      "itemType": "RING",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 0,
+      "stats": [
+        {
+          "statType": "ACCURACY",
+          "value": 3,
+          "maxValue": null
+        },
+        {
+          "statType": "LUCK",
+          "value": 1,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 181,
+      "name": "Pilgrim's Bronze Ankh",
+      "requiredLevel": 2,
+      "equipTo": "amulet",
+      "itemType": "AMULET",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 0,
+      "stats": [
+        {
+          "statType": "PRAYER_POINTS",
+          "value": 5,
+          "maxValue": null
+        },
+        {
+          "statType": "MAGIC_RESIST",
+          "value": 2,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 182,
+      "name": "Fordstone Talisman",
+      "requiredLevel": 4,
+      "equipTo": "amulet",
+      "itemType": "AMULET",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 0,
+      "stats": [
+        {
+          "statType": "COLD_RESIST",
+          "value": 4,
+          "maxValue": null
+        },
+        {
+          "statType": "HEALTH",
+          "value": 6,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 183,
+      "name": "Rowan Bead Necklace",
+      "requiredLevel": 5,
+      "equipTo": "necklace",
+      "itemType": "NECKLACE",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 0,
+      "stats": [
+        {
+          "statType": "MANA",
+          "value": 12,
+          "maxValue": null
+        },
+        {
+          "statType": "MANA_REGEN",
+          "value": 0.25,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 185,
+      "name": "Buckler",
+      "requiredLevel": 1,
+      "equipTo": "offhand",
+      "itemType": "SHIELD",
+      "minPhysicalDamage": 2,
+      "maxPhysicalDamage": 5,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 5,
+      "stats": [
+        {
+          "statType": "BLOCK_CHANCE",
+          "value": 1,
+          "maxValue": 3
+        },
+        {
+          "statType": "PHYSICAL_DAMAGE_MIN",
+          "value": 2,
+          "maxValue": null
+        },
+        {
+          "statType": "PHYSICAL_DAMAGE_MAX",
+          "value": 5,
+          "maxValue": null
+        },
+        {
+          "statType": "ARMOR",
+          "value": 5,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 186,
+      "name": "Bearded Greataxe",
+      "requiredLevel": 1,
+      "equipTo": "weapon",
+      "itemType": "GREATAXE",
+      "minPhysicalDamage": 44,
+      "maxPhysicalDamage": 49,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 0,
+      "stats": [
+        {
+          "statType": "CRITICAL_DAMAGE",
+          "value": 155,
+          "maxValue": 160
+        },
+        {
+          "statType": "PHYSICAL_DAMAGE_MIN",
+          "value": 44,
+          "maxValue": null
+        },
+        {
+          "statType": "PHYSICAL_DAMAGE_MAX",
+          "value": 49,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 187,
+      "name": "Embervein Sword",
+      "requiredLevel": 1,
+      "equipTo": "weapon",
+      "itemType": "SWORD",
+      "minPhysicalDamage": 120,
+      "maxPhysicalDamage": 140,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 0,
+      "stats": [
+        {
+          "statType": "ATTACK_SPEED",
+          "value": 1.1,
+          "maxValue": null
+        },
+        {
+          "statType": "LIFESTEAL",
+          "value": 2,
+          "maxValue": null
+        },
+        {
+          "statType": "PHYSICAL_DAMAGE_MIN",
+          "value": 120,
+          "maxValue": null
+        },
+        {
+          "statType": "PHYSICAL_DAMAGE_MAX",
+          "value": 140,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 249,
+      "name": "Mossweave Hood",
+      "requiredLevel": 18,
+      "equipTo": "head",
+      "itemType": "HELMET",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 7,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 7,
+          "maxValue": null
+        },
+        {
+          "statType": "GATHERING_EFFICIENCY",
+          "value": 2,
+          "maxValue": null
+        },
+        {
+          "statType": "LUCK",
+          "value": 1,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 250,
+      "name": "Mossweave Vest",
+      "requiredLevel": 18,
+      "equipTo": "chest",
+      "itemType": "CHESTPLATE",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 14,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 14,
+          "maxValue": null
+        },
+        {
+          "statType": "GATHERING_EFFICIENCY",
+          "value": 3,
+          "maxValue": null
+        },
+        {
+          "statType": "HEALTH",
+          "value": 6,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 251,
+      "name": "Mossweave Mantle",
+      "requiredLevel": 18,
+      "equipTo": "pauldrons",
+      "itemType": "PAULDRONS",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 9,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 9,
+          "maxValue": null
+        },
+        {
+          "statType": "GATHERING_EFFICIENCY",
+          "value": 2,
+          "maxValue": null
+        },
+        {
+          "statType": "HUNTING_EFFICIENCY",
+          "value": 2,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 252,
+      "name": "Mossweave Bracers",
+      "requiredLevel": 18,
+      "equipTo": "bracers",
+      "itemType": "BRACERS",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 5,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 5,
+          "maxValue": null
+        },
+        {
+          "statType": "GATHERING_EFFICIENCY",
+          "value": 2,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 253,
+      "name": "Mossweave Gloves",
+      "requiredLevel": 18,
+      "equipTo": "gloves",
+      "itemType": "GLOVES",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 4,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 4,
+          "maxValue": null
+        },
+        {
+          "statType": "GATHERING_EFFICIENCY",
+          "value": 3,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 254,
+      "name": "Mossweave Trousers",
+      "requiredLevel": 18,
+      "equipTo": "greaves",
+      "itemType": "GREAVES",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 10,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 10,
+          "maxValue": null
+        },
+        {
+          "statType": "GATHERING_EFFICIENCY",
+          "value": 2,
+          "maxValue": null
+        },
+        {
+          "statType": "MOVEMENT_SPEED",
+          "value": 1,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 255,
+      "name": "Mossweave Trailboots",
+      "requiredLevel": 18,
+      "equipTo": "boots",
+      "itemType": "BOOTS",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 6,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 6,
+          "maxValue": null
+        },
+        {
+          "statType": "GATHERING_EFFICIENCY",
+          "value": 1,
+          "maxValue": null
+        },
+        {
+          "statType": "MOVEMENT_SPEED",
+          "value": 3,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 256,
+      "name": "Mossweave Utility Belt",
+      "requiredLevel": 18,
+      "equipTo": "belt",
+      "itemType": "BELT",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 4,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 4,
+          "maxValue": null
+        },
+        {
+          "statType": "CARRYING_CAPACITY",
+          "value": 5,
+          "maxValue": null
+        },
+        {
+          "statType": "LUCK",
+          "value": 1,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 257,
+      "name": "Ironbark Helm",
+      "requiredLevel": 38,
+      "equipTo": "head",
+      "itemType": "HELMET",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 10,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 10,
+          "maxValue": null
+        },
+        {
+          "statType": "HEALTH",
+          "value": 5,
+          "maxValue": null
+        },
+        {
+          "statType": "WOODCUTTING_EFFICIENCY",
+          "value": 1,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 258,
+      "name": "Ironbark Cuirass",
+      "requiredLevel": 38,
+      "equipTo": "chest",
+      "itemType": "CHESTPLATE",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 25,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 25,
+          "maxValue": null
+        },
+        {
+          "statType": "HEALTH",
+          "value": 14,
+          "maxValue": null
+        },
+        {
+          "statType": "CARRYING_CAPACITY",
+          "value": 6,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 259,
+      "name": "Ironbark Pauldrons",
+      "requiredLevel": 38,
+      "equipTo": "pauldrons",
+      "itemType": "PAULDRONS",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 16,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 16,
+          "maxValue": null
+        },
+        {
+          "statType": "HEALTH",
+          "value": 5,
+          "maxValue": null
+        },
+        {
+          "statType": "BLOCK_CHANCE",
+          "value": 1,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 260,
+      "name": "Ironbark Bracers",
+      "requiredLevel": 38,
+      "equipTo": "bracers",
+      "itemType": "BRACERS",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 8,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 8,
+          "maxValue": null
+        },
+        {
+          "statType": "WOODCUTTING_EFFICIENCY",
+          "value": 2,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 261,
+      "name": "Ironbark Gauntlets",
+      "requiredLevel": 38,
+      "equipTo": "gloves",
+      "itemType": "GLOVES",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 7,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 7,
+          "maxValue": null
+        },
+        {
+          "statType": "WOODCUTTING_EFFICIENCY",
+          "value": 2,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 262,
+      "name": "Ironbark Greaves",
+      "requiredLevel": 38,
+      "equipTo": "greaves",
+      "itemType": "GREAVES",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 20,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 20,
+          "maxValue": null
+        },
+        {
+          "statType": "HEALTH",
+          "value": 8,
+          "maxValue": null
+        },
+        {
+          "statType": "CARRYING_CAPACITY",
+          "value": 4,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 263,
+      "name": "Ironbark Sabatons",
+      "requiredLevel": 38,
+      "equipTo": "boots",
+      "itemType": "BOOTS",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 12,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 12,
+          "maxValue": null
+        },
+        {
+          "statType": "HEALTH",
+          "value": 4,
+          "maxValue": null
+        },
+        {
+          "statType": "BLOCK_CHANCE",
+          "value": 1,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 264,
+      "name": "Ironbark Girdle",
+      "requiredLevel": 38,
+      "equipTo": "belt",
+      "itemType": "BELT",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 8,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 8,
+          "maxValue": null
+        },
+        {
+          "statType": "CARRYING_CAPACITY",
+          "value": 10,
+          "maxValue": null
+        },
+        {
+          "statType": "WOODCUTTING_EFFICIENCY",
+          "value": 1,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 265,
+      "name": "Frostsilver Helm",
+      "requiredLevel": 65,
+      "equipTo": "head",
+      "itemType": "HELMET",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 15,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 15,
+          "maxValue": null
+        },
+        {
+          "statType": "MAGIC_RESIST",
+          "value": 3,
+          "maxValue": null
+        },
+        {
+          "statType": "COLD_RESIST",
+          "value": 5,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 266,
+      "name": "Frostsilver Cuirass",
+      "requiredLevel": 65,
+      "equipTo": "chest",
+      "itemType": "CHESTPLATE",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 36,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 36,
+          "maxValue": null
+        },
+        {
+          "statType": "MAGIC_RESIST",
+          "value": 6,
+          "maxValue": null
+        },
+        {
+          "statType": "COLD_RESIST",
+          "value": 8,
+          "maxValue": null
+        },
+        {
+          "statType": "HEALTH",
+          "value": 10,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 267,
+      "name": "Frostsilver Pauldrons",
+      "requiredLevel": 65,
+      "equipTo": "pauldrons",
+      "itemType": "PAULDRONS",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 22,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 22,
+          "maxValue": null
+        },
+        {
+          "statType": "MAGIC_RESIST",
+          "value": 3,
+          "maxValue": null
+        },
+        {
+          "statType": "COLD_RESIST",
+          "value": 6,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 268,
+      "name": "Frostsilver Bracers",
+      "requiredLevel": 65,
+      "equipTo": "bracers",
+      "itemType": "BRACERS",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 12,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 12,
+          "maxValue": null
+        },
+        {
+          "statType": "MAGIC_RESIST",
+          "value": 2,
+          "maxValue": null
+        },
+        {
+          "statType": "MINING_EFFICIENCY",
+          "value": 1,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 269,
+      "name": "Frostsilver Gauntlets",
+      "requiredLevel": 65,
+      "equipTo": "gloves",
+      "itemType": "GLOVES",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 10,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 10,
+          "maxValue": null
+        },
+        {
+          "statType": "MAGIC_RESIST",
+          "value": 2,
+          "maxValue": null
+        },
+        {
+          "statType": "MINING_EFFICIENCY",
+          "value": 2,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 270,
+      "name": "Frostsilver Greaves",
+      "requiredLevel": 65,
+      "equipTo": "greaves",
+      "itemType": "GREAVES",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 29,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 29,
+          "maxValue": null
+        },
+        {
+          "statType": "MAGIC_RESIST",
+          "value": 4,
+          "maxValue": null
+        },
+        {
+          "statType": "COLD_RESIST",
+          "value": 7,
+          "maxValue": null
+        },
+        {
+          "statType": "FISHING_EFFICIENCY",
+          "value": 1,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 271,
+      "name": "Frostsilver Sabatons",
+      "requiredLevel": 65,
+      "equipTo": "boots",
+      "itemType": "BOOTS",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 16,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 16,
+          "maxValue": null
+        },
+        {
+          "statType": "MAGIC_RESIST",
+          "value": 2,
+          "maxValue": null
+        },
+        {
+          "statType": "COLD_RESIST",
+          "value": 5,
+          "maxValue": null
+        },
+        {
+          "statType": "MOVEMENT_SPEED",
+          "value": 1,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 272,
+      "name": "Frostsilver Girdle",
+      "requiredLevel": 65,
+      "equipTo": "belt",
+      "itemType": "BELT",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 10,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 10,
+          "maxValue": null
+        },
+        {
+          "statType": "MAGIC_RESIST",
+          "value": 2,
+          "maxValue": null
+        },
+        {
+          "statType": "COLD_RESIST",
+          "value": 4,
+          "maxValue": null
+        },
+        {
+          "statType": "FISHING_EFFICIENCY",
+          "value": 2,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 273,
+      "name": "Cinderweave Cowl",
+      "requiredLevel": 105,
+      "equipTo": "head",
+      "itemType": "HELMET",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 20,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 20,
+          "maxValue": null
+        },
+        {
+          "statType": "MAGIC_RESIST",
+          "value": 4,
+          "maxValue": null
+        },
+        {
+          "statType": "FIRE_RESIST",
+          "value": 6,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 274,
+      "name": "Cinderweave Coat",
+      "requiredLevel": 105,
+      "equipTo": "chest",
+      "itemType": "CHESTPLATE",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 48,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 48,
+          "maxValue": null
+        },
+        {
+          "statType": "MAGIC_RESIST",
+          "value": 8,
+          "maxValue": null
+        },
+        {
+          "statType": "FIRE_RESIST",
+          "value": 12,
+          "maxValue": null
+        },
+        {
+          "statType": "HEALTH",
+          "value": 16,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 275,
+      "name": "Cinderweave Mantle",
+      "requiredLevel": 105,
+      "equipTo": "pauldrons",
+      "itemType": "PAULDRONS",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 28,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 28,
+          "maxValue": null
+        },
+        {
+          "statType": "MAGIC_RESIST",
+          "value": 4,
+          "maxValue": null
+        },
+        {
+          "statType": "FIRE_RESIST",
+          "value": 7,
+          "maxValue": null
+        },
+        {
+          "statType": "HUNTING_EFFICIENCY",
+          "value": 1,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 276,
+      "name": "Cinderweave Wraps",
+      "requiredLevel": 105,
+      "equipTo": "bracers",
+      "itemType": "BRACERS",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 14,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 14,
+          "maxValue": null
+        },
+        {
+          "statType": "MAGIC_RESIST",
+          "value": 2,
+          "maxValue": null
+        },
+        {
+          "statType": "FIRE_RESIST",
+          "value": 4,
+          "maxValue": null
+        },
+        {
+          "statType": "HUNTING_EFFICIENCY",
+          "value": 1,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 277,
+      "name": "Cinderweave Gloves",
+      "requiredLevel": 105,
+      "equipTo": "gloves",
+      "itemType": "GLOVES",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 12,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 12,
+          "maxValue": null
+        },
+        {
+          "statType": "MAGIC_RESIST",
+          "value": 2,
+          "maxValue": null
+        },
+        {
+          "statType": "FIRE_RESIST",
+          "value": 4,
+          "maxValue": null
+        },
+        {
+          "statType": "HUNTING_EFFICIENCY",
+          "value": 2,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 278,
+      "name": "Cinderweave Leggings",
+      "requiredLevel": 105,
+      "equipTo": "greaves",
+      "itemType": "GREAVES",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 38,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 38,
+          "maxValue": null
+        },
+        {
+          "statType": "MAGIC_RESIST",
+          "value": 5,
+          "maxValue": null
+        },
+        {
+          "statType": "FIRE_RESIST",
+          "value": 9,
+          "maxValue": null
+        },
+        {
+          "statType": "MOVEMENT_SPEED",
+          "value": 1,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 279,
+      "name": "Cinderweave Ashboots",
+      "requiredLevel": 105,
+      "equipTo": "boots",
+      "itemType": "BOOTS",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 20,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 20,
+          "maxValue": null
+        },
+        {
+          "statType": "MAGIC_RESIST",
+          "value": 2,
+          "maxValue": null
+        },
+        {
+          "statType": "FIRE_RESIST",
+          "value": 5,
+          "maxValue": null
+        },
+        {
+          "statType": "MOVEMENT_SPEED",
+          "value": 2,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 280,
+      "name": "Cinderweave Sash",
+      "requiredLevel": 105,
+      "equipTo": "belt",
+      "itemType": "BELT",
+      "minPhysicalDamage": 0,
+      "maxPhysicalDamage": 0,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 14,
+      "stats": [
+        {
+          "statType": "ARMOR",
+          "value": 14,
+          "maxValue": null
+        },
+        {
+          "statType": "MAGIC_RESIST",
+          "value": 2,
+          "maxValue": null
+        },
+        {
+          "statType": "FIRE_RESIST",
+          "value": 4,
+          "maxValue": null
+        },
+        {
+          "statType": "CARRYING_CAPACITY",
+          "value": 8,
+          "maxValue": null
+        }
+      ]
+    },
+    {
+      "id": 317,
+      "name": "Ogre Cleaver",
+      "requiredLevel": 40,
+      "equipTo": "weapon",
+      "itemType": "GREATAXE",
+      "minPhysicalDamage": 38,
+      "maxPhysicalDamage": 56,
+      "minMagicDamage": 0,
+      "maxMagicDamage": 0,
+      "armor": 0,
+      "stats": [
+        {
+          "statType": "PHYSICAL_DAMAGE_MIN",
+          "value": 38,
+          "maxValue": null
+        },
+        {
+          "statType": "PHYSICAL_DAMAGE_MAX",
+          "value": 56,
+          "maxValue": null
+        },
+        {
+          "statType": "ATTACK_SPEED",
+          "value": 0.65,
+          "maxValue": null
+        },
+        {
+          "statType": "CRITICAL_DAMAGE",
+          "value": 6,
+          "maxValue": null
+        }
+      ]
+    }
+  ],
+  "creatures": [
+    {
+      "id": 9,
+      "name": "Bomber Goblin",
+      "damageMin": 5,
+      "damageMax": 8,
+      "magicDamageMin": 0,
+      "magicDamageMax": 0,
+      "elementalDamageMin": 5,
+      "elementalDamageMax": 6,
+      "health": 35,
+      "armor": 15,
+      "magicResist": 0
+    },
+    {
+      "id": 11,
+      "name": "Tunnel goblin",
+      "damageMin": 10,
+      "damageMax": 15,
+      "magicDamageMin": 0,
+      "magicDamageMax": 0,
+      "elementalDamageMin": 0,
+      "elementalDamageMax": 0,
+      "health": 50,
+      "armor": 30,
+      "magicResist": 30
+    },
+    {
+      "id": 12,
+      "name": "Mire ooze",
+      "damageMin": 1,
+      "damageMax": 3,
+      "magicDamageMin": 0,
+      "magicDamageMax": 0,
+      "elementalDamageMin": 5,
+      "elementalDamageMax": 10,
+      "health": 80,
+      "armor": 20,
+      "magicResist": 20
+    },
+    {
+      "id": 13,
+      "name": "Puddle Slime",
+      "damageMin": 0,
+      "damageMax": 0,
+      "magicDamageMin": 40,
+      "magicDamageMax": 55,
+      "elementalDamageMin": 0,
+      "elementalDamageMax": 0,
+      "health": 100,
+      "armor": 10,
+      "magicResist": 10
+    },
+    {
+      "id": 14,
+      "name": "Cavefang Spider",
+      "damageMin": 60,
+      "damageMax": 80,
+      "magicDamageMin": 0,
+      "magicDamageMax": 0,
+      "elementalDamageMin": 30,
+      "elementalDamageMax": 40,
+      "health": 80,
+      "armor": 40,
+      "magicResist": 30
+    },
+    {
+      "id": 15,
+      "name": "Rattlebone Skeleton",
+      "damageMin": 50,
+      "damageMax": 90,
+      "magicDamageMin": 0,
+      "magicDamageMax": 0,
+      "elementalDamageMin": 0,
+      "elementalDamageMax": 0,
+      "health": 90,
+      "armor": 60,
+      "magicResist": 60
+    },
+    {
+      "id": 16,
+      "name": "Bat",
+      "damageMin": 60,
+      "damageMax": 70,
+      "magicDamageMin": 0,
+      "magicDamageMax": 0,
+      "elementalDamageMin": 0,
+      "elementalDamageMax": 0,
+      "health": 90,
+      "armor": 50,
+      "magicResist": 40
+    },
+    {
+      "id": 17,
+      "name": "Carrion Hound",
+      "damageMin": 70,
+      "damageMax": 90,
+      "magicDamageMin": 0,
+      "magicDamageMax": 0,
+      "elementalDamageMin": 0,
+      "elementalDamageMax": 0,
+      "health": 80,
+      "armor": 0,
+      "magicResist": 0
+    },
+    {
+      "id": 20,
+      "name": "Goblin",
+      "damageMin": 1,
+      "damageMax": 3,
+      "magicDamageMin": 0,
+      "magicDamageMax": 0,
+      "elementalDamageMin": 0,
+      "elementalDamageMax": 0,
+      "health": 18,
+      "armor": 2,
+      "magicResist": 0
+    },
+    {
+      "id": 21,
+      "name": "Stoneback Troll",
+      "damageMin": 38,
+      "damageMax": 58,
+      "magicDamageMin": 0,
+      "magicDamageMax": 0,
+      "elementalDamageMin": 0,
+      "elementalDamageMax": 0,
+      "health": 520,
+      "armor": 46,
+      "magicResist": 12
+    },
+    {
+      "id": 32,
+      "name": "Cave Troll",
+      "damageMin": 24,
+      "damageMax": 36,
+      "magicDamageMin": 0,
+      "magicDamageMax": 0,
+      "elementalDamageMin": 0,
+      "elementalDamageMax": 0,
+      "health": 310,
+      "armor": 20,
+      "magicResist": 4
+    },
+    {
+      "id": 33,
+      "name": "Orc",
+      "damageMin": 9,
+      "damageMax": 14,
+      "magicDamageMin": 0,
+      "magicDamageMax": 0,
+      "elementalDamageMin": 0,
+      "elementalDamageMax": 0,
+      "health": 82,
+      "armor": 5,
+      "magicResist": 0
+    },
+    {
+      "id": 34,
+      "name": "Warg",
+      "damageMin": 10,
+      "damageMax": 16,
+      "magicDamageMin": 0,
+      "magicDamageMax": 0,
+      "elementalDamageMin": 0,
+      "elementalDamageMax": 0,
+      "health": 100,
+      "armor": 4,
+      "magicResist": 0
+    },
+    {
+      "id": 35,
+      "name": "Ogre",
+      "damageMin": 17,
+      "damageMax": 27,
+      "magicDamageMin": 0,
+      "magicDamageMax": 0,
+      "elementalDamageMin": 0,
+      "elementalDamageMax": 0,
+      "health": 225,
+      "armor": 14,
+      "magicResist": 2
+    },
+    {
+      "id": 36,
+      "name": "Trollhound",
+      "damageMin": 13,
+      "damageMax": 19,
+      "magicDamageMin": 0,
+      "magicDamageMax": 0,
+      "elementalDamageMin": 0,
+      "elementalDamageMax": 0,
+      "health": 130,
+      "armor": 8,
+      "magicResist": 2
+    },
+    {
+      "id": 1,
+      "name": "Meadow Hare",
+      "damageMin": 1,
+      "damageMax": 2,
+      "magicDamageMin": 0,
+      "magicDamageMax": 0,
+      "elementalDamageMin": 0,
+      "elementalDamageMax": 0,
+      "health": 0,
+      "armor": 0,
+      "magicResist": 0
+    },
+    {
+      "id": 2,
+      "name": "Red Deer",
+      "damageMin": 3,
+      "damageMax": 7,
+      "magicDamageMin": 0,
+      "magicDamageMax": 0,
+      "elementalDamageMin": 0,
+      "elementalDamageMax": 0,
+      "health": 0,
+      "armor": 0,
+      "magicResist": 0
+    },
+    {
+      "id": 3,
+      "name": "Wild Boar",
+      "damageMin": 6,
+      "damageMax": 12,
+      "magicDamageMin": 0,
+      "magicDamageMax": 0,
+      "elementalDamageMin": 0,
+      "elementalDamageMax": 0,
+      "health": 0,
+      "armor": 0,
+      "magicResist": 0
+    },
+    {
+      "id": 4,
+      "name": "Grey Wolf",
+      "damageMin": 7,
+      "damageMax": 14,
+      "magicDamageMin": 0,
+      "magicDamageMax": 0,
+      "elementalDamageMin": 0,
+      "elementalDamageMax": 0,
+      "health": 0,
+      "armor": 0,
+      "magicResist": 0
+    },
+    {
+      "id": 5,
+      "name": "Marsh Crocodile",
+      "damageMin": 10,
+      "damageMax": 18,
+      "magicDamageMin": 0,
+      "magicDamageMax": 0,
+      "elementalDamageMin": 0,
+      "elementalDamageMax": 0,
+      "health": 0,
+      "armor": 0,
+      "magicResist": 0
+    },
+    {
+      "id": 6,
+      "name": "Mountain Goat",
+      "damageMin": 5,
+      "damageMax": 10,
+      "magicDamageMin": 0,
+      "magicDamageMax": 0,
+      "elementalDamageMin": 0,
+      "elementalDamageMax": 0,
+      "health": 0,
+      "armor": 0,
+      "magicResist": 0
+    },
+    {
+      "id": 7,
+      "name": "Frostfang Lynx",
+      "damageMin": 12,
+      "damageMax": 21,
+      "magicDamageMin": 0,
+      "magicDamageMax": 0,
+      "elementalDamageMin": 0,
+      "elementalDamageMax": 0,
+      "health": 0,
+      "armor": 0,
+      "magicResist": 0
+    },
+    {
+      "id": 8,
+      "name": "Ashback Bear",
+      "damageMin": 16,
+      "damageMax": 28,
+      "magicDamageMin": 0,
+      "magicDamageMax": 0,
+      "elementalDamageMin": 0,
+      "elementalDamageMax": 0,
+      "health": 0,
+      "armor": 0,
+      "magicResist": 0
+    },
+    {
+      "id": 27,
+      "name": "Briarback Badger",
+      "damageMin": 6,
+      "damageMax": 11,
+      "magicDamageMin": 0,
+      "magicDamageMax": 0,
+      "elementalDamageMin": 0,
+      "elementalDamageMax": 0,
+      "health": 0,
+      "armor": 0,
+      "magicResist": 0
+    },
+    {
+      "id": 28,
+      "name": "Snowhorn Ram",
+      "damageMin": 10,
+      "damageMax": 18,
+      "magicDamageMin": 0,
+      "magicDamageMax": 0,
+      "elementalDamageMin": 0,
+      "elementalDamageMax": 0,
+      "health": 0,
+      "armor": 0,
+      "magicResist": 0
+    },
+    {
+      "id": 29,
+      "name": "Ruin Viper",
+      "damageMin": 14,
+      "damageMax": 24,
+      "magicDamageMin": 0,
+      "magicDamageMax": 0,
+      "elementalDamageMin": 0,
+      "elementalDamageMax": 0,
+      "health": 0,
+      "armor": 0,
+      "magicResist": 0
+    },
+    {
+      "id": 30,
+      "name": "Cinder Jackal",
+      "damageMin": 20,
+      "damageMax": 32,
+      "magicDamageMin": 0,
+      "magicDamageMax": 0,
+      "elementalDamageMin": 0,
+      "elementalDamageMax": 0,
+      "health": 0,
+      "armor": 0,
+      "magicResist": 0
+    },
+    {
+      "id": 31,
+      "name": "Mangrove Panther",
+      "damageMin": 26,
+      "damageMax": 40,
+      "magicDamageMin": 0,
+      "magicDamageMax": 0,
+      "elementalDamageMin": 0,
+      "elementalDamageMax": 0,
+      "health": 0,
+      "armor": 0,
+      "magicResist": 0
+    }
+  ],
+  "dungeons": [
+    {
+      "id": 1,
+      "requiredLevel": 1,
+      "xpReward": 12,
+      "durationSeconds": 60,
+      "difficulty": "EASY"
+    },
+    {
+      "id": 2,
+      "requiredLevel": 65,
+      "xpReward": 380,
+      "durationSeconds": 1800,
+      "difficulty": "HARD"
+    },
+    {
+      "id": 3,
+      "requiredLevel": 1,
+      "xpReward": 12,
+      "durationSeconds": 900,
+      "difficulty": "EASY"
+    },
+    {
+      "id": 4,
+      "requiredLevel": 50,
+      "xpReward": 250,
+      "durationSeconds": 1500,
+      "difficulty": "NORMAL"
+    },
+    {
+      "id": 5,
+      "requiredLevel": 40,
+      "xpReward": 175,
+      "durationSeconds": 1200,
+      "difficulty": "NORMAL"
+    }
+  ],
+  "grounds": [
+    {
+      "id": 1,
+      "accidentDamageMin": 1,
+      "accidentDamageMax": 2
+    },
+    {
+      "id": 2,
+      "accidentDamageMin": 1,
+      "accidentDamageMax": 4
+    },
+    {
+      "id": 3,
+      "accidentDamageMin": 2,
+      "accidentDamageMax": 5
+    },
+    {
+      "id": 4,
+      "accidentDamageMin": 2,
+      "accidentDamageMax": 6
+    },
+    {
+      "id": 5,
+      "accidentDamageMin": 3,
+      "accidentDamageMax": 8
+    },
+    {
+      "id": 6,
+      "accidentDamageMin": 4,
+      "accidentDamageMax": 10
+    },
+    {
+      "id": 7,
+      "accidentDamageMin": 5,
+      "accidentDamageMax": 12
+    },
+    {
+      "id": 8,
+      "accidentDamageMin": 5,
+      "accidentDamageMax": 13
+    },
+    {
+      "id": 9,
+      "accidentDamageMin": 7,
+      "accidentDamageMax": 16
+    },
+    {
+      "id": 10,
+      "accidentDamageMin": 6,
+      "accidentDamageMax": 15
+    },
+    {
+      "id": 11,
+      "accidentDamageMin": 1,
+      "accidentDamageMax": 3
+    }
+  ],
+  "growth": [
+    {
+      "statType": "MAGIC_RESIST",
+      "baseValue": 0,
+      "perLevel": 0.3,
+      "maxBonus": null
+    },
+    {
+      "statType": "ATTACK_SPEED",
+      "baseValue": 1,
+      "perLevel": 0.004,
+      "maxBonus": 0.4
+    }
+  ]
+}

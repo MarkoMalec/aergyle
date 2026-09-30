@@ -41,7 +41,8 @@ export const creatureSchema = z
     elementalDamageMax: whole(1_000_000),
     health: whole(100_000_000),
     armor: z.number().min(0).max(1_000_000),
-    magicResist: z.number().min(0).max(1_000_000),
+    // A percentage on top of armor; negative is a weakness to magic.
+    magicResist: z.number().min(-100).max(75),
     evasion: z.number().min(0).max(75),
     blockChance: z.number().min(0).max(75),
     critChance: z.number().min(0).max(100),

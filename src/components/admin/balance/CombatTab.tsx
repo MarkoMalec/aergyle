@@ -92,9 +92,17 @@ export function CombatTab(props: {
     const run = (index: number) => {
       if (cancelled || index >= content.dungeons.length) return;
       const dungeon = content.dungeons[index]!;
-      const survival = dungeonSurvival(dungeon, combatFor(dungeon.requiredLevel), RUNS).rate;
+      const survival = dungeonSurvival(
+        dungeon,
+        combatFor(dungeon.requiredLevel),
+        dungeon.requiredLevel,
+        content.combat,
+        RUNS,
+      ).rate;
       const lowest =
-        dungeon.monsters.length === 0 ? null : lowestSurvivingLevel(dungeon, combatFor, target, maxLevel, RUNS);
+        dungeon.monsters.length === 0
+          ? null
+          : lowestSurvivingLevel(dungeon, combatFor, content.combat, target, maxLevel, RUNS);
       results.push({ dungeon, survival, lowest });
       setChecks([...results]);
       setProgress(index + 1);

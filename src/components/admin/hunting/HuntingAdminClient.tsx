@@ -14,6 +14,7 @@ import {
 import toast from "react-hot-toast";
 import { toCreatureAttackProfile } from "~/server/creatures/attackProfile";
 import { runHuntingSimulation } from "~/server/hunting/simulator";
+import { strikeRulesFor, type CombatConfig } from "~/server/combat/rules";
 import { Button } from "~/components/ui/button";
 import {
   CreatureEditor,
@@ -69,7 +70,7 @@ type Ground = {
   creatures: Assignment[];
 };
 
-type LocationOption = { id: number; name: string };
+type LocationOption = { id: number; name: string; requiredLevel: number };
 
 function SafetySettings(props: {
   initial: Config;
@@ -648,6 +649,8 @@ function HuntingSimulator(props: {
   durations: Duration[];
   creatures: AdminCreature[];
   grounds: Ground[];
+  locations: LocationOption[];
+  combatConfig: CombatConfig;
 }) {
   const [groundId, setGroundId] = useState(props.grounds[0]?.id ?? 0);
   const [durationId, setDurationId] = useState(props.durations[0]?.id ?? 0);
@@ -723,9 +726,15 @@ function HuntingSimulator(props: {
         skillLevel,
         luck,
         huntingEfficiency: efficiency,
+        // Armor against the ground's location level, as on a real departure.
+        rules: strikeRulesFor(
+          props.locations.find((row) => row.id === ground.locationId)
+            ?.requiredLevel ?? 1,
+          props.combatConfig,
+        ),
         defenses: {
           armor,
-          magicResist: armor,
+          magicResist: resist,
           evasionMelee: evasion,
           evasionRanged: evasion,
           evasionMagic: evasion,
@@ -811,7 +820,7 @@ function HuntingSimulator(props: {
           onChange={setBlock}
         />
         <NumberField
-          label="Elemental resist"
+          label="Magic & elemental resist %"
           value={resist}
           min={-100}
           max={75}
@@ -849,6 +858,7 @@ export function HuntingAdminClient(props: {
   grounds: Ground[];
   locations: LocationOption[];
   items: AdminItemOption[];
+  combatConfig: CombatConfig;
 }) {
   const [config, setConfig] = useState(props.config);
   const [durations, setDurations] = useState(props.durations);
@@ -866,6 +876,8 @@ export function HuntingAdminClient(props: {
         durations={durations}
         creatures={creatures}
         grounds={grounds}
+        locations={props.locations}
+        combatConfig={props.combatConfig}
       />
       <DurationEditor initial={durations} onChange={setDurations} />
       <GroundEditor

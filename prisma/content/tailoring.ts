@@ -147,7 +147,7 @@ export const TAILORING_GEAR = [
       { itemName: "Cloth Scraps", quantityPerUnit: 3 },
       { itemName: "Soft Hide", quantityPerUnit: 2 },
     ],
-    stats: { ARMOR: 1, GATHERING_EFFICIENCY: 2, LUCK: 1 },
+    stats: { ARMOR: 1, GATHERING_EFFICIENCY: 1, LUCK: 1 },
   },
   {
     slug: "fieldweave-trailboots",
@@ -168,7 +168,7 @@ export const TAILORING_GEAR = [
       { itemName: "Cloth Scraps", quantityPerUnit: 2 },
       { itemName: "Soft Hide", quantityPerUnit: 4 },
     ],
-    stats: { ARMOR: 2, GATHERING_EFFICIENCY: 3, MOVEMENT_SPEED: 2 },
+    stats: { ARMOR: 2, GATHERING_EFFICIENCY: 1, MOVEMENT_SPEED: 1.1 },
   },
   {
     slug: "fieldweave-leggings",
@@ -189,7 +189,7 @@ export const TAILORING_GEAR = [
       { itemName: "Cloth Scraps", quantityPerUnit: 6 },
       { itemName: "Soft Hide", quantityPerUnit: 3 },
     ],
-    stats: { ARMOR: 3, GATHERING_EFFICIENCY: 4, LUCK: 1 },
+    stats: { ARMOR: 4, GATHERING_EFFICIENCY: 2, LUCK: 1 },
   },
   {
     slug: "fieldweave-tunic",
@@ -211,7 +211,7 @@ export const TAILORING_GEAR = [
       { itemName: "Soft Hide", quantityPerUnit: 4 },
       { itemName: "Spider Silk", quantityPerUnit: 2 },
     ],
-    stats: { ARMOR: 4, GATHERING_EFFICIENCY: 5, LUCK: 2 },
+    stats: { ARMOR: 7, GATHERING_EFFICIENCY: 3, LUCK: 2 },
   },
 ] as const satisfies readonly TailoringGearDefinition[];
 

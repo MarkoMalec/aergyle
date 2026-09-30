@@ -21,6 +21,7 @@ import { adminRequest, NumberField, Panel } from "~/components/admin/fields";
 import { Button } from "~/components/ui/button";
 import type { StatType } from "~/generated/prisma/enums";
 import type { StatGrowthRule } from "~/utils/stats";
+import type { CombatConfig } from "~/server/combat/rules";
 
 type Config = {
   minimumHealthToStartPercent: number;
@@ -28,7 +29,7 @@ type Config = {
   deathLootQuantityPercent: number;
 };
 
-type LocationOption = { id: number; name: string };
+type LocationOption = { id: number; name: string; requiredLevel: number };
 
 function DungeonRules(props: {
   initial: Config;
@@ -122,6 +123,7 @@ export function DungeonAdminClient(props: {
   locations: LocationOption[];
   items: AdminItemOption[];
   statGrowth: Record<StatType, StatGrowthRule>;
+  combatConfig: CombatConfig;
 }) {
   const router = useRouter();
   const [config, setConfig] = useState(props.config);
@@ -204,6 +206,7 @@ export function DungeonAdminClient(props: {
               locations={props.locations}
               character={character}
               rules={rules}
+              combatConfig={props.combatConfig}
               defaultOpen={dungeon.id === createdId}
             />
           ))}

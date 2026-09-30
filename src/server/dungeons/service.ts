@@ -13,6 +13,8 @@ import {
   getCharacterVitalsFromSnapshot,
   writeCharacterHealth,
 } from "~/server/combat";
+import { getCombatConfig } from "~/server/combat/config";
+import { armorReduction } from "~/server/combat/rules";
 import {
   CREATURE_ATTACK_SELECT,
   parseCreatureAttackProfile,
@@ -32,7 +34,9 @@ import { grantStackableItemToInventory } from "~/server/items/grantItem";
 import { awardXp } from "~/utils/leveling";
 import {
   combatSnapshotFromStats,
+  dungeonCombatRules,
   isFightableMonster,
+  parseDungeonCombatRules,
   resolveDungeonRun,
   type DungeonCombatSnapshot,
   type DungeonDeathRules,
@@ -139,7 +143,7 @@ export function toMonsterPoolEntry(
     ...toCreatureAttackProfile(creature),
     health: Math.max(0, creature.health),
     armor: Math.max(0, creature.armor),
-    magicResist: Math.max(0, creature.magicResist),
+    magicResist: Math.max(-100, creature.magicResist),
     evasion: Math.max(0, creature.evasion),
     blockChance: Math.max(0, creature.blockChance),
     drops,
@@ -173,7 +177,7 @@ function parseMonsterPool(value: unknown): DungeonMonsterPoolEntry[] {
         ...attack,
         health: positive("health"),
         armor: positive("armor"),
-        magicResist: positive("magicResist"),
+        magicResist: Math.max(-100, finiteNumber(row.magicResist)),
         evasion: positive("evasion"),
         blockChance: positive("blockChance"),
         drops: parseCreatureDropPool(row.drops),
@@ -297,7 +301,7 @@ export async function getDungeonRunStatus(
 }
 
 export async function getDungeonPageData(userId: string) {
-  const [user, config, character, status] = await Promise.all([
+  const [user, config, character, status, combatConfig] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -337,6 +341,7 @@ export async function getDungeonPageData(userId: string) {
     getDungeonConfig(),
     getCharacterStatSnapshot(userId),
     getDungeonRunStatus(userId),
+    getCombatConfig(),
   ]);
   if (!user) throw new Error("User not found");
   const vitals = await getCharacterVitalsFromSnapshot(userId, character);
@@ -357,6 +362,11 @@ export async function getDungeonPageData(userId: string) {
             const pool = dungeon.monsters
               .map((row) => toMonsterPoolEntry(row, []))
               .filter(isFightableMonster);
+            const rules = dungeonCombatRules(
+              Math.max(dungeon.requiredLevel, location.requiredLevel),
+              user.level,
+              combatConfig,
+            );
             return {
               id: dungeon.id,
               name: dungeon.name,
@@ -367,6 +377,11 @@ export async function getDungeonPageData(userId: string) {
               durationSeconds: dungeon.durationSeconds,
               packSize: dungeon.packSize,
               xpReward: dungeon.xpReward,
+              // Share of monster damage the character's armor stops here.
+              armorReduction: armorReduction(
+                combat.armor,
+                rules.incoming.armorK,
+              ),
               recommendedHealth:
                 pool.length > 0
                   ? estimateRecommendedHealth({
@@ -374,6 +389,7 @@ export async function getDungeonPageData(userId: string) {
                       combat,
                       packSize: dungeon.packSize,
                       seed: `recommended-health:${dungeon.id}`,
+                      rules,
                     })
                   : null,
               // Monster identities only; population counts stay server-side.
@@ -399,49 +415,51 @@ export async function startDungeonRun(params: {
   const { userId, dungeonId } = params;
   if (!Number.isInteger(dungeonId)) throw new Error("Choose a valid dungeon");
 
-  const [, existing, user, dungeon, config, character] = await Promise.all([
-    assertNoOtherActivity(userId, "dungeon"),
-    prisma.userDungeonRun.findUnique({
-      where: { userId },
-      select: { id: true, claimedAt: true },
-    }),
-    prisma.user.findUnique({
-      where: { id: userId },
-      select: { level: true, currentLocationId: true },
-    }),
-    prisma.dungeon.findUnique({
-      where: { id: dungeonId },
-      select: {
-        id: true,
-        locationId: true,
-        name: true,
-        enabled: true,
-        requiredLevel: true,
-        durationSeconds: true,
-        packSize: true,
-        xpReward: true,
-        location: { select: { requiredLevel: true } },
-        monsters: {
-          where: ACTIVE_MONSTERS_WHERE,
-          select: {
-            minCount: true,
-            maxCount: true,
-            creature: {
-              select: {
-                ...MONSTER_COMBAT_SELECT,
-                drops: {
-                  where: { enabled: true },
-                  select: CREATURE_DROP_SELECT,
+  const [, existing, user, dungeon, config, character, combatConfig] =
+    await Promise.all([
+      assertNoOtherActivity(userId, "dungeon"),
+      prisma.userDungeonRun.findUnique({
+        where: { userId },
+        select: { id: true, claimedAt: true },
+      }),
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: { level: true, currentLocationId: true },
+      }),
+      prisma.dungeon.findUnique({
+        where: { id: dungeonId },
+        select: {
+          id: true,
+          locationId: true,
+          name: true,
+          enabled: true,
+          requiredLevel: true,
+          durationSeconds: true,
+          packSize: true,
+          xpReward: true,
+          location: { select: { requiredLevel: true } },
+          monsters: {
+            where: ACTIVE_MONSTERS_WHERE,
+            select: {
+              minCount: true,
+              maxCount: true,
+              creature: {
+                select: {
+                  ...MONSTER_COMBAT_SELECT,
+                  drops: {
+                    where: { enabled: true },
+                    select: CREATURE_DROP_SELECT,
+                  },
                 },
               },
             },
           },
         },
-      },
-    }),
-    getDungeonConfig(),
-    getCharacterStatSnapshot(userId),
-  ]);
+      }),
+      getDungeonConfig(),
+      getCharacterStatSnapshot(userId),
+      getCombatConfig(),
+    ]);
 
   if (existing?.claimedAt === null) {
     throw new Error("You already have an active activity");
@@ -509,9 +527,12 @@ export async function startDungeonRun(params: {
         xpReward: Math.max(0, dungeon.xpReward),
         packSize: dungeon.packSize,
         startingHealth: vitals.currentHealth,
-        combatSnapshot: combatSnapshotFromStats(
-          character.finalStats,
-        ) as unknown as Prisma.InputJsonValue,
+        // The rules ride along in the snapshot so an admin edit never changes
+        // a run in progress.
+        combatSnapshot: {
+          ...combatSnapshotFromStats(character.finalStats),
+          rules: dungeonCombatRules(requiredLevel, user.level, combatConfig),
+        } as unknown as Prisma.InputJsonValue,
         monsterPool: pool as unknown as Prisma.InputJsonValue,
         deathRules: deathRules as unknown as Prisma.InputJsonValue,
         resolutionSeed: randomUUID(),
@@ -559,6 +580,9 @@ export async function claimDungeonRun(userId: string) {
     startingHealth: run.startingHealth,
     packSize: run.packSize,
     deathRules,
+    rules: parseDungeonCombatRules(
+      (run.combatSnapshot as Record<string, unknown> | null)?.rules,
+    ),
     random: createExpeditionRandom(run.resolutionSeed),
   });
   const cleared = resolution.report.outcome === "CLEARED";

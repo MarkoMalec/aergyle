@@ -44,6 +44,12 @@ import { awardXp } from "~/utils/leveling";
 import { awardTrackXp, getTrackXpProgress } from "~/utils/progression";
 import { recordSkillWork } from "~/server/skills/metrics";
 import { finiteNumber } from "~/server/expeditions/rewards";
+import { getCombatConfig } from "~/server/combat/config";
+import {
+  parseStrikeRules,
+  strikeRulesFor,
+  type StrikeRules,
+} from "~/server/combat/rules";
 
 const MAX_EXPEDITION_SECONDS = 7 * 24 * 60 * 60;
 
@@ -55,6 +61,8 @@ type HuntingRiskSnapshot = {
   accidentChance: number;
   accidentDamageMin: number;
   accidentDamageMax: number;
+  /** Armor rules from the ground's location level, fixed at departure. */
+  strikeRules: StrikeRules;
 };
 
 type ClaimedHuntingReport = HuntingReport & {
@@ -264,6 +272,7 @@ function parseRiskConfig(value: unknown): HuntingRiskSnapshot | null {
       0,
       Math.floor(finiteNumber(row.accidentDamageMax)),
     ),
+    strikeRules: parseStrikeRules(row.strikeRules),
   };
 }
 
@@ -508,62 +517,72 @@ export async function startHuntingExpedition(params: {
     throw new Error("Choose a valid hunting ground and duration");
   }
 
-  const [, existing, user, ground, duration, skillProgress, config, character] =
-    await Promise.all([
-      assertNoOtherActivity(userId, "hunting"),
-      prisma.userHuntingExpedition.findUnique({
-        where: { userId },
-        select: { id: true, claimedAt: true },
-      }),
-      prisma.user.findUnique({
-        where: { id: userId },
-        select: { level: true, currentLocationId: true },
-      }),
-      prisma.huntingGround.findUnique({
-        where: { id: groundId },
-        select: {
-          id: true,
-          locationId: true,
-          name: true,
-          enabled: true,
-          requiredHuntingLevel: true,
-          accidentChance: true,
-          accidentDamageMin: true,
-          accidentDamageMax: true,
-          location: { select: { name: true, requiredLevel: true } },
-          creatures: {
-            where: {
-              enabled: true,
-              creature: { enabled: true, kind: CreatureKind.ANIMAL },
-            },
-            select: {
-              encounterWeight: true,
-              creature: {
-                select: {
-                  id: true,
-                  name: true,
-                  asset: true,
-                  ...CREATURE_ATTACK_SELECT,
-                  attackChance: true,
-                  drops: {
-                    where: { enabled: true },
-                    select: CREATURE_DROP_SELECT,
-                  },
+  const [
+    ,
+    existing,
+    user,
+    ground,
+    duration,
+    skillProgress,
+    config,
+    character,
+    combatConfig,
+  ] = await Promise.all([
+    assertNoOtherActivity(userId, "hunting"),
+    prisma.userHuntingExpedition.findUnique({
+      where: { userId },
+      select: { id: true, claimedAt: true },
+    }),
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { level: true, currentLocationId: true },
+    }),
+    prisma.huntingGround.findUnique({
+      where: { id: groundId },
+      select: {
+        id: true,
+        locationId: true,
+        name: true,
+        enabled: true,
+        requiredHuntingLevel: true,
+        accidentChance: true,
+        accidentDamageMin: true,
+        accidentDamageMax: true,
+        location: { select: { name: true, requiredLevel: true } },
+        creatures: {
+          where: {
+            enabled: true,
+            creature: { enabled: true, kind: CreatureKind.ANIMAL },
+          },
+          select: {
+            encounterWeight: true,
+            creature: {
+              select: {
+                id: true,
+                name: true,
+                asset: true,
+                ...CREATURE_ATTACK_SELECT,
+                attackChance: true,
+                drops: {
+                  where: { enabled: true },
+                  select: CREATURE_DROP_SELECT,
                 },
               },
             },
           },
         },
-      }),
-      prisma.huntingDuration.findUnique({ where: { id: durationId } }),
-      getTrackXpProgress({
-        userId,
-        trackType: "SKILL",
-        trackKey: VocationalActionType.HUNTING,
-      }),
-      getHuntingConfig(),
-      getCharacterStatSnapshot(userId),
-    ]);
+      },
+    }),
+    prisma.huntingDuration.findUnique({ where: { id: durationId } }),
+    getTrackXpProgress({
+      userId,
+      trackType: "SKILL",
+      trackKey: VocationalActionType.HUNTING,
+    }),
+    getHuntingConfig(),
+    getCharacterStatSnapshot(userId),
+    getCombatConfig(),
+  ]);
 
   if (existing?.claimedAt === null) {
     throw new Error("You already have an active activity");
@@ -636,6 +655,7 @@ export async function startHuntingExpedition(params: {
     accidentChance: ground.accidentChance,
     accidentDamageMin: ground.accidentDamageMin,
     accidentDamageMax: ground.accidentDamageMax,
+    strikeRules: strikeRulesFor(ground.location.requiredLevel, combatConfig),
   };
   const now = new Date();
   const endsAt = new Date(now.getTime() + duration.durationSeconds * 1_000);
@@ -762,6 +782,7 @@ export async function claimHuntingExpedition(userId: string) {
       lightningResist: expedition.lightningResistSnapshot,
       poisonResist: expedition.poisonResistSnapshot,
     },
+    rules: effectiveRisk.strikeRules,
     random: createExpeditionRandom(expedition.resolutionSeed),
   });
   if (resolution.rewards.length === 0) {

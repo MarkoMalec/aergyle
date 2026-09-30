@@ -1,6 +1,7 @@
 import { createExpeditionRandom } from "~/server/expeditions/random";
 import {
   resolveDungeonRun,
+  type DungeonCombatRules,
   type DungeonCombatSnapshot,
   type DungeonDeathRules,
   type DungeonMonsterPoolEntry,
@@ -26,6 +27,7 @@ export function estimateRecommendedHealth(params: {
   combat: DungeonCombatSnapshot;
   packSize: number;
   seed: string;
+  rules?: DungeonCombatRules;
   iterations?: number;
 }): number | null {
   const iterations = clampIterations(params.iterations ?? 200, 5_000);
@@ -39,6 +41,7 @@ export function estimateRecommendedHealth(params: {
       packSize: params.packSize,
       startingHealth: Number.POSITIVE_INFINITY,
       deathRules: NO_DEATH_RULES,
+      rules: params.rules,
       random,
     });
     if (report.outcome === "DEFEATED") overwhelmed += 1;
@@ -62,6 +65,7 @@ export function runDungeonSimulation(params: {
   packSize: number;
   startingHealth: number;
   deathRules: DungeonDeathRules;
+  rules?: DungeonCombatRules;
   iterations: number;
 }) {
   const iterations = clampIterations(params.iterations, 100_000);
@@ -92,6 +96,7 @@ export function runDungeonSimulation(params: {
       combat: params.combat,
       packSize: params.packSize,
       seed: "admin-simulator",
+      rules: params.rules,
     }),
   };
 }

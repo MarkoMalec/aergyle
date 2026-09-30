@@ -73,6 +73,8 @@ type Dungeon = {
   durationSeconds: number;
   packSize: number;
   xpReward: number;
+  /** Share of this dungeon's monster damage the character's armor stops. */
+  armorReduction: number;
   recommendedHealth: number | null;
   monsters: Array<{
     id: number;
@@ -179,7 +181,9 @@ function RecommendedHealth(props: {
         : { text: "you meet it", tone: "text-success" };
   return (
     <span>
-      <strong className={`tabular-nums ${note.tone}`}>{props.recommended}</strong>{" "}
+      <strong className={`tabular-nums ${note.tone}`}>
+        {props.recommended}
+      </strong>{" "}
     </span>
   );
 }
@@ -207,7 +211,12 @@ function MonsterList({ dungeon }: { dungeon: Dungeon }) {
               className="h-16 w-16 shrink-0 rounded-xl bg-black/10 object-contain p-1"
             />
             <div className="min-w-0 flex-1">
-              <Link href={bestiaryHref("MONSTER", monster.id)} className="block text-sm hover:underline">{monster.name}</Link>
+              <Link
+                href={bestiaryHref("MONSTER", monster.id)}
+                className="block text-sm hover:underline"
+              >
+                {monster.name}
+              </Link>
               <p className="mt-1 text-xs text-muted-foreground">
                 {ATTACK_STYLE_LABELS[monster.attackStyle]} attacks
                 {monster.damageType
@@ -684,11 +693,17 @@ export default function DungeonExplorer({
                     </strong>
                   </div>
                   <div>
-                    <span>Armor / magic resist</span>
-                    <strong>
-                      {Math.floor(combat.armor)} /{" "}
-                      {Math.floor(combat.magicResist)}
-                    </strong>
+                    <span>
+                      Armor
+                      {selected
+                        ? ` · stops ${Math.round(selected.armorReduction * 100)}% here`
+                        : ""}
+                    </span>
+                    <strong>{Math.floor(combat.armor)}</strong>
+                  </div>
+                  <div>
+                    <span>Magic resist</span>
+                    <strong>{combat.magicResist.toFixed(0)}%</strong>
                   </div>
                   <div>
                     <span>Evasion / block</span>

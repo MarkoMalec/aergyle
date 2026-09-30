@@ -2,6 +2,7 @@ import {
   resolveCreatureStrike,
   type CharacterDefenses,
   type CreatureAttackProfile,
+  type StrikeRules,
 } from "~/server/combat/rules";
 import {
   createLootTally,
@@ -76,6 +77,8 @@ export type HuntingResolutionInput = {
   luck: number;
   huntingEfficiency: number;
   defenses: HuntingDefenseSnapshot;
+  /** Armor rules against this ground's animals; omitted: the original model. */
+  rules?: StrikeRules;
   random?: () => number;
 };
 
@@ -214,7 +217,12 @@ export function resolveHuntingExpedition(
     );
     if (random() < attackChance) {
       encounter.attacks += 1;
-      const strike = resolveCreatureStrike(creature, input.defenses, random);
+      const strike = resolveCreatureStrike(
+        creature,
+        input.defenses,
+        random,
+        input.rules,
+      );
       if (strike.evaded) {
         encounter.evaded += 1;
       } else {

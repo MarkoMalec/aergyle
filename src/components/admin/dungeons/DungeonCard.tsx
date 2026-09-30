@@ -25,10 +25,12 @@ import { Button } from "~/components/ui/button";
 import { DUNGEON_DIFFICULTY_LABELS } from "~/game/creatures";
 import { cn } from "~/lib/utils";
 import {
+  dungeonCombatRules,
   MAX_DUNGEON_PACK_SIZE,
   type DungeonDeathRules,
 } from "~/server/dungeons/resolver";
 import { formatLength } from "~/components/game/actions/format";
+import type { CombatConfig } from "~/server/combat/rules";
 
 export type AdminDungeon = {
   id: number;
@@ -47,7 +49,7 @@ export type AdminDungeon = {
   monsters: MonsterPopulation[];
 };
 
-type LocationOption = { id: number; name: string };
+type LocationOption = { id: number; name: string; requiredLevel: number };
 
 const DIFFICULTIES = Object.keys(
   DUNGEON_DIFFICULTY_LABELS,
@@ -256,6 +258,7 @@ export function DungeonCard(props: {
   locations: LocationOption[];
   character: TestCharacter;
   rules: DungeonDeathRules;
+  combatConfig: CombatConfig;
   defaultOpen?: boolean;
 }) {
   const router = useRouter();
@@ -526,6 +529,16 @@ export function DungeonCard(props: {
                 monsters={props.monstersById}
                 character={props.character}
                 rules={props.rules}
+                combatRules={dungeonCombatRules(
+                  Math.max(
+                    draft.requiredLevel,
+                    props.locations.find(
+                      (location) => location.id === draft.locationId,
+                    )?.requiredLevel ?? 1,
+                  ),
+                  props.character.level,
+                  props.combatConfig,
+                )}
               />
             </aside>
           </div>

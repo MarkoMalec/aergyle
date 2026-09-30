@@ -170,15 +170,15 @@ void test("crafted equipment instance stats preserve rarity scaling", () => {
     })),
   });
 
-  assert.equal(
-    stats.find((stat) => stat.statType === StatType.GATHERING_EFFICIENCY)
-      ?.value,
-    6.75,
-  );
-  assert.equal(
-    stats.find((stat) => stat.statType === StatType.LUCK)?.value,
-    2.7,
-  );
+  // Rare scales each authored Common value by 1.35, exactly once.
+  for (const statType of [StatType.GATHERING_EFFICIENCY, StatType.LUCK]) {
+    const authored = tunic.stats[statType as keyof typeof tunic.stats];
+    assert.ok(authored !== undefined && authored > 0);
+    assert.equal(
+      stats.find((stat) => stat.statType === statType)?.value,
+      Math.round(authored * 1.35 * 1_000_000) / 1_000_000,
+    );
+  }
 });
 
 void test("the production grant path does not snapshot shared balance stats", async () => {

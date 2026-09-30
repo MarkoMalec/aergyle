@@ -1535,6 +1535,17 @@ model DungeonMonster {
   @@index([creatureId])
 }
 
+// Singleton-style combat rules shared by dungeons and hunting. Without a row
+// the code defaults apply (DEFAULT_COMBAT_CONFIG in src/server/combat/rules.ts).
+model CombatConfig {
+  id        Int      @id @default(1)
+  // Armor that halves damage from an attacker of level L: armorK0 + armorK1 × L.
+  armorK0   Float    @default(50)
+  armorK1   Float    @default(3)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 // Singleton-style global dungeon rules.
 model DungeonConfig {
   id                          Int      @id @default(1)

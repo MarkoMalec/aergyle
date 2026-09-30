@@ -1,16 +1,19 @@
+import { ArmorConstantEditor } from "~/components/admin/character-stats/ArmorConstantEditor";
 import { StatGrowthEditor } from "~/components/admin/character-stats/StatGrowthEditor";
 import { prisma } from "~/lib/prisma";
 import { getStatGrowthRules } from "~/server/stats";
 import { requireAdminPageAccess } from "~/server/admin/auth";
+import { getCombatConfig } from "~/server/combat/config";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function AdminCharacterStatsPage() {
   await requireAdminPageAccess();
-  const [rules, characters] = await Promise.all([
+  const [rules, characters, combatConfig] = await Promise.all([
     getStatGrowthRules(),
     prisma.user.aggregate({ _count: { _all: true }, _max: { level: true } }),
+    getCombatConfig(),
   ]);
 
   return (
@@ -32,6 +35,8 @@ export default async function AdminCharacterStatsPage() {
         initial={rules}
         highestLevel={characters._max.level ?? 1}
       />
+
+      <ArmorConstantEditor initial={combatConfig} />
     </div>
   );
 }

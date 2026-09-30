@@ -116,8 +116,8 @@ export const HUNTING_CREATURES = [
     asset: "/assets/creatures/animals/meadow-hare-hunting-v1.png",
     attackStyle: "MELEE",
     attackChance: 0.01,
-    damageMin: 1,
-    damageMax: 2,
+    damageMin: 6,
+    damageMax: 10,
     drops: [
       {
         itemName: "Game Meat",
@@ -149,8 +149,8 @@ export const HUNTING_CREATURES = [
     asset: "/assets/creatures/animals/red-deer-hunting-v1.png",
     attackStyle: "MELEE",
     attackChance: 0.05,
-    damageMin: 3,
-    damageMax: 7,
+    damageMin: 6,
+    damageMax: 11,
     drops: [
       {
         itemName: "Game Meat",
@@ -189,8 +189,8 @@ export const HUNTING_CREATURES = [
     asset: "/assets/creatures/animals/wild-boar-hunting-v1.png",
     attackStyle: "MELEE",
     attackChance: 0.18,
-    damageMin: 6,
-    damageMax: 12,
+    damageMin: 7,
+    damageMax: 14,
     drops: [
       {
         itemName: "Game Meat",
@@ -229,8 +229,8 @@ export const HUNTING_CREATURES = [
     asset: "/assets/creatures/animals/grey-wolf-hunting-v1.png",
     attackStyle: "MELEE",
     attackChance: 0.24,
-    damageMin: 7,
-    damageMax: 14,
+    damageMin: 8,
+    damageMax: 15,
     drops: [
       {
         itemName: "Raw Hide",
@@ -269,8 +269,8 @@ export const HUNTING_CREATURES = [
     asset: "/assets/creatures/animals/marsh-crocodile-hunting-v1.png",
     attackStyle: "MELEE",
     attackChance: 0.3,
-    damageMin: 10,
-    damageMax: 18,
+    damageMin: 43,
+    damageMax: 79,
     drops: [
       {
         itemName: "Game Meat",
@@ -309,8 +309,8 @@ export const HUNTING_CREATURES = [
     asset: "/assets/creatures/animals/mountain-goat-hunting-v1.png",
     attackStyle: "MELEE",
     attackChance: 0.1,
-    damageMin: 5,
-    damageMax: 10,
+    damageMin: 39,
+    damageMax: 72,
     drops: [
       {
         itemName: "Game Meat",
@@ -349,8 +349,8 @@ export const HUNTING_CREATURES = [
     asset: "/assets/creatures/animals/frostfang-lynx-hunting-v1.png",
     attackStyle: "MELEE",
     attackChance: 0.32,
-    damageMin: 12,
-    damageMax: 21,
+    damageMin: 53,
+    damageMax: 98,
     drops: [
       {
         itemName: "Thick Fur",
@@ -389,8 +389,8 @@ export const HUNTING_CREATURES = [
     asset: "/assets/creatures/animals/ashback-bear-hunting-v1.png",
     attackStyle: "MELEE",
     attackChance: 0.38,
-    damageMin: 16,
-    damageMax: 28,
+    damageMin: 47,
+    damageMax: 87,
     drops: [
       {
         itemName: "Game Meat",
@@ -429,8 +429,8 @@ export const HUNTING_CREATURES = [
     asset: "/assets/creatures/animals/briarback-badger-hunting-v1.png",
     attackStyle: "MELEE",
     attackChance: 0.16,
-    damageMin: 6,
-    damageMax: 11,
+    damageMin: 35,
+    damageMax: 66,
     drops: [
       {
         itemName: "Raw Hide",
@@ -462,8 +462,8 @@ export const HUNTING_CREATURES = [
     asset: "/assets/creatures/animals/snowhorn-ram-hunting-v1.png",
     attackStyle: "MELEE",
     attackChance: 0.23,
-    damageMin: 10,
-    damageMax: 18,
+    damageMin: 47,
+    damageMax: 87,
     drops: [
       {
         itemName: "Game Meat",
@@ -502,8 +502,8 @@ export const HUNTING_CREATURES = [
     asset: "/assets/creatures/animals/ruin-viper-hunting-v1.png",
     attackStyle: "MELEE",
     attackChance: 0.34,
-    damageMin: 14,
-    damageMax: 24,
+    damageMin: 82,
+    damageMax: 152,
     drops: [
       {
         itemName: "Sharp Fang",
@@ -535,8 +535,8 @@ export const HUNTING_CREATURES = [
     asset: "/assets/creatures/animals/cinder-jackal-hunting-v1.png",
     attackStyle: "MELEE",
     attackChance: 0.42,
-    damageMin: 20,
-    damageMax: 32,
+    damageMin: 160,
+    damageMax: 297,
     drops: [
       {
         itemName: "Thick Fur",
@@ -575,8 +575,8 @@ export const HUNTING_CREATURES = [
     asset: "/assets/creatures/animals/mangrove-panther-hunting-v1.png",
     attackStyle: "MELEE",
     attackChance: 0.48,
-    damageMin: 26,
-    damageMax: 40,
+    damageMin: 224,
+    damageMax: 415,
     drops: [
       {
         itemName: "Thick Fur",
@@ -630,8 +630,8 @@ export const HUNTING_GROUNDS = [
       "Managed woodland beyond the outer wall, crossed by deer paths and kitchen-garden hedges.",
     requiredHuntingLevel: 1,
     accidentChance: 0.02,
-    accidentDamageMin: 1,
-    accidentDamageMax: 3,
+    accidentDamageMin: 2,
+    accidentDamageMax: 4,
     sortOrder: 10,
     creatures: [
       { name: "Meadow Hare", encounterWeight: 5 },
@@ -645,7 +645,7 @@ export const HUNTING_GROUNDS = [
       "Long grass, low hedges, and open sightlines favor patient tracking over a hurried chase.",
     requiredHuntingLevel: 1,
     accidentChance: 0.025,
-    accidentDamageMin: 1,
+    accidentDamageMin: 2,
     accidentDamageMax: 4,
     sortOrder: 10,
     creatures: [
@@ -662,7 +662,7 @@ export const HUNTING_GROUNDS = [
     requiredHuntingLevel: 5,
     accidentChance: 0.04,
     accidentDamageMin: 2,
-    accidentDamageMax: 5,
+    accidentDamageMax: 4,
     sortOrder: 20,
     creatures: [
       { name: "Meadow Hare", encounterWeight: 4 },
@@ -677,7 +677,7 @@ export const HUNTING_GROUNDS = [
     requiredHuntingLevel: 8,
     accidentChance: 0.035,
     accidentDamageMin: 2,
-    accidentDamageMax: 6,
+    accidentDamageMax: 4,
     sortOrder: 10,
     creatures: [
       { name: "Red Deer", encounterWeight: 4 },
@@ -692,8 +692,8 @@ export const HUNTING_GROUNDS = [
       "Dense ash trunks and smoky undergrowth conceal strong game and territorial predators.",
     requiredHuntingLevel: 18,
     accidentChance: 0.055,
-    accidentDamageMin: 3,
-    accidentDamageMax: 8,
+    accidentDamageMin: 8,
+    accidentDamageMax: 18,
     sortOrder: 10,
     creatures: [
       { name: "Wild Boar", encounterWeight: 4 },
@@ -709,8 +709,8 @@ export const HUNTING_GROUNDS = [
       "Raised paths cross black water and reed beds where prints disappear as quickly as they form.",
     requiredHuntingLevel: 24,
     accidentChance: 0.07,
-    accidentDamageMin: 4,
-    accidentDamageMax: 10,
+    accidentDamageMin: 8,
+    accidentDamageMax: 18,
     sortOrder: 20,
     creatures: [
       { name: "Wild Boar", encounterWeight: 3 },
@@ -725,8 +725,8 @@ export const HUNTING_GROUNDS = [
       "Wind-cut pine slopes hold narrow game trails above deep drifts and hidden stone.",
     requiredHuntingLevel: 35,
     accidentChance: 0.08,
-    accidentDamageMin: 5,
-    accidentDamageMax: 12,
+    accidentDamageMin: 9,
+    accidentDamageMax: 21,
     sortOrder: 10,
     creatures: [
       { name: "Mountain Goat", encounterWeight: 5 },
@@ -741,8 +741,8 @@ export const HUNTING_GROUNDS = [
       "Overgrown terraces and roofless courts draw prey, predators, and hunters into close quarters.",
     requiredHuntingLevel: 52,
     accidentChance: 0.075,
-    accidentDamageMin: 5,
-    accidentDamageMax: 13,
+    accidentDamageMin: 14,
+    accidentDamageMax: 32,
     sortOrder: 10,
     creatures: [
       { name: "Red Deer", encounterWeight: 3 },
@@ -758,8 +758,8 @@ export const HUNTING_GROUNDS = [
       "Charred woodland clings to volcanic ledges where heat haze and brittle ground hide every misstep.",
     requiredHuntingLevel: 70,
     accidentChance: 0.1,
-    accidentDamageMin: 7,
-    accidentDamageMax: 16,
+    accidentDamageMin: 25,
+    accidentDamageMax: 58,
     sortOrder: 10,
     creatures: [
       { name: "Mountain Goat", encounterWeight: 3 },
@@ -774,8 +774,8 @@ export const HUNTING_GROUNDS = [
       "Tidal roots and hidden pools make quiet progress possible, but retreat difficult.",
     requiredHuntingLevel: 80,
     accidentChance: 0.09,
-    accidentDamageMin: 6,
-    accidentDamageMax: 15,
+    accidentDamageMin: 33,
+    accidentDamageMax: 76,
     sortOrder: 10,
     creatures: [
       { name: "Marsh Crocodile", encounterWeight: 4 },

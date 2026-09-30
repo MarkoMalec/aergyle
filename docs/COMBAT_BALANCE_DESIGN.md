@@ -1,10 +1,12 @@
 # Combat and stat balance plan
 
-**Status: planned, not implemented.** Agreed with the game's owner on
-30 September 2026. The code still runs the formulas listed in
-[FORMULA_REFERENCE.md](FORMULA_REFERENCE.md). Implement from this document.
-When a part lands, describe it in the system docs
-([CHARACTER_STATS_SYSTEM.md](CHARACTER_STATS_SYSTEM.md),
+**Status: phase 1 is implemented; phases 2-4 are planned.** Agreed with the
+game's owner on 30 September 2026. Phase 1 (armor against every hit with a
+level-scaled K, Magic Resist as a capped percentage, block on physical hits
+only) and the first real content pass ("Budgets" below) were built on the
+branch `current-gear-balancing`. [FORMULA_REFERENCE.md](FORMULA_REFERENCE.md)
+lists every formula as it runs. When a later part lands, describe it in the
+system docs ([CHARACTER_STATS_SYSTEM.md](CHARACTER_STATS_SYSTEM.md),
 [DUNGEONS_SYSTEM.md](DUNGEONS_SYSTEM.md), [HUNTING_SYSTEM.md](HUNTING_SYSTEM.md)),
 update the formula reference, and mark the part done here.
 
@@ -69,10 +71,13 @@ Accepted recommendations (confirm the default numbers when implementing):
 
 Still open:
 
-- Target reduction for on-level armor: 50% (K₀ = 50, K₁ = 3, the default) or
-  60% (K₀ = 33, K₁ = 2).
-- Resistance caps. 75% in PvE and 30% in PvP are the starting values. The cap
-  decides how strongly a Magic Resist stacker counters a magic build.
+- Target reduction for on-level armor. Built at 50% (K₀ = 50, K₁ = 3); 60%
+  would be K₀ = 33, K₁ = 2, both editable on /admin/character-stats. Gear
+  budgets are derived from K, so changing it means re-running the content
+  pass.
+- Resistance caps. 75% applies everywhere today (`RESISTANCE_CAP`); 30% is
+  the planned PvP cap. The cap decides how strongly a Magic Resist stacker
+  counters a magic build.
 - Prayer Points and Gold Find stay hidden until a system reads them.
 - The PvP format itself.
 
@@ -146,9 +151,9 @@ authored to K, not the other way round.
 - Magic Resist changes from a rating to a percentage, like Fire, Cold,
   Lightning and Poison. Each resistance reduces only its own damage type, on
   top of armor.
-- Caps: 75% in PvE and 30% in PvP, both in /admin. The floor stays −100%,
-  which lets a monster show a weakness: at −25% Magic Resist it takes 1.25×
-  magic damage.
+- Caps: 75% (`RESISTANCE_CAP`, a code constant for now); PvP will need its
+  own, lower cap of about 30%. The floor stays −100%, which lets a monster
+  show a weakness: at −25% Magic Resist it takes 1.25× magic damage.
 - Base growth matches the elements: +0.1 per level, up to +10.
 - Elemental damage now goes through armor too. No creature in the content
   packs deals magic or elemental damage yet, so nothing existing changes.
@@ -207,9 +212,10 @@ answers spells, so each damage type has exactly one bounded counter. Keep the
 ## Attack speed
 
 - Only the main-hand weapon sets attack speed, and rarity doesn't scale it.
-  Both are already true. Its level growth becomes 0.
+  The content pass also set its level growth to 0 and took it off the three
+  pairs of gloves that had it.
 - Non-weapon items don't carry attack speed; the admin item editor should
-  warn when one does.
+  warn when one does (not built yet).
 - Show weapons as damage per round: average damage × attack speed.
 - Reason: a flat +0.4 makes a 0.55 weapon 73% faster but a 1.0 weapon only
   40% faster, and in the dungeon resolver speed is simply a second damage
@@ -284,6 +290,85 @@ The 33 player-facing stats become 26 visible ones, plus 2 hidden until used.
 - **The character sheet** should show Armor with its reduction against a
   same-level enemy. The row is commented out today.
 
+## Budgets: authoring gear and monsters by level
+
+`src/game/balance/budget.ts` defines what gear and monsters of a level
+should carry. Item values are Common-equivalent, the way `ItemStat` stores
+them; an item's rarity multiplies them.
+
+- **Armor.** A full on-level heavy set at Rare, plus the level's base armor,
+  equals K: `set armor (Common) = (K(L) − base armor(L)) ÷ 1.35`. Slots take
+  fixed shares (chest 25%, greaves 18%, head 13%, pauldrons 11%, boots 9%,
+  bracers, gloves and belt 8% each), and material scales them (heavy 1,
+  medium 0.85, light 0.45). A shield carries 15% of a set.
+- **Weapons.** Damage per round (average damage × attack speed) is
+  `6 + 1.4 × (level − 1)` for a one-handed weapon and 1.3 times that for a
+  two-handed one. The weapon keeps its own attack speed, so a fast weapon
+  hits for less each time.
+- **Secondary stats** share an item's budget. Each stat has a value at the
+  item's level for an item that carries only that stat: for example 2-5%
+  critical chance, 3-8% Magic Resist, 4-10% elemental resistance, or 4.4% of
+  base health. Bigger pieces carry more (a chest 2×, gloves 0.64×, weapons
+  1.5-2×, jewelry 1×). Several stats split the budget with a small bonus per
+  extra stat, so two stats get 75% each and three get 67%. Percentage stats
+  reach their ceiling at `CONTENT_LEVEL_CAP` (340) and are capped per item at
+  twice their value (`maxValue`), so rarity can't push them into the hard
+  caps.
+- **Monsters.** A reference character of the level (1.3 × base health, armor
+  equal to K, a Rare on-level weapon) kills a normal monster in about four
+  rounds. Monster armor is a share of K: normal 0.25 K (20%), elite 0.35 K,
+  boss 0.5 K (33%). Rank multiplies health and damage: fodder 0.5 and 0.4,
+  elite 2.5 and 1.3, boss 8 and 1.8. Dungeons field different numbers of
+  monsters, so damage is then calibrated per dungeon: `scripts/rebalanceGear.ts`
+  finds one damage scale for each dungeon's own monsters so an on-level
+  reference character clears it 75% of the time (65% with a boss).
+- **Dungeons are the risky, rewarding activity.** They start at level 35,
+  after players have geared up in the open world, and a run takes 2-6 hours.
+  Being on level in on-level Rare gear isn't enough to be safe: 10 levels
+  over, or better gear, makes a run near-certain. A run pays
+  `2.5 × (1,300 + 6 × level)` XP per hour, about 2.5 times what the best
+  vocations pay around that level, and a defeat pays no XP and keeps little
+  loot. The planner's recommended health (enough for 90% of runs) is how a
+  player judges whether to go in.
+- **Hunting.** An animal hits for `0.12 × (0.5 + attack chance) × reference
+  health` at its home level, the lowest location level it roams. A mishap
+  costs 2% of reference health at the ground's location level.
+
+### The level-340 content pass (30 September 2026)
+
+`scripts/rebalanceGear.ts` placed every existing piece of gear, every monster
+and every dungeon on this ladder. Levels follow the world map. The gaps
+between tiers are deliberate: that's where new gear goes.
+
+| Level | Gear | Dungeon |
+| --- | --- | --- |
+| 1 | Wooden weapons, Buckler, Trailwarden set, Fieldweave (1-12), Ironroot Band, Pilgrim's Bronze Ankh | |
+| 5-10 | Tin Sword, Leather Belt, Wayfarer Shortblade, Tinker's Brass Signet, Rowan Bead Necklace | |
+| 15 | Gold set and Gold jewelry | |
+| 20-30 | Bearded Greataxe, Iron Shield, Briarcleaver, Mossweave (gathering) | |
+| 35-40 | Ironbark set | Gloamvault, Crownhold (35, 2 h) |
+| 60 | Reedwind Bow, Fordstone Talisman | Gloamvault, Valedor (60, 3 h) |
+| 100-120 | Frostsilver set, Ogre Cleaver, Cindermaul | Blackjaw Stockade (100, 4 h) |
+| 150-180 | Dragonscale Shoulder Pads, Cinderweave set | Drowned Mouth Grotto (180, 5 h) |
+| 200-260 | Silver Revolver, Diamond Ring, Duskglass Staff | |
+| 300 | Duskwarden set | Trollbreaker Cavern (300, 6 h) |
+| 340 | Embervein Sword | |
+
+Monsters that aren't in a dungeon yet got levels for dungeons in the gaps:
+Puddle Slime 45, Mire ooze 80, Bat 130, Carrion Hound 150, Cavefang Spider
+230, Rattlebone Skeleton 260. Crafting recipes kept their skill levels. On the live curves
+they already cost about as much XP as the character levels their gear now
+sits at: skill 20 ≈ character 35, 65 ≈ 124, 105 ≈ 208.
+
+To add gear, pick a level in a gap, choose the slot, material and secondary
+stats, and take the numbers from `budgetItemStats`; the script shows how. For
+a new monster, start from `monsterBudget` for its level and rank, then tune
+its damage against the dungeon's population in the admin dungeon preview.
+
+The plan the script applies, with before and after values and the dungeon
+and hunting simulations, is `prisma/rebalance/plan.json`. `--apply` first
+saves every row it replaces to `prisma/rebalance/backup-*.json`.
+
 ## PvP (not built)
 
 - One resolver: each side's stat snapshot plays the monster's role for the
@@ -299,31 +384,28 @@ The 33 player-facing stats become 26 visible ones, plus 2 hidden until used.
 
 ## Implementation order
 
-### Phase 1: mitigation (no stat enum changes)
+### Phase 1: mitigation (done, 30 September 2026)
 
-1. In `src/server/combat/rules.ts`, add one strike function used in both
-   directions, following "One hit, in order". `protectionMultiplier` takes K;
-   add `armorConstant(level, config)`. `characterStrike` in
-   `src/server/dungeons/resolver.ts` switches to the shared function.
-2. Add a `CombatConfig` singleton row (id 1, like `HuntingConfig` and
-   `DungeonConfig`) with K₀, K₁, the resistance caps for PvE and PvP, the
-   block and evasion caps, the accuracy weight, and the lifesteal and thorns
-   caps, edited in /admin. Code defaults apply when the row is missing. This
-   is a new table, so it needs a migration; ask the owner before applying any
-   migration.
-3. Snapshots: store `rules: 2`, the monster-side K and the character-side K
-   in the dungeon `combatSnapshot` and the hunting `riskConfig`. A snapshot
-   without `rules: 2` resolves with today's formulas, so runs already
-   underway are unaffected.
-4. Magic Resist as a percentage: its caps in `calculateFinalStatsFromTotals`,
-   its default growth (+0.1 per level, max +10) and its `STAT_METADATA`
-   format. Re-author creature and item Magic Resist values.
-5. Pass the config into the admin simulators (`src/game/balance/combat.ts`,
-   `src/server/dungeons/simulator.ts`), the dungeon planner and the creature
-   editor, and show "reduction at level" and the authoring budgets there.
-6. Tests in `tests/dungeons.test.ts`, `tests/hunting.test.ts` and
-   `tests/balance.test.ts`: K at armor 0, K and 9K; which level sets K; the
-   legacy snapshot path; block on physical damage only; the resistance caps.
+- `resolveCreatureStrike` and `resolveCharacterStrike` in
+  `src/server/combat/rules.ts` share `mitigateStrike`, which follows "One
+  hit, in order" (evasion is still chosen by attack style until phase 2).
+  The dungeon resolver's own `characterStrike` is gone.
+- `CombatConfig` (id 1: `armorK0`, `armorK1`, migration
+  `20260930120000_combat_config`) is edited on /admin/character-stats under
+  "Armor against each level". Without a row, `DEFAULT_COMBAT_CONFIG` (50, 3)
+  applies. The resistance, block and evasion caps are still code constants.
+- Snapshots carry the rules: dungeon `combatSnapshot.rules` holds
+  `{ incoming, outgoing }` and hunting `riskConfig.strikeRules` holds one
+  `StrikeRules`. A snapshot without them resolves with the original model
+  (`LEGACY_STRIKE_RULES`, version 1), so runs started before the change are
+  unaffected.
+- Magic Resist is capped at −100…75, grows 0.1 per level up to +10, and
+  displays as a percentage. Creatures accept −100…75 (negative is a
+  weakness).
+- The admin dungeon preview, the hunting simulator and /admin/simulations
+  resolve with the same rules, and the dungeon planner shows how much damage
+  the player's armor stops in each dungeon.
+- Tests: `tests/combat-rules.test.ts` and `tests/budget.test.ts`.
 
 ### Phase 2: stat list (Prisma enum migration)
 

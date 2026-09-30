@@ -9,6 +9,7 @@ import { cn } from "~/lib/utils";
 import {
   combatSnapshotFromStats,
   isFightableMonster,
+  type DungeonCombatRules,
   type DungeonCombatSnapshot,
   type DungeonDeathRules,
   type DungeonMonsterPoolEntry,
@@ -313,8 +314,10 @@ export function BalancePreview(props: {
   monsters: Map<number, AdminCreature>;
   character: TestCharacter;
   rules: DungeonDeathRules;
+  /** Armor rules for this dungeon's level and the test character's level. */
+  combatRules: DungeonCombatRules;
 }) {
-  const { character, packSize, rules } = props;
+  const { character, packSize, rules, combatRules } = props;
   const pool = useMemo(
     () => buildPool(props.population, props.monsters, character.level),
     [props.population, props.monsters, character.level],
@@ -337,12 +340,13 @@ export function BalancePreview(props: {
           packSize,
           startingHealth: character.health,
           deathRules: rules,
+          rules: combatRules,
           iterations: 1_000,
         }),
       );
     }, 300);
     return () => window.clearTimeout(timer);
-  }, [pool, character, packSize, rules]);
+  }, [pool, character, packSize, rules, combatRules]);
 
   const minMonsters = pool.reduce((sum, monster) => sum + monster.minCount, 0);
   const maxMonsters = pool.reduce((sum, monster) => sum + monster.maxCount, 0);

@@ -1,7 +1,8 @@
 # Formula reference
 
-Every formula the game runs, grouped by system, **as of 30 September 2026**.
-This page describes the code as it is. Planned changes are in
+Every formula the game runs, grouped by system, **as of 30 September 2026**
+(branch `current-gear-balancing`, with phase 1 of the combat plan). This page
+describes the code as it is. Planned changes are in
 [COMBAT_BALANCE_DESIGN.md](COMBAT_BALANCE_DESIGN.md); read its principles
 before changing any of these. Update this page whenever a formula changes.
 
@@ -22,18 +23,20 @@ Function names are stable; file paths are given for searching.
 | --- | --- | --- | --- |
 | Base stat by level | `level-1 value + min(cap, per level × (level − 1))` | Capped | `getLevelStatBonus`, `DEFAULT_LEVEL_GROWTH` in `src/utils/stats.ts`; edited at /admin/character-stats |
 | Stat total | `base + equipment + active food or potion`, all flat | Linear | `getCharacterStatSnapshot` in `src/server/stats.ts` |
-| Final caps and floors | crit ≤ 100; evasion, block ≤ 75; resistances −100…75; attack speed ≥ 0.1; lifesteal ≤ 100; health ≥ 1 | Capped | `calculateFinalStatsFromTotals` in `src/utils/stats.ts` |
+| Final caps and floors | crit ≤ 100; evasion, block ≤ 75; Magic Resist and elemental resistances −100…75; attack speed ≥ 0.1; lifesteal ≤ 100; health ≥ 1 | Capped | `calculateFinalStatsFromTotals` in `src/utils/stats.ts` |
 | Item stat at a rarity | `min(max value, base × rarity) + instance modifiers` | Linear | `scaleItemStat`, `resolveEffectiveItemStats` in `src/utils/itemInstanceStats.ts` |
 | Weapon attack speed | main-hand speed replaces the unarmed 1.0; level growth, other gear and food add on top | Linear | `weaponAttackSpeedAdjustment` in `src/utils/stats.ts`; `statScalesWithRarity` in `src/utils/itemInstanceStats.ts` |
 | Carrying capacity | `25 + floor(carrying capacity)` slots | Linear | `calculateInventoryCapacity` in `src/utils/inventoryCapacity.ts` |
 
 Default level growth (used when /admin has no saved rule): health 100 + 5 per
-level, physical damage 1–5 + 0.2/0.3, armor + 0.5, Magic Resist + 0.3, crit
-chance 5% + 0.1 (up to +10), crit damage 150% + 0.5 (up to +50), attack speed
-1.0 + 0.004 (up to +0.4), accuracy 10 + 0.2 (up to +20), each evasion 5% + 0.1
-(up to +10), each elemental resistance + 0.1 (up to +10), health regen
-1 + 0.05, mana 50 + 2, mana regen 1 + 0.02. Economy and vocation stats don't
-grow.
+level, physical damage 1–5 + 0.2/0.3, armor + 0.5, Magic Resist + 0.1 (up to
++10), crit chance 5% + 0.1 (up to +10), crit damage 150% + 0.5 (up to +50),
+attack speed 1.0 + 0.004 (up to +0.4), accuracy 10 + 0.2 (up to +20), each
+evasion 5% + 0.1 (up to +10), each elemental resistance + 0.1 (up to +10),
+health regen 1 + 0.05, mana 50 + 2, mana regen 1 + 0.02. Economy and vocation
+stats don't grow. The live rules differ: health grows 10 per level, health
+regen is 0.001 + 0.001 per level, and the content pass set attack speed
+growth to 0 and Magic Resist to + 0.1 (up to +10).
 
 Rarity multipliers (`RarityConfig`, defaults in `src/utils/rarity.ts`):
 Worthless 0.5, Broken 0.75, Common 1.0, Uncommon 1.15, Rare 1.35,
@@ -45,11 +48,14 @@ override or `maxValue` says otherwise.
 
 | Rule | Formula | Shape | Where |
 | --- | --- | --- | --- |
-| Armor and Magic Resist | `damage × 100 / (100 + max(0, protection))`, K = 100 at every level | Saturating | `protectionMultiplier` in `src/server/combat/rules.ts` |
-| Evasion, block, critical chance | `clamp(stat, 0, cap) / 100`; caps 75, 75, 100 | Capped | `percentChance` in `src/server/combat/rules.ts` |
+| Armor K | `K = armorK0 + armorK1 × attacker level` (50 and 3 by default): the armor that halves that attacker's damage | Linear | `armorConstant` in `src/server/combat/rules.ts`; `CombatConfig`, edited on /admin/character-stats |
+| Armor | `damage × K / (K + max(0, armor))`, on every hit: physical, magic and elemental | Saturating | `protectionMultiplier`, `mitigateStrike` in `src/server/combat/rules.ts` |
+| Magic Resist, elemental resistances | `damage × (1 − clamp(resist, −100, 75) / 100)`, on their own damage type, on top of armor | Capped | `mitigateStrike` in `src/server/combat/rules.ts` |
+| Evasion, block, critical chance | `clamp(stat, 0, cap) / 100`; caps 75, 75, 100. Block halves physical damage only | Capped | `percentChance`, `mitigateStrike` in `src/server/combat/rules.ts` |
 | Critical damage | `hit × max(1, critical damage / 100)` | Linear | `criticalMultiplier` in `src/server/combat/rules.ts` |
-| Creature hits a character | evasion for the attack style → block roll → `physical × armor mult + magic × Magic Resist mult + element × (1 − resist / 100)` → crit → × 0.5 if blocked | Procedure | `resolveCreatureStrike` in `src/server/combat/rules.ts` (dungeons and hunting retaliation) |
-| Character hits a monster | monster evasion → `physical × armor mult + magic × Magic Resist mult` → crit → × 0.5 on a monster block | Procedure | `characterStrike` in `src/server/dungeons/resolver.ts` |
+| Creature hits a character | evasion for the attack style → block roll → `(physical × (blocked ? 0.5 : 1) + magic × (1 − MR%) + element × (1 − resist%)) × K / (K + armor)` → crit. K from the content's level: the dungeon's, or the hunting ground's location | Procedure | `resolveCreatureStrike` in `src/server/combat/rules.ts` (dungeons and hunting retaliation) |
+| Character hits a monster | monster evasion → the same mitigation with the monster's armor, Magic Resist and block, K from the character's level → crit | Procedure | `resolveCharacterStrike` in `src/server/combat/rules.ts` |
+| Rules in a snapshot | runs store their K values (`combatSnapshot.rules`, `riskConfig.strikeRules`); a run without them uses the original model: K = 100, armor against physical only, Magic Resist as a rating, block on any hit | Procedure | `parseStrikeRules`, `parseDungeonCombatRules` |
 | Dungeon rounds | each round the character strikes `attack speed` times (0.1–10, fractions carry over) and every engaged monster strikes once; pack size 1–10; lost after 10,000 rounds | Procedure | `resolveDungeonRun` in `src/server/dungeons/resolver.ts` |
 | Dungeon defeat | each looted stack survives with chance 0.35 and keeps 25% of its quantity (at least 1) | Procedure | `applyDungeonDeathPenalty`; `DungeonConfig` defaults in `src/server/dungeons/service.ts` |
 | Dungeon entry | level ≥ `max(dungeon level, location level)` and health ≥ 25% | Procedure | `startDungeonRun` in `src/server/dungeons/service.ts` |

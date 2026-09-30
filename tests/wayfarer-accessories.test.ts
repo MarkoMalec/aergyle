@@ -8,7 +8,7 @@ import {
 } from "../prisma/content/wayfarerAccessories";
 import { resolveEffectiveItemStats } from "../src/utils/itemInstanceStats";
 
-void test("the pack contains the requested low-tier equipment mix", () => {
+void test("the pack contains the requested accessory mix", () => {
   assert.equal(WAYFARER_ACCESSORIES.length, 6);
   assert.equal(new Set(WAYFARER_ACCESSORIES.map((item) => item.slug)).size, 6);
   assert.equal(new Set(WAYFARER_ACCESSORIES.map((item) => item.name)).size, 6);
@@ -24,7 +24,8 @@ void test("the pack contains the requested low-tier equipment mix", () => {
   );
   for (const item of WAYFARER_ACCESSORIES) {
     assert.ok(["COMMON", "UNCOMMON"].includes(item.rarity));
-    assert.ok(item.requiredLevel >= 1 && item.requiredLevel <= 5);
+    // Spread across the level ladder by the gear rebalance (1-60).
+    assert.ok(item.requiredLevel >= 1 && item.requiredLevel <= 60);
     assert.ok(item.price > 0);
   }
 });

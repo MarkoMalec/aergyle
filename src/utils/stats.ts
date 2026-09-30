@@ -125,7 +125,8 @@ const DEFAULT_LEVEL_GROWTH: Partial<
   ATTACK_SPEED: { perLevel: 0.004, maxBonus: 0.4 },
   ACCURACY: { perLevel: 0.2, maxBonus: 20 },
   ARMOR: { perLevel: 0.5, maxBonus: null },
-  MAGIC_RESIST: { perLevel: 0.3, maxBonus: null },
+  // A percentage on top of armor, like the elemental resistances.
+  MAGIC_RESIST: { perLevel: 0.1, maxBonus: 10 },
   EVASION_MELEE: { perLevel: 0.1, maxBonus: 10 },
   EVASION_RANGED: { perLevel: 0.1, maxBonus: 10 },
   EVASION_MAGIC: { perLevel: 0.1, maxBonus: 10 },
@@ -189,8 +190,7 @@ export function weaponAttackSpeedAdjustment(
   } | null,
 ): number {
   const speedOf = (stats: ReadonlyArray<StatValue> | undefined) =>
-    stats?.find((stat) => stat.statType === StatType.ATTACK_SPEED)?.value ??
-    0;
+    stats?.find((stat) => stat.statType === StatType.ATTACK_SPEED)?.value ?? 0;
   const offhandWeaponSpeed =
     offhand?.equipTo === "weapon" ? speedOf(offhand.stats) : 0;
   return (
@@ -263,13 +263,13 @@ export function calculateFinalStatsFromTotals(
 
     // Defensive
     armor: Math.max(0, getStat(StatType.ARMOR)),
-    magicResist: Math.max(0, getStat(StatType.MAGIC_RESIST)),
+    magicResist: Math.min(75, Math.max(-100, getStat(StatType.MAGIC_RESIST))),
     evasionMelee: Math.min(75, Math.max(0, getStat(StatType.EVASION_MELEE))),
     evasionRanged: Math.min(75, Math.max(0, getStat(StatType.EVASION_RANGED))),
     evasionMagic: Math.min(75, Math.max(0, getStat(StatType.EVASION_MAGIC))),
     blockChance: Math.min(75, Math.max(0, getStat(StatType.BLOCK_CHANCE))),
 
-    // Resistances (capped at 75%)
+    // Elemental resistances (capped at 75%, like Magic Resist)
     fireResist: Math.min(75, Math.max(-100, getStat(StatType.FIRE_RESIST))),
     coldResist: Math.min(75, Math.max(-100, getStat(StatType.COLD_RESIST))),
     lightningResist: Math.min(

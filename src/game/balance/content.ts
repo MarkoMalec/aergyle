@@ -6,6 +6,7 @@ import type {
   StatType,
   VocationalActionType,
 } from "~/generated/prisma/enums";
+import type { CombatConfig } from "~/server/combat/rules";
 import type { DungeonMonsterPoolEntry } from "~/server/dungeons/resolver";
 import type { StatGrowthRule } from "~/utils/stats";
 
@@ -137,6 +138,8 @@ export type BalanceContent = {
   items: BalanceItem[];
   rarities: BalanceRarity[];
   statGrowth: Record<StatType, StatGrowthRule>;
+  /** Armor constants, so simulated runs mitigate like live ones. */
+  combat: CombatConfig;
   /** Longest single vocation start. */
   vocationMaxSeconds: number;
 };

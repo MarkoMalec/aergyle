@@ -1,6 +1,8 @@
 import { ItemEquipTo, StatType, type ItemRarity } from "~/generated/prisma/enums";
+import type { CombatConfig } from "~/server/combat/rules";
 import {
   combatSnapshotFromStats,
+  dungeonCombatRules,
   resolveDungeonRun,
   type DungeonCombatSnapshot,
 } from "~/server/dungeons/resolver";
@@ -156,16 +158,20 @@ export function combatAtLevel(
 export type SurvivalResult = { rate: number; averageDamage: number; runs: number };
 
 /**
- * Share of runs a character survives, starting at full health. A fixed seed
- * keeps results stable between renders. Stops early once `target` can no
- * longer be reached, which keeps hopeless level searches cheap.
+ * Share of runs a character of `level` survives, starting at full health,
+ * under the same armor rules as a live run. A fixed seed keeps results
+ * stable between renders. Stops early once `target` can no longer be
+ * reached, which keeps hopeless level searches cheap.
  */
 export function dungeonSurvival(
   dungeon: BalanceDungeon,
   combat: DungeonCombatSnapshot,
+  level: number,
+  config: CombatConfig,
   iterations: number,
   target = 0,
 ): SurvivalResult {
+  const rules = dungeonCombatRules(dungeon.requiredLevel, level, config);
   const random = createExpeditionRandom(`balance:${dungeon.id}`);
   const allowedDeaths = Math.floor(iterations * (1 - target));
   let cleared = 0;
@@ -178,6 +184,7 @@ export function dungeonSurvival(
       packSize: dungeon.packSize,
       startingHealth: combat.maxHealth,
       deathRules: { keepChance: 0, quantityPercent: 0 },
+      rules,
       random,
     });
     damage += report.damageTaken;
@@ -197,12 +204,14 @@ export function dungeonSurvival(
 export function lowestSurvivingLevel(
   dungeon: BalanceDungeon,
   combatFor: (level: number) => DungeonCombatSnapshot,
+  config: CombatConfig,
   target: number,
   maxLevel: number,
   iterations: number,
 ): number | null {
   const survives = (level: number) =>
-    dungeonSurvival(dungeon, combatFor(level), iterations, target).rate >= target;
+    dungeonSurvival(dungeon, combatFor(level), level, config, iterations, target)
+      .rate >= target;
   if (!survives(maxLevel)) return null;
   let low = 1;
   let high = maxLevel;

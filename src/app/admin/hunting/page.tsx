@@ -3,68 +3,77 @@ import { CreatureKind } from "~/generated/prisma/enums";
 import { HuntingAdminClient } from "~/components/admin/hunting/HuntingAdminClient";
 import { prisma } from "~/lib/prisma";
 import { requireAdminPageAccess } from "~/server/admin/auth";
+import { getCombatConfig } from "~/server/combat/config";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function AdminHuntingPage() {
   await requireAdminPageAccess();
-  const [config, durations, creatures, grounds, locations, items] =
-    await Promise.all([
-      prisma.huntingConfig.findUnique({ where: { id: 1 } }),
-      prisma.huntingDuration.findMany({
-        orderBy: [{ sortOrder: "asc" }, { durationSeconds: "asc" }],
-      }),
-      prisma.creature.findMany({
-        where: { kind: CreatureKind.ANIMAL },
-        orderBy: { name: "asc" },
-        include: {
-          drops: {
-            orderBy: [{ requiredLevel: "asc" }, { id: "asc" }],
-            include: {
-              item: {
-                select: {
-                  id: true,
-                  name: true,
-                  sprite: true,
-                  rarity: true,
-                },
+  const [
+    config,
+    durations,
+    creatures,
+    grounds,
+    locations,
+    items,
+    combatConfig,
+  ] = await Promise.all([
+    prisma.huntingConfig.findUnique({ where: { id: 1 } }),
+    prisma.huntingDuration.findMany({
+      orderBy: [{ sortOrder: "asc" }, { durationSeconds: "asc" }],
+    }),
+    prisma.creature.findMany({
+      where: { kind: CreatureKind.ANIMAL },
+      orderBy: { name: "asc" },
+      include: {
+        drops: {
+          orderBy: [{ requiredLevel: "asc" }, { id: "asc" }],
+          include: {
+            item: {
+              select: {
+                id: true,
+                name: true,
+                sprite: true,
+                rarity: true,
               },
             },
           },
         },
-      }),
-      prisma.huntingGround.findMany({
-        orderBy: [
-          { location: { name: "asc" } },
-          { sortOrder: "asc" },
-          { name: "asc" },
-        ],
-        include: {
-          location: { select: { id: true, name: true } },
-          creatures: {
-            select: {
-              creatureId: true,
-              enabled: true,
-              encounterWeight: true,
-            },
+      },
+    }),
+    prisma.huntingGround.findMany({
+      orderBy: [
+        { location: { name: "asc" } },
+        { sortOrder: "asc" },
+        { name: "asc" },
+      ],
+      include: {
+        location: { select: { id: true, name: true } },
+        creatures: {
+          select: {
+            creatureId: true,
+            enabled: true,
+            encounterWeight: true,
           },
         },
-      }),
-      prisma.location.findMany({
-        orderBy: { name: "asc" },
-        select: { id: true, name: true },
-      }),
-      prisma.item.findMany({
-        orderBy: { name: "asc" },
-        select: {
-          id: true,
-          name: true,
-          sprite: true,
-          rarity: true,
-        },
-      }),
-    ]);
+      },
+    }),
+    prisma.location.findMany({
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, requiredLevel: true },
+    }),
+    prisma.item.findMany({
+      orderBy: { name: "asc" },
+      select: {
+        id: true,
+        name: true,
+        sprite: true,
+        rarity: true,
+      },
+    }),
+    getCombatConfig(),
+  ]);
 
   const resolvedConfig = config ?? {
     id: 1,
@@ -145,6 +154,7 @@ export default async function AdminHuntingPage() {
         }))}
         locations={locations}
         items={items}
+        combatConfig={combatConfig}
       />
     </div>
   );

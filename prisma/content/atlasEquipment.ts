@@ -53,7 +53,7 @@ function armor(
     itemType,
     equipTo,
     rarity: beginner ? "RARE" : "EPIC",
-    requiredLevel: beginner ? 1 : 50,
+    requiredLevel: beginner ? 1 : 300,
     price,
     stats,
   };
@@ -70,13 +70,13 @@ export const ATLAS_EQUIPMENT: readonly AtlasItemDefinition[] = [
     itemType: "SWORD",
     equipTo: "weapon",
     rarity: "RARE",
-    requiredLevel: 1,
+    requiredLevel: 10,
     price: 110,
     stats: {
-      PHYSICAL_DAMAGE_MIN: 5,
-      PHYSICAL_DAMAGE_MAX: 9,
+      PHYSICAL_DAMAGE_MIN: 15,
+      PHYSICAL_DAMAGE_MAX: 24,
       ATTACK_SPEED: 0.95,
-      ACCURACY: 2,
+      ACCURACY: 4,
     },
   },
   {
@@ -88,13 +88,13 @@ export const ATLAS_EQUIPMENT: readonly AtlasItemDefinition[] = [
     itemType: "AXE",
     equipTo: "weapon",
     rarity: "RARE",
-    requiredLevel: 10,
+    requiredLevel: 30,
     price: 650,
     stats: {
-      PHYSICAL_DAMAGE_MIN: 18,
-      PHYSICAL_DAMAGE_MAX: 29,
+      PHYSICAL_DAMAGE_MIN: 41,
+      PHYSICAL_DAMAGE_MAX: 76,
       ATTACK_SPEED: 0.8,
-      CRITICAL_DAMAGE: 8,
+      CRITICAL_DAMAGE: 14,
     },
   },
   {
@@ -106,14 +106,14 @@ export const ATLAS_EQUIPMENT: readonly AtlasItemDefinition[] = [
     itemType: "BOW",
     equipTo: "weapon",
     rarity: "RARE",
-    requiredLevel: 20,
+    requiredLevel: 60,
     price: 1800,
     stats: {
-      PHYSICAL_DAMAGE_MIN: 30,
-      PHYSICAL_DAMAGE_MAX: 46,
+      PHYSICAL_DAMAGE_MIN: 71,
+      PHYSICAL_DAMAGE_MAX: 106,
       ATTACK_SPEED: 1,
-      ACCURACY: 12,
-      CRITICAL_CHANCE: 5,
+      ACCURACY: 10,
+      CRITICAL_CHANCE: 2.8,
     },
   },
   {
@@ -125,14 +125,14 @@ export const ATLAS_EQUIPMENT: readonly AtlasItemDefinition[] = [
     itemType: "MACE",
     equipTo: "weapon",
     rarity: "EPIC",
-    requiredLevel: 35,
+    requiredLevel: 120,
     price: 4600,
     stats: {
-      PHYSICAL_DAMAGE_MIN: 52,
-      PHYSICAL_DAMAGE_MAX: 78,
+      PHYSICAL_DAMAGE_MIN: 251,
+      PHYSICAL_DAMAGE_MAX: 377,
       ATTACK_SPEED: 0.55,
-      ARMOR: 12,
-      HEALTH: 40,
+      ARMOR: 29,
+      HEALTH: 63,
     },
   },
   {
@@ -145,13 +145,13 @@ export const ATLAS_EQUIPMENT: readonly AtlasItemDefinition[] = [
     equipTo: "weapon",
     twoHanded: true,
     rarity: "RARE",
-    requiredLevel: 40,
+    requiredLevel: 100,
     price: 3400,
     stats: {
-      PHYSICAL_DAMAGE_MIN: 38,
-      PHYSICAL_DAMAGE_MAX: 56,
+      PHYSICAL_DAMAGE_MIN: 246,
+      PHYSICAL_DAMAGE_MAX: 333,
       ATTACK_SPEED: 0.65,
-      CRITICAL_DAMAGE: 6,
+      CRITICAL_DAMAGE: 26,
     },
   },
   {
@@ -163,14 +163,13 @@ export const ATLAS_EQUIPMENT: readonly AtlasItemDefinition[] = [
     itemType: "STAFF",
     equipTo: "weapon",
     rarity: "EPIC",
-    requiredLevel: 50,
+    requiredLevel: 260,
     price: 7800,
     stats: {
-      MAGIC_DAMAGE_MIN: 72,
-      MAGIC_DAMAGE_MAX: 108,
+      MAGIC_DAMAGE_MIN: 451,
+      MAGIC_DAMAGE_MAX: 676,
       ATTACK_SPEED: 0.85,
-      MANA: 80,
-      MANA_REGEN: 2,
+      CRITICAL_CHANCE: 8.6,
     },
   },
 
@@ -182,7 +181,7 @@ export const ATLAS_EQUIPMENT: readonly AtlasItemDefinition[] = [
     "head",
     70,
     "An iron brow and padded leather crown protect a new trailwarden without obscuring the road ahead.",
-    { ARMOR: 6, HEALTH: 12 },
+    { ARMOR: 5, HEALTH: 5 },
   ),
   armor(
     "trailwarden",
@@ -192,7 +191,7 @@ export const ATLAS_EQUIPMENT: readonly AtlasItemDefinition[] = [
     "chest",
     125,
     "Two fitted iron plates reinforce this moss-lined leather jerkin. The stitched chevron is the mark of the Trailwardens.",
-    { ARMOR: 12, HEALTH: 24 },
+    { ARMOR: 10, HEALTH: 9 },
   ),
   armor(
     "trailwarden",
@@ -202,7 +201,7 @@ export const ATLAS_EQUIPMENT: readonly AtlasItemDefinition[] = [
     "pauldrons",
     65,
     "Paired iron shoulder caps over supple leather, made to turn a glancing blow on a first expedition.",
-    { ARMOR: 5, HEALTH: 10 },
+    { ARMOR: 4, HEALTH: 4 },
   ),
   armor(
     "trailwarden",
@@ -212,7 +211,7 @@ export const ATLAS_EQUIPMENT: readonly AtlasItemDefinition[] = [
     "bracers",
     55,
     "Broad iron splints steady the forearms while well-worn straps leave the wrists free.",
-    { ARMOR: 3, ACCURACY: 2 },
+    { ARMOR: 3, ACCURACY: 1 },
   ),
   armor(
     "trailwarden",
@@ -222,7 +221,7 @@ export const ATLAS_EQUIPMENT: readonly AtlasItemDefinition[] = [
     "gloves",
     60,
     "Soft leather palms and a modest knuckle plate keep a beginner's grip sure in poor weather.",
-    { ARMOR: 3, ATTACK_SPEED: 0.04, CRITICAL_CHANCE: 1 },
+    { ARMOR: 3, CRITICAL_CHANCE: 1.3 },
   ),
   armor(
     "trailwarden",
@@ -232,7 +231,7 @@ export const ATLAS_EQUIPMENT: readonly AtlasItemDefinition[] = [
     "belt",
     50,
     "A wide, moss-lined leather belt with a plain iron buckle. Its familiar chevron is stitched to last.",
-    { ARMOR: 3, HEALTH: 16 },
+    { ARMOR: 3, HEALTH: 3 },
   ),
   armor(
     "trailwarden",
@@ -242,7 +241,7 @@ export const ATLAS_EQUIPMENT: readonly AtlasItemDefinition[] = [
     "greaves",
     95,
     "Strapped iron shin guards backed with leather, bearing the small scuffs of a road well traveled.",
-    { ARMOR: 8, HEALTH: 16 },
+    { ARMOR: 7, HEALTH: 6 },
   ),
   armor(
     "trailwarden",
@@ -252,7 +251,7 @@ export const ATLAS_EQUIPMENT: readonly AtlasItemDefinition[] = [
     "boots",
     75,
     "Stout leather boots with iron toes and moss-colored lining, ready for a long day on an unfamiliar trail.",
-    { ARMOR: 4, HEALTH: 8, MOVEMENT_SPEED: 2 },
+    { ARMOR: 4, HEALTH: 2, MOVEMENT_SPEED: 1.1 },
   ),
 
   armor(
@@ -263,7 +262,7 @@ export const ATLAS_EQUIPMENT: readonly AtlasItemDefinition[] = [
     "head",
     3200,
     "A closed midnight-steel helm crowned by the Duskwardens' brass compass point. Its narrow visor holds the horizon in focus.",
-    { ARMOR: 44, HEALTH: 90, MAGIC_RESIST: 10 },
+    { ARMOR: 77, HEALTH: 105, MAGIC_RESIST: 5.8 },
   ),
   armor(
     "duskwarden",
@@ -273,7 +272,7 @@ export const ATLAS_EQUIPMENT: readonly AtlasItemDefinition[] = [
     "chest",
     5400,
     "Sculpted midnight steel shields the heart behind a raised brass-edged kite. Indigo padding softens the weight of a veteran's duty.",
-    { ARMOR: 86, HEALTH: 180, MAGIC_RESIST: 18 },
+    { ARMOR: 148, HEALTH: 203, MAGIC_RESIST: 11.1 },
   ),
   armor(
     "duskwarden",
@@ -283,7 +282,7 @@ export const ATLAS_EQUIPMENT: readonly AtlasItemDefinition[] = [
     "pauldrons",
     2900,
     "Layered steel shoulder guards flare into restrained points. Their brass edges bear the heat marks of distant campaigns.",
-    { ARMOR: 38, HEALTH: 70, FIRE_RESIST: 8 },
+    { ARMOR: 65, HEALTH: 89, FIRE_RESIST: 6.1 },
   ),
   armor(
     "duskwarden",
@@ -293,7 +292,7 @@ export const ATLAS_EQUIPMENT: readonly AtlasItemDefinition[] = [
     "bracers",
     2300,
     "Kite-shaped steel plates protect a veteran's forearms while indigo lining keeps every measured movement precise.",
-    { ARMOR: 28, MAGIC_RESIST: 8, ACCURACY: 8 },
+    { ARMOR: 47, MAGIC_RESIST: 3.6, ACCURACY: 19 },
   ),
   armor(
     "duskwarden",
@@ -303,7 +302,7 @@ export const ATLAS_EQUIPMENT: readonly AtlasItemDefinition[] = [
     "gloves",
     2600,
     "Articulated midnight-steel fingers close beneath brass-edged knuckle plates, balancing protection with a practiced hand's speed.",
-    { ARMOR: 26, ATTACK_SPEED: 0.12, CRITICAL_CHANCE: 4 },
+    { ARMOR: 47, CRITICAL_CHANCE: 3 },
   ),
   armor(
     "duskwarden",
@@ -313,7 +312,7 @@ export const ATLAS_EQUIPMENT: readonly AtlasItemDefinition[] = [
     "belt",
     2200,
     "A substantial compass-point buckle anchors this indigo-backed steel girdle, made for those who endure the longest watch.",
-    { ARMOR: 24, HEALTH: 100, HEALTH_REGEN: 1.8 },
+    { ARMOR: 47, HEALTH: 65, HEALTH_REGEN: 1.85 },
   ),
   armor(
     "duskwarden",
@@ -323,7 +322,7 @@ export const ATLAS_EQUIPMENT: readonly AtlasItemDefinition[] = [
     "greaves",
     4200,
     "Long keeled shin plates and angular knee guards turn aside the cold and hard edges of the northern passes.",
-    { ARMOR: 62, HEALTH: 120, COLD_RESIST: 8 },
+    { ARMOR: 107, HEALTH: 146, COLD_RESIST: 10 },
   ),
   armor(
     "duskwarden",
@@ -333,7 +332,7 @@ export const ATLAS_EQUIPMENT: readonly AtlasItemDefinition[] = [
     "boots",
     2800,
     "Broad articulated steel boots lined with indigo cloth. A Duskwarden learns to cross broken ground with deliberate, quiet steps.",
-    { ARMOR: 32, HEALTH: 60, MOVEMENT_SPEED: 6, EVASION_MELEE: 4 },
+    { ARMOR: 53, HEALTH: 65, MOVEMENT_SPEED: 2.2, EVASION_MELEE: 2.2 },
   ),
 ];
 

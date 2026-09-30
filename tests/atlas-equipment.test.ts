@@ -25,7 +25,7 @@ void test("the pack contains six distinct weapons and complete Rare/Epic armor s
   assert.equal(ogreCleaver?.twoHanded, true);
   for (const [set, level, rarity] of [
     ["trailwarden", 1, "RARE"],
-    ["duskwarden", 50, "EPIC"],
+    ["duskwarden", 300, "EPIC"],
   ] as const) {
     const pieces = ATLAS_EQUIPMENT.filter((item) => item.set === set);
     assert.equal(pieces.length, 8);
