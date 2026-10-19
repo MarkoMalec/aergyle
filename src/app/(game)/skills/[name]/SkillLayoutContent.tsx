@@ -20,12 +20,15 @@ import { SkillMetricsPanel } from "~/components/game/skills/SkillMetricsPanel";
 import { SkillProgressPanel } from "~/components/game/skills/SkillProgressPanel";
 import type { SkillMetrics } from "~/server/skills/metrics";
 
-const SkillsLayoutContent = ({
+const SkillLayoutContent = ({
   children,
   params,
+  icon,
 }: {
   children: React.ReactNode;
   params: { name: string };
+  /** Painted skill icon, when one exists. */
+  icon: string | null;
 }) => {
   const { active, viewModel, stop, activeActionType } =
     useVocationalActiveActionContext();
@@ -116,6 +119,7 @@ const SkillsLayoutContent = ({
             <h2 className="game-section-label">Your progress</h2>
             <SkillProgressPanel
               skillName={decodedSkillName}
+              icon={icon}
               progress={skillProgress}
               loading={progressLoading}
             />
@@ -124,16 +128,29 @@ const SkillsLayoutContent = ({
           {showActive ? (
             <section>
               <h2 className="game-section-label">Current activity</h2>
-              <div className="game-panel-flat relative p-4">
-                <div className="absolute -top-2 right-1">
-                  <div className="flex items-center gap-1">
-                    <Badge className="border-transparent bg-secondary">
+              <div className="game-panel-flat flex items-center gap-3 p-4">
+                {viewModel.sprite && (
+                  <Image
+                    src={viewModel.sprite}
+                    alt=""
+                    width={1080}
+                    height={1080}
+                    className="h-14 w-14 shrink-0"
+                  />
+                )}
+                <div className="min-w-0 flex-1 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <p className="min-w-0 flex-1 truncate font-medium">
+                      {viewModel.label}
+                    </p>
+                    <Badge className="shrink-0 border-transparent bg-secondary tabular-nums">
                       {formatDuration(viewModel.sessionRemainingSeconds)}
                     </Badge>
                     {viewModel.canStop ? (
                       <Button
                         size="icon"
                         variant="ghost"
+                        className="-my-1 -mr-1.5 h-8 w-8 shrink-0"
                         onClick={stop}
                         aria-label="Stop active action"
                       >
@@ -141,54 +158,33 @@ const SkillsLayoutContent = ({
                       </Button>
                     ) : null}
                   </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  {viewModel.sprite && (
-                    <Image
-                      src={viewModel.sprite}
-                      alt=""
-                      width={1080}
-                      height={1080}
-                      className="h-14 w-14"
-                    />
-                  )}
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-3">
-                      <div className="flex-1">
-                        <p className="font-medium">{viewModel.label}</p>
-                      </div>
-                    </div>
-                    <ActionFillBar
-                      value={viewModel.progress}
-                      previewValue={viewModel.previewProgress}
-                      sessionAmount={viewModel.sessionAmount}
-                      title={viewModel.label}
-                      href={viewModel.href}
-                      sprite={viewModel.sprite}
-                      // trackClassName="bg-white/10"
-                      // fillClassName="bg-yellow-400"
-                      // tickClassName="bg-yellow-500/20"
-                      variant="simple"
-                    />
-                    {activeActionType !== "GATHERING" &&
-                    activeActionType !== "HUNTING" ? (
-                      <div className="flex flex-wrap items-center gap-2">
+                  <ActionFillBar
+                    value={viewModel.progress}
+                    previewValue={viewModel.previewProgress}
+                    sessionAmount={viewModel.sessionAmount}
+                    title={viewModel.label}
+                    href={viewModel.href}
+                    sprite={viewModel.sprite}
+                    variant="simple"
+                  />
+                  {activeActionType !== "GATHERING" &&
+                  activeActionType !== "HUNTING" ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge className="border-transparent bg-secondary tabular-nums">
+                        + {viewModel.sessionAmount}
+                      </Badge>
+                      {viewModel.nextItemInTime ? (
                         <Badge className="border-transparent bg-secondary tabular-nums">
-                          + {viewModel.sessionAmount}
+                          Next item in: {viewModel.nextItemInTime}
                         </Badge>
-                        {viewModel.nextItemInTime ? (
-                          <Badge className="border-transparent bg-secondary tabular-nums">
-                            Next item in: {viewModel.nextItemInTime}
-                          </Badge>
-                        ) : null}
-                        {Number(viewModel.xpPerSecond) > 0 ? (
-                          <Badge className="border-transparent bg-secondary">
-                            {viewModel.xpPerSecond} XP/s
-                          </Badge>
-                        ) : null}
-                      </div>
-                    ) : null}
-                  </div>
+                      ) : null}
+                      {Number(viewModel.xpPerSecond) > 0 ? (
+                        <Badge className="border-transparent bg-secondary">
+                          {viewModel.xpPerSecond} XP/s
+                        </Badge>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </section>
@@ -204,11 +200,4 @@ const SkillsLayoutContent = ({
   );
 };
 
-const SkillsLayout = (props: {
-  children: React.ReactNode;
-  params: { name: string };
-}) => {
-  return <SkillsLayoutContent {...props} />;
-};
-
-export default SkillsLayout;
+export default SkillLayoutContent;

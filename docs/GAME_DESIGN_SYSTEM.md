@@ -122,7 +122,7 @@ Use **soft, confident rectangles**. The shared radius token is 14px: panels use 
 
 Rounded corners are functional comfort. Character comes from the art, restrained material tint, crest and rarity system, not from making every corner sharp. Do not add simulated screws, leather straps or nested ornamental frames.
 
-The portrait has a fine outer brass edge, 14px corners and a very faint inner highlight. On desktop its minimum height is 320px and it stretches with the equipment panel; its absolutely positioned image does not dictate the grid height. Do not clip interactive containers: focus rings, rarity marks and dragged items must remain visible. Only the portrait image is intentionally cropped.
+The character hero is a borderless panel lit from the left by the chosen avatar's own `backdrop` gradient; the transparent avatar art stands in it and fades out towards the bottom. Do not clip interactive containers: focus rings, rarity marks and dragged items must remain visible. Only the avatar art is intentionally cropped.
 
 ## 9. Spacing & Layout
 
@@ -133,7 +133,7 @@ Use a 4px spacing base: 4, 8, 12, 16, 20, 24, 32, 48. The intentional 10px excep
 - Top bar: minimum 76px desktop / 68px mobile; sticky, opaque enough to read; grows when an action must wrap.
 - Page heading: 28px below, no bottom rule. Short description only if it helps orient the player.
 - Major panels: 24px apart. Panel header: 22px top / 24px sides, no dividing line; body: 24px; mobile header: 18px top / 16px sides, body: 16px.
-- Profile: portrait plus wider equipment panel; inventory below; attributes below the collection, with Character open and other categories expandable. At 900px and below, stack the portrait above equipment so the body arrangement keeps enough room.
+- Profile: the character hero is the page heading (avatar art, name, level and XP, live-regenerating health, current activity and location, six headline combat stats). Below it, from 1280px, two columns: equipment over vocations, and inventory over the attribute sheet, so the stats sit next to the bag gear is dragged from. Under 1280px the columns stack as equipment, inventory, attributes, vocations. Equipping shows a brief signed change beside every affected value (arrow and colour, cleared after about 3 seconds); each value's tooltip splits it into base, gear and meal and names any cap. Stat icons come from `stat-display.tsx`, which switches a stat to painted art once its file is in `public/assets/stats/`.
 - Vocation: resources plus a right column; stack at 1100px. Keep the resource choice and its cost close together. The right column reads Nearby, Your progress, Current activity (only while one runs) and Metrics, each under a centred `game-section-label` caption. Skill progress is a collapsible: closed it is one row (icon, name, level plaque, bar), open it adds the level, the XP still needed and the percentage. Metrics are lifetime totals — items gathered, total experience, time spent — from `UserSkillMetric` and `UserTrackProgress`.
 - Marketplace: one compact, borderless filter toolbar (search, item type with sprites, rarity, unit price, sort) above the results and a sticky selected-market panel (320px at `lg`, 380px at `xl`). The toolbar is a single row from `xl` and wraps below it. Result rows switch between the compact and four-column layouts with a container query on the results panel, not the viewport. Below `lg` the selected market opens in a bottom sheet.
 
@@ -269,7 +269,7 @@ Future exceptionally rare reveals may use a single restrained sweep across the s
 
 Required review sizes: **1440×1000**, **1024×768**, **768×1024**, **390×844**, and **320×740**.
 
-Below 768px, remove the permanent rail/inset and expose the menu Sheet. At 1100px, stack vocation and marketplace columns. At 900px, the profile stacks its portrait above equipment; the portrait becomes a bounded 260px image, increasing to 300px below 768px. The equipment keeps its body arrangement at every breakpoint.
+Below 768px, remove the permanent rail/inset and expose the menu Sheet. At 1100px, stack vocation and marketplace columns. Below 1280px the profile stacks to one column; below 640px the hero puts its meters and stats under the avatar row. The equipment keeps its body arrangement at every breakpoint.
 
 Do not shrink text to make columns fit. Wrap descriptions and action rows. Preserve 68px inventory cells and 44px minimum garden cells; a very narrow garden can scroll within its own region without changing which plot is where. Map and market tables can scroll locally. Let dialogs scroll vertically and ensure the close action remains reachable.
 

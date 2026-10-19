@@ -1,7 +1,5 @@
 import React from "react";
-import PageHeading from "~/components/game/ui/PageHeading";
 import { DndProvider } from "~/components/dnd/DnDContext";
-import Portrait from "~/components/game/character/Portrait";
 import { getServerSession } from "next-auth";
 import { authOptions } from "~/server/auth";
 import type { Prisma } from "~/generated/prisma/client";
@@ -10,11 +8,17 @@ import Inventory from "~/components/game/character/Inventory/Inventory";
 import Equipment from "~/components/game/character/Equipment/Equipment";
 import { type InventorySlotWithItem } from "~/types/inventory";
 import { fetchUserItemsByIds } from "~/utils/userItemInventory";
-import { CharacterStats } from "~/components/game/character/CharacterStats";
+import { CharacterHero } from "~/components/game/character/CharacterHero";
+import { CharacterSheetProvider } from "~/components/game/character/CharacterSheetContext";
+import { AttributeSheet } from "~/components/game/character/AttributeSheet";
+import { VocationsPanel } from "~/components/game/character/VocationsPanel";
 import { redirect } from "next/navigation";
 import { getVocationalStatusDebug } from "~/server/vocations";
 import { getCharacterBaseStats, getStatGrowthRules } from "~/server/stats";
 import { getCharacterVitals } from "~/server/combat";
+import { getVocationSummaries } from "~/server/skills/overview";
+import { listPublicArt } from "~/server/publicAssets";
+import { StatArtProvider } from "~/components/game/character/stat-display";
 import { settleVocationalTicks } from "../settle";
 
 export const dynamic = "force-dynamic";
@@ -41,23 +45,28 @@ const CharacterPage = async ({
     : await settleVocationalTicks(session.user.id);
 
   // Parallelize all independent queries for better performance
-  const [userInventory, baseStatsFromDb, vitals, growthRules] =
-    await Promise.all([
-      prisma.inventory.findUnique({
-        where: { userId: session.user.id },
-      }),
-      getCharacterBaseStats(session.user.id),
-      getCharacterVitals(session.user.id),
-      getStatGrowthRules(),
-    ]);
-
-  // Convert to array format for CharacterStats component
-  const baseStats = Object.entries(baseStatsFromDb).map(
-    ([statType, value]) => ({
-      statType: statType as keyof typeof baseStatsFromDb,
-      value,
+  const [
+    userInventory,
+    baseStats,
+    vitals,
+    growthRules,
+    vocations,
+    character,
+    statArt,
+  ] = await Promise.all([
+    prisma.inventory.findUnique({
+      where: { userId: session.user.id },
     }),
-  );
+    getCharacterBaseStats(session.user.id),
+    getCharacterVitals(session.user.id),
+    getStatGrowthRules(),
+    getVocationSummaries(session.user.id),
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { currentLocation: { select: { name: true } } },
+    }),
+    listPublicArt("assets/stats"),
+  ]);
 
   const slots = (userInventory?.slots as Prisma.JsonArray) ?? [];
 
@@ -96,12 +105,6 @@ const CharacterPage = async ({
 
   return (
     <main>
-      <PageHeading
-        eyebrow="Your chronicle"
-        title="Character"
-        description="Prepare your kit. Tend your skills. Make your way through Aergyle."
-      />
-
       {debugEnabled ? (
         <pre className="mb-6 overflow-auto rounded-md bg-black/40 p-3 text-xs text-foreground">
           {JSON.stringify(vocationalDebug, null, 2)}
@@ -109,23 +112,42 @@ const CharacterPage = async ({
       ) : null}
 
       <DndProvider initialInventory={slotsWithItems}>
-        <Portrait
-          name={
-            session.user.name?.trim().length
-              ? session.user.name.trim()
-              : "Wayfarer"
-          }
-        >
-          <CharacterStats
+        <StatArtProvider slugs={statArt}>
+          <CharacterSheetProvider
             baseStats={baseStats}
             unarmedAttackSpeed={growthRules.ATTACK_SPEED.baseValue}
-            currentHealth={vitals.currentHealth}
-          />
-        </Portrait>
-        <div className="game-profile-dashboard">
-          <Equipment />
-          <Inventory />
-        </div>
+          >
+            <CharacterHero
+              name={
+                session.user.name?.trim().length
+                  ? session.user.name.trim()
+                  : "Wayfarer"
+              }
+              location={character?.currentLocation?.name ?? null}
+              initialHealth={vitals.currentHealth}
+            />
+            {/*
+              Two columns from xl (1280px): equipment over vocations, inventory
+              over attributes. Below that the columns dissolve (display:
+              contents) and `order` keeps equipment, inventory, attributes,
+              vocations.
+            */}
+            <div className="grid items-start gap-5 xl:grid-cols-[minmax(420px,540px)_minmax(508px,1fr)]">
+              <div className="contents xl:flex xl:min-w-0 xl:flex-col xl:gap-5">
+                <div className="order-1 min-w-0">
+                  <Equipment />
+                </div>
+                <VocationsPanel skills={vocations} className="order-4" />
+              </div>
+              <div className="contents xl:flex xl:min-w-0 xl:flex-col xl:gap-5">
+                <div className="order-2 min-w-0">
+                  <Inventory />
+                </div>
+                <AttributeSheet className="order-3" />
+              </div>
+            </div>
+          </CharacterSheetProvider>
+        </StatArtProvider>
       </DndProvider>
     </main>
   );

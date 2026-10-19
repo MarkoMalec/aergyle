@@ -4,7 +4,7 @@ import { EquipmentLayout } from "./EquipmentLayout";
 export default function EquipmentSkeleton() {
   return (
     <section
-      className="game-panel game-equipment-panel min-w-0"
+      className="game-panel min-w-0 border-0"
       aria-label="Equipment"
       aria-busy="true"
     >

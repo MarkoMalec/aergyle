@@ -15,7 +15,7 @@ export default function Equipment() {
   ).length;
   return (
     <section
-      className="game-panel game-equipment-panel min-w-0"
+      className="game-panel min-w-0 border-0"
       aria-labelledby="equipment-heading"
     >
       <div className="game-panel-header">

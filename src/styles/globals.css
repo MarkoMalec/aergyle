@@ -618,258 +618,6 @@
   .game-panel-body {
     padding: 24px;
   }
-  .game-character-hero {
-    position: relative;
-    isolation: isolate;
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    align-items: center;
-    gap: 14px 28px;
-    margin-bottom: 20px;
-    padding: 14px 20px 14px 136px;
-    overflow: hidden;
-    border-color: hsl(var(--primary) / 0.28);
-    background: radial-gradient(
-        circle at 64px 40%,
-        hsl(var(--primary) / 0.14),
-        transparent 110px
-      ),
-      linear-gradient(
-        100deg,
-        hsl(var(--secondary) / 0.5),
-        hsl(var(--surface-inset)) 60%
-      );
-  }
-  /* Taller than the banner on purpose: the lower body is clipped by overflow. */
-  .game-character-hero-art {
-    position: absolute;
-    z-index: 0;
-    top: 6px;
-    left: 11px;
-    width: 136px;
-    height: 204px;
-    -webkit-mask-image: linear-gradient(to right, #000 60%, transparent);
-    mask-image: linear-gradient(to right, #000 60%, transparent);
-  }
-  .game-character-avatar-edit {
-    position: absolute;
-    top: 52px;
-    left: 12px;
-    z-index: 2;
-    display: grid;
-    width: 30px;
-    height: 30px;
-    place-items: center;
-    border: 1px solid hsl(var(--border-strong) / 0.8);
-    border-radius: 999px;
-    background: hsl(var(--background) / 0.82);
-    color: hsl(var(--foreground) / 0.78);
-    box-shadow: var(--shadow-panel);
-    opacity: 0;
-    backdrop-filter: blur(8px);
-    transform: translateY(2px) scale(0.96);
-    transition:
-      opacity 150ms ease,
-      color 150ms ease,
-      border-color 150ms ease,
-      transform 150ms ease;
-  }
-  .game-character-hero-art:hover .game-character-avatar-edit,
-  .game-character-avatar-edit:focus-visible {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-  .game-character-avatar-edit:hover,
-  .game-character-avatar-edit:focus-visible {
-    border-color: hsl(var(--primary) / 0.72);
-    color: hsl(var(--primary));
-    outline: none;
-  }
-  .game-character-avatar-edit:focus-visible {
-    box-shadow:
-      0 0 0 2px hsl(var(--background)),
-      0 0 0 4px hsl(var(--ring));
-  }
-  .game-character-hero-identity,
-  .game-character-hero-stats {
-    position: relative;
-    z-index: 1;
-  }
-  .game-character-hero-identity {
-    display: flex;
-    min-width: 0;
-    align-items: center;
-    gap: 16px;
-  }
-  .game-character-hero-caption {
-    min-width: 0;
-  }
-  .game-character-hero-caption h2 {
-    margin-top: 2px;
-    overflow: hidden;
-    color: hsl(var(--foreground));
-    font-family: var(--font-display);
-    font-size: 22px;
-    font-weight: 650;
-    letter-spacing: -0.035em;
-    line-height: 1.15;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .game-character-hero-caption > p:last-child {
-    margin-top: 2px;
-    color: hsl(var(--muted-foreground));
-    font-size: 12px;
-    white-space: nowrap;
-  }
-  .game-character-hero-stats {
-    display: flex;
-    min-width: 0;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 16px;
-  }
-  .game-character-hero-stats .game-core-stats {
-    flex: 1 1 auto;
-    max-width: 760px;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-  .game-character-hero-stats .game-core-stat {
-    min-height: 52px;
-    padding: 7px 8px;
-  }
-  .game-attributes-actions {
-    display: flex;
-    flex-shrink: 0;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 6px;
-  }
-  .game-profile-dashboard {
-    display: grid;
-    grid-template-columns: minmax(420px, 540px) minmax(0, 1fr);
-    grid-template-areas: "equipment inventory";
-    align-items: start;
-    gap: 20px;
-    margin-bottom: 24px;
-  }
-  .game-equipment-panel {
-    grid-area: equipment;
-  }
-  .game-inventory-panel {
-    grid-area: inventory;
-  }
-  .game-core-stats {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-  }
-  .game-core-stat {
-    display: grid;
-    grid-template-columns: 30px minmax(0, 1fr);
-    align-items: center;
-    gap: 9px;
-    min-height: 60px;
-    padding: 9px;
-    border: 1px solid hsl(var(--border) / 0.68);
-    border-radius: 10px;
-    background: hsl(var(--surface-inset) / 0.68);
-    transition:
-      border-color var(--duration-fast),
-      background var(--duration-fast);
-  }
-  .game-core-stat:hover,
-  .game-core-stat:focus-visible {
-    border-color: hsl(var(--border-strong) / 0.7);
-    background: hsl(var(--secondary) / 0.62);
-  }
-  .game-core-stat-icon {
-    display: grid;
-    width: 30px;
-    height: 30px;
-    place-items: center;
-    color: hsl(var(--text-secondary));
-    border-radius: 8px;
-    background: hsl(var(--secondary) / 0.8);
-  }
-  .game-core-stat[data-tone="health"] .game-core-stat-icon {
-    color: hsl(var(--danger));
-  }
-  .game-core-stat[data-tone="mana"] .game-core-stat-icon,
-  .game-core-stat[data-tone="magic"] .game-core-stat-icon {
-    color: hsl(var(--info));
-  }
-  .game-core-stat[data-tone="physical"] .game-core-stat-icon,
-  .game-core-stat[data-tone="capacity"] .game-core-stat-icon {
-    color: hsl(var(--warning));
-  }
-  .game-core-stat[data-tone="armor"] .game-core-stat-icon {
-    color: hsl(var(--text-secondary));
-  }
-  .game-core-stat-label {
-    display: block;
-    overflow: hidden;
-    color: hsl(var(--muted-foreground));
-    font-size: 10px;
-    line-height: 1.2;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .game-core-stat-value {
-    display: block;
-    margin-top: 2px;
-    overflow: hidden;
-    color: hsl(var(--foreground));
-    font-family: var(--font-display);
-    font-size: 17px;
-    font-variant-numeric: tabular-nums;
-    font-weight: 650;
-    letter-spacing: -0.025em;
-    line-height: 1.1;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .game-attribute-categories {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    align-items: start;
-    gap: 18px 28px;
-    padding: 2px 0 4px;
-  }
-  .game-attribute-category h3 {
-    margin-bottom: 6px;
-    color: hsl(var(--primary));
-    font-size: 10px;
-    font-weight: 650;
-    letter-spacing: 0.09em;
-    text-transform: uppercase;
-  }
-  .game-attribute-row {
-    display: flex;
-    min-height: 34px;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    color: hsl(var(--text-secondary));
-    border-bottom: 1px solid hsl(var(--border) / 0.42);
-    font-size: 11px;
-  }
-  .game-attribute-row:last-child {
-    border-bottom: 0;
-  }
-  .game-attribute-row strong {
-    flex-shrink: 0;
-    color: hsl(var(--foreground));
-    font-size: 12px;
-    font-variant-numeric: tabular-nums;
-    font-weight: 600;
-  }
-  .game-attribute-row[data-zero="true"] {
-    color: hsl(var(--muted-foreground) / 0.72);
-  }
-  .game-attribute-row[data-zero="true"] strong {
-    color: hsl(var(--muted-foreground));
-  }
   .game-equipment-content {
     container-type: inline-size;
   }
@@ -2995,22 +2743,6 @@
   }
 }
 
-@media (max-width: 1439px) {
-  .game-character-hero {
-    grid-template-columns: minmax(0, 1fr);
-    padding-bottom: 0;
-  }
-  .game-character-hero-stats {
-    margin-left: -136px;
-    margin-right: -20px;
-    padding: 12px 20px;
-    border-top: 1px solid hsl(var(--border) / 0.72);
-    background: hsl(var(--surface-inset));
-  }
-  .game-character-hero-stats .game-core-stats {
-    max-width: none;
-  }
-}
 
 @media (max-width: 1100px) {
   .game-content {
@@ -3018,14 +2750,6 @@
   }
   .game-skill-layout {
     grid-template-columns: minmax(0, 1fr);
-  }
-}
-@media (max-width: 900px) {
-  .game-profile-dashboard {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-      "equipment"
-      "inventory";
   }
 }
 @media (max-width: 767px) {
@@ -3062,40 +2786,6 @@
   }
   .game-panel-header {
     padding: 18px 16px 0;
-  }
-  .game-character-hero {
-    padding: 12px 16px 0 108px;
-  }
-  .game-character-hero-art {
-    width: 108px;
-    height: 162px;
-  }
-  .game-character-avatar-edit {
-    top: 44px;
-    left: 8px;
-  }
-  .game-character-hero-identity {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
-  .game-character-hero-caption > p:last-child {
-    display: none;
-  }
-  .game-character-hero-stats {
-    flex-direction: column;
-    align-items: stretch;
-    margin-left: -108px;
-    margin-right: -16px;
-    padding: 12px 16px 16px;
-  }
-  .game-character-hero-stats .game-core-stats {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-  .game-attributes-actions {
-    flex-direction: row-reverse;
-    align-items: center;
-    justify-content: space-between;
   }
   .game-inventory-grid {
     gap: 8px;
@@ -3184,9 +2874,6 @@
   }
 }
 @media (max-width: 430px) {
-  .game-character-hero-stats .game-core-stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
   .gathering-haul-grid {
     grid-template-columns: minmax(0, 1fr);
   }

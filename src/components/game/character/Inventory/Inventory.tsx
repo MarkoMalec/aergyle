@@ -24,7 +24,7 @@ const Inventory = () => {
   return (
     <section
       id="inventory"
-      className="game-panel game-inventory-panel min-w-0 scroll-mt-24"
+      className="game-panel min-w-0 scroll-mt-24 border-0"
       aria-labelledby="inventory-heading"
     >
       <div className="game-panel-header">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { ChevronDown } from "lucide-react";
 import {
   Collapsible,
@@ -20,10 +21,13 @@ function formatInt(value: number) {
  */
 export function SkillProgressPanel({
   skillName,
+  icon,
   progress,
   loading,
 }: {
   skillName: string;
+  /** Painted skill icon; the line icon stands in until one exists. */
+  icon?: string | null;
   progress: SkillProgressResponse | null;
   loading: boolean;
 }) {
@@ -34,9 +38,19 @@ export function SkillProgressPanel({
   return (
     <Collapsible open={open} onOpenChange={setOpen} className="game-panel-flat">
       <CollapsibleTrigger className="flex w-full items-center gap-3 rounded-lg px-4 pb-3 pt-4 text-left">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-secondary/30 text-primary">
-          <Icon size={20} aria-hidden="true" />
-        </span>
+        {icon ? (
+          <Image
+            src={icon}
+            alt=""
+            width={48}
+            height={48}
+            className="-my-1 h-12 w-12 shrink-0 object-contain drop-shadow-[0_4px_8px_rgb(0_0_0/0.4)]"
+          />
+        ) : (
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-secondary/30 text-primary">
+            <Icon size={20} aria-hidden="true" />
+          </span>
+        )}
         <span className="truncate text-[15px] font-semibold text-foreground">
           {skillName}
         </span>
@@ -64,7 +78,10 @@ export function SkillProgressPanel({
           aria-valuemax={100}
           aria-valuenow={percent}
         >
-          <div className="game-progress-fill" style={{ width: `${percent}%` }} />
+          <div
+            className="game-progress-fill"
+            style={{ width: `${percent}%` }}
+          />
         </div>
 
         <CollapsibleContent>

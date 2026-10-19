@@ -4,8 +4,10 @@ import {
   Backpack,
   Castle,
   Compass,
+  CookingPot,
   Crosshair,
   Fish,
+  FlaskConical,
   Leaf,
   MapIcon,
   PawPrint,
@@ -33,6 +35,8 @@ const skillIcons: Record<string, LucideIcon> = {
   hunting: Crosshair,
   gardening: Sprout,
   tailoring: Scissors,
+  cooking: CookingPot,
+  alchemy: FlaskConical,
 };
 
 /** The rail's icon for a skill, also used on the skill page itself. */
