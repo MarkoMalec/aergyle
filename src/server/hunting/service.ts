@@ -52,6 +52,8 @@ import {
 } from "~/server/combat/rules";
 
 const MAX_EXPEDITION_SECONDS = 7 * 24 * 60 * 60;
+// Claimed hunts kept in each character's hunt journal.
+const HUNTING_JOURNAL_SIZE = 6;
 
 type HuntingRiskSnapshot = {
   damageEnabled: boolean;
@@ -74,6 +76,18 @@ type ClaimedHuntingReport = HuntingReport & {
   };
 };
 
+type ExpeditionGround = {
+  id: number;
+  name: string;
+  location: { id: number; name: string };
+};
+
+const EXPEDITION_GROUND_SELECT = {
+  id: true,
+  name: true,
+  location: { select: { id: true, name: true } },
+} satisfies Prisma.HuntingGroundSelect;
+
 export type HuntingExpeditionStatus = {
   expedition: null | {
     id: number;
@@ -82,14 +96,21 @@ export type HuntingExpeditionStatus = {
     endsAt: string;
     claimedAt: string | null;
     durationSeconds: number;
-    ground: {
-      id: number;
-      name: string;
-      location: { id: number; name: string };
-    };
+    ground: ExpeditionGround;
     rewards: HuntingReward[];
     report: ClaimedHuntingReport | null;
   };
+};
+
+type HuntingJournalEntry = {
+  id: number;
+  startedAt: string;
+  claimedAt: string;
+  durationSeconds: number;
+  xpReward: number;
+  ground: ExpeditionGround;
+  rewards: HuntingReward[];
+  report: ClaimedHuntingReport;
 };
 
 const DEFAULT_HUNTING_CONFIG = {
@@ -307,11 +328,7 @@ function toStatus(
     durationSeconds: number;
     rewards: unknown;
     report: unknown;
-    ground: {
-      id: number;
-      name: string;
-      location: { id: number; name: string };
-    };
+    ground: ExpeditionGround;
   } | null,
 ): HuntingExpeditionStatus {
   if (!expedition) return { expedition: null };
@@ -347,20 +364,52 @@ export async function getHuntingExpeditionStatus(
       durationSeconds: true,
       rewards: true,
       report: true,
-      ground: {
-        select: {
-          id: true,
-          name: true,
-          location: { select: { id: true, name: true } },
-        },
-      },
+      ground: { select: EXPEDITION_GROUND_SELECT },
     },
   });
   return toStatus(expedition);
 }
 
+/** The character's latest claimed hunts, newest first. */
+async function getHuntingJournal(
+  userId: string,
+): Promise<HuntingJournalEntry[]> {
+  const rows = await prisma.userHuntingExpeditionLog.findMany({
+    where: { userId },
+    orderBy: [{ claimedAt: "desc" }, { id: "desc" }],
+    take: HUNTING_JOURNAL_SIZE,
+    select: {
+      id: true,
+      startedAt: true,
+      claimedAt: true,
+      durationSeconds: true,
+      xpReward: true,
+      rewards: true,
+      report: true,
+      ground: { select: EXPEDITION_GROUND_SELECT },
+    },
+  });
+  return rows.flatMap((row) => {
+    const report = parseReport(row.report);
+    return report
+      ? [
+          {
+            id: row.id,
+            startedAt: row.startedAt.toISOString(),
+            claimedAt: row.claimedAt.toISOString(),
+            durationSeconds: row.durationSeconds,
+            xpReward: row.xpReward,
+            ground: row.ground,
+            rewards: parseLootRewards(row.rewards),
+            report,
+          },
+        ]
+      : [];
+  });
+}
+
 export async function getHuntingPageData(userId: string) {
-  const [user, skillProgress, durations, config, character, status] =
+  const [user, skillProgress, durations, config, character, status, journal] =
     await Promise.all([
       prisma.user.findUnique({
         where: { id: userId },
@@ -434,6 +483,7 @@ export async function getHuntingPageData(userId: string) {
       getHuntingConfig(),
       getCharacterStatSnapshot(userId),
       getHuntingExpeditionStatus(userId),
+      getHuntingJournal(userId),
     ]);
   if (!user) throw new Error("User not found");
   const vitals = await getCharacterVitalsFromSnapshot(userId, character);
@@ -504,6 +554,7 @@ export async function getHuntingPageData(userId: string) {
         }
       : null,
     ...status,
+    journal,
   };
 }
 
@@ -707,6 +758,8 @@ export async function claimHuntingExpedition(userId: string) {
       where: { userId },
       select: {
         id: true,
+        groundId: true,
+        startedAt: true,
         endsAt: true,
         claimedAt: true,
         encounterRolls: true,
@@ -828,6 +881,29 @@ export async function claimHuntingExpedition(userId: string) {
     });
     if (claimed.count !== 1)
       throw new Error("This expedition was already claimed");
+    await tx.userHuntingExpeditionLog.create({
+      data: {
+        userId,
+        groundId: expedition.groundId,
+        startedAt: expedition.startedAt,
+        claimedAt,
+        durationSeconds: expedition.durationSeconds,
+        xpReward: expedition.xpReward,
+        rewards: resolution.rewards as unknown as Prisma.InputJsonValue,
+        report: report as unknown as Prisma.InputJsonValue,
+      },
+    });
+    const pruned = await tx.userHuntingExpeditionLog.findMany({
+      where: { userId },
+      orderBy: [{ claimedAt: "desc" }, { id: "desc" }],
+      skip: HUNTING_JOURNAL_SIZE,
+      select: { id: true },
+    });
+    if (pruned.length > 0) {
+      await tx.userHuntingExpeditionLog.deleteMany({
+        where: { id: { in: pruned.map((row) => row.id) } },
+      });
+    }
 
     for (const reward of resolution.rewards) {
       const grant = await grantStackableItemToInventory({

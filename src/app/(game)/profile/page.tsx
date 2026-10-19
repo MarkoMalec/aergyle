@@ -11,12 +11,10 @@ import Equipment from "~/components/game/character/Equipment/Equipment";
 import { type InventorySlotWithItem } from "~/types/inventory";
 import { fetchUserItemsByIds } from "~/utils/userItemInventory";
 import { CharacterStats } from "~/components/game/character/CharacterStats";
-import { AddItemTestForm } from "~/components/forms/AddItemTestForm";
 import { redirect } from "next/navigation";
 import { getVocationalStatusDebug } from "~/server/vocations";
 import { getCharacterBaseStats, getStatGrowthRules } from "~/server/stats";
 import { getCharacterVitals } from "~/server/combat";
-import { ChevronDown, FlaskConical } from "lucide-react";
 import { settleVocationalTicks } from "../settle";
 
 export const dynamic = "force-dynamic";
@@ -43,28 +41,12 @@ const CharacterPage = async ({
     : await settleVocationalTicks(session.user.id);
 
   // Parallelize all independent queries for better performance
-  const [userInventory, baseStatsFromDb, allItems, vitals, growthRules] =
+  const [userInventory, baseStatsFromDb, vitals, growthRules] =
     await Promise.all([
       prisma.inventory.findUnique({
         where: { userId: session.user.id },
       }),
       getCharacterBaseStats(session.user.id),
-      prisma.item.findMany({
-        select: {
-          id: true,
-          name: true,
-          sprite: true,
-          rarity: true,
-          itemType: true,
-          equipTo: true,
-          stackable: true,
-          maxStackSize: true,
-          requiredLevel: true,
-        },
-        orderBy: {
-          name: "asc",
-        },
-      }),
       getCharacterVitals(session.user.id),
       getStatGrowthRules(),
     ]);
@@ -145,34 +127,6 @@ const CharacterPage = async ({
           <Inventory />
         </div>
       </DndProvider>
-
-      <details className="game-panel group my-8 overflow-hidden">
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-5 transition-colors hover:bg-secondary/30 [&::-webkit-details-marker]:hidden">
-          <span className="flex min-w-0 items-center gap-3">
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-primary/25 bg-primary/10 text-primary">
-              <FlaskConical className="h-4 w-4" aria-hidden="true" />
-            </span>
-            <span className="min-w-0">
-              <span className="block font-display text-base font-semibold text-foreground">
-                Development tools
-              </span>
-              <span className="mt-0.5 block text-xs text-muted-foreground">
-                Search the item catalog and grant test inventory
-              </span>
-            </span>
-          </span>
-          <span className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
-            <span className="hidden sm:inline">Open console</span>
-            <ChevronDown
-              className="h-4 w-4 transition-transform group-open:rotate-180"
-              aria-hidden="true"
-            />
-          </span>
-        </summary>
-        <div className="border-t border-border">
-          <AddItemTestForm items={allItems} />
-        </div>
-      </details>
     </main>
   );
 };

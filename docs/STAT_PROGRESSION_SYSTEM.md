@@ -54,8 +54,8 @@ replaces the item's progressions. The bulk CSV import on the admin dashboard
 
 ## Testing
 
-Grant yourself the item at different rarities from the profile page's
-development tools (`POST /api/test/add-item`) and compare the stats shown.
+Grant the item at different rarities from the player's admin Items tab
+(`/admin/players/[id]?tab=items`) and compare the stats shown.
 
 ## Important Notes
 

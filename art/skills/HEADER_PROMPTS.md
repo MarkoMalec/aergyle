@@ -49,6 +49,15 @@ A stone-and-timber guild kitchen with a low hearth, copper stewpot, iron
 skillet, steam, hanging herbs and prepared roots, meat, fish and garlic on the
 right worktable. Warm amber firelight sits against cool teal ambient shadow.
 
+## Alchemy
+
+A cinematic, character-free stone-and-timber apothecary at blue hour, with
+shadowed shelving and a scarred oak workbench. Amber and cobalt bottles,
+dried herbs, parchment packets, a copper alembic, stone mortar and brass
+scales emerge from the middle to the far right. Keep the left third dark and
+quiet for the UI copy and mentor overlay; cool teal shadows balance restrained
+amber candlelight.
+
 ## Blacksmithing
 
 A rugged stone foundry with a brick furnace, bellows, soot-dark beams, sparks,

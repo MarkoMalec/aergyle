@@ -1,8 +1,8 @@
 "use client";
 
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import {
   Check,
   CheckCircle2,
@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import type { ItemRarity } from "~/generated/prisma/enums";
+import { adminRequest } from "~/components/admin/fields";
 import { Button } from "~/components/ui/button";
 import {
   Command,
@@ -33,11 +34,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
-import { useRarityColors } from "~/hooks/use-rarity-colors";
-import { inventoryQueryKeys } from "~/lib/query-keys";
 import { cn } from "~/lib/utils";
 import { rarityStyle } from "~/utils/rarity-colors";
 import { RarityMark } from "~/utils/ui/rarity-mark";
+import { usePlayerEdit } from "./shared";
 
 interface CatalogItem {
   id: number;
@@ -49,10 +49,6 @@ interface CatalogItem {
   stackable: boolean;
   maxStackSize: number;
   requiredLevel: number | null;
-}
-
-interface AddItemTestFormProps {
-  items: CatalogItem[];
 }
 
 type ResultMessage = {
@@ -84,9 +80,10 @@ function humanize(value: string) {
     .replace(/\b\w/g, (character) => character.toUpperCase());
 }
 
-export function AddItemTestForm({ items }: AddItemTestFormProps) {
-  const queryClient = useQueryClient();
-  const { colors } = useRarityColors();
+export function GiveItems() {
+  const router = useRouter();
+  const { player, options } = usePlayerEdit();
+  const items: CatalogItem[] = options.items;
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [selectedRarity, setSelectedRarity] = useState<ItemRarity>("COMMON");
   const [quantity, setQuantity] = useState(1);
@@ -118,42 +115,22 @@ export function AddItemTestForm({ items }: AddItemTestFormProps) {
     setResult(null);
 
     try {
-      const response = await fetch("/api/test/add-item", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const payload = await adminRequest(
+        `/api/admin/players/${player.account.id}/items`,
+        "POST",
+        {
           itemId: selectedItem.id,
           rarity: selectedRarity,
           quantity,
-        }),
-      });
-      const responseBody: unknown = await response.json().catch(() => null);
-      const payload =
-        typeof responseBody === "object" && responseBody !== null
-          ? (responseBody as Record<string, unknown>)
-          : {};
-
-      if (!response.ok) {
-        throw new Error(
-          typeof payload.error === "string"
-            ? payload.error
-            : "Failed to add item",
-        );
-      }
+        },
+      );
 
       const addedQuantity =
-        typeof payload.addedQuantity === "number" ? payload.addedQuantity : 1;
+        typeof payload?.added === "number" ? payload.added : 0;
       const remainingQuantity =
-        typeof payload.remainingQuantity === "number"
-          ? payload.remainingQuantity
-          : 0;
-      const itemName =
-        typeof payload.itemName === "string"
-          ? payload.itemName
-          : selectedItem.name;
-      const rarity = humanize(
-        typeof payload.rarity === "string" ? payload.rarity : selectedRarity,
-      );
+        typeof payload?.notAdded === "number" ? payload.notAdded : 0;
+      const itemName = selectedItem.name;
+      const rarity = humanize(selectedRarity);
 
       let nextResult: ResultMessage;
       if (addedQuantity === 0) {
@@ -180,10 +157,7 @@ export function AddItemTestForm({ items }: AddItemTestFormProps) {
       } else {
         toast(nextResult.text);
       }
-
-      await queryClient.invalidateQueries({
-        queryKey: inventoryQueryKeys.all(),
-      });
+      router.refresh();
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Failed to add item";
@@ -195,15 +169,15 @@ export function AddItemTestForm({ items }: AddItemTestFormProps) {
   };
 
   return (
-    <div className="grid min-h-[460px] lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
+    <div className="grid min-h-[460px] overflow-hidden rounded-lg border border-border lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
       <section
         className="min-w-0 border-b border-border lg:border-b-0 lg:border-r"
-        aria-labelledby="development-catalog-heading"
+        aria-labelledby="item-grant-catalog-heading"
       >
         <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
           <div>
             <h3
-              id="development-catalog-heading"
+              id="item-grant-catalog-heading"
               className="font-display text-base font-semibold"
             >
               Item catalog
@@ -260,7 +234,7 @@ export function AddItemTestForm({ items }: AddItemTestFormProps) {
                     <div
                       className="rarity-frame relative grid h-11 w-11 shrink-0 place-items-center rounded-lg p-1"
                       data-rarity={item.rarity}
-                      style={rarityStyle(item.rarity, colors[item.rarity])}
+                      style={rarityStyle(item.rarity)}
                     >
                       <Image
                         src={item.sprite}
@@ -292,7 +266,7 @@ export function AddItemTestForm({ items }: AddItemTestFormProps) {
                       className="hidden shrink-0 items-center gap-1.5 text-xs sm:flex"
                       style={{
                         color: `var(--rarity-text, var(--rarity-color))`,
-                        ...rarityStyle(item.rarity, colors[item.rarity]),
+                        ...rarityStyle(item.rarity),
                       }}
                     >
                       <RarityMark
@@ -318,7 +292,7 @@ export function AddItemTestForm({ items }: AddItemTestFormProps) {
 
       <section
         className="bg-surface-inset/45 p-5 sm:p-6"
-        aria-labelledby="development-grant-heading"
+        aria-labelledby="item-grant-heading"
       >
         {selectedItem ? (
           <form onSubmit={onSubmit} className="flex h-full flex-col">
@@ -326,7 +300,7 @@ export function AddItemTestForm({ items }: AddItemTestFormProps) {
               <div
                 className="rarity-frame relative grid h-[72px] w-[72px] shrink-0 place-items-center rounded-xl p-1.5"
                 data-rarity={selectedRarity}
-                style={rarityStyle(selectedRarity, colors[selectedRarity])}
+                style={rarityStyle(selectedRarity)}
               >
                 <Image
                   src={selectedItem.sprite}
@@ -341,7 +315,7 @@ export function AddItemTestForm({ items }: AddItemTestFormProps) {
                   Ready to grant · #{selectedItem.id}
                 </p>
                 <h3
-                  id="development-grant-heading"
+                  id="item-grant-heading"
                   className="mt-1 truncate font-display text-lg font-semibold"
                 >
                   {selectedItem.name}
@@ -363,7 +337,7 @@ export function AddItemTestForm({ items }: AddItemTestFormProps) {
             <div className="space-y-5 py-5">
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-3">
-                  <Label htmlFor="development-rarity">Instance rarity</Label>
+                  <Label htmlFor="item-grant-rarity">Instance rarity</Label>
                   {usesTemplateRarity ? (
                     <span className="flex items-center gap-1 text-[11px] text-success">
                       <CheckCircle2 className="h-3.5 w-3.5" />
@@ -387,7 +361,7 @@ export function AddItemTestForm({ items }: AddItemTestFormProps) {
                   }
                 >
                   <SelectTrigger
-                    id="development-rarity"
+                    id="item-grant-rarity"
                     className="h-10 bg-surface-inset"
                   >
                     <SelectValue />
@@ -399,7 +373,7 @@ export function AddItemTestForm({ items }: AddItemTestFormProps) {
                           className="flex items-center gap-2"
                           style={{
                             color: `var(--rarity-text, var(--rarity-color))`,
-                            ...rarityStyle(rarity, colors[rarity]),
+                            ...rarityStyle(rarity),
                           }}
                         >
                           <RarityMark rarity={rarity} className="h-3.5 w-3.5" />
@@ -416,13 +390,13 @@ export function AddItemTestForm({ items }: AddItemTestFormProps) {
                 </Select>
                 <p className="text-xs leading-relaxed text-muted-foreground">
                   Starts at this item&apos;s {humanize(selectedItem.rarity)}{" "}
-                  rarity. Change it here to test another tier.
+                  rarity. Change it here to grant another tier.
                 </p>
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-3">
-                  <Label htmlFor="development-quantity">Quantity</Label>
+                  <Label htmlFor="item-grant-quantity">Quantity</Label>
                   <span className="text-[11px] text-muted-foreground">
                     {selectedItem.stackable
                       ? `Stack limit ${selectedItem.maxStackSize}`
@@ -442,7 +416,7 @@ export function AddItemTestForm({ items }: AddItemTestFormProps) {
                     <Minus className="h-4 w-4" />
                   </Button>
                   <Input
-                    id="development-quantity"
+                    id="item-grant-quantity"
                     type="number"
                     min={1}
                     step={1}
@@ -523,8 +497,7 @@ export function AddItemTestForm({ items }: AddItemTestFormProps) {
                 </p>
               ) : (
                 <p className="text-center text-[11px] text-muted-foreground">
-                  The selection stays active so you can grant repeated test
-                  items.
+                  The selection stays active so you can grant repeated items.
                 </p>
               )}
             </div>
@@ -536,7 +509,7 @@ export function AddItemTestForm({ items }: AddItemTestFormProps) {
                 <PackagePlus className="h-6 w-6" aria-hidden="true" />
               </span>
               <h3
-                id="development-grant-heading"
+                id="item-grant-heading"
                 className="mt-4 font-display text-lg font-semibold"
               >
                 Select an item

@@ -8,7 +8,7 @@ import {
   NumberInput,
   Panel,
 } from "~/components/admin/fields";
-import { SearchSelect } from "~/components/admin/SearchSelect";
+import { GiveItems } from "./GiveItems";
 import { Button } from "~/components/ui/button";
 import {
   Dialog,
@@ -72,87 +72,6 @@ function placementLabel(item: PlayerItem) {
     case "UNPLACED":
       return <Tag tone="bad">Unplaced · invisible to them</Tag>;
   }
-}
-
-function GiveItems() {
-  const { options, run } = usePlayerEdit();
-  const [itemId, setItemId] = useState<number | null>(null);
-  const [rarity, setRarity] = useState<ItemRarity>("COMMON");
-  const [quantity, setQuantity] = useState<number | null>(1);
-  const item = options.items.find((option) => option.id === itemId);
-
-  const searchOptions = useMemo(
-    () =>
-      options.items.map((option) => ({
-        id: option.id,
-        name: option.name,
-        image: option.sprite,
-        detail: `#${option.id}`,
-      })),
-    [options.items],
-  );
-
-  return (
-    <div className="grid gap-3 rounded-lg bg-black/25 p-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_120px_auto] md:items-end">
-      <Field label="Item">
-        <SearchSelect
-          options={searchOptions}
-          value={itemId}
-          placeholder="Choose an item…"
-          onChange={(id) => {
-            setItemId(id);
-            const chosen = options.items.find((option) => option.id === id);
-            if (chosen) setRarity(chosen.rarity);
-          }}
-        />
-      </Field>
-      <Field label="Rarity">
-        <select
-          className={inputClass}
-          value={rarity}
-          onChange={(event) => setRarity(event.target.value as ItemRarity)}
-        >
-          {RARITIES.map((value) => (
-            <option key={value} value={value}>
-              {humanize(value)}
-            </option>
-          ))}
-        </select>
-      </Field>
-      <Field label="Quantity">
-        <NumberInput
-          className={inputClass}
-          min={1}
-          value={quantity}
-          onValueChange={setQuantity}
-        />
-      </Field>
-      <ActionButton
-        actionKey="give"
-        variant="default"
-        className="h-9"
-        disabled={!item || !quantity || quantity < 1}
-        onClick={() =>
-          run(
-            "give",
-            "/items",
-            "POST",
-            { itemId, rarity, quantity },
-            (result) => {
-              const added = Number(result?.added ?? 0);
-              const notAdded = Number(result?.notAdded ?? 0);
-              return notAdded > 0
-                ? `Gave ${added} ${item?.name}; ${notAdded} didn't fit`
-                : `Gave ${added} ${item?.name}`;
-            },
-          )
-        }
-      >
-        <Plus className="h-4 w-4" />
-        Give
-      </ActionButton>
-    </div>
-  );
 }
 
 function EditItemDialog(props: {

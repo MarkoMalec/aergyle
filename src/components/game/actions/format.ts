@@ -33,3 +33,24 @@ export function formatTime(value: string) {
     minute: "2-digit",
   }).format(new Date(value));
 }
+
+/** "just now", "12 min ago", "3 h ago", "2 days ago". */
+export function formatAgo(value: string, now: number) {
+  const minutes = Math.floor((now - new Date(value).getTime()) / 60_000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} h ago`;
+  const days = Math.floor(hours / 24);
+  return days === 1 ? "yesterday" : `${days} days ago`;
+}
+
+/** A wait in plain words, e.g. "under a minute", "14 min", "2 h 5 min". */
+export function formatWait(seconds: number) {
+  if (seconds < 60) return "under a minute";
+  const totalMinutes = Math.ceil(seconds / 60);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours === 0) return `${minutes} min`;
+  return minutes === 0 ? `${hours} h` : `${hours} h ${minutes} min`;
+}

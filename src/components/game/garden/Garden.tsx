@@ -1,16 +1,22 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   Check,
   CircleDashed,
-  Clock3,
   PackageOpen,
   Sprout,
+  Sunrise,
   Wheat,
   X,
+  type LucideIcon,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { Button } from "~/components/ui/button";
@@ -18,6 +24,7 @@ import { gardenQueryKeys, inventoryQueryKeys } from "~/lib/query-keys";
 import { useOptionalDndContext } from "~/components/dnd/DnDContext";
 import type { InventorySlotWithItem } from "~/types/inventory";
 import { useUserContext } from "~/context/userContext";
+import { useEquipmentContext } from "~/context/equipmentContext";
 import { formatRemaining } from "~/components/game/actions/format";
 import { useVocationalActiveActionContext } from "~/components/game/actions/VocationalActiveActionProvider";
 import {
@@ -25,114 +32,103 @@ import {
   dispatchActiveActionEvent,
 } from "~/components/game/actions/activeActionEvents";
 import { dispatchSkillProgressEvent } from "~/components/game/skills/skillProgressEvents";
-import { ItemInfoPopover } from "~/components/game/items/ItemInfoPopover";
-import type { ItemRarity } from "~/generated/prisma/enums";
+import { cn } from "~/lib/utils";
+import { SATCHEL_ART, SeedSatchelDialog } from "./SeedSatchelDialog";
+import {
+  buildSeedOptions,
+  fetchSeedConfig,
+  formatCompactDuration,
+  formatReadyClock,
+  readStored,
+  resolvedKind,
+  writeStored,
+  type GardenStateResponse,
+  type GardenTile,
+  type PlantGroup,
+  type PlotKind,
+  type SeedConfigResponse,
+  type SeedOption,
+} from "./shared";
 
-type GardenTile =
-  | { tileIndex: number; state: "EMPTY" }
-  | {
-      tileIndex: number;
-      state: "GROWING" | "READY";
-      seed: { id: number; name: string; sprite: string };
-      plantedAt: string;
-      readyAt: string;
-      yieldItem: { id: number; name: string; sprite: string };
-      yieldMin: number;
-      yieldMax: number;
-      harvestSeconds: number;
-    };
-
-type GardenStateResponse = {
-  gridSize: number;
-  tiles: GardenTile[];
-  harvest: null | {
-    id: number;
-    startedAt: string;
-    endsAt: string;
-    tileCount: number;
-  };
-  harvestProgress: null | {
-    progress: number;
-    remainingSeconds: number;
-    isComplete: boolean;
-  };
+/** What this device remembers per player; see `readStored`. */
+type GardenMemory = {
+  lastSeedId: number | null;
+  /** Plot index -> the seed that last grew there. */
+  layout: Record<string, number>;
 };
 
-type SeedOption = {
-  templateItemId: number;
-  name: string;
-  sprite: string;
-  quantity: number;
-};
-type SeedConfigResponse = {
-  id: number;
-  name: string;
-  sprite: string;
-  seedGrowSeconds: number | null;
-  seedHarvestSeconds: number | null;
-  seedYieldMin: number | null;
-  seedYieldMax: number | null;
-  seedXp: number | null;
-  seedYieldItem: null | {
-    id: number;
-    name: string;
-    sprite: string;
-    rarity: ItemRarity;
-  };
-};
+const EMPTY_MEMORY: GardenMemory = { lastSeedId: null, layout: {} };
 
-/** A plot's time on a small tile: "2h 5m", "5m" or "40s". */
-function formatCompactDuration(totalSeconds: number) {
-  const total = Math.max(0, Math.floor(totalSeconds));
-  const hours = Math.floor(total / 3600);
-  const minutes = Math.floor((total % 3600) / 60);
-  if (hours > 0) return `${hours}h ${minutes}m`;
-  if (minutes > 0) return `${minutes}m`;
-  return `${total % 60}s`;
-}
-
-function buildSeedOptions(inventory: InventorySlotWithItem[]) {
-  const byTemplate = new Map<number, SeedOption>();
-  for (const slot of inventory) {
-    const item = slot.item;
-    if (!item || item.itemType !== "SEED" || (item.quantity ?? 0) <= 0)
-      continue;
-    const current = byTemplate.get(item.itemId);
-    if (current) current.quantity += item.quantity ?? 0;
-    else {
-      byTemplate.set(item.itemId, {
-        templateItemId: item.itemId,
-        name: item.name,
-        sprite: item.sprite,
-        quantity: item.quantity ?? 0,
-      });
-    }
-  }
-  return [...byTemplate.values()].sort((a, b) => a.name.localeCompare(b.name));
-}
-
-function resolvedKind(tile: GardenTile, now: number) {
-  if (tile.state === "EMPTY") return "EMPTY" as const;
-  return tile.state === "READY" || new Date(tile.readyAt).getTime() <= now
-    ? ("READY" as const)
-    : ("GROWING" as const);
+function CountChip(props: {
+  icon: LucideIcon;
+  label: string;
+  className?: string;
+  title?: string;
+}) {
+  const Icon = props.icon;
+  return (
+    <span
+      title={props.title}
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full bg-surface-inset/70 px-2.5 py-1 text-[11px] tabular-nums text-muted-foreground",
+        props.className,
+      )}
+    >
+      <Icon className="h-3 w-3" aria-hidden="true" />
+      {props.label}
+    </span>
+  );
 }
 
 export default function Garden() {
   const queryClient = useQueryClient();
   const { user } = useUserContext();
+  const { equipment } = useEquipmentContext();
   const { active: isAnyActionActive } = useVocationalActiveActionContext();
   const dnd = useOptionalDndContext();
   const [now, setNow] = useState(() => Date.now());
   const [selected, setSelected] = useState<number[]>([]);
-  const [selectedSeedTemplateId, setSelectedSeedTemplateId] = useState<
-    number | null
-  >(null);
+  const [satchelOpen, setSatchelOpen] = useState(false);
+  // Plots an action button would touch while it is hovered, with the crop
+  // art to ghost into empty plots ("" for plots that are only highlighted).
+  const [preview, setPreview] = useState<Map<number, string> | null>(null);
+  const [memory, setMemory] = useState<GardenMemory>(EMPTY_MEMORY);
+  const dragRef = useRef<{ kind: PlotKind; add: boolean } | null>(null);
+  const pointerTypeRef = useRef("mouse");
+  const storageKey = user?.id ? `aergyle:garden:${user.id}` : null;
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1_000);
     return () => window.clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    const endDrag = () => {
+      dragRef.current = null;
+    };
+    window.addEventListener("pointerup", endDrag);
+    window.addEventListener("pointercancel", endDrag);
+    return () => {
+      window.removeEventListener("pointerup", endDrag);
+      window.removeEventListener("pointercancel", endDrag);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!storageKey) return;
+    setMemory({ ...EMPTY_MEMORY, ...readStored(storageKey, EMPTY_MEMORY) });
+  }, [storageKey]);
+
+  const remember = useCallback(
+    (patch: Partial<GardenMemory>) => {
+      setMemory((previous) => {
+        const next = { ...previous, ...patch };
+        if (storageKey) writeStored(storageKey, next);
+        return next;
+      });
+    },
+    [storageKey],
+  );
 
   const gardenQuery = useQuery({
     queryKey: gardenQueryKeys.all(),
@@ -178,6 +174,25 @@ export default function Garden() {
     return () => window.clearTimeout(timer);
   }, [harvestEndsAt, queryClient]);
 
+  // Record which seed grows in each plot, so it can be replanted after harvest.
+  const tilesData = gardenQuery.data?.tiles;
+  useEffect(() => {
+    if (!tilesData || !storageKey) return;
+    setMemory((previous) => {
+      let layout = previous.layout;
+      for (const tile of tilesData) {
+        if (tile.state === "EMPTY" || layout[tile.tileIndex] === tile.seed.id)
+          continue;
+        if (layout === previous.layout) layout = { ...previous.layout };
+        layout[tile.tileIndex] = tile.seed.id;
+      }
+      if (layout === previous.layout) return previous;
+      const next = { ...previous, layout };
+      writeStored(storageKey, next);
+      return next;
+    });
+  }, [tilesData, storageKey]);
+
   const fallbackInventoryQuery = useQuery({
     queryKey: inventoryQueryKeys.byUser(user?.id),
     enabled: !dnd && Boolean(user?.id),
@@ -196,164 +211,131 @@ export default function Garden() {
     [dnd?.inventory, fallbackInventoryQuery.data?.slots],
   );
   const seedOptions = useMemo(() => buildSeedOptions(inventory), [inventory]);
-  const selectedSeed =
-    seedOptions.find(
-      (seed) => seed.templateItemId === selectedSeedTemplateId,
-    ) ?? null;
-
-  useEffect(() => {
-    if (selectedSeedTemplateId === null && seedOptions[0]) {
-      setSelectedSeedTemplateId(seedOptions[0].templateItemId);
-    } else if (
-      selectedSeedTemplateId !== null &&
-      seedOptions.length > 0 &&
-      !seedOptions.some(
-        (seed) => seed.templateItemId === selectedSeedTemplateId,
-      )
-    ) {
-      setSelectedSeedTemplateId(seedOptions[0]?.templateItemId ?? null);
-    }
-  }, [seedOptions, selectedSeedTemplateId]);
-
-  const seedConfigQuery = useQuery({
-    queryKey: gardenQueryKeys.seedConfig(selectedSeedTemplateId),
-    enabled: selectedSeedTemplateId !== null,
-    queryFn: async (): Promise<SeedConfigResponse> => {
-      const response = await fetch(`/api/items/${selectedSeedTemplateId}`, {
-        cache: "no-store",
-      });
-      const body = (await response.json().catch(() => null)) as
-        | SeedConfigResponse
-        | { error?: string }
-        | null;
-      if (!response.ok || !body || "error" in body) {
-        throw new Error(
-          body && "error" in body ? body.error : "Failed to load seed details",
-        );
-      }
-      return body as SeedConfigResponse;
-    },
-  });
-
-  const tiles = useMemo(
-    () => gardenQuery.data?.tiles ?? [],
-    [gardenQuery.data?.tiles],
+  const seedById = useMemo(
+    () => new Map(seedOptions.map((seed) => [seed.templateItemId, seed])),
+    [seedOptions],
   );
+
+  const seedConfigQueries = useQueries({
+    queries: seedOptions.map((seed) => ({
+      queryKey: gardenQueryKeys.seedConfig(seed.templateItemId),
+      queryFn: () => fetchSeedConfig(seed.templateItemId),
+      staleTime: 5 * 60_000,
+    })),
+  });
+  const seedConfigs = new Map<number, SeedConfigResponse>();
+  for (const query of seedConfigQueries)
+    if (query.data) seedConfigs.set(query.data.id, query.data);
+  const cropSprite = (seedId: number) =>
+    seedConfigs.get(seedId)?.seedYieldItem?.sprite ??
+    seedById.get(seedId)?.sprite ??
+    "";
+
   const tileByIndex = useMemo(
-    () => new Map(tiles.map((tile) => [tile.tileIndex, tile])),
-    [tiles],
+    () => new Map((tilesData ?? []).map((tile) => [tile.tileIndex, tile])),
+    [tilesData],
   );
   const gridSize = gardenQuery.data?.gridSize ?? 6;
   const grid = useMemo(
     () =>
       Array.from(
         { length: gridSize * gridSize },
-        (_, tileIndex) =>
-          tileByIndex.get(tileIndex) ??
-          ({ tileIndex, state: "EMPTY" } as const),
+        (_, tileIndex): GardenTile =>
+          tileByIndex.get(tileIndex) ?? { tileIndex, state: "EMPTY" },
       ),
     [gridSize, tileByIndex],
   );
-  const counts = useMemo(
-    () =>
-      grid.reduce(
-        (result, tile) => {
-          result[resolvedKind(tile, now)] += 1;
-          return result;
-        },
-        { EMPTY: 0, GROWING: 0, READY: 0 },
+  const kindAt = useCallback(
+    (index: number, at: number) =>
+      resolvedKind(
+        tileByIndex.get(index) ?? { tileIndex: index, state: "EMPTY" },
+        at,
       ),
-    [grid, now],
-  );
-  const selectedSet = useMemo(() => new Set(selected), [selected]);
-  const selectedTiles = selected.map(
-    (index) =>
-      tileByIndex.get(index) ?? ({ tileIndex: index, state: "EMPTY" } as const),
-  );
-  const selectedKinds = new Set(
-    selectedTiles.map((tile) => resolvedKind(tile, now)),
-  );
-  const selectionKind = selectedKinds.size === 1 ? [...selectedKinds][0] : null;
-  const isHarvesting = Boolean(gardenQuery.data?.harvest);
-  const canInteract = !isAnyActionActive && !isHarvesting;
-
-  const selectKind = useCallback(
-    (kind: "EMPTY" | "READY") => {
-      if (!canInteract) return;
-      setSelected(
-        grid
-          .filter((tile) => resolvedKind(tile, Date.now()) === kind)
-          .map((tile) => tile.tileIndex),
-      );
-    },
-    [canInteract, grid],
+    [tileByIndex],
   );
 
-  const handleTileClick = useCallback(
-    (tile: GardenTile) => {
-      if (!canInteract) return;
-      const kind = resolvedKind(tile, Date.now());
-      if (kind === "GROWING") {
-        setSelected([tile.tileIndex]);
-        return;
-      }
+  // A selection holds plots of one kind (empty or ready); plots that changed
+  // kind since they were picked (planted, harvested) simply drop out.
+  const firstKind = selected.length > 0 ? kindAt(selected[0]!, now) : null;
+  const selectionKind = firstKind === "GROWING" ? null : firstKind;
+  const selection =
+    selectionKind === null
+      ? []
+      : selected.filter((index) => kindAt(index, now) === selectionKind);
+
+  const togglePlot = useCallback(
+    (index: number, kind: PlotKind, add: boolean) => {
       setSelected((previous) => {
-        const previousKinds = new Set(
-          previous.map((index) =>
-            resolvedKind(
-              tileByIndex.get(index) ??
-                ({ tileIndex: index, state: "EMPTY" } as const),
-              Date.now(),
-            ),
-          ),
-        );
-        if (previousKinds.size !== 1 || !previousKinds.has(kind))
-          return [tile.tileIndex];
-        const next = new Set(previous);
-        if (next.has(tile.tileIndex)) next.delete(tile.tileIndex);
-        else next.add(tile.tileIndex);
-        return [...next].sort((a, b) => a - b);
+        const at = Date.now();
+        const sameKind = previous.filter((i) => kindAt(i, at) === kind);
+        if (sameKind.includes(index) === add)
+          return sameKind.length === previous.length ? previous : sameKind;
+        return add
+          ? [...sameKind, index].sort((a, b) => a - b)
+          : sameKind.filter((i) => i !== index);
       });
     },
-    [canInteract, tileByIndex],
+    [kindAt],
   );
+
+  useEffect(() => {
+    if (selected.length === 0 || satchelOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSelected([]);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selected.length, satchelOpen]);
 
   const plantMutation = useMutation({
-    mutationFn: async () => {
-      if (!selectedSeed) throw new Error("Choose a seed first");
-      const response = await fetch("/api/garden/plant", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          seedItemId: selectedSeed.templateItemId,
-          tileIndices: selected,
-        }),
-      });
-      const body = (await response.json().catch(() => null)) as {
-        planted?: number;
-        error?: string;
-      } | null;
-      if (!response.ok) throw new Error(body?.error ?? "Failed to plant");
-      return body?.planted ?? selected.length;
+    mutationFn: async (input: {
+      groups: PlantGroup[];
+      rememberSeedId: number | null;
+    }) => {
+      let planted = 0;
+      for (const group of input.groups) {
+        const response = await fetch("/api/garden/plant", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(group),
+        });
+        const body = (await response.json().catch(() => null)) as {
+          planted?: number;
+          error?: string;
+        } | null;
+        if (!response.ok) {
+          const message = body?.error ?? "Failed to plant";
+          throw new Error(
+            planted > 0 ? `Planted ${planted}, then: ${message}` : message,
+          );
+        }
+        planted += body?.planted ?? group.tileIndices.length;
+      }
+      return planted;
     },
-    onSuccess: async (planted) => {
+    onSuccess: (planted, input) => {
       toast.success(`Planted ${planted} plot${planted === 1 ? "" : "s"}`);
       setSelected([]);
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: gardenQueryKeys.all() }),
-        queryClient.invalidateQueries({ queryKey: inventoryQueryKeys.all() }),
-      ]);
+      setPreview(null);
+      setSatchelOpen(false);
+      if (input.rememberSeedId !== null)
+        remember({ lastSeedId: input.rememberSeedId });
     },
     onError: (error) =>
       toast.error(error instanceof Error ? error.message : "Failed to plant"),
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: gardenQueryKeys.all() }),
+        queryClient.invalidateQueries({ queryKey: inventoryQueryKeys.all() }),
+      ]),
   });
 
   const harvestMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (tileIndices: number[]) => {
       const response = await fetch("/api/garden/harvest/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tileIndices: selected }),
+        body: JSON.stringify({ tileIndices }),
       });
       const body = (await response.json().catch(() => null)) as {
         error?: string;
@@ -364,6 +346,7 @@ export default function Garden() {
     onSuccess: async () => {
       toast.success("Harvest started");
       setSelected([]);
+      setPreview(null);
       dispatchActiveActionEvent({ kind: "changed" });
       await queryClient.invalidateQueries({ queryKey: gardenQueryKeys.all() });
     },
@@ -373,13 +356,13 @@ export default function Garden() {
 
   if (gardenQuery.isLoading)
     return (
-      <div className="game-panel game-empty-state">
+      <div className="game-panel-flat game-empty-state">
         Walking out to the garden…
       </div>
     );
   if (gardenQuery.isError) {
     return (
-      <div className="game-panel game-empty-state">
+      <div className="game-panel-flat game-empty-state">
         <p>
           {gardenQuery.error instanceof Error
             ? gardenQuery.error.message
@@ -396,387 +379,536 @@ export default function Garden() {
     );
   }
 
-  const canPlant =
-    canInteract &&
-    selectionKind === "EMPTY" &&
-    selected.length > 0 &&
-    selectedSeed !== null &&
-    selectedSeed.quantity >= selected.length &&
-    !plantMutation.isPending;
-  const canHarvest =
-    canInteract &&
-    selectionKind === "READY" &&
-    selected.length > 0 &&
-    !harvestMutation.isPending;
-  const harvestRemaining = gardenQuery.data?.harvest
-    ? Math.max(
-        0,
-        Math.ceil(
-          (new Date(gardenQuery.data.harvest.endsAt).getTime() - now) / 1000,
+  const emptyPlots: number[] = [];
+  const readyPlots: number[] = [];
+  let growingCount = 0;
+  let nextReadyAt: number | null = null;
+  for (const tile of grid) {
+    const kind = resolvedKind(tile, now);
+    if (kind === "EMPTY") emptyPlots.push(tile.tileIndex);
+    else if (kind === "READY") readyPlots.push(tile.tileIndex);
+    else if (tile.state !== "EMPTY") {
+      growingCount += 1;
+      const readyAt = new Date(tile.readyAt).getTime();
+      if (nextReadyAt === null || readyAt < nextReadyAt) nextReadyAt = readyAt;
+    }
+  }
+
+  const harvest = gardenQuery.data?.harvest ?? null;
+  const isHarvesting = harvest !== null;
+  const canInteract = !isAnyActionActive && !isHarvesting;
+  const hasHoe = Boolean(equipment?.hoe);
+  const plantBlockedReason = isHarvesting
+    ? "Harvest in progress"
+    : isAnyActionActive
+      ? "Busy with another activity"
+      : !hasHoe
+        ? "No Hoe equipped"
+        : null;
+
+  // With nothing selected, the actions cover every empty or ripe plot.
+  const plantTargets = selectionKind === "EMPTY" ? selection : emptyPlots;
+  const harvestTargets = selectionKind === "READY" ? selection : readyPlots;
+  const harvestSeconds = harvestTargets.reduce((total, index) => {
+    const tile = tileByIndex.get(index);
+    return (
+      total +
+      (tile && tile.state !== "EMPTY" ? Math.max(1, tile.harvestSeconds) : 0)
+    );
+  }, 0);
+  const totalSeeds = seedOptions.reduce((sum, seed) => sum + seed.quantity, 0);
+
+  const lastSeed: SeedOption | null =
+    (memory.lastSeedId !== null ? seedById.get(memory.lastSeedId) : null) ??
+    (seedOptions.length === 1 ? seedOptions[0]! : null);
+
+  // Plots that were harvested and can get the same crop back, seeds allowing.
+  const replantGroups: PlantGroup[] = [];
+  if (selectionKind === null) {
+    const seedsLeft = new Map(
+      seedOptions.map((seed) => [seed.templateItemId, seed.quantity]),
+    );
+    const bySeed = new Map<number, number[]>();
+    for (const index of emptyPlots) {
+      const seedId = memory.layout[index];
+      const left = seedId === undefined ? 0 : seedsLeft.get(seedId) ?? 0;
+      if (seedId === undefined || left <= 0) continue;
+      seedsLeft.set(seedId, left - 1);
+      bySeed.set(seedId, [...(bySeed.get(seedId) ?? []), index]);
+    }
+    for (const [seedItemId, tileIndices] of bySeed)
+      replantGroups.push({ seedItemId, tileIndices });
+  }
+  const replantCount = replantGroups.reduce(
+    (sum, group) => sum + group.tileIndices.length,
+    0,
+  );
+
+  const showHarvest = harvestTargets.length > 0 && selectionKind !== "EMPTY";
+  const showPlant =
+    plantTargets.length > 0 &&
+    selectionKind !== "READY" &&
+    seedOptions.length > 0;
+
+  type PlantAction = {
+    label: string;
+    title: string;
+    groups: PlantGroup[];
+    rememberSeedId: number | null;
+    sprites: string[];
+  };
+  let plantAction: PlantAction | null = null;
+  if (showPlant && selectionKind === null && replantCount > 0) {
+    plantAction = {
+      label: `Replant ${replantCount}`,
+      title: "Plant the same crops back where they last grew",
+      groups: replantGroups,
+      rememberSeedId: null,
+      sprites: replantGroups.map((group) => cropSprite(group.seedItemId)),
+    };
+  } else if (showPlant && lastSeed) {
+    const count = Math.min(lastSeed.quantity, plantTargets.length);
+    plantAction = {
+      label:
+        selectionKind === "EMPTY"
+          ? `Plant ${count}${count < plantTargets.length ? ` of ${plantTargets.length}` : ""}`
+          : count < plantTargets.length
+            ? `Plant ${count} of ${plantTargets.length}`
+            : count === 1
+              ? "Plant 1"
+              : `Plant all ${count}`,
+      title: `Plant ${lastSeed.name}`,
+      groups: [
+        {
+          seedItemId: lastSeed.templateItemId,
+          tileIndices: plantTargets.slice(0, count),
+        },
+      ],
+      rememberSeedId: lastSeed.templateItemId,
+      sprites: [cropSprite(lastSeed.templateItemId)],
+    };
+  }
+
+  const previewPlant = (groups: PlantGroup[]) => {
+    const map = new Map<number, string>();
+    for (const group of groups)
+      for (const index of group.tileIndices)
+        map.set(index, seedById.get(group.seedItemId)?.sprite ?? "");
+    return map;
+  };
+  const hoverPreview = (map: Map<number, string>) => ({
+    onMouseEnter: () => setPreview(map),
+    onMouseLeave: () => setPreview(null),
+    onFocus: () => setPreview(map),
+    onBlur: () => setPreview(null),
+  });
+
+  const hoeMissing = !hasHoe && emptyPlots.length > 0;
+  const status = isHarvesting
+    ? null
+    : isAnyActionActive
+      ? "Busy with another activity"
+      : selection.length > 0
+        ? `${selection.length} ${selectionKind === "READY" ? "ripe" : "empty"} plot${selection.length === 1 ? "" : "s"} selected`
+        : hoeMissing
+          ? "No Hoe equipped"
+          : null;
+
+  const harvestRemaining = harvest
+    ? Math.max(0, Math.ceil((new Date(harvest.endsAt).getTime() - now) / 1000))
+    : 0;
+  const harvestProgress = harvest
+    ? Math.min(
+        1,
+        Math.max(
+          0,
+          (now - new Date(harvest.startedAt).getTime()) /
+            Math.max(
+              1,
+              new Date(harvest.endsAt).getTime() -
+                new Date(harvest.startedAt).getTime(),
+            ),
         ),
       )
     : 0;
 
   return (
-    <div className="gardening-layout">
-      <section
-        className="game-panel gardening-stage"
-        aria-labelledby="garden-title"
-      >
-        <div className="gardening-header">
-          <div>
-            <p className="game-eyebrow">Thirty-six growing plots</p>
-            <h2 id="garden-title" className="game-section-title">
-              Your garden
-            </h2>
-          </div>
-          <div className="gardening-counts" aria-label="Plot summary">
-            <span data-kind="empty">
-              <CircleDashed /> {counts.EMPTY} empty
-            </span>
-            <span data-kind="growing">
-              <Sprout /> {counts.GROWING} growing
-            </span>
-            <span data-kind="ready">
-              <Wheat /> {counts.READY} ready
-            </span>
-          </div>
+    <section
+      className="game-panel-flat min-w-0 overflow-hidden"
+      aria-labelledby="garden-title"
+    >
+      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3 px-4 pb-3 pt-4 sm:px-5 sm:pt-5">
+        <div>
+          <p className="game-eyebrow">{gridSize * gridSize} growing plots</p>
+          <h2 id="garden-title" className="game-section-title">
+            Your garden
+          </h2>
         </div>
+        <div className="flex flex-wrap gap-1.5" aria-label="Plot summary">
+          <CountChip icon={CircleDashed} label={`${emptyPlots.length} empty`} />
+          <CountChip
+            icon={Sprout}
+            label={`${growingCount} growing`}
+            className="text-primary"
+          />
+          <CountChip
+            icon={Wheat}
+            label={`${readyPlots.length} ready`}
+            className={
+              readyPlots.length > 0 ? "bg-xp/[0.12] text-xp" : undefined
+            }
+          />
+          {nextReadyAt !== null ? (
+            <CountChip
+              icon={Sunrise}
+              label={`next ${formatCompactDuration((nextReadyAt - now) / 1000)}`}
+              title={`Next crop is ready at ${formatReadyClock(nextReadyAt, now)}`}
+            />
+          ) : null}
+        </div>
+      </div>
 
-        {gardenQuery.data?.harvest ? (
-          <div className="gardening-harvest-banner">
-            <span>
-              <PackageOpen aria-hidden="true" />
-            </span>
-            <div>
-              <strong>Harvesting the ripe plots</strong>
-              <small>
-                {gardenQuery.data.harvest.tileCount} crops are being packed into
-                your inventory.
-              </small>
+      {harvest ? (
+        <div className="mx-4 mb-3 flex items-center gap-3 rounded-[10px] bg-xp/[0.08] px-3 py-2.5 sm:mx-5">
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[8px] bg-xp/[0.12] text-xp">
+            <PackageOpen className="h-4 w-4" aria-hidden="true" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-baseline justify-between gap-3">
+              <strong className="truncate text-sm">
+                Harvesting {harvest.tileCount} crop
+                {harvest.tileCount === 1 ? "" : "s"}
+              </strong>
+              <b className="shrink-0 text-xs tabular-nums text-xp">
+                {formatRemaining(harvestRemaining)}
+              </b>
             </div>
-            <b>{formatRemaining(harvestRemaining)}</b>
-          </div>
-        ) : null}
-
-        <div className="gardening-toolbar">
-          <p>
-            {selected.length === 0
-              ? "Choose matching plots to act on them together."
-              : `${selected.length} ${selectionKind?.toLowerCase() ?? "mixed"} plot${selected.length === 1 ? "" : "s"} selected`}
-          </p>
-          <div>
-            <Button
-              size="sm"
-              variant="ghost"
-              disabled={!canInteract || counts.EMPTY === 0}
-              onClick={() => selectKind("EMPTY")}
-            >
-              Select empty
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              disabled={!canInteract || counts.READY === 0}
-              onClick={() => selectKind("READY")}
-            >
-              Select ready
-            </Button>
-            {selected.length > 0 ? (
-              <Button
-                size="icon"
-                variant="ghost"
-                aria-label="Clear plot selection"
-                onClick={() => setSelected([])}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            ) : null}
+            <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-surface-inset">
+              <i
+                className="block h-full bg-xp transition-[width] duration-1000 ease-linear"
+                style={{ width: `${Math.floor(harvestProgress * 100)}%` }}
+              />
+            </div>
           </div>
         </div>
+      ) : null}
 
-        <div className="gardening-grid-scroll">
-          <div className="game-garden-grid gardening-grid">
-            {grid.map((tile) => {
-              const kind = resolvedKind(tile, now);
-              const selectedTile = selectedSet.has(tile.tileIndex);
-              const remaining =
-                tile.state === "EMPTY"
-                  ? 0
-                  : Math.max(
-                      0,
-                      Math.ceil(
-                        (new Date(tile.readyAt).getTime() - now) / 1000,
-                      ),
-                    );
-              const growth =
-                tile.state === "EMPTY"
-                  ? 0
-                  : Math.max(
-                      0,
-                      Math.min(
-                        1,
-                        (now - new Date(tile.plantedAt).getTime()) /
-                          Math.max(
-                            1,
-                            new Date(tile.readyAt).getTime() -
-                              new Date(tile.plantedAt).getTime(),
-                          ),
-                      ),
-                    );
-              const cropName =
-                tile.state === "EMPTY" ? "Empty plot" : tile.yieldItem.name;
-              return (
-                <button
-                  key={tile.tileIndex}
-                  type="button"
-                  className="game-garden-tile gardening-plot"
-                  data-state={kind.toLowerCase()}
-                  data-selected={selectedTile}
-                  aria-pressed={selectedTile}
-                  aria-label={`Plot ${tile.tileIndex + 1}: ${kind === "EMPTY" ? "empty" : kind === "READY" ? `${cropName}, ready to harvest` : `${cropName}, ${formatCompactDuration(remaining)} remaining`}`}
-                  disabled={!canInteract}
-                  onClick={() => handleTileClick(tile)}
-                >
-                  <span className="gardening-plot-number">
-                    {tile.tileIndex + 1}
+      <div className="flex flex-wrap items-center gap-2 px-4 pb-3 sm:px-5">
+        <button
+          type="button"
+          onClick={() => setSatchelOpen(true)}
+          className={cn(
+            "group flex h-12 shrink-0 items-center gap-2.5 rounded-[10px] pl-1.5 pr-3.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            // Without a one-click plant, the satchel is where planting starts.
+            showPlant && !plantAction && plantBlockedReason === null
+              ? "bg-primary/15 text-primary hover:bg-primary/25"
+              : "bg-surface-inset/70 hover:bg-secondary",
+          )}
+        >
+          <Image
+            src={SATCHEL_ART}
+            alt=""
+            width={48}
+            height={48}
+            className="h-11 w-11 object-contain transition-transform duration-200 group-hover:-rotate-3 group-hover:scale-105"
+          />
+          <span>
+            <span className="block text-sm font-semibold">Seed satchel</span>
+            <span className="block text-[11px] tabular-nums text-muted-foreground">
+              {seedOptions.length === 0
+                ? "Empty"
+                : `${seedOptions.length} kind${seedOptions.length === 1 ? "" : "s"} · ${totalSeeds} seeds`}
+            </span>
+          </span>
+        </button>
+
+        <p
+          className={cn(
+            "min-w-0 flex-1 basis-40 text-xs",
+            hoeMissing && selection.length === 0 && !isAnyActionActive
+              ? "text-danger"
+              : "text-muted-foreground",
+          )}
+        >
+          {status}
+          {selection.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => setSelected([])}
+              className="ml-2 inline-flex items-center gap-1 rounded-[6px] px-1.5 py-0.5 align-middle text-[11px] text-foreground/80 hover:bg-secondary"
+            >
+              <X className="h-3 w-3" aria-hidden="true" />
+              Clear
+            </button>
+          ) : null}
+        </p>
+
+        <div className="flex gap-2 max-sm:w-full">
+          {plantAction ? (
+            <Button
+              title={plantAction.title}
+              disabled={plantBlockedReason !== null || plantMutation.isPending}
+              onClick={() =>
+                plantMutation.mutate({
+                  groups: plantAction.groups,
+                  rememberSeedId: plantAction.rememberSeedId,
+                })
+              }
+              {...hoverPreview(previewPlant(plantAction.groups))}
+              className={cn(
+                "max-sm:flex-1",
+                showHarvest &&
+                  "border-transparent bg-primary/15 text-primary shadow-none hover:bg-primary/25",
+              )}
+            >
+              <span className="flex -space-x-2" aria-hidden="true">
+                {plantAction.sprites
+                  .slice(0, 3)
+                  .map((sprite, index) =>
+                    sprite ? (
+                      <Image
+                        key={`${sprite}-${index}`}
+                        src={sprite}
+                        alt=""
+                        width={20}
+                        height={20}
+                        className="h-5 w-5 object-contain"
+                      />
+                    ) : null,
+                  )}
+              </span>
+              {plantMutation.isPending ? "Planting…" : plantAction.label}
+            </Button>
+          ) : null}
+          {showHarvest ? (
+            <Button
+              disabled={!canInteract || harvestMutation.isPending}
+              onClick={() => harvestMutation.mutate(harvestTargets)}
+              {...hoverPreview(
+                new Map(harvestTargets.map((index) => [index, ""])),
+              )}
+              className="max-sm:flex-1"
+            >
+              <Wheat className="h-4 w-4" aria-hidden="true" />
+              {harvestMutation.isPending
+                ? "Starting…"
+                : selectionKind === "READY" || harvestTargets.length === 1
+                  ? `Harvest ${harvestTargets.length}`
+                  : `Harvest all ${harvestTargets.length}`}
+              <span className="font-normal opacity-70">
+                · {formatCompactDuration(harvestSeconds)}
+              </span>
+            </Button>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="px-3 pb-4 sm:px-5 sm:pb-5">
+        <div
+          className="gardening-grid mx-auto grid max-w-[980px] select-none grid-cols-6"
+          role="group"
+          aria-label="Garden plots"
+          // Crop images would otherwise start a native drag and end drag-select.
+          onDragStart={(event) => event.preventDefault()}
+        >
+          {grid.map((tile) => {
+            const kind = resolvedKind(tile, now);
+            const isSelected =
+              selectionKind === kind && selection.includes(tile.tileIndex);
+            const previewSprite = preview?.get(tile.tileIndex);
+            const remaining =
+              tile.state === "EMPTY"
+                ? 0
+                : Math.max(
+                    0,
+                    Math.ceil((new Date(tile.readyAt).getTime() - now) / 1000),
+                  );
+            const growth =
+              tile.state === "EMPTY"
+                ? 0
+                : Math.max(
+                    0,
+                    Math.min(
+                      1,
+                      (now - new Date(tile.plantedAt).getTime()) /
+                        Math.max(
+                          1,
+                          new Date(tile.readyAt).getTime() -
+                            new Date(tile.plantedAt).getTime(),
+                        ),
+                    ),
+                  );
+            const cropName =
+              tile.state === "EMPTY" ? "Empty plot" : tile.yieldItem.name;
+            const description =
+              tile.state === "EMPTY"
+                ? "Empty plot"
+                : kind === "READY"
+                  ? `${cropName}, ready to harvest`
+                  : `${cropName}, ready ${formatReadyClock(new Date(tile.readyAt).getTime(), now)} (${formatCompactDuration(remaining)}) · ${tile.yieldMin === tile.yieldMax ? tile.yieldMin : `${tile.yieldMin}–${tile.yieldMax}`} per plot`;
+            const selectable = canInteract && kind !== "GROWING";
+            return (
+              <button
+                key={tile.tileIndex}
+                type="button"
+                className={cn(
+                  "gardening-plot max-sm:aspect-square",
+                  kind === "GROWING" && "cursor-default",
+                )}
+                data-state={kind.toLowerCase()}
+                data-selected={isSelected || previewSprite !== undefined}
+                aria-pressed={kind === "GROWING" ? undefined : isSelected}
+                aria-disabled={!selectable}
+                aria-label={`Plot ${tile.tileIndex + 1}: ${description}`}
+                title={description}
+                disabled={!canInteract}
+                onPointerDown={(event) => {
+                  pointerTypeRef.current = event.pointerType;
+                  if (
+                    !selectable ||
+                    event.pointerType !== "mouse" ||
+                    event.button !== 0
+                  )
+                    return;
+                  const add = !isSelected;
+                  dragRef.current = { kind, add };
+                  togglePlot(tile.tileIndex, kind, add);
+                }}
+                onPointerEnter={() => {
+                  const drag = dragRef.current;
+                  if (drag && selectable && drag.kind === kind)
+                    togglePlot(tile.tileIndex, kind, drag.add);
+                }}
+                onClick={(event) => {
+                  // Mouse presses were handled on pointer down (to allow
+                  // dragging); taps and the keyboard toggle here.
+                  if (pointerTypeRef.current === "mouse" && event.detail > 0)
+                    return;
+                  if (selectable) togglePlot(tile.tileIndex, kind, !isSelected);
+                }}
+              >
+                <span className="absolute left-1.5 top-1 z-[3] text-[9px] tabular-nums text-muted-foreground/50 max-sm:hidden">
+                  {tile.tileIndex + 1}
+                </span>
+                {isSelected ? (
+                  <span className="absolute right-1.5 top-1.5 z-[5] grid h-[18px] w-[18px] place-items-center rounded-full bg-primary text-primary-foreground">
+                    <Check className="h-3 w-3" strokeWidth={2.6} />
                   </span>
-                  {selectedTile ? (
-                    <span className="gardening-plot-check">
-                      <Check />
+                ) : null}
+                {tile.state === "EMPTY" ? (
+                  previewSprite ? (
+                    <span className="absolute inset-[7px_7px_20px] z-[2] opacity-45">
+                      <Image
+                        src={previewSprite}
+                        alt=""
+                        fill
+                        sizes="96px"
+                        className="object-contain"
+                      />
                     </span>
-                  ) : null}
-                  {tile.state === "EMPTY" ? (
-                    <span className="gardening-empty-mark">
-                      <span />
-                      <small>Empty</small>
-                    </span>
-                  ) : (
-                    <>
-                      <span
-                        className="gardening-crop-art"
-                        style={
-                          {
-                            "--garden-growth": Math.max(0.48, growth),
-                          } as React.CSSProperties
+                  ) : null
+                ) : (
+                  <>
+                    <span
+                      className="gardening-crop-art"
+                      style={
+                        {
+                          // A fixed size: the seed sits in the soil until
+                          // the plot is ripe, then the crop takes its place.
+                          "--garden-growth": kind === "READY" ? 1 : 0.78,
+                        } as React.CSSProperties
+                      }
+                    >
+                      <Image
+                        src={
+                          kind === "READY"
+                            ? tile.yieldItem.sprite
+                            : tile.seed.sprite
                         }
+                        alt=""
+                        fill
+                        sizes="96px"
+                        className="object-contain"
+                      />
+                    </span>
+                    <span
+                      className={cn(
+                        "absolute inset-x-1.5 bottom-1 z-[3] overflow-hidden bg-[linear-gradient(to_bottom,transparent,hsl(var(--background)/0.82)_56%)] px-1 pb-0.5 pt-2 [text-shadow:0_1px_2px_hsl(var(--background))] max-sm:inset-x-0.5 max-sm:px-0.5 max-sm:text-center",
+                        // Phones: the ripe crop art and glow say "ready".
+                        kind === "READY" && "max-sm:hidden",
+                      )}
+                    >
+                      <strong className="block truncate text-[11px] leading-tight max-sm:hidden">
+                        {cropName}
+                      </strong>
+                      <small
+                        className={cn(
+                          "block truncate text-[10px] tabular-nums",
+                          kind === "READY"
+                            ? "font-bold uppercase text-xp"
+                            : "text-muted-foreground",
+                        )}
                       >
-                        <Image
-                          src={tile.yieldItem.sprite}
-                          alt=""
-                          fill
-                          sizes="72px"
-                          className="object-contain"
+                        {kind === "READY" ? (
+                          "Ready"
+                        ) : (
+                          <>
+                            <span className="max-sm:hidden">
+                              {formatCompactDuration(remaining)}
+                            </span>
+                            <span className="sm:hidden">
+                              {formatCompactDuration(
+                                remaining >= 3600
+                                  ? Math.floor(remaining / 3600) * 3600
+                                  : remaining,
+                              ).replace(/ 0m$/, "")}
+                            </span>
+                          </>
+                        )}
+                      </small>
+                    </span>
+                    {kind === "GROWING" ? (
+                      <span
+                        className="absolute inset-x-1.5 bottom-0.5 z-[4] h-[3px] overflow-hidden rounded-full bg-border"
+                        aria-hidden="true"
+                      >
+                        <i
+                          className="block h-full bg-primary"
+                          style={{ width: `${Math.floor(growth * 100)}%` }}
                         />
                       </span>
-                      <span className="gardening-plot-label">
-                        <strong>{cropName}</strong>
-                        <small>
-                          {kind === "READY"
-                            ? "Ready"
-                            : formatCompactDuration(remaining)}
-                        </small>
-                      </span>
-                      {kind === "GROWING" ? (
-                        <span
-                          className="gardening-growth-track"
-                          aria-hidden="true"
-                        >
-                          <i
-                            style={{ width: `${Math.floor(growth * 100)}%` }}
-                          />
-                        </span>
-                      ) : null}
-                    </>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      <aside
-        className="game-panel gardening-seed-shelf"
-        aria-labelledby="seed-shelf-title"
-      >
-        <div className="game-panel-header">
-          <div>
-            <p className="game-eyebrow">Seed satchel</p>
-            <h2 id="seed-shelf-title" className="game-section-title">
-              What to plant next
-            </h2>
-          </div>
-        </div>
-        <div className="game-panel-body">
-          {seedOptions.length === 0 ? (
-            <div className="gardening-no-seeds">
-              <Sprout aria-hidden="true" />
-              <strong>Your seed satchel is empty</strong>
-              <p>
-                Seeds found or purchased will appear here, ready for any empty
-                plot.
-              </p>
-            </div>
-          ) : (
-            <div className="gardening-seed-list">
-              {seedOptions.map((seed) => (
-                <button
-                  type="button"
-                  key={seed.templateItemId}
-                  data-selected={selectedSeedTemplateId === seed.templateItemId}
-                  onClick={() => setSelectedSeedTemplateId(seed.templateItemId)}
-                >
-                  <span>
-                    <Image src={seed.sprite} alt="" width={46} height={46} />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <strong>{seed.name.replace(/ seeds$/i, "")}</strong>
-                    <small>
-                      {seed.quantity} seed{seed.quantity === 1 ? "" : "s"}{" "}
-                      available
-                    </small>
-                  </span>
-                  {selectedSeedTemplateId === seed.templateItemId ? (
-                    <Check />
-                  ) : null}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {selectedSeed && seedConfigQuery.data ? (
-            <div className="gardening-seed-details">
-              <div>
-                {seedConfigQuery.data.seedYieldItem ? (
-                  <ItemInfoPopover
-                    itemId={seedConfigQuery.data.seedYieldItem.id}
-                    rarity={seedConfigQuery.data.seedYieldItem.rarity}
-                    name={seedConfigQuery.data.seedYieldItem.name}
-                  >
-                    <Image
-                      src={seedConfigQuery.data.seedYieldItem.sprite}
-                      alt=""
-                      width={62}
-                      height={62}
-                    />
-                  </ItemInfoPopover>
-                ) : (
-                  <Image
-                    src={selectedSeed.sprite}
-                    alt=""
-                    width={62}
-                    height={62}
-                  />
+                    ) : null}
+                  </>
                 )}
-                <span>
-                  <p className="game-eyebrow">Expected crop</p>
-                  <strong>
-                    {seedConfigQuery.data.seedYieldItem?.name ??
-                      selectedSeed.name}
-                  </strong>
-                </span>
-              </div>
-              <dl>
-                <div>
-                  <dt>
-                    <Clock3 /> Grows in
-                  </dt>
-                  <dd>
-                    {seedConfigQuery.data.seedGrowSeconds
-                      ? formatCompactDuration(
-                          seedConfigQuery.data.seedGrowSeconds,
-                        )
-                      : "—"}
-                  </dd>
-                </div>
-                <div>
-                  <dt>
-                    <PackageOpen /> Per plot
-                  </dt>
-                  <dd>
-                    {seedConfigQuery.data.seedYieldMin ?? "?"}–
-                    {seedConfigQuery.data.seedYieldMax ?? "?"}
-                  </dd>
-                </div>
-                <div>
-                  <dt>
-                    <Wheat /> Gardening XP
-                  </dt>
-                  <dd>+{seedConfigQuery.data.seedXp ?? 1}</dd>
-                </div>
-              </dl>
-            </div>
-          ) : null}
-
-          <div
-            className="gardening-action-card"
-            data-kind={selectionKind?.toLowerCase() ?? "none"}
-          >
-            {selected.length === 0 ? (
-              <p>
-                Select one or more empty plots to plant, or ripe plots to
-                harvest.
-              </p>
-            ) : selectionKind === "GROWING" ? (
-              <p>
-                That crop is still growing. Its plot timer shows when it will be
-                ready.
-              </p>
-            ) : selectionKind === "EMPTY" ? (
-              <>
-                <div>
-                  <strong>
-                    Plant {selected.length} plot
-                    {selected.length === 1 ? "" : "s"}
-                  </strong>
-                  <small>
-                    {selectedSeed
-                      ? `${selectedSeed.name} · ${selectedSeed.quantity} owned`
-                      : "Choose a seed"}
-                  </small>
-                </div>
-                <Button
-                  className="w-full"
-                  disabled={!canPlant}
-                  onClick={() => plantMutation.mutate()}
-                >
-                  <Sprout className="mr-2 h-4 w-4" />
-                  {plantMutation.isPending
-                    ? "Planting…"
-                    : "Plant selected plots"}
-                </Button>
-                {selectedSeed && selectedSeed.quantity < selected.length ? (
-                  <p className="text-destructive">
-                    You need {selected.length - selectedSeed.quantity} more seed
-                    {selected.length - selectedSeed.quantity === 1 ? "" : "s"}.
-                  </p>
-                ) : null}
-              </>
-            ) : (
-              <>
-                <div>
-                  <strong>
-                    {selected.length} crop
-                    {selected.length === 1 ? " is" : "s are"} ready
-                  </strong>
-                  <small>Harvest time is based on the selected plots.</small>
-                </div>
-                <Button
-                  className="w-full"
-                  disabled={!canHarvest}
-                  onClick={() => harvestMutation.mutate()}
-                >
-                  <Wheat className="mr-2 h-4 w-4" />
-                  {harvestMutation.isPending
-                    ? "Preparing…"
-                    : "Harvest selected crops"}
-                </Button>
-              </>
-            )}
-          </div>
+              </button>
+            );
+          })}
         </div>
-      </aside>
-    </div>
+      </div>
+
+      <SeedSatchelDialog
+        open={satchelOpen}
+        onOpenChange={setSatchelOpen}
+        seeds={seedOptions}
+        configs={seedConfigs}
+        targetCount={plantTargets.length}
+        fromSelection={selectionKind === "EMPTY"}
+        blockedReason={plantBlockedReason}
+        lastSeedId={lastSeed?.templateItemId ?? null}
+        now={now}
+        pending={plantMutation.isPending}
+        onPlant={(seed, count) =>
+          plantMutation.mutate({
+            groups: [
+              {
+                seedItemId: seed.templateItemId,
+                tileIndices: plantTargets.slice(0, count),
+              },
+            ],
+            rememberSeedId: seed.templateItemId,
+          })
+        }
+      />
+    </section>
   );
 }

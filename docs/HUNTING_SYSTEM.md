@@ -22,6 +22,25 @@ the return time.
 - `UserHuntingExpedition` snapshots all balance, creature, drop, stat, defense,
   safety, and random-seed inputs at departure. Admin edits never rewrite an
   active hunt, and a failed claim retry cannot reroll its outcome.
+- `UserHuntingExpeditionLog` is the **hunt journal**: claiming copies the hunt
+  (dates, XP, materials, report) into it and prunes everything past the newest
+  6 per character (`HUNTING_JOURNAL_SIZE`).
+
+## Page
+
+The Hunting skill page keeps the shared skill banner and right rail. Its
+column holds the location chip and the **Journal** button (a modal of the
+last hunts, which also opens by itself right after a claim), then the ground
+picker and the selected ground's briefing: the time-away choice, encounters,
+XP, mishap chance, a **Risk** bar and the animals. The Risk bar shades the
+health a hunt can take at worst (the loss cap, stopping at the health floor)
+and rates the hunt from the encounter-weighted chance that an animal strikes
+back or a mishap happens, using the same formulas as the resolver. Below it,
+"Your hunter" lists the stats that matter (Luck, Hunting efficiency, armor,
+the evasion matching the animals' attack styles, block, movement speed) and
+any active food effect. A hunt in progress can be ended early from its card
+(`/api/hunting/cancel`): no materials, no damage. The building blocks shared
+with Dungeons live in `src/components/game/expeditions/parts.tsx`.
 
 ## Resolution
 
@@ -73,8 +92,10 @@ editor labels them "Defence — used in dungeons only".
 
 ## Operations
 
-1. Deploy the migration in
-   `prisma/migrations/20260917120000_hunting_pve_foundation/`.
+1. Deploy the migrations in
+   `prisma/migrations/20260917120000_hunting_pve_foundation/` and
+   `prisma/migrations/20261018130000_hunting_expedition_log/` (the journal; it
+   backfills each character's last claimed hunt).
 2. Preview seed changes with `npm run db:seed:hunting -- --check`.
 3. Apply starter content with `npm run db:seed:hunting -- --apply`.
 4. Verify it with `npm run db:seed:hunting -- --verify`.

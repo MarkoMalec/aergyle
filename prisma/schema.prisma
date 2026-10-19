@@ -71,7 +71,9 @@ model User {
   gardenHarvestActivity UserGardenHarvestActivity?
   gatheringExpedition   UserGatheringExpedition?
   huntingExpedition     UserHuntingExpedition?
+  huntingExpeditionLogs UserHuntingExpeditionLog[]
   dungeonRun            UserDungeonRun?
+  dungeonRunLogs        UserDungeonRunLog[]
   healthState           CharacterHealth?
   learnedRecipes        UserLearnedRecipe[]
   activeFoodEffect      UserActiveFoodEffect?
@@ -1364,9 +1366,10 @@ model HuntingGround {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  location    Location                @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  creatures   HuntingGroundCreature[]
-  expeditions UserHuntingExpedition[]
+  location       Location                   @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  creatures      HuntingGroundCreature[]
+  expeditions    UserHuntingExpedition[]
+  expeditionLogs UserHuntingExpeditionLog[]
 
   @@unique([locationId, name])
   @@index([locationId, enabled, sortOrder])
@@ -1472,6 +1475,27 @@ model UserHuntingExpedition {
   @@index([durationId])
 }
 
+// The hunt journal: a copy of each claimed expedition. Only the newest few per
+// character are kept (HUNTING_JOURNAL_SIZE); a claim prunes the rest.
+model UserHuntingExpeditionLog {
+  id       Int    @id @default(autoincrement())
+  userId   String
+  groundId Int
+
+  startedAt       DateTime
+  claimedAt       DateTime
+  durationSeconds Int
+  xpReward        Int
+  rewards         Json
+  report          Json
+
+  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ground HuntingGround @relation(fields: [groundId], references: [id], onDelete: Cascade)
+
+  @@index([userId, claimedAt])
+  @@index([groundId])
+}
+
 // ============================================
 // DUNGEONS
 // ============================================
@@ -1508,9 +1532,10 @@ model Dungeon {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  location        Location         @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  location        Location            @relation(fields: [locationId], references: [id], onDelete: Cascade)
   monsters        DungeonMonster[]
   runs            UserDungeonRun[]
+  runLogs         UserDungeonRunLog[]
   questObjectives QuestObjective[]
 
   @@unique([locationId, name])
@@ -1587,6 +1612,26 @@ model UserDungeonRun {
   dungeon Dungeon @relation(fields: [dungeonId], references: [id], onDelete: Cascade)
 
   @@index([endsAt])
+  @@index([dungeonId])
+}
+
+// The dungeon journal: a copy of each claimed run. Only the newest few per
+// character are kept (DUNGEON_JOURNAL_SIZE); a claim prunes the rest.
+model UserDungeonRunLog {
+  id        Int    @id @default(autoincrement())
+  userId    String
+  dungeonId Int
+
+  startedAt       DateTime
+  claimedAt       DateTime
+  durationSeconds Int
+  rewards         Json
+  report          Json
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dungeon Dungeon @relation(fields: [dungeonId], references: [id], onDelete: Cascade)
+
+  @@index([userId, claimedAt])
   @@index([dungeonId])
 }
 

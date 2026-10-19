@@ -89,6 +89,9 @@ export default function DragScrollContainer(props: {
       )}
       data-dragging={dragging}
       style={{ touchAction: "none" }}
+      // The map is an <img>, which the browser would otherwise start dragging
+      // as a file; that fires pointercancel and ends the pan straight away.
+      onDragStart={(e) => e.preventDefault()}
       onPointerDown={(e) => {
         if (e.button !== 0) return; // left click only
         if (isInteractiveElement(e.target)) return;

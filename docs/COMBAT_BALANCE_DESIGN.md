@@ -379,8 +379,8 @@ saves every row it replaces to `prisma/rebalance/backup-*.json`.
   critical hit doesn't decide it, and a round limit that ends in a draw.
 - Show the opponent's level and damage type before a challenge, and let
   players save a defensive loadout.
-- Remove or admin-gate `/api/test/add-item` before PvP or launch. Any
-  signed-in player can use it to grant themselves any item.
+- Keep item grants behind admin access. The former self-service
+  `/api/test/add-item` route has been removed.
 
 ## Implementation order
 

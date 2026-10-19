@@ -874,8 +874,8 @@ softCap(x, knee, ceiling)  → x ≤ knee ? x : knee + (ceiling − knee) · sat
       <h2 id="side-h"><span class="num">11</span>Side findings</h2>
       <p class="section-intro">These aren't curve problems, but they came up while tracing the pipelines and they affect balance more than any curve would.</p>
 
-      <div class="note bug"><span class="label">Security · fix before any balance work</span>
-        <p><code>POST /api/test/add-item</code> only checks that the request has a signed-in session. It doesn't use <code>requireAdminApiAccess</code> or an environment guard, so any player can grant themselves any item at any rarity. While it is open, every balance decision in this document can be bypassed. Gate it behind admin access or remove it. (The equally open <code>award-xp</code> and <code>add-multiplier</code> routes have been removed.)</p>
+      <div class="note"><span class="label">Security · fixed</span>
+        <p>The self-service <code>POST /api/test/add-item</code> route has been removed. Item grants now use the admin-protected player endpoint and UI. (The equally open <code>award-xp</code> and <code>add-multiplier</code> routes have also been removed.)</p>
       </div>
 
       <div class="note"><span class="label">Attack speed stacking · fixed</span>

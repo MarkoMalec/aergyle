@@ -1,5 +1,4 @@
 import DungeonExplorer from "~/components/game/dungeons/DungeonExplorer";
-import PageHeading from "~/components/game/ui/PageHeading";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -16,12 +15,7 @@ export default function DungeonsPage({
   searchParams: { dungeon?: string };
 }) {
   return (
-    <main className="space-y-6">
-      <PageHeading
-        eyebrow="Danger below"
-        title="Dungeons"
-        description="Fight through a dungeon with your current health and gear. Clear it for experience and whatever its monsters carried; fall, and you crawl out with scraps."
-      />
+    <main>
       {/* The region map links a dungeon here with ?dungeon=<id>. */}
       <DungeonExplorer
         initialDungeonId={Number(searchParams.dungeon) || null}

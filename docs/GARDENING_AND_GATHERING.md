@@ -35,6 +35,17 @@ subsystem was introduced.
 The player page is `/skills/Gardening`; seed balance lives at
 `/admin/gardening`.
 
+Player flow (`src/components/game/garden/`): with nothing selected, the action
+bar targets every empty or ripe plot, so a full cycle is one click to harvest
+and one to plant. Plots can be clicked or mouse-dragged to narrow the target.
+The Seed satchel button opens a dialog listing every seed in the inventory
+(grow time, wall-clock ready time, yield, XP, totals for the target plots) with
+a Plant button per seed. The last planted seed and which seed last grew in each
+plot are remembered per device (localStorage), which powers "Plant all" and
+"Replant" (the same crops back in the same plots, one request per seed type).
+Hovering an action ghosts the seeds into the plots it will touch. Growing plots
+show the seed art; the crop art appears only once a plot is ripe.
+
 ## Gathering expeditions
 
 Gathering reuses the existing `Location`, `VocationalResource`, item, rarity,

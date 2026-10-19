@@ -200,17 +200,6 @@ const SkillsLayoutContent = ({
           </section>
         </div>
       </div>
-      {decodedSkillName.toLowerCase() === "woodcutting" && (
-        <blockquote className="mt-8 max-w-2xl border-l-2 border-primary/40 pl-4 text-sm text-muted-foreground">
-          <p className="font-display italic">
-            “Me ma said to always be careful with sharp objects. But if ye want
-            to be a great woodcutter, ye gotta take some risks!”
-          </p>
-          <cite className="mt-2 block text-xs not-italic text-primary">
-            Roger the Lumberjack
-          </cite>
-        </blockquote>
-      )}
     </>
   );
 };

@@ -1,30 +1,95 @@
-import PageHeading from "~/components/game/ui/PageHeading";
+import Image from "next/image";
+import { cn } from "~/lib/utils";
 
-const descriptions: Record<string, string> = {
-  woodcutting:
-    "Work the woodland. Gather timber and grow your craft with every cut.",
-  mining: "Break new ground. Unearth ore and put your tools to work.",
-  fishing:
-    "Find your rhythm by the water. Choose your catch and prepare your bait.",
-  blacksmithing:
-    "Refine ore into ingots, then shape metal into armor, tools and durable components.",
-  weaponsmithing:
-    "Forge fitted metal and wooden components into blades, axes, maces and spears.",
-  carpentry:
-    "Season and shape timber into planks, handles, shafts, bows and practical wooden gear.",
-  cooking:
-    "Turn fish, meat and vegetables into hearty dishes, then discover recipes for more.",
-  tailoring:
-    "Shape cloth, hides and rare fibers into practical apparel for life beyond the road.",
-  gathering:
-    "Explore the wilds around your current location and return with whatever they reveal.",
-  hunting:
-    "Read the tracks, choose your ground, and bring home meat, hides, bones, and hard-won trophies.",
-  gardening:
-    "A little patience, a plentiful harvest. Plant seeds, watch each plot grow, and gather ripe crops.",
+type SkillMentor = {
+  name: string;
+  quote: string;
+  asset: string;
+};
+
+const mentors: Record<string, SkillMentor> = {
+  woodcutting: {
+    name: "Eira Alderfall",
+    quote:
+      "A tree gives twice: once to the canopy, once to the patient hand. Listen for the wind before you choose which gift to take.",
+    asset: "/assets/npcs/eira-alderfall-woodcutter-v1.png",
+  },
+  mining: {
+    name: "Dain Flintward",
+    quote:
+      "Stone keeps its riches for those who read the seams. Strike in anger and the mountain charges you for it.",
+    asset: "/assets/npcs/dain-flintward-miner-v3.png",
+  },
+  fishing: {
+    name: "Marek Driftwater",
+    quote:
+      "The river has no patience for noise. Mend your line, mind the current, and let the catch choose its moment.",
+    asset: "/assets/npcs/marek-driftwater-angler-v1.png",
+  },
+  gardening: {
+    name: "Lorn Thistlebank",
+    quote:
+      "Soil remembers every kindness. Give it water, give it time, and it will feed you through the hard months.",
+    asset: "/assets/npcs/lorn-thistlebank-gardener-v2.png",
+  },
+  gathering: {
+    name: "Rowan Mossweft",
+    quote:
+      "The wild rarely hides what it needs; it hides it among a hundred things that look alike. Learn the difference.",
+    asset: "/assets/npcs/rowan-mossweft-gatherer-v1.png",
+  },
+  hunting: {
+    name: "Sella Pikebriar",
+    quote:
+      "Leave a clean trail, take a clean shot, and thank the creature that carries you through winter.",
+    asset: "/assets/npcs/sella-pikebriar-hunter-v1.png",
+  },
+  alchemy: {
+    name: "Orrin Quill",
+    quote:
+      "Measure twice, warm once, and never trust a mixture that shines brighter than it should.",
+    asset: "/assets/npcs/orrin-quill-alchemist-v1.png",
+  },
+  blacksmithing: {
+    name: "Noll Graven",
+    quote:
+      "A good blade starts as stubborn metal. Your work is to persuade it, not punish it.",
+    asset: "/assets/npcs/noll-graven-blacksmith-v3.png",
+  },
+  weaponsmithing: {
+    name: "Aled Frostmark",
+    quote:
+      "Balance is the quiet half of every weapon. Miss it, and all the sharpness in Aergyle will not save the bearer.",
+    asset: "/assets/npcs/aled-frostmark-weaponsmith-v2.png",
+  },
+  carpentry: {
+    name: "Elric Oakrest",
+    quote:
+      "Wood tells you where it wants to bend. A true joiner listens before the blade makes the decision.",
+    asset: "/assets/npcs/elric-oakrest-carpenter-v2.png",
+  },
+  cooking: {
+    name: "Maelin Copperspoon",
+    quote:
+      "A full belly can turn a cold road into a story worth telling. Season with what the land has given.",
+    asset: "/assets/npcs/maelin-copperspoon-chef-v1.png",
+  },
+  tailoring: {
+    name: "Edrin Valeweft",
+    quote:
+      "Thread is humble until it holds against the storm. Mend what matters, and make the repair proud.",
+    asset: "/assets/npcs/edrin-valeweft-tailor-v2.png",
+  },
+  forge: {
+    name: "Ossa, Bridge-Smith",
+    quote:
+      "Fire is a tool, not a temper. Leave the anger at the bellows and the iron will listen.",
+    asset: "/assets/npcs/ossa-blacksmith-v1.png",
+  },
 };
 
 const headerArtwork: Record<string, string> = {
+  alchemy: "game-page-heading--alchemy",
   cooking: "game-skill-page-heading game-page-heading--cooking",
   fishing: "game-skill-page-heading game-page-heading--fishing",
   gardening: "game-skill-page-heading game-page-heading--gardening",
@@ -40,16 +105,39 @@ const headerArtwork: Record<string, string> = {
 
 export default function SkillPageHeader({ skillName }: { skillName: string }) {
   const skillSlug = skillName.trim().toLowerCase();
+  const mentor = mentors[skillSlug];
 
   return (
-    <PageHeading
-      eyebrow="The skill journal"
-      title={skillName}
-      description={
-        descriptions[skillSlug] ??
-        "Practice your craft and discover what the world has to offer."
-      }
-      className={headerArtwork[skillSlug]}
-    />
+    <header
+      className={cn(
+        "game-page-heading game-skill-page-heading",
+        headerArtwork[skillSlug],
+      )}
+    >
+      <div className="game-skill-page-heading__content">
+        <h1 className="game-page-title">{skillName}</h1>
+        {mentor ? (
+          <blockquote className="game-skill-page-heading__quote">
+            <p>“{mentor.quote}”</p>
+            <cite>{mentor.name}</cite>
+          </blockquote>
+        ) : (
+          <p className="game-page-description">
+            Practice your craft and discover what the world has to offer.
+          </p>
+        )}
+      </div>
+      {mentor ? (
+        <div className="game-skill-page-heading__mentor" aria-hidden="true">
+          <Image
+            src={mentor.asset}
+            alt=""
+            fill
+            priority
+            sizes="(max-width: 640px) 104px, (max-width: 900px) 180px, (max-width: 1300px) 20vw, 260px"
+          />
+        </div>
+      ) : null}
+    </header>
   );
 }

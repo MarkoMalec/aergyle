@@ -10,7 +10,13 @@ real-time combat.
 1. The dungeon page shows each dungeon's difficulty label, duration, XP,
    inhabitants, whether enemies come one at a time or in groups, and a
    **recommended health** calculated for the player's gear. Monster counts are
-   never sent to the client.
+   never sent to the client. Layout: a banner (artwork at
+   `public/assets/skills/dungeons-header.webp`, with a built-in backdrop
+   while the file is missing) holding the location and the Journal button,
+   then the dungeon list, the selected dungeon's briefing and the
+   character's fighting stats. The briefing's **Survival** bar marks the
+   recommended health on the character's current health and says whether
+   they are ready, should recover first, or are out of their depth.
 2. Entering requires the dungeon's character level, the location's level, and
    at least the configured share of maximum health. Entry snapshots the
    character's combat stats, current health, the monster population with drop
@@ -22,7 +28,7 @@ real-time combat.
      health, which never drops below 1.
    - **Defeated:** health becomes 0 and no XP is awarded. The loot gathered
      before the fall goes through the death penalty. The journal reads "You
-     managed to crawl out with …".
+     crawled out with the scraps below".
 5. Every PvE activity has a minimum health to start, so a defeated character
    must regenerate before fighting again.
 
@@ -44,8 +50,12 @@ hunting and equipment changes are blocked until it is claimed or left.
 - `DungeonMonster` places a monster in a dungeon with a hidden `minCount`–
   `maxCount` range.
 - `DungeonConfig` (singleton) holds the entry threshold and death penalty.
-- `UserDungeonRun` is one row per character, kept after claim so the journal
-  survives refresh.
+- `UserDungeonRun` is one row per character: the run in progress, or the
+  last claimed one until the next run starts.
+- `UserDungeonRunLog` is the **dungeon journal**: claiming copies the run
+  (dates, rewards, report) into it and prunes everything past the newest 6
+  per character (`DUNGEON_JOURNAL_SIZE`). The page shows it in a modal that
+  opens from the banner, and by itself right after a claim.
 
 ## Combat resolution
 
@@ -144,8 +154,10 @@ screens link to these profiles instead of showing loot inline.
 ## Operations
 
 1. Deploy `prisma/migrations/20260917180000_dungeons/`,
-   `prisma/migrations/20260918090000_creature_magic_damage/` and
-   `prisma/migrations/20260918120000_dungeon_pack_size/`.
+   `prisma/migrations/20260918090000_creature_magic_damage/`,
+   `prisma/migrations/20260918120000_dungeon_pack_size/` and
+   `prisma/migrations/20261018120000_dungeon_run_log/` (the journal; it
+   backfills each character's last claimed run).
 2. Preview the starter content with `npm run db:seed:dungeons -- --check`.
 3. Apply it with `npm run db:seed:dungeons -- --apply`.
 4. Verify it with `npm run db:seed:dungeons -- --verify`.

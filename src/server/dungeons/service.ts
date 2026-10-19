@@ -47,6 +47,8 @@ import { estimateRecommendedHealth } from "./simulator";
 import { finiteNumber } from "~/server/expeditions/rewards";
 
 const MAX_RUN_SECONDS = 7 * 24 * 60 * 60;
+// Claimed runs kept in each character's dungeon journal.
+const DUNGEON_JOURNAL_SIZE = 6;
 
 const DEFAULT_DUNGEON_CONFIG = {
   minimumHealthToStartPercent: 25,
@@ -59,6 +61,20 @@ type ClaimedDungeonReport = DungeonReport & {
   health?: { before: number; after: number; max: number };
 };
 
+type RunDungeon = {
+  id: number;
+  name: string;
+  difficulty: DungeonDifficulty;
+  location: { id: number; name: string };
+};
+
+const RUN_DUNGEON_SELECT = {
+  id: true,
+  name: true,
+  difficulty: true,
+  location: { select: { id: true, name: true } },
+} satisfies Prisma.DungeonSelect;
+
 export type DungeonRunStatus = {
   run: null | {
     id: number;
@@ -67,15 +83,20 @@ export type DungeonRunStatus = {
     endsAt: string;
     claimedAt: string | null;
     durationSeconds: number;
-    dungeon: {
-      id: number;
-      name: string;
-      difficulty: DungeonDifficulty;
-      location: { id: number; name: string };
-    };
+    dungeon: RunDungeon;
     rewards: CreatureLootReward[];
     report: ClaimedDungeonReport | null;
   };
+};
+
+type DungeonJournalEntry = {
+  id: number;
+  startedAt: string;
+  claimedAt: string;
+  durationSeconds: number;
+  dungeon: RunDungeon;
+  rewards: CreatureLootReward[];
+  report: ClaimedDungeonReport;
 };
 
 const COMBAT_SNAPSHOT_KEYS = [
@@ -270,14 +291,7 @@ export async function getDungeonRunStatus(
       durationSeconds: true,
       rewards: true,
       report: true,
-      dungeon: {
-        select: {
-          id: true,
-          name: true,
-          difficulty: true,
-          location: { select: { id: true, name: true } },
-        },
-      },
+      dungeon: { select: RUN_DUNGEON_SELECT },
     },
   });
   if (!run) return { run: null };
@@ -300,49 +314,87 @@ export async function getDungeonRunStatus(
   };
 }
 
+/** The character's latest claimed runs, newest first. */
+async function getDungeonJournal(
+  userId: string,
+): Promise<DungeonJournalEntry[]> {
+  const rows = await prisma.userDungeonRunLog.findMany({
+    where: { userId },
+    orderBy: [{ claimedAt: "desc" }, { id: "desc" }],
+    take: DUNGEON_JOURNAL_SIZE,
+    select: {
+      id: true,
+      startedAt: true,
+      claimedAt: true,
+      durationSeconds: true,
+      rewards: true,
+      report: true,
+      dungeon: { select: RUN_DUNGEON_SELECT },
+    },
+  });
+  return rows.flatMap((row) => {
+    const report = parseReport(row.report);
+    return report
+      ? [
+          {
+            id: row.id,
+            startedAt: row.startedAt.toISOString(),
+            claimedAt: row.claimedAt.toISOString(),
+            durationSeconds: row.durationSeconds,
+            dungeon: row.dungeon,
+            rewards: parseLootRewards(row.rewards),
+            report,
+          },
+        ]
+      : [];
+  });
+}
+
 export async function getDungeonPageData(userId: string) {
-  const [user, config, character, status, combatConfig] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        level: true,
-        currentLocation: {
-          select: {
-            id: true,
-            name: true,
-            requiredLevel: true,
-            dungeons: {
-              where: { enabled: true },
-              orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-              select: {
-                id: true,
-                name: true,
-                description: true,
-                difficulty: true,
-                requiredLevel: true,
-                durationSeconds: true,
-                packSize: true,
-                xpReward: true,
-                monsters: {
-                  where: ACTIVE_MONSTERS_WHERE,
-                  orderBy: { creature: { name: "asc" } },
-                  select: {
-                    minCount: true,
-                    maxCount: true,
-                    creature: { select: MONSTER_COMBAT_SELECT },
+  const [user, config, character, status, combatConfig, journal] =
+    await Promise.all([
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          level: true,
+          currentLocation: {
+            select: {
+              id: true,
+              name: true,
+              requiredLevel: true,
+              dungeons: {
+                where: { enabled: true },
+                orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+                select: {
+                  id: true,
+                  name: true,
+                  description: true,
+                  difficulty: true,
+                  requiredLevel: true,
+                  durationSeconds: true,
+                  packSize: true,
+                  xpReward: true,
+                  monsters: {
+                    where: ACTIVE_MONSTERS_WHERE,
+                    orderBy: { creature: { name: "asc" } },
+                    select: {
+                      minCount: true,
+                      maxCount: true,
+                      creature: { select: MONSTER_COMBAT_SELECT },
+                    },
                   },
                 },
               },
             },
           },
         },
-      },
-    }),
-    getDungeonConfig(),
-    getCharacterStatSnapshot(userId),
-    getDungeonRunStatus(userId),
-    getCombatConfig(),
-  ]);
+      }),
+      getDungeonConfig(),
+      getCharacterStatSnapshot(userId),
+      getDungeonRunStatus(userId),
+      getCombatConfig(),
+      getDungeonJournal(userId),
+    ]);
   if (!user) throw new Error("User not found");
   const vitals = await getCharacterVitalsFromSnapshot(userId, character);
   const combat = combatSnapshotFromStats(character.finalStats);
@@ -405,6 +457,7 @@ export async function getDungeonPageData(userId: string) {
         }
       : null,
     ...status,
+    journal,
   };
 }
 
@@ -548,8 +601,10 @@ export async function claimDungeonRun(userId: string) {
     where: { userId },
     select: {
       id: true,
+      startedAt: true,
       endsAt: true,
       claimedAt: true,
+      durationSeconds: true,
       xpReward: true,
       packSize: true,
       startingHealth: true,
@@ -627,6 +682,28 @@ export async function claimDungeonRun(userId: string) {
     });
     if (claimed.count !== 1) {
       throw new Error("This dungeon run was already claimed");
+    }
+    await tx.userDungeonRunLog.create({
+      data: {
+        userId,
+        dungeonId: run.dungeonId,
+        startedAt: run.startedAt,
+        claimedAt,
+        durationSeconds: run.durationSeconds,
+        rewards: resolution.rewards as unknown as Prisma.InputJsonValue,
+        report: report as unknown as Prisma.InputJsonValue,
+      },
+    });
+    const pruned = await tx.userDungeonRunLog.findMany({
+      where: { userId },
+      orderBy: [{ claimedAt: "desc" }, { id: "desc" }],
+      skip: DUNGEON_JOURNAL_SIZE,
+      select: { id: true },
+    });
+    if (pruned.length > 0) {
+      await tx.userDungeonRunLog.deleteMany({
+        where: { id: { in: pruned.map((row) => row.id) } },
+      });
     }
 
     for (const reward of resolution.rewards) {

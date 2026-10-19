@@ -400,8 +400,11 @@
     --skill-header-overlay-start: 0.58;
     --skill-header-overlay-middle: 0.24;
     --skill-header-image: none;
-    overflow: hidden;
-    padding: 28px 24px;
+    --skill-mentor-width: clamp(180px, 20vw, 260px);
+    isolation: isolate;
+    min-height: 182px;
+    overflow: visible;
+    padding: 24px;
     border-radius: 15px;
     background-image: linear-gradient(
         90deg,
@@ -414,10 +417,71 @@
     background-size: cover;
   }
 
-  .game-skill-page-heading .game-eyebrow,
+  .game-skill-page-heading::after {
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(
+      90deg,
+      hsl(var(--background) / 0.12) 0%,
+      transparent 75%
+    );
+    content: "";
+    pointer-events: none;
+  }
+
+  .game-skill-page-heading__content {
+    position: relative;
+    z-index: 2;
+    max-width: min(100%, 58rem);
+    padding-left: var(--skill-mentor-width);
+  }
+
   .game-skill-page-heading .game-page-title,
-  .game-skill-page-heading .game-page-description {
+  .game-skill-page-heading .game-page-description,
+  .game-skill-page-heading__quote {
     text-shadow: 0 1px 3px hsl(var(--background) / 0.9);
+  }
+
+  .game-skill-page-heading__quote {
+    max-width: 62ch;
+    margin-top: 10px;
+    color: hsl(var(--muted-foreground));
+    font-family: var(--font-display);
+    font-size: 0.975rem;
+    font-style: italic;
+    line-height: 1.5;
+  }
+
+  .game-skill-page-heading__quote cite {
+    display: block;
+    margin-top: 6px;
+    color: hsl(var(--primary));
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    font-style: normal;
+    font-weight: 650;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .game-skill-page-heading__mentor {
+    position: absolute;
+    z-index: 0;
+    top: -24px;
+    bottom: 0;
+    left: 0;
+    width: var(--skill-mentor-width);
+    /* The window extends above the banner but ends exactly at its bottom. */
+    overflow: hidden;
+    border-bottom-left-radius: inherit;
+    pointer-events: none;
+  }
+
+  .game-skill-page-heading__mentor img {
+    object-fit: cover;
+    object-position: center top;
   }
 
   .game-page-heading--fishing {
@@ -460,6 +524,11 @@
     --skill-header-overlay-middle: 0.2;
     --skill-header-image: url("/assets/skills/blacksmithing-header.webp");
   }
+  .game-page-heading--alchemy {
+    --skill-header-overlay-start: 0.68;
+    --skill-header-overlay-middle: 0.36;
+    --skill-header-image: url("/assets/skills/alchemy-header.webp");
+  }
   .game-page-heading--weaponsmithing {
     --skill-header-image: url("/assets/skills/weaponsmithing-header.webp");
   }
@@ -468,6 +537,27 @@
   }
   .game-page-heading--tailoring {
     --skill-header-image: url("/assets/skills/tailoring-header.webp");
+  }
+
+  @media (max-width: 640px) {
+    .game-skill-page-heading {
+      --skill-mentor-width: 104px;
+      min-height: 198px;
+      padding: 22px 18px;
+    }
+
+    .game-skill-page-heading .game-page-title {
+      font-size: clamp(20px, 4.8vw, 28px);
+      overflow-wrap: anywhere;
+    }
+
+    .game-skill-page-heading__mentor {
+      top: -16px;
+    }
+
+    .game-skill-page-heading__quote {
+      font-size: 0.875rem;
+    }
   }
 
   .game-page-title {
@@ -1223,10 +1313,8 @@
     padding-top: 10px;
     padding-bottom: 10px;
     text-align: left;
-    border: 1px solid hsl(var(--border));
     border-radius: 12px;
     background: hsl(var(--card));
-    box-shadow: var(--shadow-panel);
     transition:
       border-color var(--duration-fast),
       background var(--duration-fast);
@@ -1430,241 +1518,71 @@
     background: hsl(var(--xp));
     transition: width var(--duration-normal) var(--ease-game);
   }
-  .game-garden-grid {
-    display: grid;
-    grid-template-columns: repeat(6, minmax(44px, 1fr));
-    gap: 6px;
-  }
-  .game-garden-tile {
-    background: hsl(var(--surface-inset));
-    border: 1px solid hsl(var(--border));
-    border-radius: 10px;
-  }
-  .game-garden-tile[data-ready="true"] {
-    border-color: hsl(var(--xp));
-  }
-  .gardening-layout {
-    display: grid;
-    grid-template-columns: minmax(0, 1.55fr) minmax(270px, 0.75fr);
-    gap: 18px;
-    align-items: start;
-  }
-  .gardening-stage,
-  .gardening-seed-shelf {
-    min-width: 0;
-    overflow: hidden;
-  }
-  .gardening-header {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 16px;
-    padding: 20px 20px 15px;
-    border-bottom: 1px solid hsl(var(--border));
-  }
-  .gardening-counts {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: 6px;
-  }
-  .gardening-counts span {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 5px 7px;
-    color: hsl(var(--muted-foreground));
-    border: 1px solid hsl(var(--border));
-    border-radius: 999px;
-    background: hsl(var(--surface-inset) / 0.7);
-    font-size: 10px;
-    font-variant-numeric: tabular-nums;
-  }
-  .gardening-counts span[data-kind="growing"] {
-    color: hsl(var(--primary));
-  }
-  .gardening-counts span[data-kind="ready"] {
-    color: hsl(var(--xp));
-    border-color: hsl(var(--xp) / 0.3);
-  }
-  .gardening-counts svg {
-    width: 12px;
-    height: 12px;
-    stroke-width: 1.8;
-  }
-  .gardening-harvest-banner {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin: 15px 20px 0;
-    padding: 11px 12px;
-    color: hsl(var(--xp));
-    border: 1px solid hsl(var(--xp) / 0.3);
-    border-radius: 11px;
-    background: hsl(var(--xp) / 0.07);
-  }
-  .gardening-harvest-banner > span {
-    display: grid;
-    width: 30px;
-    height: 30px;
-    place-items: center;
-    flex-shrink: 0;
-    border-radius: 9px;
-    background: hsl(var(--xp) / 0.1);
-  }
-  .gardening-harvest-banner svg {
-    width: 16px;
-    height: 16px;
-  }
-  .gardening-harvest-banner > div {
-    min-width: 0;
-    flex: 1;
-  }
-  .gardening-harvest-banner strong,
-  .gardening-harvest-banner small {
-    display: block;
-  }
-  .gardening-harvest-banner strong {
-    color: hsl(var(--foreground));
-    font-size: 12px;
-  }
-  .gardening-harvest-banner small {
-    margin-top: 2px;
-    color: hsl(var(--muted-foreground));
-    font-size: 10px;
-  }
-  .gardening-harvest-banner b {
-    flex-shrink: 0;
-    font-size: 11px;
-    font-variant-numeric: tabular-nums;
-  }
-  .gardening-toolbar {
-    display: flex;
-    min-height: 50px;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 8px 20px;
-  }
-  .gardening-toolbar p {
-    color: hsl(var(--muted-foreground));
-    font-size: 11px;
-  }
-  .gardening-toolbar > div {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-  }
-  .gardening-grid-scroll {
-    overflow-x: auto;
-    padding: 0 20px 20px;
-    scrollbar-width: thin;
-  }
   .gardening-grid {
-    min-width: 460px;
+    position: relative;
+    isolation: isolate;
     gap: 7px;
+    padding: 5px;
+    overflow: hidden;
+    border-radius: 16px;
+    background: url("/assets/garden/garden-grid-backdrop-v1.webp") center / 100%
+      100% no-repeat;
   }
   .gardening-plot {
     position: relative;
-    aspect-ratio: 1;
+    aspect-ratio: 4 / 3;
     min-width: 0;
-    overflow: hidden;
+    overflow: visible;
     padding: 0;
     text-align: left;
-    border-radius: 11px;
-    background: linear-gradient(150deg, #3d342833, transparent 55%),
-      hsl(var(--surface-inset));
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
     transition:
-      border-color var(--duration-fast),
       transform var(--duration-fast),
-      background var(--duration-fast);
+      filter var(--duration-fast);
   }
   .gardening-plot::before {
     content: "";
     position: absolute;
-    inset: 9px 7px 20px;
-    border: 1px solid #806b4b38;
-    border-radius: 50%;
-    background: repeating-linear-gradient(
-        164deg,
-        transparent 0 7px,
-        #c6ab7720 8px 9px
-      ),
-      #2b251f73;
-    transform: perspective(60px) rotateX(18deg);
+    inset: 5px 2px 15px;
+    pointer-events: none;
+    background: url("/assets/garden/plots/garden-plot-empty-v1.png") center /
+      contain no-repeat;
+  }
+  .gardening-plot[data-state="growing"]::before,
+  .gardening-plot[data-state="ready"]::before {
+    background-image: url("/assets/garden/plots/garden-plot-cultivated-v1.png");
   }
   .gardening-plot:hover:not(:disabled) {
     z-index: 2;
-    border-color: hsl(var(--primary) / 0.65);
-    transform: translateY(-1px);
+    filter: brightness(1.08) saturate(1.04);
+    transform: translateY(-2px);
   }
   .gardening-plot[data-selected="true"] {
-    border-color: hsl(var(--primary));
-    box-shadow: inset 0 0 0 1px hsl(var(--primary) / 0.35);
+    z-index: 3;
+  }
+  .gardening-plot[data-selected="true"]::after {
+    content: "";
+    position: absolute;
+    z-index: 1;
+    inset: 8% 6% 20%;
+    pointer-events: none;
+    border: 1px solid hsl(var(--primary) / 0.9);
+    border-radius: 47% 53% 49% 51%;
+    box-shadow:
+      0 0 0 2px hsl(var(--primary) / 0.16),
+      0 0 14px hsl(var(--primary) / 0.18);
   }
   .gardening-plot[data-state="ready"] {
-    border-color: hsl(var(--xp) / 0.75);
-    background: radial-gradient(
-        circle at 50% 45%,
-        hsl(var(--xp) / 0.11),
-        transparent 60%
-      ),
-      hsl(var(--surface-inset));
+    filter: drop-shadow(0 2px 7px hsl(var(--xp) / 0.2));
   }
   .gardening-plot[data-state="ready"]::before {
-    border-color: hsl(var(--xp) / 0.18);
+    filter: saturate(1.08) brightness(1.06);
   }
   .gardening-plot:disabled {
     cursor: not-allowed;
-  }
-  .gardening-plot-number {
-    position: absolute;
-    z-index: 3;
-    top: 5px;
-    left: 6px;
-    color: hsl(var(--muted-foreground) / 0.55);
-    font-size: 8px;
-    font-variant-numeric: tabular-nums;
-  }
-  .gardening-plot-check {
-    position: absolute;
-    z-index: 5;
-    top: 4px;
-    right: 4px;
-    display: grid;
-    width: 16px;
-    height: 16px;
-    place-items: center;
-    color: hsl(var(--primary-foreground));
-    border-radius: 50%;
-    background: hsl(var(--primary));
-  }
-  .gardening-plot-check svg {
-    width: 10px;
-    height: 10px;
-    stroke-width: 2.4;
-  }
-  .gardening-empty-mark {
-    position: absolute;
-    z-index: 2;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 5px;
-    color: hsl(var(--muted-foreground) / 0.72);
-  }
-  .gardening-empty-mark > span {
-    width: 14px;
-    height: 14px;
-    border: 1px dashed hsl(var(--primary) / 0.35);
-    border-radius: 50%;
-  }
-  .gardening-empty-mark small {
-    font-size: 8px;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
   }
   .gardening-crop-art {
     --garden-growth: 1;
@@ -1676,231 +1594,6 @@
       scale(calc(0.64 + var(--garden-growth) * 0.36));
     transform-origin: 50% 78%;
     transition: transform 1s linear;
-  }
-  .gardening-plot-label {
-    position: absolute;
-    z-index: 3;
-    right: 4px;
-    bottom: 4px;
-    left: 4px;
-    padding: 3px 4px;
-    overflow: hidden;
-    border: 1px solid hsl(var(--border) / 0.75);
-    border-radius: 6px;
-    background: hsl(var(--card) / 0.93);
-    backdrop-filter: blur(4px);
-  }
-  .gardening-plot-label strong,
-  .gardening-plot-label small {
-    display: block;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .gardening-plot-label strong {
-    font-size: 8px;
-    line-height: 1.2;
-  }
-  .gardening-plot-label small {
-    margin-top: 1px;
-    color: hsl(var(--muted-foreground));
-    font-size: 7px;
-    font-variant-numeric: tabular-nums;
-  }
-  [data-state="ready"] .gardening-plot-label small {
-    color: hsl(var(--xp));
-    font-weight: 700;
-    text-transform: uppercase;
-  }
-  .gardening-growth-track {
-    position: absolute;
-    z-index: 4;
-    right: 5px;
-    bottom: 1px;
-    left: 5px;
-    height: 2px;
-    overflow: hidden;
-    border-radius: 999px;
-    background: hsl(var(--border));
-  }
-  .gardening-growth-track i {
-    display: block;
-    height: 100%;
-    background: hsl(var(--primary));
-  }
-  .gardening-seed-shelf .game-panel-body {
-    padding-top: 16px;
-  }
-  .gardening-seed-list {
-    display: grid;
-    gap: 7px;
-    max-height: 310px;
-    overflow-y: auto;
-    padding-right: 2px;
-  }
-  .gardening-seed-list > button {
-    display: flex;
-    width: 100%;
-    min-width: 0;
-    align-items: center;
-    gap: 9px;
-    padding: 7px 9px 7px 7px;
-    text-align: left;
-    border: 1px solid hsl(var(--border));
-    border-radius: 11px;
-    background: hsl(var(--surface-inset) / 0.48);
-  }
-  .gardening-seed-list > button:hover,
-  .gardening-seed-list > button[data-selected="true"] {
-    border-color: hsl(var(--primary) / 0.7);
-    background: hsl(var(--primary) / 0.07);
-  }
-  .gardening-seed-list > button > span:first-child {
-    display: grid;
-    width: 42px;
-    height: 42px;
-    place-items: center;
-    flex-shrink: 0;
-    border-radius: 9px;
-    background: hsl(var(--card));
-  }
-  .gardening-seed-list img {
-    width: 38px;
-    height: 38px;
-    object-fit: contain;
-  }
-  .gardening-seed-list strong,
-  .gardening-seed-list small {
-    display: block;
-  }
-  .gardening-seed-list strong {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 12px;
-  }
-  .gardening-seed-list small {
-    margin-top: 2px;
-    color: hsl(var(--muted-foreground));
-    font-size: 10px;
-  }
-  .gardening-seed-list > button > svg {
-    width: 15px;
-    height: 15px;
-    flex-shrink: 0;
-    color: hsl(var(--primary));
-  }
-  .gardening-no-seeds {
-    display: flex;
-    min-height: 150px;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 20px 12px;
-    text-align: center;
-    color: hsl(var(--muted-foreground));
-    border: 1px dashed hsl(var(--border));
-    border-radius: 11px;
-  }
-  .gardening-no-seeds svg {
-    width: 26px;
-    height: 26px;
-    margin-bottom: 10px;
-    color: hsl(var(--primary));
-    stroke-width: 1.4;
-  }
-  .gardening-no-seeds strong {
-    color: hsl(var(--foreground));
-    font-size: 12px;
-  }
-  .gardening-no-seeds p {
-    max-width: 28ch;
-    margin-top: 5px;
-    font-size: 10px;
-    line-height: 1.5;
-  }
-  .gardening-seed-details {
-    margin-top: 12px;
-    padding: 12px;
-    border: 1px solid hsl(var(--border));
-    border-radius: 11px;
-    background: hsl(var(--surface-inset) / 0.42);
-  }
-  .gardening-seed-details > div {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-  }
-  .gardening-seed-details > div > img,
-  .gardening-seed-details > div > .game-item-info-trigger > img {
-    width: 48px;
-    height: 48px;
-    flex-shrink: 0;
-    object-fit: contain;
-  }
-  .gardening-seed-details strong {
-    display: block;
-    margin-top: 2px;
-    font-size: 12px;
-  }
-  .gardening-seed-details dl {
-    display: grid;
-    gap: 6px;
-    margin-top: 10px;
-    padding-top: 9px;
-    border-top: 1px solid hsl(var(--border));
-  }
-  .gardening-seed-details dl > div {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    font-size: 10px;
-  }
-  .gardening-seed-details dt {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    color: hsl(var(--muted-foreground));
-  }
-  .gardening-seed-details dt svg {
-    width: 12px;
-    height: 12px;
-  }
-  .gardening-seed-details dd {
-    color: hsl(var(--foreground));
-    font-weight: 650;
-    font-variant-numeric: tabular-nums;
-  }
-  .gardening-action-card {
-    display: grid;
-    gap: 9px;
-    margin-top: 12px;
-    padding: 12px;
-    border: 1px solid hsl(var(--primary) / 0.22);
-    border-radius: 11px;
-    background: hsl(var(--primary) / 0.055);
-  }
-  .gardening-action-card > p {
-    color: hsl(var(--muted-foreground));
-    font-size: 10px;
-    line-height: 1.5;
-  }
-  .gardening-action-card strong,
-  .gardening-action-card small {
-    display: block;
-  }
-  .gardening-action-card strong {
-    font-size: 12px;
-  }
-  .gardening-action-card small {
-    margin-top: 2px;
-    color: hsl(var(--muted-foreground));
-    font-size: 10px;
-  }
-  .gardening-action-card[data-kind="ready"] {
-    border-color: hsl(var(--xp) / 0.35);
-    background: hsl(var(--xp) / 0.06);
   }
   .game-gathering {
     min-width: 0;
@@ -1966,93 +1659,6 @@
     flex-shrink: 0;
     object-fit: contain;
   }
-  .gathering-location-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
-  }
-  .gathering-location-choice {
-    display: flex;
-    min-height: 68px;
-    align-items: center;
-    gap: 12px;
-    padding: 12px;
-    text-align: left;
-    border: 1px solid hsl(var(--border));
-    border-radius: 12px;
-    background: hsl(var(--surface-inset) / 0.55);
-    transition:
-      border-color var(--duration-fast),
-      background var(--duration-fast),
-      transform var(--duration-fast);
-  }
-  .gathering-location-choice:hover {
-    border-color: hsl(var(--primary) / 0.55);
-    background: hsl(var(--secondary));
-    transform: translateY(-1px);
-  }
-  .gathering-location-choice[data-selected="true"] {
-    border-color: hsl(var(--primary) / 0.8);
-    background: hsl(var(--primary) / 0.08);
-    box-shadow: inset 0 0 0 1px hsl(var(--primary) / 0.16);
-  }
-  .gathering-location-choice[data-locked="true"] {
-    border-style: dashed;
-  }
-  .gathering-location-icon {
-    display: grid;
-    width: 38px;
-    height: 38px;
-    place-items: center;
-    flex-shrink: 0;
-    color: hsl(var(--primary));
-    border: 1px solid hsl(var(--primary) / 0.25);
-    border-radius: 11px;
-    background: hsl(var(--primary) / 0.07);
-  }
-  [data-locked="true"] .gathering-location-icon {
-    color: hsl(var(--muted-foreground));
-    border-color: hsl(var(--border));
-    background: transparent;
-  }
-  .gathering-location-icon svg {
-    width: 18px;
-    height: 18px;
-    stroke-width: 1.7;
-  }
-  .gathering-location-choice strong,
-  .gathering-location-choice small {
-    display: block;
-  }
-  .gathering-location-choice strong {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 13px;
-  }
-  .gathering-location-choice small {
-    margin-top: 3px;
-    color: hsl(var(--muted-foreground));
-    font-size: 11px;
-  }
-  .gathering-location-detail {
-    display: grid;
-    grid-template-columns: minmax(180px, 0.72fr) minmax(0, 1.28fr);
-    gap: 22px;
-    padding-top: 4px;
-  }
-  .gathering-location-copy {
-    padding: 18px;
-    border: 1px solid hsl(var(--border));
-    border-radius: 13px;
-    background: radial-gradient(
-        circle at 100% 0%,
-        hsl(var(--primary) / 0.08),
-        transparent 45%
-      ),
-      hsl(var(--surface-inset) / 0.45);
-  }
-  .gathering-location-copy h3,
   .gathering-find-heading h3,
   .gathering-duration-section h3 {
     margin-top: 4px;
@@ -2061,7 +1667,6 @@
     font-weight: 650;
     letter-spacing: -0.02em;
   }
-  .gathering-location-copy > p:not(.game-eyebrow),
   .gathering-duration-section > div:first-child > p:not(.game-eyebrow) {
     margin-top: 9px;
     color: hsl(var(--muted-foreground));
@@ -3416,9 +3021,6 @@
   }
 }
 @media (max-width: 900px) {
-  .gardening-layout {
-    grid-template-columns: minmax(0, 1fr);
-  }
   .game-profile-dashboard {
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
@@ -3513,29 +3115,8 @@
   .game-crafting-grid {
     grid-template-columns: minmax(0, 1fr);
   }
-  .game-garden-grid {
-    gap: 4px;
-  }
-  .gardening-header,
-  .gardening-toolbar {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-  .gardening-counts {
-    justify-content: flex-start;
-  }
-  .gardening-toolbar > div {
-    width: 100%;
-    flex-wrap: wrap;
-  }
-  .gardening-grid-scroll {
-    padding-inline: 16px;
-  }
   .gardening-grid {
-    min-width: 444px;
-  }
-  .gardening-harvest-banner {
-    margin-inline: 16px;
+    gap: 3px;
   }
   .gathering-modifiers {
     grid-template-columns: minmax(0, 1fr);
@@ -3547,8 +3128,6 @@
   .gathering-modifiers > div:last-child {
     border-bottom: 0;
   }
-  .gathering-location-grid,
-  .gathering-location-detail,
   .gathering-duration-section {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -3607,13 +3186,6 @@
 @media (max-width: 430px) {
   .game-character-hero-stats .game-core-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .gardening-harvest-banner {
-    align-items: flex-start;
-    flex-wrap: wrap;
-  }
-  .gardening-harvest-banner b {
-    margin-left: 40px;
   }
   .gathering-haul-grid {
     grid-template-columns: minmax(0, 1fr);
