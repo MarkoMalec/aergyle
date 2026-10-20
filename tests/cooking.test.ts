@@ -87,19 +87,19 @@ function countAlphaPixels(png: Buffer) {
   return { transparent, visible, total: width * height };
 }
 
-void test("cooking ships seven dishes, five learnable recipes and two starter dishes", () => {
-  assert.equal(COOKING_DISHES.length, 7);
+void test("cooking ships twenty dishes, five learnable recipes and fifteen starter dishes", () => {
+  assert.equal(COOKING_DISHES.length, 20);
   assert.equal(COOKING_RECIPES.length, 5);
   assert.equal(
     COOKING_DISHES.filter((dish) => dish.requiredRecipeName === null).length,
-    2,
+    15,
   );
   assert.equal(
     COOKING_DISHES.filter((dish) => dish.requiredRecipeName !== null).length,
     5,
   );
-  assert.equal(new Set(COOKING_DISHES.map((dish) => dish.slug)).size, 7);
-  assert.equal(new Set(COOKING_DISHES.map((dish) => dish.name)).size, 7);
+  assert.equal(new Set(COOKING_DISHES.map((dish) => dish.slug)).size, 20);
+  assert.equal(new Set(COOKING_DISHES.map((dish) => dish.name)).size, 20);
   assert.ok(COOKING_DISHES.every((dish) => dish.itemType === "FOOD"));
   assert.ok(COOKING_RECIPES.every((recipe) => recipe.itemType === "RECIPE"));
 
@@ -152,14 +152,21 @@ void test("Pan-fried Perch is an immediately available level-one dish", () => {
   ]);
 });
 
-void test("every cooking requirement is a concrete fish, meat or vegetable", () => {
+void test("every cooking requirement is a concrete fish, meat, vegetable, fruit, herb or seasoning", () => {
   const typesByName = new Map<string, string>([
     ...Object.entries(COOKING_EXISTING_INGREDIENT_TYPES),
     ...COOKING_INGREDIENTS.map(
       (ingredient) => [ingredient.name, ingredient.itemType] as const,
     ),
   ]);
-  const allowedTypes = new Set(["FISH", "MEAT", "VEGETABLE"]);
+  const allowedTypes = new Set([
+    "FISH",
+    "MEAT",
+    "VEGETABLE",
+    "FOOD",
+    "HERB",
+    "MATERIAL",
+  ]);
 
   for (const dish of COOKING_DISHES) {
     assert.ok(dish.requirements.length > 0, `${dish.name} needs ingredients`);
@@ -225,7 +232,7 @@ void test("runtime cooking artwork is compact 256px RGBA with real transparency"
   assert.equal(COOKING_RECIPES[0]?.sprite, COOKING_RECIPE_SPRITE);
 
   const uniqueSprites = new Set(COOKING_ITEMS.map((item) => item.sprite));
-  assert.equal(uniqueSprites.size, 21);
+  assert.equal(uniqueSprites.size, 38);
   for (const spritePath of uniqueSprites) {
     const png = readFileSync(
       new URL(`../public${spritePath}`, import.meta.url),
