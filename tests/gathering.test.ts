@@ -3,8 +3,11 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import {
   GATHERING_DURATIONS,
+  GATHERING_FRUITS,
+  GATHERING_HERBS,
   GATHERING_ITEMS,
   GATHERING_LOCATIONS,
+  type GatheringItemDefinition,
 } from "../prisma/content/gathering";
 import { COOKING_INGREDIENTS } from "../prisma/content/cooking";
 import {
@@ -13,30 +16,59 @@ import {
 } from "../src/server/gathering/rewards";
 import { runGatheringSimulation } from "../src/server/gathering/simulator";
 
-void test("Gathering has six foraged foods and twelve distinct herbs", () => {
-  const food = GATHERING_ITEMS.filter((item) => item.itemType === "VEGETABLE");
+void test("Gathering adds sixteen fruit ingredients and ten regionally placed herbs", () => {
+  const allGatheringItems: readonly GatheringItemDefinition[] = GATHERING_ITEMS;
   const herbs = GATHERING_ITEMS.filter((item) => item.itemType === "HERB");
-  assert.equal(food.length, 6);
-  assert.equal(herbs.length, 12);
-  assert.ok(food.some((item) => item.name === "Mushrooms"));
+  const foodFruit = allGatheringItems.filter(
+    (item) => item.itemType === "FOOD",
+  );
+  assert.equal(GATHERING_FRUITS.length, 16);
+  assert.equal(foodFruit.length, 9);
+  assert.equal(herbs.length, 22);
+  assert.equal(GATHERING_HERBS.length, 10);
   assert.deepEqual(
-    new Set(herbs.map((item) => item.name)),
+    new Set(GATHERING_FRUITS.map((item) => item.name)),
     new Set([
-      "Mint",
-      "Sage",
-      "Rosemary",
-      "Chamomile",
-      "Lavender",
-      "Thyme",
-      "Yarrow",
-      "Aloe",
-      "Ginseng",
-      "Echinacea",
-      "Amrans",
-      "Arkasu Bark",
+      "Apple",
+      "Pear",
+      "Strawberries",
+      "Blueberries",
+      "Raspberries",
+      "Grapes",
+      "Figs",
+      "Peaches",
+      "Blood Oranges",
+      "Orange",
+      "Pomegranates",
+      "Golden Dates",
+      "Frostberries",
+      "Cloudberries",
+      "Moon Melon",
+      "Starfruit",
     ]),
   );
-  assert.equal(new Set(GATHERING_ITEMS.map((item) => item.name)).size, 18);
+  assert.deepEqual(
+    new Set(GATHERING_HERBS.map((item) => item.name)),
+    new Set([
+      "Basil",
+      "Wild Chives",
+      "Lemon Balm",
+      "Marjoram",
+      "Tarragon",
+      "Stinging Nettle",
+      "Wintergreen",
+      "Icecap Moss",
+      "Cinderleaf",
+      "Ghost Orchid",
+    ]),
+  );
+  assert.equal(new Set(GATHERING_ITEMS.map((item) => item.name)).size, 44);
+
+  for (const fruit of foodFruit) {
+    assert.ok(fruit.healingAmount && fruit.healingAmount > 0);
+    assert.ok(fruit.foodEffectSeconds && fruit.foodEffectSeconds > 0);
+    assert.ok(fruit.foodEffectStats && fruit.foodEffectStats.length > 0);
+  }
 
   const existingCookingNames = new Set(
     COOKING_INGREDIENTS.map((item) => item.name),
@@ -47,6 +79,26 @@ void test("Gathering has six foraged foods and twelve distinct herbs", () => {
     ),
     "Gathering content must not duplicate existing cooking ingredients",
   );
+});
+
+void test("new fruit and herbs are distributed among all four gathering regions", () => {
+  const fruitNames = new Set<string>(GATHERING_FRUITS.map((item) => item.name));
+  const herbNames = new Set<string>(GATHERING_HERBS.map((item) => item.name));
+  const foundFruit = new Set<string>();
+  const foundHerb = new Set<string>();
+
+  for (const location of GATHERING_LOCATIONS) {
+    const entries = location.resources.map((resource) => resource.itemName);
+    assert.ok(entries.some((name) => fruitNames.has(name)));
+    assert.ok(entries.some((name) => herbNames.has(name)));
+    entries.forEach((name) => {
+      if (fruitNames.has(name)) foundFruit.add(name);
+      if (herbNames.has(name)) foundHerb.add(name);
+    });
+  }
+
+  assert.deepEqual(foundFruit, fruitNames);
+  assert.deepEqual(foundHerb, herbNames);
 });
 
 void test("Gathering uses only existing-location definitions and valid pool balance", () => {

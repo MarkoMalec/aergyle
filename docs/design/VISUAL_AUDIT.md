@@ -6,7 +6,7 @@ Audited on the `redesign` branch, 14 September 2026. The active application is N
 
 - Root: `src/app/layout.tsx`, `src/styles/globals.css`, `tailwind.config.ts`.
 - Public: `/`, `/signin`, `/register`, and the parallel sign-in/register slots under `/play`.
-- Game: shared authenticated layout; `/profile`; `/skills/[name]` including Gardening plots and Gathering expeditions; `/map`; `/marketplace`; `/marketplace/my-listings`.
+- Game: shared authenticated layout; `/inventory`; `/@Name` profiles; `/skills/[name]` including Gardening plots and Gathering expeditions; `/map`; `/marketplace`; `/marketplace/my-listings`.
 - Shared presentation: Radix-based buttons, cards, dialogs, tooltips, popovers, selects, badges, tables; header, sidebar, portrait, XP, inventory/equipment and item details; resource start and completion dialogs; travel, seed selection, stack splitting and market listing.
 - Administration: existing `.admin-theme` and item, rarity, skill, location, progression, Gardening, and Gathering editors. Keep their operational layout and database controls.
 - Game state: retain contexts, service calls, query keys, realtime events, equipment indices, inventory slots, travel, Gardening, and Gathering timers, prices, tax, rarity tiers and progression calculations.

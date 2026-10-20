@@ -341,25 +341,27 @@ export function MarketDetailPanel({
         )}
 
         <div className="grid grid-cols-2 gap-1 rounded-md bg-surface-inset p-1">
-          <button
-            className={`rounded px-3 py-2 text-sm font-semibold ${actionMode === "BUY_NOW" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+          <Button
+            variant={actionMode === "BUY_NOW" ? "default" : "ghost"}
+            className={cn(actionMode !== "BUY_NOW" && "text-muted-foreground")}
             onClick={() => {
               setActionMode("BUY_NOW");
               setQuantity(1);
             }}
           >
             Buy now
-          </button>
-          <button
+          </Button>
+          <Button
+            variant={actionMode === "BUY_ORDER" ? "default" : "ghost"}
             disabled={!market.stackable}
-            className={`rounded px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40 ${actionMode === "BUY_ORDER" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            className={cn(actionMode !== "BUY_ORDER" && "text-muted-foreground")}
             onClick={() => {
               setActionMode("BUY_ORDER");
               setQuantity(1);
             }}
           >
             Buy order
-          </button>
+          </Button>
         </div>
 
         {actionMode === "BUY_NOW" ? (

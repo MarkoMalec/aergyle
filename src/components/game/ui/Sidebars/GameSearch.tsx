@@ -23,6 +23,7 @@ const EMPTY: SearchResults = {
   creatures: [],
   npcs: [],
   settlements: [],
+  players: [],
 };
 
 /**
@@ -81,7 +82,8 @@ export function GameSearch({
     data.items.length > 0 ||
     data.creatures.length > 0 ||
     data.npcs.length > 0 ||
-    data.settlements.length > 0;
+    data.settlements.length > 0 ||
+    data.players.length > 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -141,6 +143,7 @@ export function GameSearch({
               hits={data.settlements}
               onSelect={go}
             />
+            <HitGroup heading="Players" hits={data.players} onSelect={go} />
           </CommandList>
         </Command>
       </DialogContent>

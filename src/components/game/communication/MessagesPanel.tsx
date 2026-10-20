@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -15,6 +16,7 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Skeleton } from "~/components/ui/skeleton";
 import { MAX_MESSAGE_LENGTH, timeAgo } from "~/game/communication";
+import { playerProfileHref } from "~/game/players";
 import {
   DEFAULT_PLAYER_AVATAR,
   getPlayerAvatarBySrc,
@@ -34,8 +36,15 @@ import toast from "react-hot-toast";
 
 type View = { kind: "list" } | { kind: "thread"; id: number } | { kind: "new" };
 
-export function MessagesPanel() {
-  const [view, setView] = useState<View>({ kind: "list" });
+export function MessagesPanel({
+  composeTo,
+}: {
+  /** Starts on a new message to this player, e.g. from their profile. */
+  composeTo?: PlayerRef | null;
+}) {
+  const [view, setView] = useState<View>(
+    composeTo ? { kind: "new" } : { kind: "list" },
+  );
 
   if (view.kind === "thread") {
     return (
@@ -48,6 +57,7 @@ export function MessagesPanel() {
   if (view.kind === "new") {
     return (
       <Compose
+        recipient={composeTo ?? null}
         onBack={() => setView({ kind: "list" })}
         onSent={(id) => setView({ kind: "thread", id })}
       />
@@ -238,9 +248,18 @@ function Thread({
           <span className="sr-only">Back to your conversations</span>
         </button>
         {player ? <Portrait player={player} /> : null}
-        <strong className="min-w-0 flex-1 truncate text-sm">
-          {player?.name ?? "…"}
-        </strong>
+        {player?.id ? (
+          <Link
+            href={playerProfileHref(player.name)}
+            className="min-w-0 flex-1 truncate text-sm font-semibold hover:text-primary"
+          >
+            {player.name}
+          </Link>
+        ) : (
+          <strong className="min-w-0 flex-1 truncate text-sm">
+            {player?.name ?? "…"}
+          </strong>
+        )}
         {query.data && !query.data.system ? (
           <button
             type="button"
@@ -349,14 +368,16 @@ function Thread({
 
 /** Picking a player to write to, then the first message. */
 function Compose({
+  recipient,
   onBack,
   onSent,
 }: {
+  recipient: PlayerRef | null;
   onBack: () => void;
   onSent: (conversationId: number) => void;
 }) {
   const [term, setTerm] = useState("");
-  const [picked, setPicked] = useState<PlayerRef | null>(null);
+  const [picked, setPicked] = useState<PlayerRef | null>(recipient);
 
   const players = useQuery({
     queryKey: communicationQueryKeys.players(term.trim()),

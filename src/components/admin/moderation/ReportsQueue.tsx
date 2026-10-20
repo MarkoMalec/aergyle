@@ -41,6 +41,11 @@ export function ReportsQueue({ reports }: { reports: ReportView[] }) {
             >
               {report.status}
             </span>
+            <span className="rounded-md bg-white/[0.06] px-1.5 py-0.5 text-[11px] text-white/60">
+              {report.source === "PROFILE_COMMENT"
+                ? "Profile comment"
+                : "Conversation"}
+            </span>
             <span className="text-sm font-semibold">{report.reported}</span>
             <span className="text-xs text-white/45">
               reported by {report.reporter}
@@ -96,7 +101,9 @@ function ReportDetail({ report }: { report: ReportView }) {
       <div className="max-h-80 space-y-2 overflow-y-auto rounded-lg bg-black/30 p-3">
         {report.transcript.length === 0 ? (
           <p className="text-sm text-white/40">
-            The conversation was empty when it was reported.
+            {report.source === "PROFILE_COMMENT"
+              ? "The comment was removed before it was reported."
+              : "The conversation was empty when it was reported."}
           </p>
         ) : (
           report.transcript.map((line, index) => (

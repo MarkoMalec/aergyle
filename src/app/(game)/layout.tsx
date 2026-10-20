@@ -11,6 +11,7 @@ import { getXpProgress } from "~/utils/leveling";
 import { redirect } from "next/navigation";
 import { StaleSession } from "~/components/auth/StaleSession";
 import { settleVocationalTicks } from "./settle";
+import { touchLastOnline } from "~/server/players/presence";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -36,6 +37,8 @@ const GameLayout = async ({ children }: { children: React.ReactNode }) => {
   }
 
   const userId = session.user.id;
+  // Presence for other players' view of this profile; never holds up the page.
+  void touchLastOnline(userId);
   let loaded;
   try {
     // Auto-claim any newly completed vocational ticks on page load/refresh.

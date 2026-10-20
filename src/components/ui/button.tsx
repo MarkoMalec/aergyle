@@ -10,7 +10,8 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "border-primary/70 bg-primary text-primary-foreground shadow-sm hover:bg-primary/90",
+          "bg-[image:var(--button-primary-bg)] text-[color:var(--button-primary-fg)] shadow-[shadow:var(--button-primary-shadow)] transition-[filter,box-shadow,transform] [text-shadow:var(--button-primary-text-shadow)] hover:[filter:var(--button-primary-hover)] enabled:active:translate-y-[2px] enabled:active:shadow-[shadow:var(--button-primary-shadow-pressed)]",
+        soft: "bg-primary/15 text-primary hover:bg-primary/25",
         destructive:
           "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
         outline:
@@ -22,9 +23,9 @@ const buttonVariants = cva(
         menu: "text-foreground font-normal hover:bg-secondary hover:text-foreground",
       },
       size: {
-        default: "h-10 px-4 py-2",
+        default: "h-9 px-4 py-2",
         sm: "h-8 rounded-[8px] px-3 text-xs",
-        lg: "h-10 rounded-[8px] px-8",
+        lg: "h-9 rounded-[8px] px-8",
         icon: "h-10 w-10",
       },
     },

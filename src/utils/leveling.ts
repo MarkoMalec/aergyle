@@ -2,6 +2,7 @@ import type { PrismaClient } from "~/generated/prisma/client";
 import { prisma } from "~/lib/prisma";
 import { VocationalActionType, XpActionType } from "~/generated/prisma/enums";
 import { DEFAULT_CURVE_DESIGNS } from "~/game/balance/curve";
+import { recordDailyActivity } from "~/server/players/dailyActivity";
 import {
   CURVE_REFRESH_MS,
   levelForTotalXp,
@@ -18,7 +19,10 @@ import {
  * loot that earned it. Threshold reads always use the global client: they are
  * static reference data and must not hold a transaction open.
  */
-type LevelingDb = Pick<PrismaClient, "user" | "xpTransaction" | "xpMultiplier">;
+type LevelingDb = Pick<
+  PrismaClient,
+  "user" | "xpTransaction" | "xpMultiplier" | "$executeRaw"
+>;
 
 /** Controls whether this award writes an XpTransaction audit row. */
 export type XpLogMode =
@@ -212,6 +216,8 @@ export async function awardXp(
       experience: newTotalXp,
     },
   });
+
+  await recordDailyActivity({ db, userId, xp: finalXpInt });
 
   // Log transaction. Vocation ticks fire every few seconds per player, which
   // grew this table by hundreds of MB a day for data nothing reads; those

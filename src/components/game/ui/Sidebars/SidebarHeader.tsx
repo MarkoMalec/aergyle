@@ -32,6 +32,9 @@ import {
   CommunicationHub,
   type HubTab,
 } from "~/components/game/communication/CommunicationHub";
+import { MESSAGE_PLAYER_EVENT } from "~/components/game/communication/messagePlayer";
+import { playerProfileHref } from "~/game/players";
+import type { PlayerRef } from "~/server/communication";
 import { useCommunicationSummary } from "~/components/game/communication/useCommunication";
 import { useLevelContext } from "~/context/levelContext";
 import { useUserContext } from "~/context/userContext";
@@ -58,7 +61,18 @@ export function SidebarHeader({
   const avatar = getPlayerAvatarBySrc(user?.image) ?? DEFAULT_PLAYER_AVATAR;
   const [isMac, setIsMac] = useState(true);
   const [hubTab, setHubTab] = useState<HubTab | null>(null);
+  const [composeTo, setComposeTo] = useState<PlayerRef | null>(null);
   const summary = useCommunicationSummary();
+
+  // A "Message" button elsewhere (a player's profile) opens the hub here.
+  useEffect(() => {
+    const open = (event: Event) => {
+      setComposeTo((event as CustomEvent<PlayerRef>).detail);
+      setHubTab("messages");
+    };
+    window.addEventListener(MESSAGE_PLAYER_EVENT, open);
+    return () => window.removeEventListener(MESSAGE_PLAYER_EVENT, open);
+  }, []);
 
   // The shortcut hint is only right once we know the platform.
   useEffect(() => setIsMac(/Mac|iPhone|iPad/.test(navigator.userAgent)), []);
@@ -67,7 +81,7 @@ export function SidebarHeader({
     <TooltipProvider delayDuration={200}>
       <div className="game-sidebar-head">
         <Link
-          href="/profile"
+          href="/inventory"
           className="game-brand game-brand--rail"
           onClick={onNavigate}
           aria-label="Aergyle"
@@ -81,7 +95,11 @@ export function SidebarHeader({
           <span className="game-wordmark">Aergyle</span>
         </Link>
 
-        <Link href="/profile" className="game-identity" onClick={onNavigate}>
+        <Link
+          href={playerProfileHref(user?.name ?? "")}
+          className="game-identity"
+          onClick={onNavigate}
+        >
           <Image
             src={avatar.src}
             alt=""
@@ -143,9 +161,17 @@ export function SidebarHeader({
 
         <CommunicationHub
           tab={hubTab}
-          onTabChange={setHubTab}
-          onClose={() => setHubTab(null)}
+          composeTo={composeTo}
+          onTabChange={(tab) => {
+            setComposeTo(null);
+            setHubTab(tab);
+          }}
+          onClose={() => {
+            setComposeTo(null);
+            setHubTab(null);
+          }}
           onNavigate={() => {
+            setComposeTo(null);
             setHubTab(null);
             onNavigate();
           }}

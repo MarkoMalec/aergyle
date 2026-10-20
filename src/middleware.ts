@@ -13,7 +13,7 @@ import { isSafeMethod, isSameOriginRequest } from '~/server/security/origin';
 // Everything behind the player sign-in. The (game) layout checks as well;
 // this just sends signed-out visitors to /play before any rendering.
 const GAME_PATHS = [
-  '/profile',
+  '/inventory',
   '/marketplace',
   '/skills',
   '/animals',
@@ -22,6 +22,7 @@ const GAME_PATHS = [
   '/monsters',
   '/region',
   '/settlements',
+  '/players',
 ];
 const AUTH_PAGES = new Set(['/play', '/signin', '/register']);
 
@@ -64,7 +65,10 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const isGamePage = GAME_PATHS.some((path) => isUnder(pathname, path));
+  // A player's profile is /@Name; it is served by /players/[tag].
+  const isPlayerTag = pathname.startsWith('/@');
+  const isGamePage =
+    isPlayerTag || GAME_PATHS.some((path) => isUnder(pathname, path));
   if (!isGamePage && !AUTH_PAGES.has(pathname)) {
     return NextResponse.next();
   }
@@ -73,13 +77,19 @@ export async function middleware(request: NextRequest) {
 
   // Signed-in players skip the sign-in screens.
   if (token && AUTH_PAGES.has(pathname)) {
-    return NextResponse.redirect(new URL('/profile', request.url));
+    return NextResponse.redirect(new URL('/inventory', request.url));
   }
 
   if (!token && isGamePage) {
     const play = new URL('/play', request.url);
     play.searchParams.set('callbackUrl', `${pathname}${request.nextUrl.search}`);
     return NextResponse.redirect(play);
+  }
+
+  if (isPlayerTag) {
+    return NextResponse.rewrite(
+      new URL(`/players/${pathname.slice(2)}${request.nextUrl.search}`, request.url),
+    );
   }
 
   return NextResponse.next();

@@ -196,18 +196,20 @@ export function SellItemForm({
 
       {item.stackable && (
         <div className="grid grid-cols-2 gap-1 rounded-md bg-surface-inset p-1">
-          <button
-            className={`rounded px-3 py-2 text-sm font-semibold ${mode === "SELL_NOW" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+          <Button
+            variant={mode === "SELL_NOW" ? "default" : "ghost"}
+            className={cn(mode !== "SELL_NOW" && "text-muted-foreground")}
             onClick={() => setMode("SELL_NOW")}
           >
             Sell now
-          </button>
-          <button
-            className={`rounded px-3 py-2 text-sm font-semibold ${mode === "LIST" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+          </Button>
+          <Button
+            variant={mode === "LIST" ? "default" : "ghost"}
+            className={cn(mode !== "LIST" && "text-muted-foreground")}
             onClick={() => setMode("LIST")}
           >
             Create listing
-          </button>
+          </Button>
         </div>
       )}
 

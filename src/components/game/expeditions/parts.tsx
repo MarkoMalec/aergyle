@@ -1,9 +1,10 @@
 "use client";
 
 /**
- * Building blocks shared by the timed PvE screens (Dungeons, Hunting): the
- * location chip, the journal button and modal, the active-run card and the
- * small stat tiles. Surfaces are separated by tint, never by borders.
+ * Building blocks shared by the timed expedition screens (Dungeons, Hunting,
+ * Gathering): the location chip, the journal button and modal, the active-run
+ * card and the small stat tiles. Surfaces are separated by tint, never by
+ * borders.
  */
 import Image from "next/image";
 import Link from "next/link";
@@ -221,7 +222,7 @@ export function ActiveExpeditionCard(props: {
   facesLabel: { active: string; ready: string };
   footer: (ready: boolean) => {
     title: string;
-    text: string;
+    text?: string;
     action: ReactNode;
   };
 }) {
@@ -316,7 +317,9 @@ export function ActiveExpeditionCard(props: {
       <footer className="mt-6 flex flex-col gap-3 bg-surface-inset/60 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div className="text-sm">
           <strong className="block font-semibold">{footer.title}</strong>
-          <span className="text-xs text-muted-foreground">{footer.text}</span>
+          {footer.text ? (
+            <span className="text-xs text-muted-foreground">{footer.text}</span>
+          ) : null}
         </div>
         {footer.action}
       </footer>

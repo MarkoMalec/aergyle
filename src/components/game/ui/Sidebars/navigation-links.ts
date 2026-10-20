@@ -19,6 +19,7 @@ import {
   Skull,
   Sprout,
   Swords,
+  Trophy,
   UserRound,
   type LucideIcon,
 } from "lucide-react";
@@ -64,9 +65,13 @@ export type NavigationGroup = {
   links: NavigationLink[];
 };
 
-/** The rail's destinations: a fixed spine plus the skills the game has. */
+/**
+ * The rail's destinations: a fixed spine plus the skills the game has.
+ * `profileHref` is the player's own public profile, /@Name.
+ */
 export function buildNavigationGroups(
   skills: NavigationSkill[],
+  profileHref: string,
 ): NavigationGroup[] {
   const skillLinks = (category: NavigationSkill["category"]) =>
     skills
@@ -82,8 +87,9 @@ export function buildNavigationGroups(
     {
       title: "Character",
       links: [
-        { label: "Character", href: "/profile", icon: UserRound },
-        { label: "Inventory", href: "/profile#inventory", icon: Backpack },
+        { label: "Profile", href: profileHref, icon: UserRound },
+        { label: "Inventory", href: "/inventory", icon: Backpack },
+        { label: "Leaderboard", href: "/leaderboard", icon: Trophy },
       ],
     },
     {

@@ -18,6 +18,7 @@ import { grantStackableItemToInventory } from "~/server/items/grantItem";
 import { fitSlots } from "~/server/items/inventoryLayout";
 import { lockInventory, type LockedInventory } from "~/server/items/inventoryLock";
 import { getCharacterStatSnapshot } from "~/server/stats";
+import { isNameTaken } from "~/server/players/names";
 import { getTravelStatus } from "~/server/travel/service";
 import { calculateInventoryCapacity } from "~/utils/inventoryCapacity";
 import {
@@ -95,6 +96,9 @@ export async function updatePlayer(
   },
 ) {
   await requirePlayer(userId);
+  if (patch.name !== undefined && (await isNameTaken(patch.name, userId))) {
+    fail(409, "Another player already has that name");
+  }
   const data: Prisma.UserUpdateInput = {};
   if (patch.name !== undefined) data.name = patch.name;
   if (patch.email !== undefined) data.email = patch.email;

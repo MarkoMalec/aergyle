@@ -29,6 +29,8 @@ import {
   type NavigationSkill,
 } from "./navigation-links";
 import { skillQueryKeys } from "~/lib/query-keys";
+import { useUserContext } from "~/context/userContext";
+import { playerProfileHref } from "~/game/players";
 
 export default function GameNavigation({
   skills,
@@ -42,7 +44,12 @@ export default function GameNavigation({
   const [open, setOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
-  const groups = useMemo(() => buildNavigationGroups(skills), [skills]);
+  const { user } = useUserContext();
+  const profileHref = playerProfileHref(user?.name ?? "");
+  const groups = useMemo(
+    () => buildNavigationGroups(skills, profileHref),
+    [skills, profileHref],
+  );
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {

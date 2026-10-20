@@ -6,12 +6,31 @@ import {
   wayfarerAccessoryCreateData,
   wayfarerAccessorySpritePath,
 } from "../prisma/content/wayfarerAccessories";
+import { StatType } from "../src/generated/prisma/enums";
 import { resolveEffectiveItemStats } from "../src/utils/itemInstanceStats";
 
-void test("the pack contains the requested accessory mix", () => {
-  assert.equal(WAYFARER_ACCESSORIES.length, 6);
-  assert.equal(new Set(WAYFARER_ACCESSORIES.map((item) => item.slug)).size, 6);
-  assert.equal(new Set(WAYFARER_ACCESSORIES.map((item) => item.name)).size, 6);
+const BACKPACK_LADDER = [
+  ["novices-satchel", 1, 3],
+  ["foragers-pouch", 10, 5],
+  ["trail-satchel", 20, 8],
+  ["leatherway-pack", 35, 11],
+  ["scouts-knapsack", 50, 15],
+  ["rangers-fieldpack", 70, 19],
+  ["expedition-rucksack", 95, 22],
+  ["travelers-backpack", 120, 25],
+  ["wayfinders-pack", 150, 29],
+  ["caravan-pack", 185, 34],
+  ["surveyors-rig", 225, 40],
+  ["trailblazers-loadpack", 270, 47],
+  ["wardens-supply-pack", 320, 55],
+  ["horizon-hauler", 380, 64],
+  ["atlas-bearers-pack", 450, 74],
+] as const;
+
+void test("the pack contains the accessory mix and a fifteen-tier backpack ladder", () => {
+  assert.equal(WAYFARER_ACCESSORIES.length, 20);
+  assert.equal(new Set(WAYFARER_ACCESSORIES.map((item) => item.slug)).size, 20);
+  assert.equal(new Set(WAYFARER_ACCESSORIES.map((item) => item.name)).size, 20);
   assert.deepEqual(
     Object.fromEntries(
       ["RING", "AMULET", "NECKLACE", "BACKPACK"].map((itemType) => [
@@ -20,20 +39,18 @@ void test("the pack contains the requested accessory mix", () => {
           .length,
       ]),
     ),
-    { RING: 2, AMULET: 2, NECKLACE: 1, BACKPACK: 1 },
+    { RING: 2, AMULET: 2, NECKLACE: 1, BACKPACK: 15 },
   );
   for (const item of WAYFARER_ACCESSORIES) {
-    assert.ok(["COMMON", "UNCOMMON"].includes(item.rarity));
-    // Spread across the level ladder by the gear rebalance (1-60).
-    assert.ok(item.requiredLevel >= 1 && item.requiredLevel <= 60);
+    assert.ok(item.requiredLevel >= 1 && item.requiredLevel <= 450);
     assert.ok(item.price > 0);
   }
 });
 
-void test("all six definitions point to separate optimized RGBA sprites", () => {
+void test("all twenty definitions point to separate optimized RGBA sprites", () => {
   assert.equal(
     new Set(WAYFARER_ACCESSORIES.map(wayfarerAccessorySpritePath)).size,
-    6,
+    20,
   );
   for (const item of WAYFARER_ACCESSORIES) {
     const sprite = readFileSync(
@@ -66,34 +83,56 @@ void test("templates are non-stackable and keep canonical base stats", () => {
   }
 });
 
-void test("Traveler's Backpack always grants exactly 50 slots at a 5% speed cost", () => {
-  const backpack = WAYFARER_ACCESSORIES.find(
-    (item) => item.slug === "travelers-backpack",
+void test("backpack capacity rises cleanly through the level ladder", () => {
+  const backpacks = WAYFARER_ACCESSORIES.filter(
+    (item) => item.itemType === "BACKPACK",
   );
-  assert.ok(backpack);
-  assert.deepEqual(backpack.stats, {
-    CARRYING_CAPACITY: 50,
-    MOVEMENT_SPEED: -5,
-  });
-  assert.equal(backpack.statRarityOverrides?.length, 24);
+  assert.equal(backpacks.length, BACKPACK_LADDER.length);
+  assert.deepEqual(
+    backpacks.map((item) => [
+      item.slug,
+      item.requiredLevel,
+      item.stats.CARRYING_CAPACITY,
+    ]),
+    BACKPACK_LADDER,
+  );
 
-  for (const [rarity, rarityMultiplier] of [
-    ["WORTHLESS", 0.5],
-    ["COMMON", 1],
-    ["DIVINE", 3],
-  ] as const) {
-    const stats = resolveEffectiveItemStats({
-      rarity,
-      rarityMultiplier,
-      stats: Object.entries(backpack.stats).map(([statType, value]) => ({
-        statType: statType as keyof typeof backpack.stats,
-        value,
-      })),
-      statRarityOverrides: backpack.statRarityOverrides,
-    });
-    assert.deepEqual(stats, [
-      { statType: "CARRYING_CAPACITY", value: 50 },
-      { statType: "MOVEMENT_SPEED", value: -5 },
-    ]);
+  for (let index = 1; index < backpacks.length; index += 1) {
+    const current = backpacks[index];
+    const previous = backpacks[index - 1];
+    if (!current || !previous) throw new Error("backpack tier is missing");
+    assert.ok(current.requiredLevel > previous.requiredLevel);
+    assert.ok(
+      (current.stats.CARRYING_CAPACITY ?? 0) >
+        (previous.stats.CARRYING_CAPACITY ?? 0),
+    );
+  }
+});
+
+void test("backpack capacity and load trade-offs stay exact at every rarity", () => {
+  for (const backpack of WAYFARER_ACCESSORIES.filter(
+    (item) => item.itemType === "BACKPACK",
+  )) {
+    const expectedStats = Object.entries(backpack.stats).map(
+      ([statType, value]) => ({ statType: statType as StatType, value }),
+    );
+    assert.equal(
+      backpack.statRarityOverrides?.length,
+      expectedStats.length * 12,
+    );
+
+    for (const [rarity, rarityMultiplier] of [
+      ["WORTHLESS", 0.5],
+      ["COMMON", 1],
+      ["DIVINE", 3],
+    ] as const) {
+      const stats = resolveEffectiveItemStats({
+        rarity,
+        rarityMultiplier,
+        stats: expectedStats,
+        statRarityOverrides: backpack.statRarityOverrides,
+      });
+      assert.deepEqual(stats, expectedStats);
+    }
   }
 });

@@ -102,15 +102,15 @@ export const DndProvider: React.FC<DndProviderProps> = ({
     enabled: !!user?.id,
     staleTime: 0, // Always fresh - invalidation triggers immediate refetch for real-time updates
     // Important: Next.js can keep route segments cached client-side.
-    // When navigating away/back to /profile, we must refetch to avoid showing stale stacks.
+    // When navigating away/back to /inventory, we must refetch to avoid showing stale stacks.
     refetchOnMount: true,
   });
 
   // If Next keeps this segment mounted (router cache), this ensures we still refresh
-  // when the user navigates back to /profile.
+  // when the user navigates back to /inventory.
   useEffect(() => {
     if (!user?.id) return;
-    if (pathname !== "/profile") return;
+    if (pathname !== "/inventory") return;
     void inventoryQuery.refetch();
   }, [pathname, user?.id]);
 

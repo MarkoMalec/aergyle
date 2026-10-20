@@ -74,9 +74,9 @@ async function main() {
           );
         }
 
+        const expected = wayfarerAccessoryCreateData(definition);
         if (mode === "--verify") {
           if (!found) throw new Error(`Missing item: ${definition.name}`);
-          const expected = wayfarerAccessoryCreateData(definition);
           for (const key of [
             "description",
             "price",
@@ -124,11 +124,43 @@ async function main() {
           }
         }
 
+        // Backpacks form a deliberate capacity ladder. Unlike the small
+        // accessory collection, their canonical template values may be
+        // rebalanced as new tiers are introduced. This changes only Item
+        // templates; it never touches any player-owned UserItem.
+        if (found && mode === "--apply" && definition.family === "backpacks") {
+          const updated = await tx.item.update({
+            where: { id: found.id },
+            data: {
+              ...expected,
+              stats: {
+                deleteMany: {},
+                create: expected.stats?.create ?? [],
+              },
+              statRarityOverrides: {
+                deleteMany: {},
+                create: expected.statRarityOverrides?.create ?? [],
+              },
+            },
+          });
+          results.push({
+            name: updated.name,
+            id: updated.id,
+            action: "synced",
+          });
+          continue;
+        }
+
         if (found) {
           results.push({
             name: found.name,
             id: found.id,
-            action: mode === "--verify" ? "verified" : "kept",
+            action:
+              mode === "--verify"
+                ? "verified"
+                : definition.family === "backpacks"
+                  ? "would sync"
+                  : "kept",
           });
         } else if (mode === "--apply") {
           const created = await tx.item.create({
@@ -154,7 +186,7 @@ async function main() {
 
   console.table(results);
   console.log(
-    `${results.length} items. Mode: ${mode}. Existing items and player inventories are never overwritten.`,
+    `${results.length} items. Mode: ${mode}. Backpack templates are synced only with --apply; player inventories are never overwritten.`,
   );
 }
 

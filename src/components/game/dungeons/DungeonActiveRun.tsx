@@ -42,7 +42,7 @@ export function DungeonActiveRun(props: {
               text: "Loot, damage and experience are revealed together.",
               action: (
                 <Button
-                  className="h-11 shrink-0 sm:min-w-[184px]"
+                  className="shrink-0 sm:min-w-[184px]"
                   onClick={props.onClaim}
                   disabled={props.claiming}
                 >
@@ -57,7 +57,7 @@ export function DungeonActiveRun(props: {
               action: (
                 <Button
                   variant="secondary"
-                  className="h-11 shrink-0"
+                  className="shrink-0"
                   onClick={props.onLeave}
                   disabled={props.leaving}
                 >

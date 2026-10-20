@@ -174,7 +174,7 @@ export default function RegisterForm({
             </FormItem>
           )}
         />
-        <Button type="submit" className="h-11 w-full text-[15px]" disabled={busy}>
+        <Button type="submit" className="w-full" disabled={busy}>
           {busy ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />

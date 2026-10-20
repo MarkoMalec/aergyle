@@ -4,8 +4,10 @@ import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 import {
   GATHERING_DURATIONS,
+  GATHERING_FRUITS,
   GATHERING_ITEMS,
   GATHERING_LOCATIONS,
+  type GatheringItemDefinition,
   gatheringItemData,
 } from "../prisma/content/gathering";
 import { changedFields } from "./seedHelpers";
@@ -24,13 +26,28 @@ const prisma = new PrismaClient({
 });
 
 async function validateContent() {
-  if (GATHERING_ITEMS.length !== 18) {
-    throw new Error("Gathering content must contain eighteen resources");
+  if (GATHERING_ITEMS.length !== 44) {
+    throw new Error("Gathering content must contain forty-four resources");
   }
   if (
-    GATHERING_ITEMS.filter((item) => item.itemType === "HERB").length !== 12
+    GATHERING_ITEMS.filter((item) => item.itemType === "HERB").length !== 22
   ) {
-    throw new Error("Gathering content must contain twelve herbs");
+    throw new Error("Gathering content must contain twenty-two herbs");
+  }
+  if (GATHERING_FRUITS.length !== 16) {
+    throw new Error("Gathering content must contain sixteen fruits");
+  }
+  for (const fruit of GATHERING_FRUITS) {
+    if (fruit.itemType !== "FOOD") continue;
+    if (
+      !fruit.healingAmount ||
+      !fruit.foodEffectSeconds ||
+      !fruit.foodEffectStats?.length
+    ) {
+      throw new Error(
+        `${fruit.name}: FOOD fruit needs a full consumable effect`,
+      );
+    }
   }
   if (!GATHERING_ITEMS.some((item) => item.name === "Mushrooms")) {
     throw new Error("Mushrooms are required in the initial resource pool");
@@ -50,6 +67,7 @@ async function validateContent() {
       png.toString("hex", 0, 8) !== "89504e470d0a1a0a" ||
       png.readUInt32BE(16) !== 256 ||
       png.readUInt32BE(20) !== 256 ||
+      png[24] !== 8 ||
       png[25] !== 6
     ) {
       throw new Error(`${item.sprite}: expected a 256×256 RGBA PNG sprite`);
@@ -90,10 +108,15 @@ async function main(selectedMode: Mode) {
         where: {
           OR: [{ name: { in: itemNames } }, { sprite: { in: itemSprites } }],
         },
+        include: {
+          foodEffectStats: {
+            select: { statType: true, value: true },
+          },
+        },
       });
       const itemIds = new Map<string, number>();
 
-      for (const definition of GATHERING_ITEMS) {
+      for (const definition of GATHERING_ITEMS as readonly GatheringItemDefinition[]) {
         const expected = gatheringItemData(definition);
         const nameMatches = existingItems.filter(
           (item) => item.name === definition.name,
@@ -121,9 +144,22 @@ async function main(selectedMode: Mode) {
               expected as unknown as Record<string, unknown>,
             )
           : Object.keys(expected);
-        if (selectedMode === "--verify" && (!found || diff.length > 0)) {
+        const expectedFoodStats = definition.foodEffectStats ?? [];
+        const actualFoodStats = new Map(
+          found?.foodEffectStats.map((stat) => [stat.statType, stat.value]) ??
+            [],
+        );
+        const foodStatsMatch =
+          actualFoodStats.size === expectedFoodStats.length &&
+          expectedFoodStats.every(
+            (stat) => actualFoodStats.get(stat.statType) === stat.value,
+          );
+        if (
+          selectedMode === "--verify" &&
+          (!found || diff.length > 0 || !foodStatsMatch)
+        ) {
           throw new Error(
-            `${definition.name}: item differs (${diff.join(", ")})`,
+            `${definition.name}: item or food effects differ (${diff.join(", ")})`,
           );
         }
 
@@ -133,12 +169,53 @@ async function main(selectedMode: Mode) {
             ? await tx.item.update({ where: { id: found.id }, data: expected })
             : await tx.item.create({ data: expected });
           itemId = written.id;
+          await tx.foodEffectStat.deleteMany({ where: { itemId } });
+          if (expectedFoodStats.length > 0) {
+            await tx.foodEffectStat.createMany({
+              data: expectedFoodStats.map((stat) => ({
+                itemId: itemId!,
+                ...stat,
+              })),
+            });
+          }
         }
         if (itemId) itemIds.set(definition.name, itemId);
         notes.push(
-          `${definition.name}: ${selectedMode === "--apply" ? (found ? "updated" : "created") : found && diff.length === 0 ? "ready" : "would write"}`,
+          `${definition.name}: ${selectedMode === "--apply" ? (found ? "updated" : "created") : found && diff.length === 0 && foodStatsMatch ? "ready" : "would write"}`,
         );
       }
+
+      // Raw fruit that is FOOD remains edible while being a legal Cooking
+      // requirement. Keep every existing admin-approved input type intact.
+      const cookingRule = await tx.vocationalSkillRule.findUnique({
+        where: { actionType: "COOKING" },
+      });
+      const cookingInputs = Array.isArray(cookingRule?.inputItemTypes)
+        ? cookingRule.inputItemTypes.filter(
+            (value): value is string => typeof value === "string",
+          )
+        : ["FISH", "MEAT", "VEGETABLE"];
+      const nextCookingInputs = Array.from(new Set([...cookingInputs, "FOOD"]));
+      if (
+        selectedMode === "--verify" &&
+        (!cookingRule || !cookingInputs.includes("FOOD"))
+      ) {
+        throw new Error("Cooking must accept FOOD ingredients for raw fruit");
+      }
+      if (selectedMode === "--apply") {
+        await tx.vocationalSkillRule.upsert({
+          where: { actionType: "COOKING" },
+          create: {
+            actionType: "COOKING",
+            outputItemTypes: ["FOOD"],
+            inputItemTypes: nextCookingInputs,
+          },
+          update: { inputItemTypes: nextCookingInputs },
+        });
+      }
+      notes.push(
+        `Cooking FOOD ingredients: ${selectedMode === "--apply" ? "enabled" : cookingInputs.includes("FOOD") ? "ready" : "would enable"}`,
+      );
 
       const databaseLocations = await tx.location.findMany({
         where: {

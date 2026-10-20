@@ -133,7 +133,8 @@ Use a 4px spacing base: 4, 8, 12, 16, 20, 24, 32, 48. The intentional 10px excep
 - Top bar: minimum 76px desktop / 68px mobile; sticky, opaque enough to read; grows when an action must wrap.
 - Page heading: 28px below, no bottom rule. Short description only if it helps orient the player.
 - Major panels: 24px apart. Panel header: 22px top / 24px sides, no dividing line; body: 24px; mobile header: 18px top / 16px sides, body: 16px.
-- Profile: the character hero is the page heading (avatar art, name, level and XP, live-regenerating health, current activity and location, six headline combat stats). Below it, from 1280px, two columns: equipment over vocations, and inventory over the attribute sheet, so the stats sit next to the bag gear is dragged from. Under 1280px the columns stack as equipment, inventory, attributes, vocations. Equipping shows a brief signed change beside every affected value (arrow and colour, cleared after about 3 seconds); each value's tooltip splits it into base, gear and meal and names any cap. Stat icons come from `stat-display.tsx`, which switches a stat to painted art once its file is in `public/assets/stats/`.
+- Inventory (`/inventory`, the landing page after sign-in and sign-up): page heading, then from 1280px equipment on the left (sticky under the top bar on screens at least 900px tall) and inventory over the attribute sheet on the right, so the stats sit next to the bag gear is dragged from. Under 1280px: equipment, inventory, attributes. Equipping shows a brief signed change beside every affected value (arrow and colour, cleared after about 3 seconds); each value's tooltip splits it into base, gear and meal and names any cap. Stat icons come from `stat-display.tsx`, which switches a stat to painted art once its file is in `public/assets/stats/`.
+- Profile (`/@Name`, the rail's Profile link; there is no `/profile` route; spaces as hyphens, served by `/players/[tag]`; names are unique ignoring case, accents and space-vs-hyphen): the same hero (`HeroShell`) and two-column grid, read-only. The hero's subtitle is presence (online within 3 minutes, else "last seen"), the chips show the running activity with time left and the location, and the action is Message, or for the owner an Inventory button, an avatar picker on the art and live activity chips; the owner otherwise sees exactly what others see. Equipment opens item cards but never moves; the inventory's place holds About (bio, joined, account age, time active in 30 days) and Activity (two single-series bar charts, time active and XP per day, 7 or 30 days). Under 1280px: about, activity, equipment, attributes, vocations. A full-width comment wall follows (one level of replies; the owner removes any comment, authors their own; Report files into /admin/moderation). Player names elsewhere (comments, message threads, search) link here.
 - Vocation: resources plus a right column; stack at 1100px. Keep the resource choice and its cost close together. The right column reads Nearby, Your progress, Current activity (only while one runs) and Metrics, each under a centred `game-section-label` caption. Skill progress is a collapsible: closed it is one row (icon, name, level plaque, bar), open it adds the level, the XP still needed and the percentage. Metrics are lifetime totals — items gathered, total experience, time spent — from `UserSkillMetric` and `UserTrackProgress`.
 - Marketplace: one compact, borderless filter toolbar (search, item type with sprites, rarity, unit price, sort) above the results and a sticky selected-market panel (320px at `lg`, 380px at `xl`). The toolbar is a single row from `xl` and wraps below it. Result rows switch between the compact and four-column layouts with a container query on the results panel, not the viewport. Below `lg` the selected market opens in a bottom sheet.
 
@@ -160,16 +161,17 @@ Use an unruled header for equipment/inventory/progression; separate it from cont
 
 Use `src/components/ui/button.tsx`. Keep Radix `asChild` for links; never nest a link inside a button.
 
-- **Primary:** brass fill, dark ink text, thin brass edge. Start gathering, confirm listing/purchase, sign in or begin a journey. One primary decision per dialog.
+- **Primary:** warm gold with a faint top-to-bottom gradient, warm brown ink, a 1px light top edge and a 2px darker gold edge underneath (`--button-primary-*` tokens in `globals.css`; the admin theme sets them flat). Start gathering, confirm listing/purchase, sign in or begin a journey. One primary decision per dialog.
+- **Soft (`variant="soft"`):** tinted gold (`bg-primary/15`, gold text). The quieter gold action beside a primary one, or inside small cards/popovers.
 - **Secondary:** dark raised fill, parchment label. Unequip, inspect, choose a secondary action.
 - **Outline:** inset/canvas fill with visible boundary. Cancel or less prominent navigation.
 - **Ghost:** transparent until hover, then raised dark surface. Low-emphasis utilities.
 - **Destructive:** oxblood fill and pale text. Use only when data/items are actually lost; stopping an action or unequipping is not inherently destructive.
 - **Icon-only:** 40px or larger box, accessible verb label, 16–20px icon. Close controls are 40px.
 - **Disabled:** 50% opacity, no hover/press action. Explain blocking conditions nearby if the player cannot infer them.
-- **Pressed:** 1px downward movement, no bounce. Keyboard focus remains visible.
+- **Pressed:** 1px downward movement, no bounce; the primary button sinks 2px onto its edge. Keyboard focus remains visible.
 
-Default height is 40px; small buttons 32px are for compact auxiliary controls. Prefer 44px for touch-dominant new actions. Labels describe effects: “Choose seeds”, “Split stack”, “Confirm purchase”. Do not use a gold-filled button just to make an unimportant action prominent.
+Default height is 36px; small buttons 32px are for compact auxiliary controls. Do not make buttons taller than 36px, not even the main action of a page. Labels describe effects: “Choose seeds”, “Split stack”, “Confirm purchase”. Do not use a gold-filled button just to make an unimportant action prominent.
 
 ## 12. Navigation
 
@@ -179,7 +181,7 @@ Entries are compact: 32px rows, a 17px icon, a 13px label, and — for a skill �
 
 The rail header holds, in order: the mark, a character card (avatar, name, level) that opens the profile, a six-button utility row, and the search box. Utility buttons are 32px and icon-only, each with a shadcn tooltip naming it; features that do not exist yet (notifications, messages, friends, settings) say "work in progress" in that tooltip and do nothing when pressed. Pins open a popover listing up to five player-chosen shortcuts and a button that pins or unpins the page they are on; pins are kept in the browser, not on the character. Search opens a cmdk dialog (Ctrl/Cmd + K) over pages, items, beasts, NPCs and settlements, served by `/api/search`. The rail has no footer.
 
-The mobile rail becomes a Radix Sheet, opened by a labelled menu button. Escape closes it, focus is trapped while open, and focus returns to the trigger. Link activation closes the sheet. Inventory links to `/profile#inventory`; it is a section shortcut, not a duplicate profile route. My listings has its own navigation destination.
+The mobile rail becomes a Radix Sheet, opened by a labelled menu button. Escape closes it, focus is trapped while open, and focus returns to the trigger. Link activation closes the sheet. Profile links to the player's own `/@Name` and Inventory to `/inventory`. My listings has its own navigation destination.
 
 Future notifications: a small filled dot plus an accessible count/name, or a compact count at the right. Never use an unexplained blinking dot.
 

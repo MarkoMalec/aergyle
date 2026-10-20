@@ -1,5 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { CreatureKind } from "~/generated/prisma/enums";
+import { playerName, playerProfileHref } from "~/game/players";
+import {
+  DEFAULT_PLAYER_AVATAR,
+  getPlayerAvatarBySrc,
+} from "~/lib/player-avatars";
 import { prisma } from "~/lib/prisma";
 import { getServerAuthSession } from "~/server/auth";
 
@@ -22,12 +27,13 @@ export type SearchResults = {
   creatures: SearchHit[];
   npcs: SearchHit[];
   settlements: SearchHit[];
+  players: SearchHit[];
 };
 
 /**
  * One lookup across everything a player can navigate to: items (opened in the
- * marketplace), beasts, NPCs and settlements. Pages are matched in the client
- * from the navigation itself.
+ * marketplace), beasts, NPCs, settlements and players. Pages are matched in the
+ * client from the navigation itself.
  */
 export async function GET(request: NextRequest) {
   const session = await getServerAuthSession();
@@ -42,10 +48,11 @@ export async function GET(request: NextRequest) {
       creatures: [],
       npcs: [],
       settlements: [],
+      players: [],
     } satisfies SearchResults);
   }
 
-  const [items, creatures, npcs, settlements] = await Promise.all([
+  const [items, creatures, npcs, settlements, players] = await Promise.all([
     prisma.item.findMany({
       where: { name: { contains: query } },
       select: { id: true, name: true, sprite: true, itemType: true },
@@ -82,6 +89,12 @@ export async function GET(request: NextRequest) {
       orderBy: { name: "asc" },
       take: PER_GROUP,
     }),
+    prisma.user.findMany({
+      where: { name: { contains: query } },
+      select: { id: true, name: true, image: true, level: true },
+      orderBy: { name: "asc" },
+      take: PER_GROUP,
+    }),
   ]);
 
   const results: SearchResults = {
@@ -115,6 +128,14 @@ export async function GET(request: NextRequest) {
       detail: titleCase(settlement.kind),
       href: `/settlements/${settlement.id}`,
       image: settlement.image,
+    })),
+    players: players.map((player) => ({
+      key: `player-${player.id}`,
+      label: playerName(player.name),
+      detail: `Level ${player.level}`,
+      href: playerProfileHref(player.name),
+      image:
+        getPlayerAvatarBySrc(player.image)?.src ?? DEFAULT_PLAYER_AVATAR.src,
     })),
   };
 

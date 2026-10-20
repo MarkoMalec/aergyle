@@ -2,7 +2,6 @@ import EquipmentSkeleton from "~/components/game/character/Equipment/EquipmentSk
 import { Skeleton } from "~/components/ui/skeleton";
 
 const HEADLINE_STAT_COUNT = 6;
-const INVENTORY_SLOT_COUNT = 18;
 
 function CharacterHeroSkeleton() {
   return (
@@ -42,27 +41,6 @@ function CharacterHeroSkeleton() {
   );
 }
 
-function InventorySkeleton() {
-  return (
-    <section
-      className="game-panel min-w-0 border-0"
-      aria-label="Loading inventory"
-    >
-      <div className="game-panel-header">
-        <h2 className="game-section-title">Inventory</h2>
-        <Skeleton className="h-3 w-20" />
-      </div>
-      <div className="game-panel-body">
-        <div className="game-inventory-grid" aria-hidden="true">
-          {Array.from({ length: INVENTORY_SLOT_COUNT }).map((_, index) => (
-            <Skeleton className="game-slot" key={index} />
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
 function PanelSkeleton({
   rows,
   className,
@@ -85,22 +63,21 @@ function PanelSkeleton({
   );
 }
 
-export default function ProfileLoading() {
+export default function PlayerProfileLoading() {
   return (
-    <main aria-busy="true" aria-label="Loading character profile">
+    <main aria-busy="true" aria-label="Loading profile">
       <CharacterHeroSkeleton />
       <div className="grid items-start gap-5 xl:grid-cols-[minmax(420px,540px)_minmax(508px,1fr)]">
         <div className="contents xl:flex xl:min-w-0 xl:flex-col xl:gap-5">
-          <div className="order-1 min-w-0">
+          <div className="order-3 min-w-0">
             <EquipmentSkeleton />
           </div>
-          <PanelSkeleton rows={8} className="order-4" />
+          <PanelSkeleton rows={8} className="order-5" />
         </div>
         <div className="contents xl:flex xl:min-w-0 xl:flex-col xl:gap-5">
-          <div className="order-2 min-w-0">
-            <InventorySkeleton />
-          </div>
-          <PanelSkeleton rows={12} className="order-3" />
+          <PanelSkeleton rows={3} className="order-1" />
+          <PanelSkeleton rows={4} className="order-2" />
+          <PanelSkeleton rows={12} className="order-4" />
         </div>
       </div>
     </main>

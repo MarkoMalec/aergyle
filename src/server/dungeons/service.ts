@@ -32,6 +32,7 @@ import { recordQuestProgress } from "~/server/settlements/quests";
 import { getCharacterStatSnapshot } from "~/server/stats";
 import { grantStackableItemToInventory } from "~/server/items/grantItem";
 import { awardXp } from "~/utils/leveling";
+import { recordDailyActivity } from "~/server/players/dailyActivity";
 import {
   combatSnapshotFromStats,
   dungeonCombatRules,
@@ -731,6 +732,12 @@ export async function claimDungeonRun(userId: string) {
       userId,
       kills: resolution.kills,
       clearedDungeonId: cleared ? run.dungeonId : null,
+    });
+    // Dungeons pay no skill, so their time is not in the skill metrics.
+    await recordDailyActivity({
+      db: tx,
+      userId,
+      seconds: run.durationSeconds,
     });
 
     // XP commits with the loot, so a crash cannot leave the run claimed and

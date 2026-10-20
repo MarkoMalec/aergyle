@@ -655,11 +655,8 @@ export default function Garden() {
                 })
               }
               {...hoverPreview(previewPlant(plantAction.groups))}
-              className={cn(
-                "max-sm:flex-1",
-                showHarvest &&
-                  "border-transparent bg-primary/15 text-primary shadow-none hover:bg-primary/25",
-              )}
+              variant={showHarvest ? "soft" : "default"}
+              className="max-sm:flex-1"
             >
               <span className="flex -space-x-2" aria-hidden="true">
                 {plantAction.sprites

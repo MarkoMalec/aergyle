@@ -320,7 +320,7 @@ export function DungeonBriefing(props: {
             "You fight with your current health and gear. Leaving early is safe, but you keep nothing."}
         </p>
         <Button
-          className="h-11 shrink-0 sm:min-w-[184px]"
+          className="shrink-0 sm:min-w-[184px]"
           disabled={Boolean(blocker) || props.entering}
           onClick={props.onEnter}
         >

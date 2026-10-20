@@ -4,6 +4,7 @@ import { fetchUserItemsByIds } from "~/utils/userItemInventory";
 import {
   EQUIPMENT_SLOTS,
   getEquippedUserItemIds,
+  type EquipmentItemReferences,
 } from "~/utils/itemEquipTo";
 
 /**
@@ -18,7 +19,21 @@ export async function loadEquipmentWithItems(
     create: { userId },
     update: {},
   });
+  return withEquippedItems(userId, equipment);
+}
 
+/** Another player's equipment, read without creating their row. */
+export async function readEquipmentWithItems(
+  userId: string,
+): Promise<EquipmentSlotsWithItems> {
+  const equipment = await prisma.equipment.findUnique({ where: { userId } });
+  return withEquippedItems(userId, equipment);
+}
+
+async function withEquippedItems(
+  userId: string,
+  equipment: EquipmentItemReferences | null,
+): Promise<EquipmentSlotsWithItems> {
   const items = await fetchUserItemsByIds(
     userId,
     getEquippedUserItemIds(equipment),
@@ -27,7 +42,7 @@ export async function loadEquipmentWithItems(
 
   return Object.fromEntries(
     EQUIPMENT_SLOTS.map((definition) => {
-      const userItemId = equipment[definition.dbField];
+      const userItemId = equipment?.[definition.dbField];
       return [
         definition.slot,
         userItemId ? itemsById.get(userItemId) ?? null : null,

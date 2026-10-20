@@ -1,20 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Heart, MapPin, Pencil } from "lucide-react";
+import { Heart, MapPin } from "lucide-react";
 import { TooltipProvider } from "~/components/ui/tooltip";
-import { useUserContext } from "~/context/userContext";
-import { useLevelContext } from "~/context/levelContext";
 import { useVocationalActiveActionContext } from "~/components/game/actions/VocationalActiveActionProvider";
 import { formatRemaining } from "~/components/game/actions/format";
 import { cn } from "~/lib/utils";
-import {
-  DEFAULT_PLAYER_AVATAR,
-  getPlayerAvatarBySrc,
-} from "~/lib/player-avatars";
-import { AvatarPicker, type PlayerAvatar } from "./AvatarPicker";
+import type { PlayerAvatar } from "./AvatarPicker";
 import { useCharacterSheet } from "./CharacterSheetContext";
 import { HEADLINE_ENTRIES, StatTooltip, formatEntry } from "./AttributeSheet";
 import { StatChange, StatIcon } from "./stat-display";
@@ -25,8 +19,13 @@ function clampPercent(value: number) {
   return Math.max(0, Math.min(100, value));
 }
 
-function LevelMeter() {
-  const { levelData } = useLevelContext();
+export type HeroLevel = {
+  level: number;
+  xpProgress: number;
+  xpRemaining: number;
+};
+
+function LevelMeter({ levelData }: { levelData: HeroLevel | null }) {
   const level = levelData?.level ?? 1;
   const percent = clampPercent(levelData?.xpProgress ?? 0);
   const circumference = 2 * Math.PI * 23;
@@ -167,10 +166,11 @@ function HealthMeter({ initialHealth }: { initialHealth: number }) {
   );
 }
 
-const chipClass =
+export const heroChipClass =
   "inline-flex h-8 min-w-0 max-w-full items-center gap-2 rounded-lg bg-background/40 px-2.5 text-xs transition-colors duration-150";
 
-function StatusChips({ location }: { location: string | null }) {
+/** The owner's own status: the running activity (live, linked) and location. */
+export function StatusChips({ location }: { location: string | null }) {
   const { active, viewModel, activeActionType } =
     useVocationalActiveActionContext();
   // These labels already say what is happening ("Hunting in …").
@@ -185,7 +185,7 @@ function StatusChips({ location }: { location: string | null }) {
       {active && viewModel ? (
         <Link
           href={viewModel.href}
-          className={cn(chipClass, "pl-1.5 hover:bg-background/60")}
+          className={cn(heroChipClass, "pl-1.5 hover:bg-background/60")}
         >
           {viewModel.sprite ? (
             <Image
@@ -211,7 +211,7 @@ function StatusChips({ location }: { location: string | null }) {
           </span>
         </Link>
       ) : (
-        <span className={cn(chipClass, "text-muted-foreground")}>
+        <span className={cn(heroChipClass, "text-muted-foreground")}>
           <span
             className="h-1.5 w-1.5 shrink-0 rounded-full bg-muted-foreground/60"
             aria-hidden="true"
@@ -222,7 +222,7 @@ function StatusChips({ location }: { location: string | null }) {
       {location ? (
         <Link
           href="/region"
-          className={cn(chipClass, "hover:bg-background/60")}
+          className={cn(heroChipClass, "hover:bg-background/60")}
         >
           <MapPin
             className="h-3.5 w-3.5 shrink-0 text-primary"
@@ -291,22 +291,35 @@ function HeadlineStats() {
   );
 }
 
-export function CharacterHero({
+/**
+ * The character hero's frame on a player's profile, /@Name, for its owner and
+ * for everyone else: art lit by the avatar's backdrop, name, level,
+ * health, status chips and the six headline stats.
+ */
+export function HeroShell({
+  avatar,
   name,
-  location,
+  subtitle,
+  levelData,
   initialHealth,
+  status,
+  actions,
+  artAction,
+  children,
 }: {
+  avatar: PlayerAvatar;
   name: string;
-  location: string | null;
+  /** The line under the name. */
+  subtitle: ReactNode;
+  levelData: HeroLevel | null;
   /** Current health when the page was rendered. */
   initialHealth: number;
+  status: ReactNode;
+  actions?: ReactNode;
+  /** Pinned to the art's bottom-left corner. */
+  artAction?: ReactNode;
+  children?: ReactNode;
 }) {
-  const { user } = useUserContext();
-  const [avatar, setAvatar] = useState<PlayerAvatar>(
-    () => getPlayerAvatarBySrc(user?.image) ?? DEFAULT_PLAYER_AVATAR,
-  );
-  const [pickerOpen, setPickerOpen] = useState(false);
-
   return (
     <section
       aria-labelledby="character-name"
@@ -336,15 +349,7 @@ export function CharacterHero({
               priority
             />
           </div>
-          <button
-            type="button"
-            onClick={() => setPickerOpen(true)}
-            className="absolute bottom-3 left-3 inline-flex h-8 items-center gap-1.5 rounded-lg bg-background/75 px-2.5 text-xs font-medium text-foreground/85 shadow-[var(--shadow-panel)] transition-colors duration-150 hover:bg-background hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            aria-label="Change character avatar"
-          >
-            <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
-            <span className="hidden sm:inline">Avatar</span>
-          </button>
+          {artAction}
         </div>
 
         <div className="min-w-0 self-center py-5 pr-4 [grid-area:id] sm:self-end sm:pb-0 sm:pr-6 sm:pt-6 xl:pr-2">
@@ -355,17 +360,20 @@ export function CharacterHero({
           >
             {name}
           </h1>
-          <p className="mt-1 truncate text-xs italic text-muted-foreground">
-            {avatar.tagline}
-          </p>
+          <div className="mt-1 min-w-0 text-xs text-muted-foreground">
+            {subtitle}
+          </div>
         </div>
 
         <div className="flex min-w-0 flex-col gap-4 px-4 pb-5 [grid-area:meters] sm:self-start sm:pl-0 sm:pr-6 sm:pt-4 xl:pb-6 xl:pr-2">
           <div className="grid gap-3">
-            <LevelMeter />
+            <LevelMeter levelData={levelData} />
             <HealthMeter initialHealth={initialHealth} />
           </div>
-          <StatusChips location={location} />
+          {status}
+          {actions ? (
+            <div className="flex flex-wrap gap-2">{actions}</div>
+          ) : null}
         </div>
 
         <div className="min-w-0 bg-background/20 p-3 [grid-area:stats] sm:p-4 xl:self-center xl:bg-transparent xl:py-6 xl:pl-4 xl:pr-6">
@@ -373,12 +381,7 @@ export function CharacterHero({
         </div>
       </div>
 
-      <AvatarPicker
-        open={pickerOpen}
-        onOpenChange={setPickerOpen}
-        current={avatar}
-        onSaved={setAvatar}
-      />
+      {children}
     </section>
   );
 }

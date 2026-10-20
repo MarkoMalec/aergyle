@@ -4,6 +4,7 @@ import { prisma } from "~/lib/prisma";
 import { PASSWORD_BCRYPT_ROUNDS, registerSchema } from "~/lib/auth-rules";
 import { getClientIp, sharedRateLimiter } from "~/server/security/rateLimit";
 import { provisionNewUser } from "~/server/userSetup";
+import { isNameTaken } from "~/server/players/names";
 
 const registrationsByIp = sharedRateLimiter("register-ip", {
   limit: 10,
@@ -11,6 +12,7 @@ const registrationsByIp = sharedRateLimiter("register-ip", {
 });
 
 const EMAIL_TAKEN = "An account with this email already exists. Sign in instead.";
+const NAME_TAKEN = "That name is taken. Pick another.";
 
 export async function POST(req: NextRequest) {
   const limit = registrationsByIp.hit(getClientIp(req.headers));
@@ -43,6 +45,9 @@ export async function POST(req: NextRequest) {
     if (existing) {
       return NextResponse.json({ error: EMAIL_TAKEN, field: "email" }, { status: 409 });
     }
+    if (await isNameTaken(name)) {
+      return NextResponse.json({ error: NAME_TAKEN, field: "name" }, { status: 409 });
+    }
 
     const user = await prisma.user.create({
       data: {
@@ -57,9 +62,12 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true }, { status: 201 });
   } catch (error) {
-    // Two sign-ups with the same email at once: the unique index decides.
+    // Two sign-ups with the same email or name at once: the unique index
+    // decides.
     if ((error as { code?: string })?.code === "P2002") {
-      return NextResponse.json({ error: EMAIL_TAKEN, field: "email" }, { status: 409 });
+      return (await isNameTaken(name))
+        ? NextResponse.json({ error: NAME_TAKEN, field: "name" }, { status: 409 })
+        : NextResponse.json({ error: EMAIL_TAKEN, field: "email" }, { status: 409 });
     }
     console.error("Error creating user:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

@@ -136,11 +136,17 @@ a new Gathering resource.
 
 ## Initial content and setup
 
-The initial pack contains Mushrooms, Blackberries, Cranberries, Chestnuts, Wild
-Plums, Wild Apples, Mint, Chamomile, Thyme, Sage, Rosemary, and Lavender across
-four existing atlas locations. It provides one-, two-, three-, and four-hour
-durations, unlocked at Gathering levels 0, 15, 50, and 100 respectively. Every
-duration gate can be adjusted from `/admin/gathering`.
+The gathering pack now contains 44 resources across the four existing atlas
+locations: the original forage and alchemy herbs, 16 fruit ingredients, and 10
+new culinary or rare herbs. Nine raw fruits are `FOOD` provisions: they heal a
+small amount immediately and grant a brief buff, but Cooking also accepts FOOD
+inputs so they may be saved for future recipes. The remaining fruits use the
+existing `VEGETABLE` ingredient type. Every new fruit and herb is assigned to a
+biome-appropriate gathering pool rather than a global pool.
+
+It provides one-, two-, three-, and four-hour durations, unlocked at Gathering
+levels 0, 15, 50, and 100 respectively. Every duration gate can be adjusted
+from `/admin/gathering`.
 
 After deploying the migration, apply and verify the idempotent content pack:
 
@@ -153,8 +159,8 @@ npm test
 ```
 
 Definitions live in `prisma/content/gathering.ts`. Runtime sprites live below
-`public/assets/items/resources`; source masters and generation notes live in
-`art/items/gathering-v1`.
+`public/assets/items/resources`; the fruit and herb source masters and
+generation notes live in `art/items/foraging-expansion-v1`.
 
 ### Recovery for the original query-30 failure
 

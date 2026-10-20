@@ -496,7 +496,7 @@ export function HuntingBriefing(props: {
             "Your gear is locked in when you set out. Coming back early is safe, but empty-handed."}
         </p>
         <Button
-          className="h-11 shrink-0 sm:min-w-[184px]"
+          className="shrink-0 sm:min-w-[184px]"
           disabled={Boolean(blocker) || props.starting}
           onClick={props.onStart}
         >

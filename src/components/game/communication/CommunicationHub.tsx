@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from "~/components/ui/dialog";
 import { cn } from "~/lib/utils";
+import type { PlayerRef } from "~/server/communication";
 import { MessagesPanel } from "./MessagesPanel";
 import { NotificationsPanel } from "./NotificationsPanel";
 
@@ -28,6 +29,7 @@ export function CommunicationHub({
   onTabChange,
   onClose,
   onNavigate,
+  composeTo,
 }: {
   /** The open tab, or null while the window is closed. */
   tab: HubTab | null;
@@ -35,6 +37,8 @@ export function CommunicationHub({
   onClose: () => void;
   /** Closes the window and, on phones, the sidebar behind it. */
   onNavigate: () => void;
+  /** Opens Messages on a new message to this player. */
+  composeTo?: PlayerRef | null;
 }) {
   return (
     <Dialog open={tab !== null} onOpenChange={(open) => !open && onClose()}>
@@ -69,7 +73,10 @@ export function CommunicationHub({
 
         <div className="px-4 pb-4">
           {tab === "messages" ? (
-            <MessagesPanel />
+            <MessagesPanel
+              key={composeTo?.id ?? "list"}
+              composeTo={composeTo}
+            />
           ) : (
             <NotificationsPanel onNavigate={onNavigate} />
           )}

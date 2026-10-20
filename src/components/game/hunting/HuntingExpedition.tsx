@@ -278,7 +278,7 @@ export default function HuntingExpedition({
                   text: "Materials, damage and experience are revealed together.",
                   action: (
                     <Button
-                      className="h-11 shrink-0 sm:min-w-[184px]"
+                      className="shrink-0 sm:min-w-[184px]"
                       onClick={() => claimMutation.mutate()}
                       disabled={claimMutation.isPending}
                     >
@@ -293,7 +293,7 @@ export default function HuntingExpedition({
                   action: (
                     <Button
                       variant="secondary"
-                      className="h-11 shrink-0"
+                      className="shrink-0"
                       disabled={returnMutation.isPending}
                       onClick={() => {
                         if (

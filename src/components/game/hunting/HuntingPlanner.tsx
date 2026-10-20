@@ -136,7 +136,7 @@ function HunterStats({
           Your hunter
         </h2>
         <Button asChild variant="ghost" size="sm">
-          <Link href="/profile">Change gear</Link>
+          <Link href="/inventory">Change gear</Link>
         </Button>
       </div>
       <dl className="grid gap-1.5 sm:grid-cols-2 sm:gap-x-3">

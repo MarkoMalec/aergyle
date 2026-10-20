@@ -15,6 +15,7 @@ import {
   signInSchema,
 } from '~/lib/auth-rules';
 import { provisionNewUser } from '~/server/userSetup';
+import { freeName } from '~/server/players/names';
 import { getClientIp, sharedRateLimiter } from '~/server/security/rateLimit';
 
 // Checked when an email has no password account, so response times don't
@@ -74,14 +75,17 @@ export const authOptions: NextAuthOptions = {
       // PKCE and state tie the Discord callback to the browser that started
       // it, so nobody can finish a sign-in in someone else's browser.
       checks: ['pkce', 'state'],
-      profile(profile: DiscordProfile) {
+      async profile(profile: DiscordProfile) {
         const displayName: unknown = profile.global_name;
         const name = sanitizePlayerName(
           typeof displayName === 'string' && displayName ? displayName : profile.username,
         );
         return {
           id: profile.id,
-          name: name.length >= PLAYER_NAME_MIN ? name : 'Wayfarer',
+          // Names are unique, so a taken one gets a number on the end. Only a
+          // new account keeps this; a returning player's name is never
+          // touched on sign-in.
+          name: await freeName(name.length >= PLAYER_NAME_MIN ? name : 'Wayfarer'),
           // Only an address Discord has verified may match an existing
           // account; otherwise the player gets their own account.
           email: profile.verified && profile.email ? profile.email.toLowerCase() : null,
@@ -135,8 +139,8 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: '/play',
     error: '/play',
-    // First Discord sign-in: straight to the character.
-    newUser: '/profile',
+    // First Discord sign-in: straight to the character's gear.
+    newUser: '/inventory',
   },
 };
 

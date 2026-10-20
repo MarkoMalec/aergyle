@@ -1,6 +1,9 @@
 import "server-only";
 
-import type { MessageReportStatus } from "~/generated/prisma/enums";
+import type {
+  MessageReportSource,
+  MessageReportStatus,
+} from "~/generated/prisma/enums";
 import { prisma } from "~/lib/prisma";
 
 /** One line of a reported thread, as it stood when the report was filed. */
@@ -14,6 +17,7 @@ export type TranscriptLine = {
 export type ReportView = {
   id: number;
   status: MessageReportStatus;
+  source: MessageReportSource;
   reason: string | null;
   reporter: string;
   reported: string;
@@ -27,6 +31,7 @@ export type ReportView = {
 const REPORT_SELECT = {
   id: true,
   status: true,
+  source: true,
   reason: true,
   transcript: true,
   createdAt: true,
@@ -41,6 +46,7 @@ const REPORT_SELECT = {
 type ReportRow = {
   id: number;
   status: MessageReportStatus;
+  source: MessageReportSource;
   reason: string | null;
   transcript: unknown;
   createdAt: Date;
@@ -56,6 +62,7 @@ function toView(row: ReportRow): ReportView {
   return {
     id: row.id,
     status: row.status,
+    source: row.source,
     reason: row.reason,
     reporter: row.reporter?.name ?? "Deleted player",
     reported: row.reported?.name ?? "Deleted player",

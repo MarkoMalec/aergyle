@@ -1,8 +1,9 @@
 import type { PrismaClient } from "~/generated/prisma/client";
 import type { VocationalActionType } from "~/generated/prisma/enums";
 import { prisma } from "~/lib/prisma";
+import { recordDailyActivity } from "~/server/players/dailyActivity";
 
-type DbClient = Pick<PrismaClient, "userSkillMetric">;
+type DbClient = Pick<PrismaClient, "userSkillMetric" | "$executeRaw">;
 
 export type SkillMetrics = {
   itemsGathered: number;
@@ -46,6 +47,7 @@ export async function recordSkillWork(params: {
       secondsSpent: { increment: BigInt(seconds) },
     },
   });
+  await recordDailyActivity({ db, userId: params.userId, seconds });
 }
 
 /** The three numbers the skill page's metrics panel shows. */

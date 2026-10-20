@@ -15,7 +15,7 @@ The active dish, remaining time, and benefits are shown beside the active vocati
 ## Admin controls
 
 - `/admin/items`: create and edit `FISH`, `MEAT`, `VEGETABLE`, `RECIPE`, and `FOOD` templates. Food templates expose a duration and a structured list of stat benefits.
-- `/admin/vocations`: create and edit Cooking outputs, required recipe, Cooking level, seconds per unit, XP, yield, and per-unit ingredients. Cooking accepts only `FISH`, `MEAT`, and `VEGETABLE` requirements.
+- `/admin/vocations`: create and edit Cooking outputs, required recipe, Cooking level, seconds per unit, XP, yield, and per-unit ingredients. Cooking accepts `FISH`, `MEAT`, `VEGETABLE`, and `FOOD` requirements. This lets raw fruit remain edible while also serving as a recipe ingredient.
 - `/admin/gardening`: adjust seed growth time, harvest time, output crop, yield range, and Gardening XP.
 - `/admin/gathering`: configure wild ingredient pools on existing world locations that can feed future Cooking recipes.
 - `/admin/locations`: enable or disable Cooking dishes per location. The initial seven dishes are enabled everywhere.

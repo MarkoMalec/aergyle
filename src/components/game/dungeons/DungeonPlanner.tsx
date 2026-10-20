@@ -128,7 +128,7 @@ function FighterStats({
           Your fighter
         </h2>
         <Button asChild variant="ghost" size="sm">
-          <Link href="/profile">Change gear</Link>
+          <Link href="/inventory">Change gear</Link>
         </Button>
       </div>
       <dl className="grid gap-1.5 md:grid-cols-2 md:gap-x-3 xl:grid-cols-1">

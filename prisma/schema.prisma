@@ -37,59 +37,69 @@ model Session {
 }
 
 model User {
-  id                    String                         @id @unique(map: "user_Id") @default(cuid())
-  name                  String?
-  email                 String?                        @unique
-  emailVerified         DateTime?
-  password              String?                        @db.VarChar(999)
-  image                 String?
-  last_online           DateTime                       @default(now()) @db.Timestamp(0)
-  last_action           String?
+  id                      String                         @id @unique(map: "user_Id") @default(cuid())
+  // Unique without case or accents (the column's collation): it is the
+  // player's tag, /@Name.
+  name                    String                         @unique
+  email                   String?                        @unique
+  emailVerified           DateTime?
+  password                String?                        @db.VarChar(999)
+  image                   String?
+  // Presence: refreshed (at most once a minute) while the game is open.
+  last_online             DateTime                       @default(now()) @db.Timestamp(0)
+  last_action             String?
+  createdAt               DateTime                       @default(now())
+  // Shown on the player's public profile.
+  bio                     String?                        @db.VarChar(300)
   // The user's current location in the world (one at a time).
-  currentLocationId     Int?
-  level                 Int                            @default(1)
+  currentLocationId       Int?
+  level                   Int                            @default(1)
   // Total (lifetime) XP. Level is derived from `LevelXpThreshold`.
   // NOTE: existing DBs may have legacy "XP within level" values; code normalizes lazily.
-  experience            BigInt                         @default(0)
-  gold                  Decimal                        @default(0) @db.Decimal(10, 2)
+  experience              BigInt                         @default(0)
+  gold                    Decimal                        @default(0) @db.Decimal(10, 2)
   // Activities that ended up to this moment have been shown or witnessed.
-  summariesSeenAt       DateTime?
-  activitySummaries     ActivitySummary[]
-  accounts              Account[]
-  equipment             Equipment?
-  inventory             Inventory?
-  sessions              Session[]
-  user_skills           user_skills[]
-  baseStats             CharacterBaseStat[]
-  xpMultipliers         XpMultiplier[]
-  userItems             UserItem[]
-  trackProgress         UserTrackProgress[]
-  skillMetrics          UserSkillMetric[]
-  vocationalActivity    UserVocationalActivity?
-  travelActivity        UserTravelActivity?
-  gardenTiles           UserGardenTile[]
-  gardenHarvestActivity UserGardenHarvestActivity?
-  gatheringExpedition   UserGatheringExpedition?
-  huntingExpedition     UserHuntingExpedition?
-  huntingExpeditionLogs UserHuntingExpeditionLog[]
-  dungeonRun            UserDungeonRun?
-  dungeonRunLogs        UserDungeonRunLog[]
-  healthState           CharacterHealth?
-  learnedRecipes        UserLearnedRecipe[]
-  activeFoodEffect      UserActiveFoodEffect?
-  marketBuyOrders       MarketBuyOrder[]
-  marketPurchases       MarketTransaction[]            @relation("MarketTransactionBuyer")
-  marketSales           MarketTransaction[]            @relation("MarketTransactionSeller")
-  quests                UserQuest[]
-  seenQuests            UserSeenQuest[]
-  storages              UserStorage[]
-  projectContributions  CommunityProjectContribution[]
-  notifications         Notification[]
-  conversations         ConversationParticipant[]
-  messagesSent          Message[]
-  reportsFiled          MessageReport[]                @relation("MessageReportReporter")
-  reportsAgainst        MessageReport[]                @relation("MessageReportReported")
-  reportsReviewed       MessageReport[]                @relation("MessageReportReviewer")
+  summariesSeenAt         DateTime?
+  activitySummaries       ActivitySummary[]
+  accounts                Account[]
+  equipment               Equipment?
+  inventory               Inventory?
+  sessions                Session[]
+  user_skills             user_skills[]
+  baseStats               CharacterBaseStat[]
+  xpMultipliers           XpMultiplier[]
+  userItems               UserItem[]
+  trackProgress           UserTrackProgress[]
+  skillMetrics            UserSkillMetric[]
+  vocationalActivity      UserVocationalActivity?
+  travelActivity          UserTravelActivity?
+  gardenTiles             UserGardenTile[]
+  gardenHarvestActivity   UserGardenHarvestActivity?
+  gatheringExpedition     UserGatheringExpedition?
+  gatheringExpeditionLogs UserGatheringExpeditionLog[]
+  huntingExpedition       UserHuntingExpedition?
+  huntingExpeditionLogs   UserHuntingExpeditionLog[]
+  dungeonRun              UserDungeonRun?
+  dungeonRunLogs          UserDungeonRunLog[]
+  healthState             CharacterHealth?
+  learnedRecipes          UserLearnedRecipe[]
+  activeFoodEffect        UserActiveFoodEffect?
+  marketBuyOrders         MarketBuyOrder[]
+  marketPurchases         MarketTransaction[]            @relation("MarketTransactionBuyer")
+  marketSales             MarketTransaction[]            @relation("MarketTransactionSeller")
+  quests                  UserQuest[]
+  seenQuests              UserSeenQuest[]
+  storages                UserStorage[]
+  projectContributions    CommunityProjectContribution[]
+  notifications           Notification[]
+  conversations           ConversationParticipant[]
+  messagesSent            Message[]
+  reportsFiled            MessageReport[]                @relation("MessageReportReporter")
+  reportsAgainst          MessageReport[]                @relation("MessageReportReported")
+  reportsReviewed         MessageReport[]                @relation("MessageReportReviewer")
+  dailyActivity           PlayerDailyActivity[]
+  profileComments         ProfileComment[]               @relation("ProfileCommentProfile")
+  profileCommentsWritten  ProfileComment[]               @relation("ProfileCommentAuthor")
 
   currentLocation Location? @relation("UserCurrentLocation", fields: [currentLocationId], references: [id], onDelete: SetNull)
 
@@ -1049,13 +1059,14 @@ model Location {
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 
-  resources            LocationVocationalResource[]
-  activities           UserVocationalActivity[]
-  gatheringExpeditions UserGatheringExpedition[]
-  huntingGrounds       HuntingGround[]
-  dungeons             Dungeon[]
-  settlements          Settlement[]
-  users                User[]                       @relation("UserCurrentLocation")
+  resources               LocationVocationalResource[]
+  activities              UserVocationalActivity[]
+  gatheringExpeditions    UserGatheringExpedition[]
+  gatheringExpeditionLogs UserGatheringExpeditionLog[]
+  huntingGrounds          HuntingGround[]
+  dungeons                Dungeon[]
+  settlements             Settlement[]
+  users                   User[]                       @relation("UserCurrentLocation")
 
   travelFrom UserTravelActivity[] @relation("TravelFrom")
   travelTo   UserTravelActivity[] @relation("TravelTo")
@@ -1216,7 +1227,7 @@ model GatheringDuration {
 }
 
 // One expedition record per character. Claimed records remain until the next
-// departure so the return haul can be shown after refresh without a history table.
+// departure; finished expeditions are copied to UserGatheringExpeditionLog.
 model UserGatheringExpedition {
   id         Int    @id @default(autoincrement())
   userId     String @unique
@@ -1248,6 +1259,25 @@ model UserGatheringExpedition {
   @@index([endsAt])
   @@index([locationId])
   @@index([durationId])
+}
+
+// A claimed expedition, kept for the expedition journal (latest few per character).
+model UserGatheringExpeditionLog {
+  id         Int    @id @default(autoincrement())
+  userId     String
+  locationId Int
+
+  startedAt       DateTime
+  claimedAt       DateTime
+  durationSeconds Int
+  xpReward        Int
+  rewards         Json
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@index([userId, claimedAt])
+  @@index([locationId])
 }
 
 // ============================================
@@ -2118,11 +2148,19 @@ enum MessageReportStatus {
   DISMISSED
 }
 
+// What a report is about: a private conversation or a profile comment.
+enum MessageReportSource {
+  MESSAGE
+  PROFILE_COMMENT
+}
+
 // A reported thread, with the transcript copied in as it stood, so neither
 // player can erase what moderators review.
 model MessageReport {
   id                Int                 @id @default(autoincrement())
+  source            MessageReportSource @default(MESSAGE)
   conversationId    Int?
+  profileCommentId  Int?
   reporterId        String?
   reportedId        String?
   reason            String?             @db.Text
@@ -2137,14 +2175,16 @@ model MessageReport {
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
 
-  conversation    Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
-  reporter        User?         @relation("MessageReportReporter", fields: [reporterId], references: [id], onDelete: SetNull)
-  reported        User?         @relation("MessageReportReported", fields: [reportedId], references: [id], onDelete: SetNull)
-  reviewedBy      User?         @relation("MessageReportReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
-  reviewedByAdmin AdminUser?    @relation(fields: [reviewedByAdminId], references: [id], onDelete: SetNull)
+  conversation    Conversation?   @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  profileComment  ProfileComment? @relation(fields: [profileCommentId], references: [id], onDelete: SetNull)
+  reporter        User?           @relation("MessageReportReporter", fields: [reporterId], references: [id], onDelete: SetNull)
+  reported        User?           @relation("MessageReportReported", fields: [reportedId], references: [id], onDelete: SetNull)
+  reviewedBy      User?           @relation("MessageReportReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedByAdmin AdminUser?      @relation(fields: [reviewedByAdminId], references: [id], onDelete: SetNull)
 
   @@index([status, id])
   @@index([conversationId])
+  @@index([profileCommentId])
   @@index([reporterId])
   @@index([reportedId])
   @@index([reviewedById])
@@ -2221,4 +2261,39 @@ model AdminAuditLog {
 
   @@index([createdAt])
   @@index([adminId, createdAt])
+}
+
+// A comment on a player's public profile. Replies are one level deep
+// (`parentId` points at a top-level comment). The profile's owner can remove
+// any comment on it, an author their own.
+model ProfileComment {
+  id        Int      @id @default(autoincrement())
+  profileId String
+  authorId  String
+  parentId  Int?
+  body      String   @db.VarChar(500)
+  createdAt DateTime @default(now())
+
+  profile User             @relation("ProfileCommentProfile", fields: [profileId], references: [id], onDelete: Cascade)
+  author  User             @relation("ProfileCommentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  parent  ProfileComment?  @relation("ProfileCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies ProfileComment[] @relation("ProfileCommentReplies")
+  reports MessageReport[]
+
+  @@index([profileId, parentId, id])
+  @@index([authorId])
+  @@index([parentId])
+}
+
+// Per-player, per-day (UTC) totals behind the profile's activity charts:
+// character XP gained and seconds of finished activity.
+model PlayerDailyActivity {
+  userId  String
+  day     DateTime @db.Date
+  xp      BigInt   @default(0)
+  seconds Int      @default(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, day])
 }

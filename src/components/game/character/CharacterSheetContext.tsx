@@ -147,3 +147,29 @@ export function CharacterSheetProvider({
     </CharacterSheetContext.Provider>
   );
 }
+
+/**
+ * Another player's sheet, resolved on the server: nothing to equip or eat
+ * here, so it never changes while the page is open.
+ */
+export function StaticCharacterSheetProvider({
+  sheet,
+  children,
+}: {
+  sheet: Omit<CharacterSheet, "final" | "changes">;
+  children: ReactNode;
+}) {
+  const value = useMemo(() => {
+    const final = {} as StatRecord;
+    for (const [key, stat] of Object.entries(COMPUTED_STAT_TYPE_MAP)) {
+      final[stat] = sheet.computed[key as keyof ComputedStats];
+    }
+    return { ...sheet, final, changes: {} };
+  }, [sheet]);
+
+  return (
+    <CharacterSheetContext.Provider value={value}>
+      {children}
+    </CharacterSheetContext.Provider>
+  );
+}

@@ -9,7 +9,9 @@ import {
 } from "~/generated/prisma/enums";
 import { prisma } from "~/lib/prisma";
 import { assertNoOtherActivity } from "~/server/activity";
+import { calculateExpeditionEffectiveFindChance } from "~/server/expeditions/rewards";
 import {
+  calculateGatheringRewardModifiers,
   calculateGatheringRewards,
   type GatheringReward,
   type GatheringRewardPoolEntry,
@@ -21,6 +23,8 @@ import { awardTrackXp, getTrackXpProgress } from "~/utils/progression";
 import { recordSkillWork } from "~/server/skills/metrics";
 
 const MAX_EXPEDITION_SECONDS = 7 * 24 * 60 * 60;
+// Claimed expeditions kept in each character's expedition journal.
+const GATHERING_JOURNAL_SIZE = 6;
 const FALLBACK_RARITY_ORDER = Object.fromEntries(
   Object.values(ItemRarity).map((rarity, index) => [rarity, index]),
 ) as Record<ItemRarity, number>;
@@ -53,6 +57,17 @@ export type GatheringExpeditionStatus = {
     location: { id: number; name: string };
     rewards: GatheringReward[];
   };
+};
+
+/** A claimed expedition kept in the expedition journal. */
+export type GatheringJournalEntry = {
+  id: number;
+  startedAt: string;
+  claimedAt: string;
+  durationSeconds: number;
+  xpReward: number;
+  location: { id: number; name: string };
+  rewards: GatheringReward[];
 };
 
 export async function getGatheringModifierSnapshot(
@@ -198,77 +213,134 @@ export async function getGatheringExpeditionStatus(
   return toStatus(expedition);
 }
 
+/** The character's latest claimed expeditions, newest first. */
+async function getGatheringJournal(
+  userId: string,
+): Promise<GatheringJournalEntry[]> {
+  const rows = await prisma.userGatheringExpeditionLog.findMany({
+    where: { userId },
+    orderBy: [{ claimedAt: "desc" }, { id: "desc" }],
+    take: GATHERING_JOURNAL_SIZE,
+    select: {
+      id: true,
+      startedAt: true,
+      claimedAt: true,
+      durationSeconds: true,
+      xpReward: true,
+      rewards: true,
+      location: { select: { id: true, name: true } },
+    },
+  });
+  return rows.map((row) => ({
+    id: row.id,
+    startedAt: row.startedAt.toISOString(),
+    claimedAt: row.claimedAt.toISOString(),
+    durationSeconds: row.durationSeconds,
+    xpReward: row.xpReward,
+    location: row.location,
+    rewards: parseRewards(row.rewards),
+  }));
+}
+
 export async function getGatheringPageData(userId: string) {
-  const [user, skillProgress, durations, rarityConfigs, modifiers, status] =
-    await Promise.all([
-      prisma.user.findUnique({
-        where: { id: userId },
-        select: {
-          level: true,
-          currentLocation: {
-            select: {
-              id: true,
-              name: true,
-              requiredLevel: true,
-              gatheringEnabled: true,
-              gatheringRequiredLevel: true,
-              resources: {
-                where: {
-                  enabled: true,
-                  resource: { actionType: VocationalActionType.GATHERING },
-                },
-                select: {
-                  resource: {
-                    select: {
-                      id: true,
-                      name: true,
-                      rarity: true,
-                      requiredSkillLevel: true,
-                      item: { select: { id: true, name: true, sprite: true } },
-                    },
+  const [
+    user,
+    skillProgress,
+    durations,
+    rarityConfigs,
+    modifiers,
+    status,
+    journal,
+  ] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        level: true,
+        currentLocation: {
+          select: {
+            id: true,
+            name: true,
+            requiredLevel: true,
+            gatheringEnabled: true,
+            gatheringRequiredLevel: true,
+            resources: {
+              where: {
+                enabled: true,
+                resource: { actionType: VocationalActionType.GATHERING },
+              },
+              select: {
+                gatheringBaseChance: true,
+                gatheringMinQuantity: true,
+                gatheringMaxQuantity: true,
+                resource: {
+                  select: {
+                    id: true,
+                    name: true,
+                    rarity: true,
+                    requiredSkillLevel: true,
+                    item: { select: { id: true, name: true, sprite: true } },
                   },
                 },
               },
             },
           },
         },
-      }),
-      getTrackXpProgress({
-        userId,
-        trackType: "SKILL",
-        trackKey: VocationalActionType.GATHERING,
-      }),
-      prisma.gatheringDuration.findMany({
-        where: { enabled: true },
-        select: {
-          id: true,
-          label: true,
-          durationSeconds: true,
-          xpReward: true,
-          requiredGatheringLevel: true,
-        },
-        orderBy: [{ sortOrder: "asc" }, { durationSeconds: "asc" }],
-      }),
-      prisma.rarityConfig.findMany({
-        select: { rarity: true, sortOrder: true },
-      }),
-      getGatheringModifierSnapshot(userId),
-      getGatheringExpeditionStatus(userId),
-    ]);
+      },
+    }),
+    getTrackXpProgress({
+      userId,
+      trackType: "SKILL",
+      trackKey: VocationalActionType.GATHERING,
+    }),
+    prisma.gatheringDuration.findMany({
+      where: { enabled: true },
+      select: {
+        id: true,
+        label: true,
+        durationSeconds: true,
+        rewardRolls: true,
+        quantityMultiplier: true,
+        xpReward: true,
+        requiredGatheringLevel: true,
+      },
+      orderBy: [{ sortOrder: "asc" }, { durationSeconds: "asc" }],
+    }),
+    prisma.rarityConfig.findMany({
+      select: { rarity: true, sortOrder: true },
+    }),
+    getGatheringModifierSnapshot(userId),
+    getGatheringExpeditionStatus(userId),
+    getGatheringJournal(userId),
+  ]);
 
   if (!user) throw new Error("User not found");
   const rarityOrder = new Map<ItemRarity, number>(
     rarityConfigs.map((config) => [config.rarity, config.sortOrder]),
   );
+  // The same scaling the claim rolls with, so the page can show expected hauls.
+  const rewardModifiers = (quantityMultiplier: number) =>
+    calculateGatheringRewardModifiers({
+      skillLevel: skillProgress.level,
+      luck: modifiers.luck,
+      gatheringEfficiency: modifiers.gatheringEfficiency,
+      quantityMultiplier,
+    });
+  const { findModifierPercent, quantityModifierPercent } = rewardModifiers(1);
 
   return {
     skillProgress: {
       trackKey: VocationalActionType.GATHERING,
       ...skillProgress,
     },
-    modifiers,
-    durations: durations.map((duration) => ({
+    modifiers: {
+      ...modifiers,
+      findBonusPercent: findModifierPercent,
+      quantityBonusPercent: quantityModifierPercent,
+    },
+    durations: durations.map(({ quantityMultiplier, ...duration }) => ({
       ...duration,
+      rewardRolls: Math.max(1, Math.min(100, Math.floor(duration.rewardRolls))),
+      quantityScale: rewardModifiers(quantityMultiplier).quantityScale,
       unlocked: skillProgress.level >= duration.requiredGatheringLevel,
     })),
     location: user.currentLocation
@@ -276,20 +348,34 @@ export async function getGatheringPageData(userId: string) {
           id: user.currentLocation.id,
           name: user.currentLocation.name,
           gatheringEnabled: user.currentLocation.gatheringEnabled,
+          requiredLevel: user.currentLocation.requiredLevel,
           requiredGatheringLevel: user.currentLocation.gatheringRequiredLevel,
           unlocked:
             user.currentLocation.gatheringEnabled &&
             user.level >= user.currentLocation.requiredLevel &&
             skillProgress.level >= user.currentLocation.gatheringRequiredLevel,
           resources: user.currentLocation.resources
-            .map(({ resource }) => ({
-              id: resource.id,
-              itemId: resource.item.id,
-              name: resource.item.name || resource.name,
-              sprite: resource.item.sprite,
-              rarity: resource.rarity,
-              requiredGatheringLevel: resource.requiredSkillLevel,
-            }))
+            .map((row) => {
+              const { resource } = row;
+              const minQuantity = Math.max(1, row.gatheringMinQuantity);
+              return {
+                id: resource.id,
+                itemId: resource.item.id,
+                name: resource.item.name || resource.name,
+                sprite: resource.item.sprite,
+                rarity: resource.rarity,
+                requiredGatheringLevel: resource.requiredSkillLevel,
+                // Chance per search with the character's current bonuses.
+                findChance: calculateExpeditionEffectiveFindChance(
+                  Math.min(1, Math.max(0, row.gatheringBaseChance)),
+                  findModifierPercent,
+                ),
+                averageQuantity:
+                  (minQuantity +
+                    Math.max(minQuantity, row.gatheringMaxQuantity)) /
+                  2,
+              };
+            })
             .sort((a, b) => {
               const rarityDiff =
                 (rarityOrder.get(a.rarity) ?? FALLBACK_RARITY_ORDER[a.rarity]) -
@@ -307,6 +393,7 @@ export async function getGatheringPageData(userId: string) {
         }
       : null,
     ...status,
+    journal,
   };
 }
 
@@ -319,63 +406,56 @@ export async function startGatheringExpedition(params: {
     throw new Error("Choose a valid expedition duration");
   }
 
-  const [
-    ,
-    existing,
-    user,
-    duration,
-    skillProgress,
-  ] =
-    await Promise.all([
-      assertNoOtherActivity(userId, "gathering"),
-      prisma.userGatheringExpedition.findUnique({
-        where: { userId },
-        select: { id: true, claimedAt: true },
-      }),
-      prisma.user.findUnique({
-        where: { id: userId },
-        select: {
-          level: true,
-          currentLocationId: true,
-          currentLocation: {
-            select: {
-              id: true,
-              name: true,
-              requiredLevel: true,
-              gatheringEnabled: true,
-              gatheringRequiredLevel: true,
-              resources: {
-                where: {
-                  enabled: true,
-                  resource: { actionType: VocationalActionType.GATHERING },
-                },
-                select: {
-                  gatheringBaseChance: true,
-                  gatheringMinQuantity: true,
-                  gatheringMaxQuantity: true,
-                  resource: {
-                    select: {
-                      id: true,
-                      itemId: true,
-                      name: true,
-                      rarity: true,
-                      requiredSkillLevel: true,
-                      item: { select: { name: true, sprite: true } },
-                    },
+  const [, existing, user, duration, skillProgress] = await Promise.all([
+    assertNoOtherActivity(userId, "gathering"),
+    prisma.userGatheringExpedition.findUnique({
+      where: { userId },
+      select: { id: true, claimedAt: true },
+    }),
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        level: true,
+        currentLocationId: true,
+        currentLocation: {
+          select: {
+            id: true,
+            name: true,
+            requiredLevel: true,
+            gatheringEnabled: true,
+            gatheringRequiredLevel: true,
+            resources: {
+              where: {
+                enabled: true,
+                resource: { actionType: VocationalActionType.GATHERING },
+              },
+              select: {
+                gatheringBaseChance: true,
+                gatheringMinQuantity: true,
+                gatheringMaxQuantity: true,
+                resource: {
+                  select: {
+                    id: true,
+                    itemId: true,
+                    name: true,
+                    rarity: true,
+                    requiredSkillLevel: true,
+                    item: { select: { name: true, sprite: true } },
                   },
                 },
               },
             },
           },
         },
-      }),
-      prisma.gatheringDuration.findUnique({ where: { id: durationId } }),
-      getTrackXpProgress({
-        userId,
-        trackType: "SKILL",
-        trackKey: VocationalActionType.GATHERING,
-      }),
-    ]);
+      },
+    }),
+    prisma.gatheringDuration.findUnique({ where: { id: durationId } }),
+    getTrackXpProgress({
+      userId,
+      trackType: "SKILL",
+      trackKey: VocationalActionType.GATHERING,
+    }),
+  ]);
 
   if (existing?.claimedAt === null) {
     throw new Error("You already have an active activity");
@@ -470,6 +550,8 @@ export async function claimGatheringExpedition(userId: string) {
     where: { userId },
     select: {
       id: true,
+      locationId: true,
+      startedAt: true,
       endsAt: true,
       claimedAt: true,
       durationSeconds: true,
@@ -520,6 +602,28 @@ export async function claimGatheringExpedition(userId: string) {
     });
     if (claimed.count !== 1)
       throw new Error("This expedition was already claimed");
+    await tx.userGatheringExpeditionLog.create({
+      data: {
+        userId,
+        locationId: expedition.locationId,
+        startedAt: expedition.startedAt,
+        claimedAt,
+        durationSeconds: expedition.durationSeconds,
+        xpReward: expedition.xpReward,
+        rewards: rewards as unknown as Prisma.InputJsonValue,
+      },
+    });
+    const pruned = await tx.userGatheringExpeditionLog.findMany({
+      where: { userId },
+      orderBy: [{ claimedAt: "desc" }, { id: "desc" }],
+      skip: GATHERING_JOURNAL_SIZE,
+      select: { id: true },
+    });
+    if (pruned.length > 0) {
+      await tx.userGatheringExpeditionLog.deleteMany({
+        where: { id: { in: pruned.map((row) => row.id) } },
+      });
+    }
 
     for (const reward of rewards) {
       const grant = await grantStackableItemToInventory({

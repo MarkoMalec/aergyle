@@ -309,7 +309,8 @@ function RunCard(props: { summary: RunEntry; onOpen: () => void }) {
       <Button
         asChild
         size="sm"
-        className="border-0 bg-primary/15 text-primary hover:bg-primary/25"
+        variant="soft"
+              className="border-0"
       >
         <Link href={run.href} onClick={props.onOpen}>
           {run.action}

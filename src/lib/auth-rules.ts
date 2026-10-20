@@ -90,7 +90,7 @@ export type RegisterInput = z.input<typeof registerSchema>;
  */
 export function safeCallbackPath(
   value: string | null | undefined,
-  fallback = "/profile",
+  fallback = "/inventory",
 ): string {
   if (!value || !value.startsWith("/") || value.startsWith("//")) {
     return fallback;
