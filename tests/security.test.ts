@@ -157,10 +157,10 @@ void test("registration needs a real email and an 8+ character password", () => 
 
 void test("post-login redirects stay on this site", () => {
   assert.equal(safeCallbackPath("/marketplace?tab=sell"), "/marketplace?tab=sell");
-  assert.equal(safeCallbackPath("//evil.example"), "/profile");
-  assert.equal(safeCallbackPath("https://evil.example"), "/profile");
-  assert.equal(safeCallbackPath("/\\evil.example"), "/profile");
-  assert.equal(safeCallbackPath(null), "/profile");
+  assert.equal(safeCallbackPath("//evil.example"), "/me");
+  assert.equal(safeCallbackPath("https://evil.example"), "/me");
+  assert.equal(safeCallbackPath("/\\evil.example"), "/me");
+  assert.equal(safeCallbackPath(null), "/me");
 });
 
 /* ------------------------------------------------- inventory layouts */

@@ -77,7 +77,7 @@ export async function middleware(request: NextRequest) {
 
   // Signed-in players skip the sign-in screens.
   if (token && AUTH_PAGES.has(pathname)) {
-    return NextResponse.redirect(new URL('/inventory', request.url));
+    return NextResponse.redirect(new URL('/me', request.url));
   }
 
   if (!token && isGamePage) {

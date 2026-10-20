@@ -139,8 +139,8 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: '/play',
     error: '/play',
-    // First Discord sign-in: straight to the character's gear.
-    newUser: '/inventory',
+    // First Discord sign-in: straight to the player's own profile.
+    newUser: '/me',
   },
 };
 
