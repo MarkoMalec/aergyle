@@ -25,6 +25,17 @@ export function readLeaderboardView(value: unknown): LeaderboardView {
   return value === "top" ? "top" : "you";
 }
 
+/** Who is ranked: everyone, or only the viewer and their friends. */
+export const LEADERBOARD_SCOPES = [
+  { value: "friends", label: "Friends" },
+  { value: "everyone", label: "Everyone" },
+] as const;
+export type LeaderboardScope = (typeof LEADERBOARD_SCOPES)[number]["value"];
+
+export function readLeaderboardScope(value: unknown): LeaderboardScope {
+  return value === "friends" ? "friends" : "everyone";
+}
+
 export type LeaderboardBoard = {
   /** The URL's ?board=, e.g. "character", "mining", "total". */
   key: string;

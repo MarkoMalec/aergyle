@@ -11,6 +11,21 @@ export {
   type ProfileCommentView,
 } from "./comments";
 export { type DailyActivityPoint } from "./dailyActivity";
+export {
+  addFriend,
+  countFriendRequests,
+  endFriendRelation,
+  FriendError,
+  getFriendRelation,
+  listFriendIds,
+  listFriends,
+  searchPlayers,
+  type FriendPlayer,
+  type FriendRequestView,
+  type FriendSearchResult,
+  type FriendsOverview,
+  type FriendView,
+} from "./friends";
 export { getLeaderboard, type Leaderboard } from "./leaderboard";
 export { touchLastOnline } from "./presence";
 export {

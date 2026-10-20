@@ -2414,7 +2414,8 @@
   }
   .game-topbar {
     min-height: 68px;
-    padding-left: 48px;
+    /* Clears the fixed 40px menu trigger at left: 16px, plus an 8px gap. */
+    padding-left: 63px;
     margin-bottom: 24px;
   }
   .game-mobile-trigger {

@@ -23,6 +23,7 @@ const EMPTY: CommunicationSummary = {
   notifications: 0,
   messages: 0,
   waiting: 0,
+  friendRequests: 0,
 };
 
 /**

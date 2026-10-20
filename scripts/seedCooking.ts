@@ -191,6 +191,56 @@ async function main(selectedMode: Mode) {
       }
       rows.push(`Cooking skill: ${existingSkill ? "present" : "would create"}`);
 
+      // Cooking began with fish, meat and vegetables, then Gathering made raw
+      // FOOD fruit eligible. This expansion also uses culinary HERB inputs and
+      // pantry MATERIAL items such as salt, pepper, sugar and sunflower oil.
+      const requiredCookingInputTypes = [
+        "FISH",
+        "MEAT",
+        "VEGETABLE",
+        "FOOD",
+        "HERB",
+        "MATERIAL",
+      ] as const;
+      const cookingRule = await tx.vocationalSkillRule.findUnique({
+        where: { actionType: "COOKING" },
+      });
+      const cookingInputs = Array.isArray(cookingRule?.inputItemTypes)
+        ? cookingRule.inputItemTypes.filter(
+            (value): value is string => typeof value === "string",
+          )
+        : ["FISH", "MEAT", "VEGETABLE"];
+      const missingCookingInputTypes = requiredCookingInputTypes.filter(
+        (itemType) => !cookingInputs.includes(itemType),
+      );
+
+      if (
+        selectedMode === "--verify" &&
+        (!cookingRule || missingCookingInputTypes.length > 0)
+      ) {
+        throw new Error(
+          `Cooking must accept ${missingCookingInputTypes.join(", ") || "its required ingredient types"}`,
+        );
+      }
+      if (selectedMode === "--apply") {
+        await tx.vocationalSkillRule.upsert({
+          where: { actionType: "COOKING" },
+          create: {
+            actionType: "COOKING",
+            outputItemTypes: ["FOOD"],
+            inputItemTypes: [...requiredCookingInputTypes],
+          },
+          update: {
+            inputItemTypes: Array.from(
+              new Set([...cookingInputs, ...requiredCookingInputTypes]),
+            ),
+          },
+        });
+      }
+      rows.push(
+        `Cooking ingredient types: ${selectedMode === "--apply" ? "enabled" : missingCookingInputTypes.length === 0 ? "ready" : `would enable ${missingCookingInputTypes.join(", ")}`}`,
+      );
+
       // The first Cooking action may have been renamed to Pan-fried Perch in
       // admin before its distinct output item existed. Preserve that action
       // and its location links by moving it to the new output item once.

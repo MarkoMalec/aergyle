@@ -9,10 +9,10 @@ type SkillMentor = {
 
 const mentors: Record<string, SkillMentor> = {
   woodcutting: {
-    name: "Eira Alderfall",
+    name: "Bram Ironbough",
     quote:
-      "A tree gives twice: once to the canopy, once to the patient hand. Listen for the wind before you choose which gift to take.",
-    asset: "/assets/npcs/eira-alderfall-woodcutter-v1.png",
+      "A tree gives twice: once to the canopy, once to the patient hand. Read the lean, clear the fall, and leave enough forest for spring.",
+    asset: "/assets/npcs/bram-ironbough-woodcutter-v1.png",
   },
   mining: {
     name: "Dain Flintward",
@@ -33,10 +33,10 @@ const mentors: Record<string, SkillMentor> = {
     asset: "/assets/npcs/lorn-thistlebank-gardener-v2.png",
   },
   gathering: {
-    name: "Rowan Mossweft",
+    name: "Elowen Briarwell",
     quote:
-      "The wild rarely hides what it needs; it hides it among a hundred things that look alike. Learn the difference.",
-    asset: "/assets/npcs/rowan-mossweft-gatherer-v1.png",
+      "The wild hides nothing from a careful hand. Notice what grows together, then take only what has another season to spare.",
+    asset: "/assets/npcs/elowen-briarwell-gatherer-v1.png",
   },
   hunting: {
     name: "Sella Pikebriar",
@@ -47,8 +47,8 @@ const mentors: Record<string, SkillMentor> = {
   alchemy: {
     name: "Orrin Quill",
     quote:
-      "Measure twice, warm once, and never trust a mixture that shines brighter than it should.",
-    asset: "/assets/npcs/orrin-quill-alchemist-v1.png",
+      "If a mixture glows before you ask it to, set it down. Curiosity is useful; keeping your eyebrows is useful too.",
+    asset: "/assets/npcs/orrin-quill-alchemist-v2.png",
   },
   blacksmithing: {
     name: "Noll Graven",

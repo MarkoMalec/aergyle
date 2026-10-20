@@ -13,27 +13,33 @@ export default function ActiveActionHeaderWidget() {
   if (!active || !viewModel) return null;
 
   return (
-    <div className="flex min-w-0 items-center gap-2 py-3">
-      <ActionFillBar
-        value={viewModel.progress}
-        previewValue={viewModel.previewProgress}
-        sessionAmount={viewModel.sessionAmount}
-        title={viewModel.label}
-        href={viewModel.href}
-        sprite={viewModel.sprite}
-        remainingTravelTime={
-          activeActionType === "TRAVEL" ||
-          activeActionType === "GATHERING" ||
-          activeActionType === "HUNTING" ||
-          activeActionType === "DUNGEON"
-            ? viewModel.remainingSeconds
-            : null
-        }
-      />
+    // Holds the free space left of the header icons. The bar keeps its natural
+    // width at the right edge and only shrinks when that space runs out; the
+    // space is a size container, so the bar's title steps aside when it is tight.
+    <div className="flex min-w-0 flex-1 items-center gap-2 py-3">
+      <div className="flex min-w-0 flex-1 justify-end [container-type:inline-size]">
+        <ActionFillBar
+          value={viewModel.progress}
+          previewValue={viewModel.previewProgress}
+          sessionAmount={viewModel.sessionAmount}
+          title={viewModel.label}
+          href={viewModel.href}
+          sprite={viewModel.sprite}
+          remainingTravelTime={
+            activeActionType === "TRAVEL" ||
+            activeActionType === "GATHERING" ||
+            activeActionType === "HUNTING" ||
+            activeActionType === "DUNGEON"
+              ? viewModel.remainingSeconds
+              : null
+          }
+        />
+      </div>
       {activeActionType === "TRAVEL" ? (
         <Button
           size="icon"
           variant="ghost"
+          className="shrink-0"
           onClick={stop}
           aria-label="Cancel travel"
         >

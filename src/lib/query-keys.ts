@@ -95,6 +95,13 @@ export const communicationQueryKeys = {
   players: (query: string) => ["communication", "players", query] as const,
 } as const;
 
+export const friendQueryKeys = {
+  all: () => ["friends"] as const,
+  // Friends plus open requests, for the Friends window.
+  list: () => ["friends", "list"] as const,
+  search: (term: string) => ["friends", "search", term] as const,
+} as const;
+
 export const rarityQueryKeys = {
   colors: () => ["rarity-colors"] as const,
 } as const;

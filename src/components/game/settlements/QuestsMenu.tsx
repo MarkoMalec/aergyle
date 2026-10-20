@@ -105,14 +105,13 @@ export function QuestsMenu() {
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="group flex h-12 items-center gap-2 rounded-xl bg-card/70 px-3 shadow-[var(--shadow-panel)] transition-colors duration-150 hover:bg-secondary/80 focus-visible:outline-none data-[state=open]:bg-secondary"
+          className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-card/70 shadow-[var(--shadow-panel)] transition-colors duration-150 hover:bg-secondary/80 focus-visible:outline-none data-[state=open]:bg-secondary xl:h-12 xl:w-auto xl:px-3"
           aria-label="Open your active quests"
         >
           <ScrollText size={18} className="text-primary" aria-hidden="true" />
-          {/* <span className="text-sm font-semibold"></span> */}
           <ChevronDown
             size={14}
-            className="text-muted-foreground transition-transform duration-150 group-data-[state=open]:rotate-180"
+            className="hidden text-muted-foreground transition-transform duration-150 group-data-[state=open]:rotate-180 xl:block"
             aria-hidden="true"
           />
         </button>

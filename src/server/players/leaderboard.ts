@@ -179,18 +179,27 @@ export type Leaderboard = {
 
 /**
  * One board's rows: the top of it, or the viewer with the players just above
- * and below them. An unknown board falls back to the default one.
+ * and below them. An unknown board falls back to the default one. With
+ * `friendIds` only the viewer and those friends are ranked, so ranks count
+ * within that group; null ranks everyone.
  */
 export async function getLeaderboard(params: {
   board: string | undefined;
   view: LeaderboardView;
   viewerId: string;
+  friendIds: string[] | null;
 }): Promise<Leaderboard> {
   const snapshot = await loadSnapshot();
   const board =
     snapshot.boards.find((candidate) => candidate.key === params.board) ??
     snapshot.boards[0]!;
-  const entries = snapshot.rankings.get(board.key) ?? [];
+  let entries = snapshot.rankings.get(board.key) ?? [];
+  if (params.friendIds) {
+    const group = new Set([...params.friendIds, params.viewerId]);
+    entries = entries.filter((entry) =>
+      group.has(snapshot.players[entry.player]!.id),
+    );
+  }
   const viewerIndex = entries.findIndex(
     (entry) => snapshot.players[entry.player]!.id === params.viewerId,
   );

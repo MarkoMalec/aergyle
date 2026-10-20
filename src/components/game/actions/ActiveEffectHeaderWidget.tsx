@@ -26,19 +26,19 @@ export function EffectHeaderIndicator({ effect }: { effect: HeaderEffect }) {
       <Tooltip>
         <TooltipTrigger asChild>
           <div
-            className="group flex h-12 min-w-0 items-center gap-2.5 rounded-xl bg-card/70 py-1.5 pl-1.5 pr-3 shadow-[var(--shadow-panel)] transition-colors duration-150 hover:bg-secondary/70"
+            className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2.5 rounded-xl bg-card/70 shadow-[var(--shadow-panel)] transition-colors duration-150 hover:bg-secondary/70 xl:h-12 xl:w-auto xl:min-w-0 xl:shrink xl:justify-start xl:py-1.5 xl:pl-1.5 xl:pr-3"
             aria-label={`${effect.name} active effect, ${formatDuration(effect.remainingSeconds)} remaining`}
           >
-            <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-lg bg-accent/70">
+            <span className="grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-lg bg-accent/70 xl:h-9 xl:w-9">
               <Image
                 src={effect.sprite}
                 alt=""
                 width={40}
                 height={40}
-                className="h-10 w-10 object-contain transition-transform duration-150 group-hover:scale-105"
+                className="h-9 w-9 object-contain transition-transform duration-150 group-hover:scale-105 xl:h-10 xl:w-10"
               />
             </span>
-            <span className="hidden min-w-0 sm:block">
+            <span className="hidden min-w-0 xl:block">
               <span className="block max-w-32 truncate text-xs font-semibold text-foreground">
                 {effect.name}
               </span>

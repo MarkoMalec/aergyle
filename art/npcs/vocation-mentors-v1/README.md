@@ -1,16 +1,11 @@
 # Vocation mentors v1
 
-Three transparent mentor portraits created for the skill-page headers. The
-1024×1536 PNG masters are retained here; their 512×768 runtime exports live in
-`public/assets/npcs/`.
+This legacy source folder retains only Dain Flintward's original mining master.
+The former Eira Alderfall and Rowan Mossweft masters, along with their runtime
+exports, were removed when the woodcutting and gathering mentors were rebuilt.
 
-| Mentor | Skill | Runtime asset |
-| --- | --- | --- |
-| Eira Alderfall | Woodcutting | `/assets/npcs/eira-alderfall-woodcutter-v1.png` |
-| Dain Flintward | Mining | `/assets/npcs/dain-flintward-miner-v1.png` |
-| Rowan Mossweft | Gathering | `/assets/npcs/rowan-mossweft-gatherer-v1.png` |
-
-All three were generated with the built-in image generator as grounded Aergyle
-craft mentors: one civilian character, practical trade tools, no scenery, and
-a genuinely transparent background. The header deliberately crops them around
-the torso and allows their silhouettes to rise above the banner.
+Their replacements live in
+[`../mentor-overhaul-v1/`](../mentor-overhaul-v1/README.md): Bram Ironbough
+(woodcutting), Elowen Briarwell (gathering), and the rebuilt Orrin Quill
+(alchemy). Use [`../NPC_ART_DIRECTION.md`](../NPC_ART_DIRECTION.md) for future
+mentor work.

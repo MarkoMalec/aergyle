@@ -11,6 +11,7 @@ import {
 import type { ItemRarity } from "~/generated/prisma/enums";
 import { itemQueryKeys } from "~/lib/query-keys";
 import { cn } from "~/lib/utils";
+import { ItemCompareButton } from "./ItemCompare";
 import {
   ItemDetails,
   ItemDetailsPopoverContent,
@@ -43,7 +44,14 @@ export function LoadedItemDetails(props: {
 }) {
   const query = useQuery(itemDetailsQuery(props.itemId, props.rarity));
 
-  if (query.data) return <ItemDetails item={query.data} />;
+  if (query.data) {
+    return (
+      <>
+        <ItemDetails item={query.data} />
+        <ItemCompareButton item={query.data} className="mt-5 w-full" />
+      </>
+    );
+  }
   if (query.isError) {
     return (
       <p className="text-sm text-muted-foreground">

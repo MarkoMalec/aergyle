@@ -12,7 +12,11 @@ import { PlayerHero } from "~/components/game/players/PlayerHero";
 import { ProfileComments } from "~/components/game/players/ProfileComments";
 import { authOptions } from "~/server/auth";
 import { playerProfileHref, playerTag } from "~/game/players";
-import { getPlayerProfile, listProfileComments } from "~/server/players";
+import {
+  getFriendRelation,
+  getPlayerProfile,
+  listProfileComments,
+} from "~/server/players";
 import { findPlayerByTag } from "~/server/players/names";
 import { listPublicArt } from "~/server/publicAssets";
 
@@ -58,10 +62,11 @@ const PlayerProfilePage = async ({ params }: { params: { tag: string } }) => {
     redirect(playerProfileHref(player.name));
   }
 
-  const [profile, comments, statArt] = await Promise.all([
+  const [profile, comments, statArt, friendRelation] = await Promise.all([
     getPlayerProfile(player.id),
     listProfileComments({ viewerId: session.user.id, profileId: player.id }),
     listPublicArt("assets/stats"),
+    getFriendRelation(session.user.id, player.id),
   ]);
   if (!profile) notFound();
 
@@ -71,7 +76,11 @@ const PlayerProfilePage = async ({ params }: { params: { tag: string } }) => {
     <main>
       <StatArtProvider slugs={statArt}>
         <StaticCharacterSheetProvider sheet={profile.sheet}>
-          <PlayerHero profile={profile} isOwner={isOwner} />
+          <PlayerHero
+            profile={profile}
+            isOwner={isOwner}
+            friendRelation={friendRelation}
+          />
           {/*
             Two columns from xl: equipment over vocations, and About and
             Activity over the attribute sheet. Below 1280px the columns dissolve and `order` keeps

@@ -7,6 +7,7 @@ import { Backpack, MapPin, MessageSquare, Pencil } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { formatRemaining } from "~/components/game/actions/format";
 import { messagePlayer } from "~/components/game/communication/messagePlayer";
+import { FriendButton } from "~/components/game/friends/FriendButton";
 import {
   AvatarPicker,
   type PlayerAvatar,
@@ -18,6 +19,7 @@ import {
 } from "~/components/game/character/CharacterHero";
 import { useLevelContext } from "~/context/levelContext";
 import { timeAgo } from "~/game/communication";
+import type { FriendRelation } from "~/game/friends";
 import { isOnline } from "~/game/players";
 import {
   DEFAULT_PLAYER_AVATAR,
@@ -143,9 +145,12 @@ function StatusChips({
 export function PlayerHero({
   profile,
   isOwner,
+  friendRelation,
 }: {
   profile: PlayerProfile;
   isOwner: boolean;
+  /** Where the viewer stands with this player. */
+  friendRelation: FriendRelation;
 }) {
   const [avatar, setAvatar] = useState<PlayerAvatar>(
     () => getPlayerAvatarBySrc(profile.image) ?? DEFAULT_PLAYER_AVATAR,
@@ -179,19 +184,25 @@ export function PlayerHero({
             </Link>
           </Button>
         ) : (
-          <Button
-            size="sm"
-            onClick={() =>
-              messagePlayer({
-                id: profile.id,
-                name: profile.name,
-                image: profile.image,
-              })
-            }
-          >
-            <MessageSquare className="h-3.5 w-3.5" aria-hidden="true" />
-            Message
-          </Button>
+          <>
+            <Button
+              size="sm"
+              onClick={() =>
+                messagePlayer({
+                  id: profile.id,
+                  name: profile.name,
+                  image: profile.image,
+                })
+              }
+            >
+              <MessageSquare className="h-3.5 w-3.5" aria-hidden="true" />
+              Message
+            </Button>
+            <FriendButton
+              player={{ id: profile.id, name: profile.name }}
+              initialRelation={friendRelation}
+            />
+          </>
         )
       }
       artAction={

@@ -23,6 +23,7 @@ export type ItemDetailsData = Pick<
   | "rarity"
   | "itemType"
   | "equipTo"
+  | "twoHanded"
   | "requiredLevel"
   | "description"
   | "price"
@@ -47,65 +48,87 @@ export function itemHasImmediateHealing(
   return itemHasTimedEffect(item.itemType) && (item.healingAmount ?? 0) > 0;
 }
 
+function formatItemType(itemType: ItemDetailsData["itemType"]) {
+  return itemType
+    ?.replace(/_/g, " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+/** Art, rarity, value, name and type: the top of every item card. */
+export function ItemDetailsHeader({
+  item,
+}: {
+  item: Pick<ItemDetailsData, "name" | "sprite" | "rarity" | "price" | "itemType">;
+}) {
+  return (
+    <div className="game-item-detail-header">
+      <div
+        className="game-item-detail-art rarity-frame"
+        data-rarity={item.rarity}
+      >
+        <Image
+          alt=""
+          src={item.sprite}
+          width={80}
+          height={80}
+          className="h-full w-full rounded-lg object-contain"
+        />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-3">
+          <RarityBadge rarity={item.rarity} />
+          <span
+            className="inline-flex items-center gap-1.5 rounded-[7px] bg-surface-inset/70 px-2 py-1 text-sm font-semibold tabular-nums text-currency"
+            title="Value"
+            aria-label={`Value ${item.price} coins`}
+          >
+            <CoinsIcon size={16} />
+            {item.price}
+          </span>
+        </div>
+        <h3 className="game-item-name mt-2 text-lg font-semibold leading-tight">
+          {item.name}
+        </h3>
+        <p className="mt-1 text-xs capitalize text-muted-foreground">
+          {formatItemType(item.itemType)}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/** Equipment's level requirement, in red when the player is below it. */
+export function ItemLevelRequirement({
+  item,
+  className,
+}: {
+  item: Pick<ItemDetailsData, "equipTo" | "requiredLevel">;
+  className?: string;
+}) {
+  const { user } = useUserContext();
+  if (!item.equipTo) return null;
+  const meetsLevel = meetsItemLevelRequirement(item, user?.level ?? 0);
+  return (
+    <p
+      className={cn(
+        "mb-3 text-xs last:mb-0",
+        user && !meetsLevel ? "text-danger" : "text-muted-foreground",
+        className,
+      )}
+    >
+      Requires level {item.requiredLevel ?? 1}
+    </p>
+  );
+}
+
 /** The item card body, shared by the inventory popup and item popups everywhere else. */
 export function ItemDetails({ item }: { item: ItemDetailsData }) {
-  const { user } = useUserContext();
-  const meetsLevel = meetsItemLevelRequirement(item, user?.level ?? 0);
-
   return (
     <>
-      <div className="game-item-detail-header">
-        <div
-          className="game-item-detail-art rarity-frame"
-          data-rarity={item.rarity}
-        >
-          <Image
-            alt=""
-            src={item.sprite}
-            width={80}
-            height={80}
-            className="h-full w-full rounded-lg object-contain"
-          />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-3">
-            <RarityBadge rarity={item.rarity} />
-            <span
-              className="inline-flex items-center gap-1.5 rounded-[7px] bg-surface-inset/70 px-2 py-1 text-sm font-semibold tabular-nums text-currency"
-              title="Value"
-              aria-label={`Value ${item.price} coins`}
-            >
-              <CoinsIcon size={16} />
-              {item.price}
-            </span>
-          </div>
-          <h3 className="game-item-name mt-2 text-lg font-semibold leading-tight">
-            {item.name}
-          </h3>
-          {/* {item.equipTo && (
-            <p className="mt-1 text-xs capitalize text-muted-foreground">
-              {item.equipTo.replace(/([a-z])([A-Z])/g, "$1 $2")}
-            </p>
-          )} */}
-          <p className="mt-1 text-xs capitalize text-muted-foreground">
-            {item.itemType
-              ?.replace(/_/g, " ")
-              .replace(/([a-z])([A-Z])/g, "$1 $2")
-              .toLowerCase()
-              .replace(/\b\w/g, (char) => char.toUpperCase())}
-          </p>
-        </div>
-      </div>
-      {item.equipTo && (
-        <p
-          className={cn(
-            "mb-3 text-xs last:mb-0",
-            user && !meetsLevel ? "text-danger" : "text-muted-foreground",
-          )}
-        >
-          Requires level {item.requiredLevel ?? 1}
-        </p>
-      )}
+      <ItemDetailsHeader item={item} />
+      <ItemLevelRequirement item={item} />
       {item.description && (
         <p className="mb-4 text-sm leading-relaxed text-text-secondary last:mb-0">
           {item.description}

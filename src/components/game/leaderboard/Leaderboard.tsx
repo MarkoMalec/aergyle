@@ -5,8 +5,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { ChevronDownIcon } from "@radix-ui/react-icons";
-import { Check, Info } from "lucide-react";
+import { Check, Info, UserPlus } from "lucide-react";
+import { openFriends } from "~/components/game/friends/openFriends";
 import { getSkillIcon } from "~/components/game/ui/Sidebars/navigation-links";
+import { Button } from "~/components/ui/button";
 import {
   Command,
   CommandEmpty,
@@ -30,10 +32,13 @@ import {
 import {
   DEFAULT_LEADERBOARD_BOARD,
   LEADERBOARD_REFRESH_MS,
+  LEADERBOARD_SCOPES,
   LEADERBOARD_VIEWS,
+  readLeaderboardScope,
   readLeaderboardView,
   type LeaderboardBoard,
   type LeaderboardRow,
+  type LeaderboardScope,
   type LeaderboardView,
 } from "~/game/leaderboard";
 import { cn } from "~/lib/utils";
@@ -171,29 +176,42 @@ export function Leaderboard({
   boards,
   board,
   view,
+  scope,
   rows,
   viewerRank,
+  noFriends,
   updatedAgo,
 }: {
   boards: LeaderboardBoard[];
   board: LeaderboardBoard;
   view: LeaderboardView;
+  scope: LeaderboardScope;
   rows: LeaderboardRow[];
   viewerRank: number | null;
+  /** The Friends filter is on and the viewer has none. */
+  noFriends: boolean;
   /** "3 h ago", formatted on the server. */
   updatedAgo: string;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   // The pickers show a choice at once; the rows follow when the server answers.
-  const [choice, setChoice] = useState({ board: board.key, view });
-  useEffect(() => setChoice({ board: board.key, view }), [board.key, view]);
+  const [choice, setChoice] = useState({ board: board.key, view, scope });
+  useEffect(
+    () => setChoice({ board: board.key, view, scope }),
+    [board.key, view, scope],
+  );
 
-  const navigate = (next: { board: string; view: LeaderboardView }) => {
+  const navigate = (next: {
+    board: string;
+    view: LeaderboardView;
+    scope: LeaderboardScope;
+  }) => {
     setChoice(next);
     const params = new URLSearchParams();
     if (next.board !== DEFAULT_LEADERBOARD_BOARD) params.set("board", next.board);
     if (next.view !== "you") params.set("view", next.view);
+    if (next.scope !== "everyone") params.set("players", next.scope);
     const query = params.toString();
     startTransition(() =>
       router.replace(query ? `/leaderboard?${query}` : "/leaderboard", {
@@ -215,12 +233,12 @@ export function Leaderboard({
         <BoardPicker
           boards={boards}
           selected={selected}
-          onSelect={(key) => navigate({ board: key, view: choice.view })}
+          onSelect={(key) => navigate({ ...choice, board: key })}
         />
         <Select
           value={choice.view}
           onValueChange={(value) =>
-            navigate({ board: choice.board, view: readLeaderboardView(value) })
+            navigate({ ...choice, view: readLeaderboardView(value) })
           }
         >
           <SelectTrigger aria-label="Rows" className={controlClass}>
@@ -238,24 +256,38 @@ export function Leaderboard({
             ))}
           </SelectContent>
         </Select>
-        {/* Friends arrive with a friends system; everyone is ranked meanwhile. */}
-        <Select value="everyone">
+        <Select
+          value={choice.scope}
+          onValueChange={(value) =>
+            navigate({ ...choice, scope: readLeaderboardScope(value) })
+          }
+        >
           <SelectTrigger aria-label="Players" className={controlClass}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent className={overlayClass}>
-            <SelectItem value="friends" disabled className={menuItemClass}>
-              Friends
-              <span className="ml-2 rounded-[6px] bg-secondary/70 px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                Soon
-              </span>
-            </SelectItem>
-            <SelectItem value="everyone" className={menuItemClass}>
-              Everyone
-            </SelectItem>
+            {LEADERBOARD_SCOPES.map((option) => (
+              <SelectItem
+                key={option.value}
+                value={option.value}
+                className={menuItemClass}
+              >
+                {option.label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
+
+      {noFriends ? (
+        <div className="flex items-center justify-between gap-3 rounded-[10px] bg-surface-inset/60 px-4 py-2 text-[13px] text-text-secondary">
+          <p>You have no friends yet.</p>
+          <Button type="button" size="sm" variant="soft" onClick={openFriends}>
+            <UserPlus className="h-3.5 w-3.5" aria-hidden="true" />
+            Find friends
+          </Button>
+        </div>
+      ) : null}
 
       {view === "you" && viewerRank === null ? (
         <p className="rounded-[10px] bg-surface-inset/60 px-4 py-2.5 text-[13px] text-text-secondary">

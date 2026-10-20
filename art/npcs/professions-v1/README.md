@@ -13,19 +13,18 @@ painted environment or written labels.
 
 ## Characters
 
-| Name | Profession | Home and social place | Runtime asset |
-| --- | --- | --- | --- |
-| Ossa | Blacksmith | A respected male dwarf and Citadel bridge-forge master who still presents himself as a municipal labourer | `/assets/npcs/ossa-blacksmith-v1.png` |
-| Varka Ten-Reeds | Hunter, tracker, guide, and antler trader | An independent Ashwood Verge goblin scout, locally trusted but treated as an outsider in Crown cities | `/assets/npcs/varka-ten-reeds-hunter-v1.png` |
-| Pello Nacre | Chef and market proprietor | A former Farwater galley cook who now owns a modestly prosperous Crownhold food stall | `/assets/npcs/pello-nacre-chef-v1.png` |
-| Tovin Ashclamp | Blacksmith and farrier | An independent Flint March craftsman who travels with wagon keys and farrier tools | `/assets/npcs/tovin-ashclamp-blacksmith-v1.png` |
-| Sella Pikebriar | Hunter and upland guide | A gentle, stubborn Pikebriar tracker who works by bird-call and field notes | `/assets/npcs/sella-pikebriar-hunter-v1.png` |
-| Brogan Leek | Chef, baker, and soup seller | A brisk elderly halfling market cook from the river district | `/assets/npcs/brogan-leek-chef-v1.png` |
-| Maelin Copperspoon | Chef | A happy, capable middle-aged redheaded cook carrying a pot and ready vegetables | `/assets/npcs/maelin-copperspoon-chef-v1.png` |
-| Halden Barleyfold | Farmer | A patient Lowmere grower and seed merchant | `/assets/npcs/halden-barleyfold-farmer-v1.png` |
-| Orrin Quill | Alchemist and apothecary | A meticulous town dye-maker and potion seller | `/assets/npcs/orrin-quill-alchemist-v1.png` |
-| Marek Driftwater | Angler and net mender | A weathered tidal-marsh fish merchant | `/assets/npcs/marek-driftwater-angler-v1.png` |
-| Dain Nettlework | Tailor and mender | A shy, exceptional gnome clothier from the old textile quarter | `/assets/npcs/dain-nettlework-tailor-v1.png` |
+| Name               | Profession                                | Home and social place                                                                                     | Runtime asset                                   |
+| ------------------ | ----------------------------------------- | --------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| Ossa               | Blacksmith                                | A respected male dwarf and Citadel bridge-forge master who still presents himself as a municipal labourer | `/assets/npcs/ossa-blacksmith-v1.png`           |
+| Varka Ten-Reeds    | Hunter, tracker, guide, and antler trader | An independent Ashwood Verge goblin scout, locally trusted but treated as an outsider in Crown cities     | `/assets/npcs/varka-ten-reeds-hunter-v1.png`    |
+| Pello Nacre        | Chef and market proprietor                | A former Farwater galley cook who now owns a modestly prosperous Crownhold food stall                     | `/assets/npcs/pello-nacre-chef-v1.png`          |
+| Tovin Ashclamp     | Blacksmith and farrier                    | An independent Flint March craftsman who travels with wagon keys and farrier tools                        | `/assets/npcs/tovin-ashclamp-blacksmith-v1.png` |
+| Sella Pikebriar    | Hunter and upland guide                   | A gentle, stubborn Pikebriar tracker who works by bird-call and field notes                               | `/assets/npcs/sella-pikebriar-hunter-v1.png`    |
+| Brogan Leek        | Chef, baker, and soup seller              | A brisk elderly halfling market cook from the river district                                              | `/assets/npcs/brogan-leek-chef-v1.png`          |
+| Maelin Copperspoon | Chef                                      | A happy, capable middle-aged redheaded cook carrying a pot and ready vegetables                           | `/assets/npcs/maelin-copperspoon-chef-v1.png`   |
+| Halden Barleyfold  | Farmer                                    | A patient Lowmere grower and seed merchant                                                                | `/assets/npcs/halden-barleyfold-farmer-v1.png`  |
+| Marek Driftwater   | Angler and net mender                     | A weathered tidal-marsh fish merchant                                                                     | `/assets/npcs/marek-driftwater-angler-v1.png`   |
+| Dain Nettlework    | Tailor and mender                         | A shy, exceptional gnome clothier from the old textile quarter                                            | `/assets/npcs/dain-nettlework-tailor-v1.png`    |
 
 ## Ossa — blacksmith
 
@@ -96,16 +95,17 @@ carries a hoe across his shoulders; Orrin seals a vial in profile; Marek holds
 a closed creel and mended net; and Dain measures a fabric strip with
 outstretched arms.
 
-| Name | Profession | Master asset |
-| --- | --- | --- |
-| Tovin Ashclamp | Blacksmith | `tovin-ashclamp-blacksmith-master.png` |
-| Sella Pikebriar | Hunter | `sella-pikebriar-hunter-master.png` |
-| Brogan Leek | Chef | `brogan-leek-chef-master.png` |
-| Maelin Copperspoon | Chef | `maelin-copperspoon-chef-master.png` |
-| Halden Barleyfold | Farmer | `halden-barleyfold-farmer-master.png` |
-| Orrin Quill | Alchemist | `orrin-quill-alchemist-master.png` |
-| Marek Driftwater | Angler | `marek-driftwater-angler-master.png` |
-| Dain Nettlework | Tailor | `dain-nettlework-tailor-master.png` |
+| Name               | Profession | Master asset                           |
+| ------------------ | ---------- | -------------------------------------- |
+| Tovin Ashclamp     | Blacksmith | `tovin-ashclamp-blacksmith-master.png` |
+| Sella Pikebriar    | Hunter     | `sella-pikebriar-hunter-master.png`    |
+| Brogan Leek        | Chef       | `brogan-leek-chef-master.png`          |
+| Maelin Copperspoon | Chef       | `maelin-copperspoon-chef-master.png`   |
+| Halden Barleyfold  | Farmer     | `halden-barleyfold-farmer-master.png`  |
+| Marek Driftwater   | Angler     | `marek-driftwater-angler-master.png`   |
+| Dain Nettlework    | Tailor     | `dain-nettlework-tailor-master.png`    |
 
 The exact generation prompts are recorded in `PROMPTS.md`; filenames and source
-outputs are recorded in `generation.json`.
+outputs are recorded in `generation.json`. Orrin Quill's v1 art was removed and
+replaced by the distinct v2 alchemy mentor in
+[`../mentor-overhaul-v1/`](../mentor-overhaul-v1/README.md).

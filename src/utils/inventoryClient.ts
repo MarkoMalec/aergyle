@@ -1,4 +1,5 @@
 import type { ItemWithStats } from "~/types/stats";
+import { EQUIPMENT_SLOT_KEYS, type EquipmentSlotKey } from "~/utils/itemEquipTo";
 
 /**
  * Client-safe inventory helpers.
@@ -45,6 +46,37 @@ export function getDisplacedHand(
 ): "weapon" | "offhand" | null {
   if (!equipment.weapon?.twoHanded || !equipment.offhand) return null;
   return changedSlot === "offhand" ? "weapon" : "offhand";
+}
+
+/**
+ * The slot the Equip button puts an item in: the first free ring slot, a free
+ * off hand for a second one-handed weapon, otherwise the item's own slot.
+ * Null when both rings are taken or the item isn't equipment.
+ */
+export function getQuickEquipSlot(
+  item: Pick<ItemWithStats, "equipTo" | "twoHanded">,
+  equipment: {
+    weapon?: Pick<ItemWithStats, "twoHanded"> | null;
+    offhand?: unknown;
+    ring1?: unknown;
+    ring2?: unknown;
+  },
+): EquipmentSlotKey | null {
+  if (item.equipTo === "ring") {
+    if (!equipment.ring1) return "ring1";
+    if (!equipment.ring2) return "ring2";
+    return null;
+  }
+  if (
+    item.equipTo === "weapon" &&
+    !item.twoHanded &&
+    equipment.weapon &&
+    !equipment.weapon.twoHanded &&
+    !equipment.offhand
+  ) {
+    return "offhand";
+  }
+  return EQUIPMENT_SLOT_KEYS.find((slot) => slot === item.equipTo) ?? null;
 }
 
 export function meetsItemLevelRequirement(

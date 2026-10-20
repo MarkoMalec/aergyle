@@ -18,9 +18,27 @@
       "personality": ["meticulous", "stoic", "dependable", "quietly tender"],
       "lifestyle": "A dawn-working bridge-forge smith who maintains old tools and serves labourers before prestigious clients.",
       "experience": "Decades of civic ironwork, bridge-chain repair, and emergency forge work.",
-      "habits": ["works with one forge glove", "mends his own apron in indigo thread", "ties back his shoulder-length iron-grey hair", "binds the lower third of his great work beard in plain iron bands", "keeps a child's horseshoe charm at his belt"],
+      "habits": [
+        "works with one forge glove",
+        "mends his own apron in indigo thread",
+        "ties back his shoulder-length iron-grey hair",
+        "binds the lower third of his great work beard in plain iron bands",
+        "keeps a child's horseshoe charm at his belt"
+      ],
       "history": "He survived a bridge-chain failure during a flood, kept the forge operating through the night, and left after guild masters claimed the credit.",
-      "visualStory": ["stocky dwarf build", "weathered ruddy complexion", "abundant shoulder-length iron-grey hair", "great iron-bound work beard", "braced knee", "old forearm burn", "mushroomed hammer", "polished tong grips", "half guild seal", "new bridge rivet", "child's horseshoe charm"],
+      "visualStory": [
+        "stocky dwarf build",
+        "weathered ruddy complexion",
+        "abundant shoulder-length iron-grey hair",
+        "great iron-bound work beard",
+        "braced knee",
+        "old forearm burn",
+        "mushroomed hammer",
+        "polished tong grips",
+        "half guild seal",
+        "new bridge rivet",
+        "child's horseshoe charm"
+      ],
       "master": "ossa-blacksmith-master.png",
       "runtime": "/assets/npcs/ossa-blacksmith-v1.png",
       "generatedFile": "exec-7a59ff72-6f73-4e8d-87e6-11211ee2f532.png",
@@ -36,12 +54,31 @@
       "profession": "Hunter, tracker, guide, and antler trader",
       "origin": "Ashwood Verge",
       "socialStatus": "Locally respected independent guide and outsider in Crown cities",
-      "personality": ["patient", "skeptical", "observant", "dryly funny", "fair-minded"],
+      "personality": [
+        "patient",
+        "skeptical",
+        "observant",
+        "dryly funny",
+        "fair-minded"
+      ],
       "lifestyle": "A light-footed frontier merchant who sells antlers, hides, repaired arrows, and reliable trail knowledge.",
       "experience": "Former Crown trail scout with expert knowledge of flooded woods and seasonal reed paths.",
-      "habits": ["repairs every arrow", "measures routes with knotted cord", "consults a compass with no needle"],
+      "habits": [
+        "repairs every arrow",
+        "measures routes with knotted cord",
+        "consults a compass with no needle"
+      ],
       "history": "After Crown officials abandoned her patrol during flood season, she filed their crest from her badge and mapped safe routes for fair-paying travellers.",
-      "visualStory": ["bridged split ear", "five mismatched arrows", "blank ranger badge", "needleless compass", "knotted measuring cord", "bog wrappings", "shed antler", "rolled cured hide"],
+      "visualStory": [
+        "bridged split ear",
+        "five mismatched arrows",
+        "blank ranger badge",
+        "needleless compass",
+        "knotted measuring cord",
+        "bog wrappings",
+        "shed antler",
+        "rolled cured hide"
+      ],
       "master": "varka-ten-reeds-hunter-master.png",
       "runtime": "/assets/npcs/varka-ten-reeds-hunter-v1.png",
       "generatedFile": "exec-709a137e-fae0-4f1c-8b70-feca8ce0ab92.png"
@@ -55,12 +92,37 @@
       "profession": "Chef and market proprietor",
       "origin": "Farwater Keys",
       "socialStatus": "Beloved, modestly prosperous Crownhold merchant",
-      "personality": ["jovial", "inquisitive", "hospitable", "exacting", "proud without vanity"],
+      "personality": [
+        "jovial",
+        "inquisitive",
+        "hospitable",
+        "exacting",
+        "proud without vanity"
+      ],
       "lifestyle": "A former galley cook who buys his own market produce, maintains fine working knives, and serves practical fish dishes from a permanent stall.",
       "experience": "A lifetime cooking in cramped galleys, during a shipwreck, and for a busy city market.",
-      "habits": ["tastes with one copper spoon", "balances like the floor is a deck", "pinches salt by hand at the final moment"],
+      "habits": [
+        "tastes with one copper spoon",
+        "balances like the floor is a deck",
+        "pinches salt by hand at the final moment"
+      ],
       "history": "He cooked the last shared meal after a Farwater wreck and later built a Crownhold soup stall from salvaged galley boards.",
-      "visualStory": ["distinctive fair coastal face", "pale blue-grey eyes", "wind-reddened nose", "deep laugh lines", "comfortable cook's belly", "flared eyebrow", "ship-copper knee brace", "salt-marked boots", "wooden ship token", "market key", "cared-for knife roll", "repaired apron", "Farwater towel", "shell salt cellar"],
+      "visualStory": [
+        "distinctive fair coastal face",
+        "pale blue-grey eyes",
+        "wind-reddened nose",
+        "deep laugh lines",
+        "comfortable cook's belly",
+        "flared eyebrow",
+        "ship-copper knee brace",
+        "salt-marked boots",
+        "wooden ship token",
+        "market key",
+        "cared-for knife roll",
+        "repaired apron",
+        "Farwater towel",
+        "shell salt cellar"
+      ],
       "master": "pello-nacre-chef-master.png",
       "runtime": "/assets/npcs/pello-nacre-chef-v1.png",
       "generatedFile": "exec-df25ef2a-f6e5-419d-b424-258d685b1131.png",
@@ -121,17 +183,6 @@
       "runtime": "/assets/npcs/halden-barleyfold-farmer-v1.png",
       "generatedFile": "exec-e050ece3-6c84-46b6-8775-0667f38b0d49.png",
       "revision": "Completely rebuilt as a powerful but work-worn farmer in his early forties, carrying a hoe and only repaired field tools."
-    },
-    {
-      "slug": "orrin-quill-alchemist",
-      "name": "Orrin Quill",
-      "gender": "male",
-      "profession": "Alchemist and apothecary",
-      "pose": "side-facing profile, applying a plain wax seal to a brown-glass vial",
-      "master": "orrin-quill-alchemist-master.png",
-      "runtime": "/assets/npcs/orrin-quill-alchemist-v1.png",
-      "generatedFile": "exec-aec5feaa-5a92-4db3-a2ab-0d4d18bf3aab.png",
-      "revision": "Completely rebuilt as an austere early-fifties poison-cutter and apothecary with plain brown-glass samples and stained, practical kit."
     },
     {
       "slug": "marek-driftwater-angler",

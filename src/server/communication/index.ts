@@ -2,6 +2,7 @@ import "server-only";
 
 import { countUnreadNotifications } from "./notifications";
 import { countUnreadMessages, countWaitingConversations } from "./messages";
+import { countFriendRequests } from "~/server/players/friends";
 
 export {
   clearNotifications,
@@ -43,16 +44,22 @@ export type CommunicationSummary = {
   notifications: number;
   messages: number;
   waiting: number;
+  /** Friend requests waiting for an answer. */
+  friendRequests: number;
 };
 
-/** What the bell and the envelope in the sidebar show, in one check. */
+/**
+ * What the bell, the envelope and the Friends button in the sidebar show, in
+ * one check.
+ */
 export async function getCommunicationSummary(
   userId: string,
 ): Promise<CommunicationSummary> {
-  const [notifications, messages, waiting] = await Promise.all([
+  const [notifications, messages, waiting, friendRequests] = await Promise.all([
     countUnreadNotifications(userId),
     countUnreadMessages(userId),
     countWaitingConversations(userId),
+    countFriendRequests(userId),
   ]);
-  return { notifications, messages, waiting };
+  return { notifications, messages, waiting, friendRequests };
 }

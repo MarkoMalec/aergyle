@@ -25,6 +25,10 @@ export const useEquipmentContext = () => {
   return context;
 };
 
+/** The player's equipment, or null outside the game layout. */
+export const useOptionalEquipmentContext = () =>
+  useContext(EquipmentContext) ?? null;
+
 interface EquipmentProviderProps {
   children: ReactNode;
   initialEquipment: EquipmentSlotsWithItems;

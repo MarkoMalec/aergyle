@@ -132,8 +132,12 @@ export function ActionFillBar({
               className="h-6 w-6"
             />
           ) : null}
-          <span className="max-w-32 truncate">{title}</span>
-          <span className="shrink-0 w-7 text-xs tabular-nums text-xp">
+          {/* Inside a size container (the header gives it one), the title and
+              then the percentage give way when the room is narrow. */}
+          <span className="max-w-32 truncate [@container(max-width:199px)]:hidden">
+            {title}
+          </span>
+          <span className="w-7 shrink-0 text-xs tabular-nums text-xp [@container(max-width:149px)]:hidden">
             {fillPercent}%
           </span>
           <span className="shrink-0 border-l border-border pl-2 text-xs tabular-nums text-muted-foreground">

@@ -1,0 +1,67 @@
+{
+  "generator": "Built-in ImageGen",
+  "generatedOn": "2026-10-20",
+  "pack": "npc-mentor-overhaul-v1",
+  "artDirection": "../../NPC_ART_DIRECTION.md",
+  "masterSize": "1024x1536 RGBA PNG",
+  "runtimeSize": "512x768 RGBA PNG",
+  "assets": [
+    {
+      "slug": "elowen-briarwell-gatherer",
+      "name": "Elowen Briarwell",
+      "gender": "female",
+      "age": "early fifties",
+      "profession": "Gathering mentor and forager",
+      "personality": ["wry", "meticulous", "quietly formidable"],
+      "visualStory": [
+        "crooked nose",
+        "eyebrow scar",
+        "silver-threaded braid",
+        "mismatched coat repairs",
+        "specimen pouches"
+      ],
+      "master": "elowen-briarwell-gatherer-master.png",
+      "runtime": "/assets/npcs/elowen-briarwell-gatherer-v1.png",
+      "generatedFile": "exec-7dcbcc72-701f-4223-ab41-4814e7a2a530.png"
+    },
+    {
+      "slug": "orrin-quill-alchemist",
+      "name": "Orrin Quill",
+      "gender": "male",
+      "age": "late fifties",
+      "profession": "Alchemy mentor and field apothecary",
+      "personality": ["clever", "impulsive", "skeptical", "faintly amused"],
+      "visualStory": [
+        "crooked nose",
+        "asymmetric eyebrows",
+        "nicked ear",
+        "acid scar",
+        "singed cuff",
+        "battered portable kit"
+      ],
+      "master": "orrin-quill-alchemist-master.png",
+      "runtime": "/assets/npcs/orrin-quill-alchemist-v2.png",
+      "generatedFile": "exec-6d7ec0d2-29da-4b34-a2c4-6e1637fdeb52.png"
+    },
+    {
+      "slug": "bram-ironbough-woodcutter",
+      "name": "Bram Ironbough",
+      "gender": "male",
+      "age": "mid-fifties",
+      "profession": "Woodcutting mentor and lumberjack",
+      "personality": ["reserved", "stubborn", "dependable", "safety-first"],
+      "visualStory": [
+        "notched ear",
+        "patchy beard",
+        "cheek scar",
+        "work-worn knuckles",
+        "mended shirt",
+        "timber wedges"
+      ],
+      "master": "bram-ironbough-woodcutter-master.png",
+      "runtime": "/assets/npcs/bram-ironbough-woodcutter-v1.png",
+      "generatedFile": "exec-c4e8f556-d3e5-4039-8508-bb1dd5fe586e.png"
+    }
+  ],
+  "runtimeExport": "sips resize from 1024x1536 to 512x768 with alpha preserved"
+}

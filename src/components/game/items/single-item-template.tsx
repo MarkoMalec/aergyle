@@ -28,6 +28,8 @@ import {
   Utensils,
 } from "lucide-react";
 import { SplitStackDialog } from "./SplitStackDialog";
+import { ItemCompareButton } from "./ItemCompare";
+import type { EquipmentSlotKey } from "~/utils/itemEquipTo";
 import { ItemRarityMark } from "~/utils/ui/rarity-mark";
 import { useUserContext } from "~/context/userContext";
 import { meetsItemLevelRequirement } from "~/utils/inventoryClient";
@@ -58,7 +60,8 @@ interface SingleItemTemplateProps {
   sprite: string;
   container?: string;
   index?: number;
-  onEquip?: () => void;
+  /** Equips the item: into `slot` when given, else where Equip would put it. */
+  onEquip?: (slot?: EquipmentSlotKey) => void;
   onUnequip?: () => void;
   showEquipButton?: boolean;
   showUnequipButton?: boolean;
@@ -117,7 +120,10 @@ export default function SingleItemTemplate({
     item.itemType === ItemType.POTION || item.itemType === ItemType.ELIXIR;
   const canLearn = inInventory && isRecipe;
   const canSplit = inInventory && (item.quantity ?? 1) > 1;
+  // A worn item has nothing to compare with.
+  const canCompare = Boolean(item.equipTo) && container !== "equipment";
   const hasActions =
+    canCompare ||
     showEquipButton ||
     showUnequipButton ||
     canUse ||
@@ -129,10 +135,10 @@ export default function SingleItemTemplate({
   const hexColor = colors[item.rarity];
   const itemRarityStyle = rarityStyle(item.rarity, hexColor);
 
-  const handleEquipClick = () => {
+  const handleEquipClick = (slot?: EquipmentSlotKey) => {
     if (isActionActive || !meetsLevel) return;
     if (onEquip) {
-      onEquip();
+      onEquip(slot);
       setOpen(false);
     }
   };
@@ -284,13 +290,30 @@ export default function SingleItemTemplate({
               {showEquipButton && (
                 <Button
                   disabled={isActionActive || !meetsLevel}
-                  onClick={handleEquipClick}
+                  onClick={() => handleEquipClick()}
                   variant="ghost"
                   className={primaryActionClass}
                 >
                   <Shield className="h-3.5 w-3.5" aria-hidden />
                   Equip
                 </Button>
+              )}
+              {canCompare && (
+                <ItemCompareButton
+                  item={{ ...item, sprite }}
+                  instanceId={item.id}
+                  onEquip={
+                    showEquipButton && onEquip ? handleEquipClick : undefined
+                  }
+                  equipBlockedReason={
+                    isActionActive
+                      ? "Action in progress"
+                      : !meetsLevel
+                        ? `Requires level ${item.requiredLevel ?? 1}`
+                        : null
+                  }
+                  className={secondaryActionClass}
+                />
               )}
               {showUnequipButton && (
                 <Button

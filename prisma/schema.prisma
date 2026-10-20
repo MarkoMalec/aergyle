@@ -100,6 +100,10 @@ model User {
   dailyActivity           PlayerDailyActivity[]
   profileComments         ProfileComment[]               @relation("ProfileCommentProfile")
   profileCommentsWritten  ProfileComment[]               @relation("ProfileCommentAuthor")
+  friendships             Friendship[]                   @relation("FriendshipOwner")
+  friendOf                Friendship[]                   @relation("FriendshipFriend")
+  friendRequestsSent      FriendRequest[]                @relation("FriendRequestSender")
+  friendRequestsReceived  FriendRequest[]                @relation("FriendRequestReceiver")
 
   currentLocation Location? @relation("UserCurrentLocation", fields: [currentLocationId], references: [id], onDelete: SetNull)
 
@@ -2296,4 +2300,37 @@ model PlayerDailyActivity {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, day])
+}
+
+// Two players who accepted each other. Stored once per side, so a player's
+// friends are one indexed read; both rows are written and removed together.
+model Friendship {
+  userId    String
+  friendId  String
+  createdAt DateTime @default(now())
+
+  user   User @relation("FriendshipOwner", fields: [userId], references: [id], onDelete: Cascade)
+  friend User @relation("FriendshipFriend", fields: [friendId], references: [id], onDelete: Cascade)
+
+  @@id([userId, friendId])
+  @@index([friendId])
+}
+
+// A friend request. One row per pair of players, found by `pairKey` (the two
+// ids sorted and joined), so neither side can stack requests. A declined one
+// stays until FRIEND_REQUEST_COOLDOWN_MS has passed, so the sender can't ask
+// again straight away.
+model FriendRequest {
+  pairKey    String    @id @db.VarChar(191)
+  senderId   String
+  receiverId String
+  declinedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  sender   User @relation("FriendRequestSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver User @relation("FriendRequestReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@index([receiverId, declinedAt])
+  @@index([senderId, declinedAt])
+  @@index([declinedAt])
 }

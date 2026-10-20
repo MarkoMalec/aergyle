@@ -33,6 +33,11 @@ import {
   type HubTab,
 } from "~/components/game/communication/CommunicationHub";
 import { MESSAGE_PLAYER_EVENT } from "~/components/game/communication/messagePlayer";
+import {
+  FriendsDialog,
+  type FriendsTab,
+} from "~/components/game/friends/FriendsDialog";
+import { OPEN_FRIENDS_EVENT } from "~/components/game/friends/openFriends";
 import { playerProfileHref } from "~/game/players";
 import type { PlayerRef } from "~/server/communication";
 import { useCommunicationSummary } from "~/components/game/communication/useCommunication";
@@ -62,6 +67,7 @@ export function SidebarHeader({
   const [isMac, setIsMac] = useState(true);
   const [hubTab, setHubTab] = useState<HubTab | null>(null);
   const [composeTo, setComposeTo] = useState<PlayerRef | null>(null);
+  const [friendsTab, setFriendsTab] = useState<FriendsTab | null>(null);
   const summary = useCommunicationSummary();
 
   // A "Message" button elsewhere (a player's profile) opens the hub here.
@@ -72,6 +78,13 @@ export function SidebarHeader({
     };
     window.addEventListener(MESSAGE_PLAYER_EVENT, open);
     return () => window.removeEventListener(MESSAGE_PLAYER_EVENT, open);
+  }, []);
+
+  // So can a "Find friends" button (the leaderboard's Friends filter).
+  useEffect(() => {
+    const open = () => setFriendsTab("friends");
+    window.addEventListener(OPEN_FRIENDS_EVENT, open);
+    return () => window.removeEventListener(OPEN_FRIENDS_EVENT, open);
   }, []);
 
   // The shortcut hint is only right once we know the platform.
@@ -135,7 +148,14 @@ export function SidebarHeader({
             count={summary.messages + summary.waiting}
             onClick={() => setHubTab("messages")}
           />
-          <SoonAction icon={Users} label="Friends" />
+          <HubAction
+            icon={Users}
+            label="Friends"
+            count={summary.friendRequests}
+            onClick={() =>
+              setFriendsTab(summary.friendRequests > 0 ? "requests" : "friends")
+            }
+          />
           <PinnedPagesMenu groups={groups} onNavigate={onNavigate} />
           <SoonAction icon={Settings} label="Settings" />
           <Tooltip>
@@ -176,14 +196,30 @@ export function SidebarHeader({
             onNavigate();
           }}
         />
+
+        <FriendsDialog
+          tab={friendsTab}
+          onTabChange={setFriendsTab}
+          onClose={() => setFriendsTab(null)}
+          onNavigate={() => {
+            setFriendsTab(null);
+            onNavigate();
+          }}
+          onMessage={(player) => {
+            setFriendsTab(null);
+            setComposeTo(player);
+            setHubTab("messages");
+          }}
+        />
       </div>
     </TooltipProvider>
   );
 }
 
 /**
- * The bell or the envelope, with a dot while something is unread. The count
- * itself lives inside the hub; the dot only says "there is something".
+ * The bell, the envelope or Friends, with a dot while something is unread or
+ * waiting. The count itself lives inside the window; the dot only says
+ * "there is something".
  */
 function HubAction({
   icon: Icon,

@@ -2,9 +2,9 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { Leaderboard } from "~/components/game/leaderboard/Leaderboard";
 import PageHeading from "~/components/game/ui/PageHeading";
-import { readLeaderboardView } from "~/game/leaderboard";
+import { readLeaderboardScope, readLeaderboardView } from "~/game/leaderboard";
 import { authOptions } from "~/server/auth";
-import { getLeaderboard } from "~/server/players";
+import { getLeaderboard, listFriendIds } from "~/server/players";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -23,16 +23,20 @@ function updatedAgo(updatedAt: string) {
 export default async function LeaderboardPage({
   searchParams,
 }: {
-  searchParams: { board?: string; view?: string };
+  searchParams: { board?: string; view?: string; players?: string };
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/play");
 
   const view = readLeaderboardView(searchParams.view);
+  const scope = readLeaderboardScope(searchParams.players);
+  const friendIds =
+    scope === "friends" ? await listFriendIds(session.user.id) : null;
   const { updatedAt, ...leaderboard } = await getLeaderboard({
     board: searchParams.board,
     view,
     viewerId: session.user.id,
+    friendIds,
   });
 
   return (
@@ -41,6 +45,8 @@ export default async function LeaderboardPage({
       <Leaderboard
         {...leaderboard}
         view={view}
+        scope={scope}
+        noFriends={friendIds !== null && friendIds.length === 0}
         updatedAgo={updatedAgo(updatedAt)}
       />
     </div>

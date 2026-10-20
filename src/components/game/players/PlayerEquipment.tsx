@@ -9,6 +9,7 @@ import {
   ItemDetails,
   ItemDetailsPopoverContent,
 } from "~/components/game/items/ItemDetails";
+import { ItemCompareButton } from "~/components/game/items/ItemCompare";
 import { useRarityColors } from "~/hooks/use-rarity-colors";
 import type { EquipmentSlotsWithItems } from "~/types/inventory";
 import type { ItemWithStats } from "~/types/stats";
@@ -69,6 +70,11 @@ function WornSlot({
           </PopoverTrigger>
           <ItemDetailsPopoverContent name={item.name} rarity={item.rarity}>
             <ItemDetails item={item} />
+            <ItemCompareButton
+              item={item}
+              instanceId={item.id}
+              className="mt-5 w-full"
+            />
           </ItemDetailsPopoverContent>
         </Popover>
       ) : ghost ? (
