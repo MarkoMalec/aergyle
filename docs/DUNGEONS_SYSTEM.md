@@ -163,10 +163,11 @@ screens link to these profiles instead of showing loot inline.
 4. Verify it with `npm run db:seed:dungeons -- --verify`.
 5. Run the rules tests with `npm test`.
 
-The starter content adds the Goblin (drops Cloth Scraps, Small Bones, Dusk Oil
-and, rarely, a Wooden Dagger) and Gloamvault, an Easy 15-minute dungeon in
-Crownhold holding 2–4 goblins. The level-40 Blackjaw Stockade at Goblins Camp
-pits one Ogre alongside 3–5 Orcs and 2–3 Wargs. At Frostcrown Peaks, the
-level-50 Drowned Mouth Grotto holds one Cave Troll with 3–5 Trollhounds, while
-the level-65 Trollbreaker Cavern has one Stoneback Troll with 4–6 Trollhounds.
-The seeder expects every listed drop item to exist already.
+The content pack (`prisma/content/dungeons.ts`) holds every monster and
+dungeon, so seeding never reverts live rows to older numbers. It places 32
+monsters in 12 dungeons from level 35 to 300, one or two per location (see the
+ladder in [COMBAT_BALANCE_DESIGN.md](COMBAT_BALANCE_DESIGN.md#budgets-authoring-gear-and-monsters-by-level)).
+From level 130 every dungeon has a boss. A placement marked `enabled: false`
+switches off one left by older content; the seeder never creates or deletes
+placements like that. The seeder expects every listed drop item to exist
+already. The monsters added on 20 October 2026 have no drops yet.

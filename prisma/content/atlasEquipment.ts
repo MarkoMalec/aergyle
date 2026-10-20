@@ -10,6 +10,8 @@ export type AtlasSet = "trailwarden" | "duskwarden";
 
 export interface AtlasItemDefinition {
   slug: string;
+  /** Runtime sprite revision; v1 is used unless an item has redesigned art. */
+  artVersion?: number;
   set: AtlasSet | null;
   name: string;
   description: string;
@@ -137,11 +139,12 @@ export const ATLAS_EQUIPMENT: readonly AtlasItemDefinition[] = [
   },
   {
     slug: "ogre-cleaver",
+    artVersion: 2,
     set: null,
     name: "Ogre Cleaver",
     description:
       "A butcher's blade wrenched from an ogre's hand. Its black iron slab has no finesse, only an edge heavy enough to break a guard.",
-    itemType: "GREATAXE",
+    itemType: "SWORD",
     equipTo: "weapon",
     twoHanded: true,
     rarity: "RARE",
@@ -337,7 +340,7 @@ export const ATLAS_EQUIPMENT: readonly AtlasItemDefinition[] = [
 ];
 
 export function atlasSpritePath(item: AtlasItemDefinition): string {
-  return `/assets/items/${item.set ? "armor" : "weapons"}/${item.slug}-atlas-v1.png`;
+  return `/assets/items/${item.set ? "armor" : "weapons"}/${item.slug}-atlas-v${item.artVersion ?? 1}.png`;
 }
 
 export function atlasItemCreateData(

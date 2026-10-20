@@ -1,0 +1,2859 @@
+{
+ "creatures": [
+  {
+   "id": 1,
+   "name": "Meadow Hare",
+   "description": "A quick grassland hare that relies on sudden turns and a keen sense of danger.",
+   "kind": "ANIMAL",
+   "asset": "/assets/creatures/animals/meadow-hare-hunting-v1.png",
+   "enabled": true,
+   "attackStyle": "MELEE",
+   "attackChance": 0.01,
+   "damageMin": 6,
+   "damageMax": 10,
+   "magicDamageMin": 0,
+   "magicDamageMax": 0,
+   "damageType": null,
+   "elementalDamageMin": 0,
+   "elementalDamageMax": 0,
+   "critChance": 0,
+   "critDamage": 0,
+   "health": 0,
+   "armor": 0,
+   "magicResist": 0,
+   "evasion": 0,
+   "blockChance": 0,
+   "createdAt": "2026-09-16T23:21:26.721Z",
+   "updatedAt": "2026-09-30T14:33:52.329Z",
+   "drops": [
+    {
+     "id": 1,
+     "creatureId": 1,
+     "itemId": 171,
+     "enabled": true,
+     "baseChance": 0.9,
+     "minQuantity": 1,
+     "maxQuantity": 2,
+     "requiredLevel": 1,
+     "item": {
+      "name": "Game Meat"
+     }
+    },
+    {
+     "id": 2,
+     "creatureId": 1,
+     "itemId": 173,
+     "enabled": true,
+     "baseChance": 0.55,
+     "minQuantity": 1,
+     "maxQuantity": 2,
+     "requiredLevel": 1,
+     "item": {
+      "name": "Small Bones"
+     }
+    },
+    {
+     "id": 3,
+     "creatureId": 1,
+     "itemId": 172,
+     "enabled": true,
+     "baseChance": 0.35,
+     "minQuantity": 1,
+     "maxQuantity": 1,
+     "requiredLevel": 4,
+     "item": {
+      "name": "Raw Hide"
+     }
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "name": "Red Deer",
+   "description": "A watchful woodland deer whose speed makes a clean approach more valuable than pursuit.",
+   "kind": "ANIMAL",
+   "asset": "/assets/creatures/animals/red-deer-hunting-v1.png",
+   "enabled": true,
+   "attackStyle": "MELEE",
+   "attackChance": 0.05,
+   "damageMin": 6,
+   "damageMax": 11,
+   "magicDamageMin": 0,
+   "magicDamageMax": 0,
+   "damageType": null,
+   "elementalDamageMin": 0,
+   "elementalDamageMax": 0,
+   "critChance": 0,
+   "critDamage": 0,
+   "health": 0,
+   "armor": 0,
+   "magicResist": 0,
+   "evasion": 0,
+   "blockChance": 0,
+   "createdAt": "2026-09-16T23:21:27.689Z",
+   "updatedAt": "2026-09-30T14:33:52.349Z",
+   "drops": [
+    {
+     "id": 4,
+     "creatureId": 2,
+     "itemId": 171,
+     "enabled": true,
+     "baseChance": 0.95,
+     "minQuantity": 2,
+     "maxQuantity": 4,
+     "requiredLevel": 1,
+     "item": {
+      "name": "Game Meat"
+     }
+    },
+    {
+     "id": 5,
+     "creatureId": 2,
+     "itemId": 172,
+     "enabled": true,
+     "baseChance": 0.78,
+     "minQuantity": 1,
+     "maxQuantity": 2,
+     "requiredLevel": 3,
+     "item": {
+      "name": "Raw Hide"
+     }
+    },
+    {
+     "id": 6,
+     "creatureId": 2,
+     "itemId": 177,
+     "enabled": true,
+     "baseChance": 0.52,
+     "minQuantity": 1,
+     "maxQuantity": 2,
+     "requiredLevel": 8,
+     "item": {
+      "name": "Animal Sinew"
+     }
+    },
+    {
+     "id": 7,
+     "creatureId": 2,
+     "itemId": 175,
+     "enabled": true,
+     "baseChance": 0.22,
+     "minQuantity": 1,
+     "maxQuantity": 1,
+     "requiredLevel": 12,
+     "item": {
+      "name": "Stag Antler"
+     }
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "name": "Wild Boar",
+   "description": "A heavy, ill-tempered boar that can turn a careless chase into a dangerous charge.",
+   "kind": "ANIMAL",
+   "asset": "/assets/creatures/animals/wild-boar-hunting-v1.png",
+   "enabled": true,
+   "attackStyle": "MELEE",
+   "attackChance": 0.18,
+   "damageMin": 7,
+   "damageMax": 14,
+   "magicDamageMin": 0,
+   "magicDamageMax": 0,
+   "damageType": null,
+   "elementalDamageMin": 0,
+   "elementalDamageMax": 0,
+   "critChance": 0,
+   "critDamage": 0,
+   "health": 0,
+   "armor": 0,
+   "magicResist": 0,
+   "evasion": 0,
+   "blockChance": 0,
+   "createdAt": "2026-09-16T23:21:28.900Z",
+   "updatedAt": "2026-09-30T14:33:52.367Z",
+   "drops": [
+    {
+     "id": 8,
+     "creatureId": 3,
+     "itemId": 171,
+     "enabled": true,
+     "baseChance": 0.94,
+     "minQuantity": 2,
+     "maxQuantity": 4,
+     "requiredLevel": 5,
+     "item": {
+      "name": "Game Meat"
+     }
+    },
+    {
+     "id": 9,
+     "creatureId": 3,
+     "itemId": 172,
+     "enabled": true,
+     "baseChance": 0.62,
+     "minQuantity": 1,
+     "maxQuantity": 2,
+     "requiredLevel": 8,
+     "item": {
+      "name": "Raw Hide"
+     }
+    },
+    {
+     "id": 10,
+     "creatureId": 3,
+     "itemId": 173,
+     "enabled": true,
+     "baseChance": 0.46,
+     "minQuantity": 1,
+     "maxQuantity": 3,
+     "requiredLevel": 5,
+     "item": {
+      "name": "Small Bones"
+     }
+    },
+    {
+     "id": 11,
+     "creatureId": 3,
+     "itemId": 174,
+     "enabled": true,
+     "baseChance": 0.24,
+     "minQuantity": 1,
+     "maxQuantity": 2,
+     "requiredLevel": 14,
+     "item": {
+      "name": "Sharp Fang"
+     }
+    }
+   ]
+  },
+  {
+   "id": 4,
+   "name": "Grey Wolf",
+   "description": "A patient pack hunter that tests distance and footing before darting in to bite.",
+   "kind": "ANIMAL",
+   "asset": "/assets/creatures/animals/grey-wolf-hunting-v1.png",
+   "enabled": true,
+   "attackStyle": "MELEE",
+   "attackChance": 0.24,
+   "damageMin": 8,
+   "damageMax": 15,
+   "magicDamageMin": 0,
+   "magicDamageMax": 0,
+   "damageType": null,
+   "elementalDamageMin": 0,
+   "elementalDamageMax": 0,
+   "critChance": 0,
+   "critDamage": 0,
+   "health": 0,
+   "armor": 0,
+   "magicResist": 0,
+   "evasion": 0,
+   "blockChance": 0,
+   "createdAt": "2026-09-16T23:21:30.104Z",
+   "updatedAt": "2026-09-30T14:33:52.384Z",
+   "drops": [
+    {
+     "id": 12,
+     "creatureId": 4,
+     "itemId": 172,
+     "enabled": true,
+     "baseChance": 0.76,
+     "minQuantity": 1,
+     "maxQuantity": 2,
+     "requiredLevel": 12,
+     "item": {
+      "name": "Raw Hide"
+     }
+    },
+    {
+     "id": 13,
+     "creatureId": 4,
+     "itemId": 174,
+     "enabled": true,
+     "baseChance": 0.62,
+     "minQuantity": 1,
+     "maxQuantity": 2,
+     "requiredLevel": 15,
+     "item": {
+      "name": "Sharp Fang"
+     }
+    },
+    {
+     "id": 14,
+     "creatureId": 4,
+     "itemId": 173,
+     "enabled": true,
+     "baseChance": 0.4,
+     "minQuantity": 1,
+     "maxQuantity": 3,
+     "requiredLevel": 12,
+     "item": {
+      "name": "Small Bones"
+     }
+    },
+    {
+     "id": 15,
+     "creatureId": 4,
+     "itemId": 177,
+     "enabled": true,
+     "baseChance": 0.36,
+     "minQuantity": 1,
+     "maxQuantity": 2,
+     "requiredLevel": 18,
+     "item": {
+      "name": "Animal Sinew"
+     }
+    }
+   ]
+  },
+  {
+   "id": 5,
+   "name": "Marsh Crocodile",
+   "description": "An armored river predator that waits almost motionless beside muddy channels.",
+   "kind": "ANIMAL",
+   "asset": "/assets/creatures/animals/marsh-crocodile-hunting-v1.png",
+   "enabled": true,
+   "attackStyle": "MELEE",
+   "attackChance": 0.3,
+   "damageMin": 43,
+   "damageMax": 79,
+   "magicDamageMin": 0,
+   "magicDamageMax": 0,
+   "damageType": null,
+   "elementalDamageMin": 0,
+   "elementalDamageMax": 0,
+   "critChance": 0,
+   "critDamage": 0,
+   "health": 0,
+   "armor": 0,
+   "magicResist": 0,
+   "evasion": 0,
+   "blockChance": 0,
+   "createdAt": "2026-09-16T23:21:31.307Z",
+   "updatedAt": "2026-09-30T14:33:52.400Z",
+   "drops": [
+    {
+     "id": 16,
+     "creatureId": 5,
+     "itemId": 171,
+     "enabled": true,
+     "baseChance": 0.72,
+     "minQuantity": 2,
+     "maxQuantity": 4,
+     "requiredLevel": 22,
+     "item": {
+      "name": "Game Meat"
+     }
+    },
+    {
+     "id": 17,
+     "creatureId": 5,
+     "itemId": 172,
+     "enabled": true,
+     "baseChance": 0.86,
+     "minQuantity": 2,
+     "maxQuantity": 3,
+     "requiredLevel": 25,
+     "item": {
+      "name": "Raw Hide"
+     }
+    },
+    {
+     "id": 18,
+     "creatureId": 5,
+     "itemId": 174,
+     "enabled": true,
+     "baseChance": 0.5,
+     "minQuantity": 1,
+     "maxQuantity": 3,
+     "requiredLevel": 28,
+     "item": {
+      "name": "Sharp Fang"
+     }
+    },
+    {
+     "id": 19,
+     "creatureId": 5,
+     "itemId": 173,
+     "enabled": true,
+     "baseChance": 0.6,
+     "minQuantity": 2,
+     "maxQuantity": 4,
+     "requiredLevel": 22,
+     "item": {
+      "name": "Small Bones"
+     }
+    }
+   ]
+  },
+  {
+   "id": 6,
+   "name": "Mountain Goat",
+   "description": "A sure-footed highland goat whose winding trails cross steep and brittle ground.",
+   "kind": "ANIMAL",
+   "asset": "/assets/creatures/animals/mountain-goat-hunting-v1.png",
+   "enabled": true,
+   "attackStyle": "MELEE",
+   "attackChance": 0.1,
+   "damageMin": 39,
+   "damageMax": 72,
+   "magicDamageMin": 0,
+   "magicDamageMax": 0,
+   "damageType": null,
+   "elementalDamageMin": 0,
+   "elementalDamageMax": 0,
+   "critChance": 0,
+   "critDamage": 0,
+   "health": 0,
+   "armor": 0,
+   "magicResist": 0,
+   "evasion": 0,
+   "blockChance": 0,
+   "createdAt": "2026-09-16T23:21:32.516Z",
+   "updatedAt": "2026-09-30T14:33:52.417Z",
+   "drops": [
+    {
+     "id": 20,
+     "creatureId": 6,
+     "itemId": 171,
+     "enabled": true,
+     "baseChance": 0.9,
+     "minQuantity": 2,
+     "maxQuantity": 4,
+     "requiredLevel": 30,
+     "item": {
+      "name": "Game Meat"
+     }
+    },
+    {
+     "id": 21,
+     "creatureId": 6,
+     "itemId": 172,
+     "enabled": true,
+     "baseChance": 0.68,
+     "minQuantity": 1,
+     "maxQuantity": 2,
+     "requiredLevel": 32,
+     "item": {
+      "name": "Raw Hide"
+     }
+    },
+    {
+     "id": 22,
+     "creatureId": 6,
+     "itemId": 176,
+     "enabled": true,
+     "baseChance": 0.58,
+     "minQuantity": 1,
+     "maxQuantity": 2,
+     "requiredLevel": 35,
+     "item": {
+      "name": "Curved Horn"
+     }
+    },
+    {
+     "id": 23,
+     "creatureId": 6,
+     "itemId": 177,
+     "enabled": true,
+     "baseChance": 0.44,
+     "minQuantity": 1,
+     "maxQuantity": 2,
+     "requiredLevel": 34,
+     "item": {
+      "name": "Animal Sinew"
+     }
+    }
+   ]
+  },
+  {
+   "id": 7,
+   "name": "Frostfang Lynx",
+   "description": "A pale alpine cat that strikes from snow-shadow and vanishes among broken rocks.",
+   "kind": "ANIMAL",
+   "asset": "/assets/creatures/animals/frostfang-lynx-hunting-v1.png",
+   "enabled": true,
+   "attackStyle": "MELEE",
+   "attackChance": 0.32,
+   "damageMin": 53,
+   "damageMax": 98,
+   "magicDamageMin": 0,
+   "magicDamageMax": 0,
+   "damageType": null,
+   "elementalDamageMin": 0,
+   "elementalDamageMax": 0,
+   "critChance": 0,
+   "critDamage": 0,
+   "health": 0,
+   "armor": 0,
+   "magicResist": 0,
+   "evasion": 0,
+   "blockChance": 0,
+   "createdAt": "2026-09-16T23:21:33.716Z",
+   "updatedAt": "2026-09-30T14:33:52.434Z",
+   "drops": [
+    {
+     "id": 24,
+     "creatureId": 7,
+     "itemId": 178,
+     "enabled": true,
+     "baseChance": 0.82,
+     "minQuantity": 1,
+     "maxQuantity": 2,
+     "requiredLevel": 45,
+     "item": {
+      "name": "Thick Fur"
+     }
+    },
+    {
+     "id": 25,
+     "creatureId": 7,
+     "itemId": 174,
+     "enabled": true,
+     "baseChance": 0.66,
+     "minQuantity": 1,
+     "maxQuantity": 2,
+     "requiredLevel": 48,
+     "item": {
+      "name": "Sharp Fang"
+     }
+    },
+    {
+     "id": 26,
+     "creatureId": 7,
+     "itemId": 177,
+     "enabled": true,
+     "baseChance": 0.46,
+     "minQuantity": 1,
+     "maxQuantity": 2,
+     "requiredLevel": 50,
+     "item": {
+      "name": "Animal Sinew"
+     }
+    },
+    {
+     "id": 27,
+     "creatureId": 7,
+     "itemId": 173,
+     "enabled": true,
+     "baseChance": 0.38,
+     "minQuantity": 1,
+     "maxQuantity": 3,
+     "requiredLevel": 45,
+     "item": {
+      "name": "Small Bones"
+     }
+    }
+   ]
+  },
+  {
+   "id": 8,
+   "name": "Ashback Bear",
+   "description": "A massive dark bear marked by a pale ridge of fur and a violently guarded range.",
+   "kind": "ANIMAL",
+   "asset": "/assets/creatures/animals/ashback-bear-hunting-v1.png",
+   "enabled": true,
+   "attackStyle": "MELEE",
+   "attackChance": 0.38,
+   "damageMin": 47,
+   "damageMax": 87,
+   "magicDamageMin": 0,
+   "magicDamageMax": 0,
+   "damageType": null,
+   "elementalDamageMin": 0,
+   "elementalDamageMax": 0,
+   "critChance": 0,
+   "critDamage": 0,
+   "health": 0,
+   "armor": 0,
+   "magicResist": 0,
+   "evasion": 0,
+   "blockChance": 0,
+   "createdAt": "2026-09-16T23:21:34.929Z",
+   "updatedAt": "2026-09-30T14:33:52.452Z",
+   "drops": [
+    {
+     "id": 28,
+     "creatureId": 8,
+     "itemId": 171,
+     "enabled": true,
+     "baseChance": 0.86,
+     "minQuantity": 3,
+     "maxQuantity": 6,
+     "requiredLevel": 60,
+     "item": {
+      "name": "Game Meat"
+     }
+    },
+    {
+     "id": 29,
+     "creatureId": 8,
+     "itemId": 178,
+     "enabled": true,
+     "baseChance": 0.76,
+     "minQuantity": 2,
+     "maxQuantity": 3,
+     "requiredLevel": 62,
+     "item": {
+      "name": "Thick Fur"
+     }
+    },
+    {
+     "id": 30,
+     "creatureId": 8,
+     "itemId": 174,
+     "enabled": true,
+     "baseChance": 0.48,
+     "minQuantity": 1,
+     "maxQuantity": 3,
+     "requiredLevel": 66,
+     "item": {
+      "name": "Sharp Fang"
+     }
+    },
+    {
+     "id": 31,
+     "creatureId": 8,
+     "itemId": 173,
+     "enabled": true,
+     "baseChance": 0.62,
+     "minQuantity": 2,
+     "maxQuantity": 5,
+     "requiredLevel": 60,
+     "item": {
+      "name": "Small Bones"
+     }
+    }
+   ]
+  },
+  {
+   "id": 9,
+   "name": "Bomber Goblin",
+   "description": "A wiry scavenger with quick hands and hand made bombs. Goblins rarely fight fair, and they never fight alone.",
+   "kind": "MONSTER",
+   "asset": "/assets/creatures/monsters/common/bomber-goblin.png",
+   "enabled": true,
+   "attackStyle": "RANGED",
+   "attackChance": 0,
+   "damageMin": 17,
+   "damageMax": 27,
+   "magicDamageMin": 0,
+   "magicDamageMax": 0,
+   "damageType": "FIRE",
+   "elementalDamageMin": 16,
+   "elementalDamageMax": 20,
+   "critChance": 8,
+   "critDamage": 150,
+   "health": 478,
+   "armor": 58,
+   "magicResist": 0,
+   "evasion": 5,
+   "blockChance": 0,
+   "createdAt": "2026-09-17T12:14:00.017Z",
+   "updatedAt": "2026-09-30T14:33:52.053Z",
+   "drops": [
+    {
+     "id": 32,
+     "creatureId": 9,
+     "itemId": 146,
+     "enabled": true,
+     "baseChance": 0.45,
+     "minQuantity": 1,
+     "maxQuantity": 2,
+     "requiredLevel": 1,
+     "item": {
+      "name": "Cloth Scraps"
+     }
+    },
+    {
+     "id": 33,
+     "creatureId": 9,
+     "itemId": 173,
+     "enabled": true,
+     "baseChance": 0.3,
+     "minQuantity": 1,
+     "maxQuantity": 2,
+     "requiredLevel": 1,
+     "item": {
+      "name": "Small Bones"
+     }
+    },
+    {
+     "id": 34,
+     "creatureId": 9,
+     "itemId": 168,
+     "enabled": true,
+     "baseChance": 0.12,
+     "minQuantity": 1,
+     "maxQuantity": 1,
+     "requiredLevel": 1,
+     "item": {
+      "name": "Dusk Oil"
+     }
+    },
+    {
+     "id": 35,
+     "creatureId": 9,
+     "itemId": 20,
+     "enabled": true,
+     "baseChance": 0.03,
+     "minQuantity": 1,
+     "maxQuantity": 1,
+     "requiredLevel": 1,
+     "item": {
+      "name": "Wooden Dagger"
+     }
+    }
+   ]
+  },
+  {
+   "id": 11,
+   "name": "Tunnel goblin",
+   "description": "A sneaky goblin that prowls dark tunnels, ambushing careless travelers.",
+   "kind": "MONSTER",
+   "asset": "/assets/creatures/monsters/common/tunnel-goblin.png",
+   "enabled": true,
+   "attackStyle": "MELEE",
+   "attackChance": 0,
+   "damageMin": 16,
+   "damageMax": 24,
+   "magicDamageMin": 0,
+   "magicDamageMax": 0,
+   "damageType": null,
+   "elementalDamageMin": 0,
+   "elementalDamageMax": 0,
+   "critChance": 10,
+   "critDamage": 160,
+   "health": 819,
+   "armor": 88,
+   "magicResist": 30,
+   "evasion": 0,
+   "blockChance": 10,
+   "createdAt": "2026-09-17T22:23:34.247Z",
+   "updatedAt": "2026-09-30T14:33:52.071Z",
+   "drops": []
+  },
+  {
+   "id": 12,
+   "name": "Mire ooze",
+   "description": "A murky slime born from stagnant swamps and rotting marshes.",
+   "kind": "MONSTER",
+   "asset": "/assets/creatures/monsters/common/mire-ooze.png",
+   "enabled": true,
+   "attackStyle": "MELEE",
+   "attackChance": 0,
+   "damageMin": 3,
+   "damageMax": 8,
+   "magicDamageMin": 0,
+   "magicDamageMax": 0,
+   "damageType": "POISON",
+   "elementalDamageMin": 14,
+   "elementalDamageMax": 27,
+   "critChance": 1,
+   "critDamage": 150,
+   "health": 643,
+   "armor": 73,
+   "magicResist": 20,
+   "evasion": 0,
+   "blockChance": 0,
+   "createdAt": "2026-09-17T22:29:13.604Z",
+   "updatedAt": "2026-09-30T14:33:52.091Z",
+   "drops": []
+  },
+  {
+   "id": 13,
+   "name": "Puddle Slime",
+   "description": "A tiny slime wobbling in shallow puddles. Seems cute, probably harmless.",
+   "kind": "MONSTER",
+   "asset": "/assets/creatures/monsters/low-level/puddle-slime.png",
+   "enabled": true,
+   "attackStyle": "MELEE",
+   "attackChance": 0,
+   "damageMin": 0,
+   "damageMax": 0,
+   "magicDamageMin": 13,
+   "magicDamageMax": 18,
+   "damageType": null,
+   "elementalDamageMin": 0,
+   "elementalDamageMax": 0,
+   "critChance": 0,
+   "critDamage": 150,
+   "health": 360,
+   "armor": 46,
+   "magicResist": 10,
+   "evasion": 0,
+   "blockChance": 0,
+   "createdAt": "2026-09-17T22:35:41.118Z",
+   "updatedAt": "2026-09-30T14:33:52.110Z",
+   "drops": []
+  },
+  {
+   "id": 14,
+   "name": "Cavefang Spider",
+   "description": "Highly poisonous spider often seen in caves. They always come in numbers.",
+   "kind": "MONSTER",
+   "asset": "/assets/creatures/monsters/common/cavefang-spider.png",
+   "enabled": true,
+   "attackStyle": "MELEE",
+   "attackChance": 0,
+   "damageMin": 40,
+   "damageMax": 53,
+   "magicDamageMin": 0,
+   "magicDamageMax": 0,
+   "damageType": "POISON",
+   "elementalDamageMin": 20,
+   "elementalDamageMax": 27,
+   "critChance": 5,
+   "critDamage": 150,
+   "health": 1844,
+   "armor": 185,
+   "magicResist": 30,
+   "evasion": 0,
+   "blockChance": 0,
+   "createdAt": "2026-09-23T13:24:41.724Z",
+   "updatedAt": "2026-09-30T14:33:52.128Z",
+   "drops": []
+  },
+  {
+   "id": 15,
+   "name": "Rattlebone Skeleton",
+   "description": "Long forgotten soldier, defeated by evil which infused him.",
+   "kind": "MONSTER",
+   "asset": "/assets/creatures/monsters/common/rattlebone-skeleton.png",
+   "enabled": true,
+   "attackStyle": "MELEE",
+   "attackChance": 0,
+   "damageMin": 56,
+   "damageMax": 102,
+   "magicDamageMin": 0,
+   "magicDamageMax": 0,
+   "damageType": null,
+   "elementalDamageMin": 0,
+   "elementalDamageMax": 0,
+   "critChance": 10,
+   "critDamage": 150,
+   "health": 2081,
+   "armor": 208,
+   "magicResist": 60,
+   "evasion": 0,
+   "blockChance": 5,
+   "createdAt": "2026-09-23T13:29:55.999Z",
+   "updatedAt": "2026-09-30T14:33:52.146Z",
+   "drops": []
+  },
+  {
+   "id": 16,
+   "name": "Bat",
+   "description": "A bat does not like to be distrubed. May not see but he smells you.",
+   "kind": "MONSTER",
+   "asset": "/assets/creatures/monsters/common/ruin-bat.png",
+   "enabled": true,
+   "attackStyle": "MELEE",
+   "attackChance": 0,
+   "damageMin": 37,
+   "damageMax": 45,
+   "magicDamageMin": 0,
+   "magicDamageMax": 0,
+   "damageType": null,
+   "elementalDamageMin": 0,
+   "elementalDamageMax": 0,
+   "critChance": 5,
+   "critDamage": 150,
+   "health": 1057,
+   "armor": 110,
+   "magicResist": 40,
+   "evasion": 0,
+   "blockChance": 0,
+   "createdAt": "2026-09-23T13:30:10.241Z",
+   "updatedAt": "2026-09-30T14:33:52.164Z",
+   "drops": []
+  },
+  {
+   "id": 17,
+   "name": "Carrion Hound",
+   "description": "A friendly pet, but of those who are evil. One bite may be deadly.",
+   "kind": "MONSTER",
+   "asset": "/assets/creatures/monsters/low-level/carrion-hound.png",
+   "enabled": true,
+   "attackStyle": "MELEE",
+   "attackChance": 0,
+   "damageMin": 41,
+   "damageMax": 52,
+   "magicDamageMin": 0,
+   "magicDamageMax": 0,
+   "damageType": null,
+   "elementalDamageMin": 0,
+   "elementalDamageMax": 0,
+   "critChance": 10,
+   "critDamage": 175,
+   "health": 1214,
+   "armor": 125,
+   "magicResist": 0,
+   "evasion": 0,
+   "blockChance": 0,
+   "createdAt": "2026-09-23T13:36:24.087Z",
+   "updatedAt": "2026-09-30T14:33:52.181Z",
+   "drops": []
+  },
+  {
+   "id": 20,
+   "name": "Goblin",
+   "description": "A wiry scavenger with quick hands and a notched blade. Goblins rarely fight fair, and they never fight alone.",
+   "kind": "MONSTER",
+   "asset": "/assets/creatures/monsters/low-level/goblin.png",
+   "enabled": true,
+   "attackStyle": "MELEE",
+   "attackChance": 0,
+   "damageMin": 34,
+   "damageMax": 102,
+   "magicDamageMin": 0,
+   "magicDamageMax": 0,
+   "damageType": null,
+   "elementalDamageMin": 0,
+   "elementalDamageMax": 0,
+   "critChance": 5,
+   "critDamage": 150,
+   "health": 283,
+   "armor": 39,
+   "magicResist": 0,
+   "evasion": 5,
+   "blockChance": 0,
+   "createdAt": "2026-09-24T21:17:52.806Z",
+   "updatedAt": "2026-09-30T14:33:52.200Z",
+   "drops": [
+    {
+     "id": 42,
+     "creatureId": 20,
+     "itemId": 146,
+     "enabled": true,
+     "baseChance": 0.45,
+     "minQuantity": 1,
+     "maxQuantity": 2,
+     "requiredLevel": 1,
+     "item": {
+      "name": "Cloth Scraps"
+     }
+    },
+    {
+     "id": 43,
+     "creatureId": 20,
+     "itemId": 173,
+     "enabled": true,
+     "baseChance": 0.3,
+     "minQuantity": 1,
+     "maxQuantity": 2,
+     "requiredLevel": 1,
+     "item": {
+      "name": "Small Bones"
+     }
+    },
+    {
+     "id": 44,
+     "creatureId": 20,
+     "itemId": 168,
+     "enabled": true,
+     "baseChance": 0.12,
+     "minQuantity": 1,
+     "maxQuantity": 1,
+     "requiredLevel": 1,
+     "item": {
+      "name": "Dusk Oil"
+     }
+    },
+    {
+     "id": 45,
+     "creatureId": 20,
+     "itemId": 20,
+     "enabled": true,
+     "baseChance": 0.03,
+     "minQuantity": 1,
+     "maxQuantity": 1,
+     "requiredLevel": 1,
+     "item": {
+      "name": "Wooden Dagger"
+     }
+    }
+   ]
+  },
+  {
+   "id": 21,
+   "name": "Stoneback Troll",
+   "description": "A mountain troll plated in old stone and frozen mud. Its brute strength makes every harvested blood sample a hard-won prize.",
+   "kind": "MONSTER",
+   "asset": "/assets/creatures/monsters/rare/stoneback-troll.png",
+   "enabled": true,
+   "attackStyle": "MELEE",
+   "attackChance": 0,
+   "damageMin": 131,
+   "damageMax": 200,
+   "magicDamageMin": 0,
+   "magicDamageMax": 0,
+   "damageType": null,
+   "elementalDamageMin": 0,
+   "elementalDamageMax": 0,
+   "critChance": 10,
+   "critDamage": 165,
+   "health": 16233,
+   "armor": 483,
+   "magicResist": 12,
+   "evasion": 4,
+   "blockChance": 8,
+   "createdAt": "2026-09-24T21:17:52.888Z",
+   "updatedAt": "2026-09-30T14:33:52.220Z",
+   "drops": [
+    {
+     "id": 46,
+     "creatureId": 21,
+     "itemId": 300,
+     "enabled": true,
+     "baseChance": 0.12,
+     "minQuantity": 1,
+     "maxQuantity": 1,
+     "requiredLevel": 65,
+     "item": {
+      "name": "Troll Blood"
+     }
+    },
+    {
+     "id": 47,
+     "creatureId": 21,
+     "itemId": 178,
+     "enabled": true,
+     "baseChance": 0.42,
+     "minQuantity": 1,
+     "maxQuantity": 2,
+     "requiredLevel": 60,
+     "item": {
+      "name": "Thick Fur"
+     }
+    }
+   ]
+  },
+  {
+   "id": 27,
+   "name": "Briarback Badger",
+   "description": "A low, powerful badger with a pale head stripe and bramble-tough shoulder fur.",
+   "kind": "ANIMAL",
+   "asset": "/assets/creatures/animals/briarback-badger-hunting-v1.png",
+   "enabled": true,
+   "attackStyle": "MELEE",
+   "attackChance": 0.16,
+   "damageMin": 35,
+   "damageMax": 66,
+   "magicDamageMin": 0,
+   "magicDamageMax": 0,
+   "damageType": null,
+   "elementalDamageMin": 0,
+   "elementalDamageMax": 0,
+   "critChance": 0,
+   "critDamage": 0,
+   "health": 0,
+   "armor": 0,
+   "magicResist": 0,
+   "evasion": 0,
+   "blockChance": 0,
+   "createdAt": "2026-09-26T22:59:40.023Z",
+   "updatedAt": "2026-09-30T14:33:52.474Z",
+   "drops": [
+    {
+     "id": 66,
+     "creatureId": 27,
+     "itemId": 172,
+     "enabled": true,
+     "baseChance": 0.64,
+     "minQuantity": 1,
+     "maxQuantity": 2,
+     "requiredLevel": 20,
+     "item": {
+      "name": "Raw Hide"
+     }
+    },
+    {
+     "id": 67,
+     "creatureId": 27,
+     "itemId": 173,
+     "enabled": true,
+     "baseChance": 0.55,
+     "minQuantity": 1,
+     "maxQuantity": 3,
+     "requiredLevel": 20,
+     "item": {
+      "name": "Small Bones"
+     }
+    },
+    {
+     "id": 68,
+     "creatureId": 27,
+     "itemId": 174,
+     "enabled": true,
+     "baseChance": 0.24,
+     "minQuantity": 1,
+     "maxQuantity": 2,
+     "requiredLevel": 24,
+     "item": {
+      "name": "Sharp Fang"
+     }
+    }
+   ]
+  },
+  {
+   "id": 28,
+   "name": "Snowhorn Ram",
+   "description": "A stone-grey alpine ram whose heavy pale horns make a dangerous downhill charge.",
+   "kind": "ANIMAL",
+   "asset": "/assets/creatures/animals/snowhorn-ram-hunting-v1.png",
+   "enabled": true,
+   "attackStyle": "MELEE",
+   "attackChance": 0.23,
+   "damageMin": 47,
+   "damageMax": 87,
+   "magicDamageMin": 0,
+   "magicDamageMax": 0,
+   "damageType": null,
+   "elementalDamageMin": 0,
+   "elementalDamageMax": 0,
+   "critChance": 0,
+   "critDamage": 0,
+   "health": 0,
+   "armor": 0,
+   "magicResist": 0,
+   "evasion": 0,
+   "blockChance": 0,
+   "createdAt": "2026-09-26T22:59:40.078Z",
+   "updatedAt": "2026-09-30T14:33:52.491Z",
+   "drops": [
+    {
+     "id": 69,
+     "creatureId": 28,
+     "itemId": 171,
+     "enabled": true,
+     "baseChance": 0.88,
+     "minQuantity": 2,
+     "maxQuantity": 4,
+     "requiredLevel": 36,
+     "item": {
+      "name": "Game Meat"
+     }
+    },
+    {
+     "id": 70,
+     "creatureId": 28,
+     "itemId": 172,
+     "enabled": true,
+     "baseChance": 0.72,
+     "minQuantity": 1,
+     "maxQuantity": 2,
+     "requiredLevel": 38,
+     "item": {
+      "name": "Raw Hide"
+     }
+    },
+    {
+     "id": 71,
+     "creatureId": 28,
+     "itemId": 176,
+     "enabled": true,
+     "baseChance": 0.68,
+     "minQuantity": 1,
+     "maxQuantity": 2,
+     "requiredLevel": 42,
+     "item": {
+      "name": "Curved Horn"
+     }
+    },
+    {
+     "id": 72,
+     "creatureId": 28,
+     "itemId": 178,
+     "enabled": true,
+     "baseChance": 0.36,
+     "minQuantity": 1,
+     "maxQuantity": 2,
+     "requiredLevel": 44,
+     "item": {
+      "name": "Thick Fur"
+     }
+    }
+   ]
+  },
+  {
+   "id": 29,
+   "name": "Ruin Viper",
+   "description": "A thick-bodied viper that keeps still among old stone until its sudden, painful strike.",
+   "kind": "ANIMAL",
+   "asset": "/assets/creatures/animals/ruin-viper-hunting-v1.png",
+   "enabled": true,
+   "attackStyle": "MELEE",
+   "attackChance": 0.34,
+   "damageMin": 82,
+   "damageMax": 152,
+   "magicDamageMin": 0,
+   "magicDamageMax": 0,
+   "damageType": null,
+   "elementalDamageMin": 0,
+   "elementalDamageMax": 0,
+   "critChance": 0,
+   "critDamage": 0,
+   "health": 0,
+   "armor": 0,
+   "magicResist": 0,
+   "evasion": 0,
+   "blockChance": 0,
+   "createdAt": "2026-09-26T22:59:40.158Z",
+   "updatedAt": "2026-09-30T14:33:52.509Z",
+   "drops": [
+    {
+     "id": 73,
+     "creatureId": 29,
+     "itemId": 174,
+     "enabled": true,
+     "baseChance": 0.72,
+     "minQuantity": 1,
+     "maxQuantity": 3,
+     "requiredLevel": 52,
+     "item": {
+      "name": "Sharp Fang"
+     }
+    },
+    {
+     "id": 74,
+     "creatureId": 29,
+     "itemId": 172,
+     "enabled": true,
+     "baseChance": 0.58,
+     "minQuantity": 1,
+     "maxQuantity": 2,
+     "requiredLevel": 54,
+     "item": {
+      "name": "Raw Hide"
+     }
+    },
+    {
+     "id": 75,
+     "creatureId": 29,
+     "itemId": 173,
+     "enabled": true,
+     "baseChance": 0.4,
+     "minQuantity": 1,
+     "maxQuantity": 3,
+     "requiredLevel": 52,
+     "item": {
+      "name": "Small Bones"
+     }
+    }
+   ]
+  },
+  {
+   "id": 30,
+   "name": "Cinder Jackal",
+   "description": "A lean soot-coloured jackal whose patient packs haunt the hot, brittle slopes.",
+   "kind": "ANIMAL",
+   "asset": "/assets/creatures/animals/cinder-jackal-hunting-v1.png",
+   "enabled": true,
+   "attackStyle": "MELEE",
+   "attackChance": 0.42,
+   "damageMin": 160,
+   "damageMax": 297,
+   "magicDamageMin": 0,
+   "magicDamageMax": 0,
+   "damageType": null,
+   "elementalDamageMin": 0,
+   "elementalDamageMax": 0,
+   "critChance": 0,
+   "critDamage": 0,
+   "health": 0,
+   "armor": 0,
+   "magicResist": 0,
+   "evasion": 0,
+   "blockChance": 0,
+   "createdAt": "2026-09-26T22:59:40.215Z",
+   "updatedAt": "2026-09-30T14:33:52.525Z",
+   "drops": [
+    {
+     "id": 76,
+     "creatureId": 30,
+     "itemId": 178,
+     "enabled": true,
+     "baseChance": 0.68,
+     "minQuantity": 1,
+     "maxQuantity": 2,
+     "requiredLevel": 70,
+     "item": {
+      "name": "Thick Fur"
+     }
+    },
+    {
+     "id": 77,
+     "creatureId": 30,
+     "itemId": 174,
+     "enabled": true,
+     "baseChance": 0.7,
+     "minQuantity": 1,
+     "maxQuantity": 3,
+     "requiredLevel": 74,
+     "item": {
+      "name": "Sharp Fang"
+     }
+    },
+    {
+     "id": 78,
+     "creatureId": 30,
+     "itemId": 177,
+     "enabled": true,
+     "baseChance": 0.52,
+     "minQuantity": 1,
+     "maxQuantity": 2,
+     "requiredLevel": 70,
+     "item": {
+      "name": "Animal Sinew"
+     }
+    },
+    {
+     "id": 79,
+     "creatureId": 30,
+     "itemId": 173,
+     "enabled": true,
+     "baseChance": 0.44,
+     "minQuantity": 2,
+     "maxQuantity": 4,
+     "requiredLevel": 70,
+     "item": {
+      "name": "Small Bones"
+     }
+    }
+   ]
+  },
+  {
+   "id": 31,
+   "name": "Mangrove Panther",
+   "description": "A blue-black island cat that stalks low through tangled roots before striking with full weight.",
+   "kind": "ANIMAL",
+   "asset": "/assets/creatures/animals/mangrove-panther-hunting-v1.png",
+   "enabled": true,
+   "attackStyle": "MELEE",
+   "attackChance": 0.48,
+   "damageMin": 224,
+   "damageMax": 415,
+   "magicDamageMin": 0,
+   "magicDamageMax": 0,
+   "damageType": null,
+   "elementalDamageMin": 0,
+   "elementalDamageMax": 0,
+   "critChance": 0,
+   "critDamage": 0,
+   "health": 0,
+   "armor": 0,
+   "magicResist": 0,
+   "evasion": 0,
+   "blockChance": 0,
+   "createdAt": "2026-09-26T22:59:40.285Z",
+   "updatedAt": "2026-09-30T14:33:52.543Z",
+   "drops": [
+    {
+     "id": 80,
+     "creatureId": 31,
+     "itemId": 178,
+     "enabled": true,
+     "baseChance": 0.78,
+     "minQuantity": 1,
+     "maxQuantity": 3,
+     "requiredLevel": 84,
+     "item": {
+      "name": "Thick Fur"
+     }
+    },
+    {
+     "id": 81,
+     "creatureId": 31,
+     "itemId": 174,
+     "enabled": true,
+     "baseChance": 0.72,
+     "minQuantity": 1,
+     "maxQuantity": 3,
+     "requiredLevel": 86,
+     "item": {
+      "name": "Sharp Fang"
+     }
+    },
+    {
+     "id": 82,
+     "creatureId": 31,
+     "itemId": 177,
+     "enabled": true,
+     "baseChance": 0.64,
+     "minQuantity": 1,
+     "maxQuantity": 3,
+     "requiredLevel": 84,
+     "item": {
+      "name": "Animal Sinew"
+     }
+    },
+    {
+     "id": 83,
+     "creatureId": 31,
+     "itemId": 172,
+     "enabled": true,
+     "baseChance": 0.56,
+     "minQuantity": 1,
+     "maxQuantity": 2,
+     "requiredLevel": 80,
+     "item": {
+      "name": "Raw Hide"
+     }
+    }
+   ]
+  },
+  {
+   "id": 32,
+   "name": "Cave Troll",
+   "description": "A slow-witted cave brute with a vacant stare and a club it has only just remembered to hold. It is clumsy, stubborn, and alarmingly strong when confused.",
+   "kind": "MONSTER",
+   "asset": "/assets/creatures/monsters/rare/cave-troll.png",
+   "enabled": true,
+   "attackStyle": "MELEE",
+   "attackChance": 0,
+   "damageMin": 62,
+   "damageMax": 94,
+   "magicDamageMin": 0,
+   "magicDamageMax": 0,
+   "damageType": null,
+   "elementalDamageMin": 0,
+   "elementalDamageMax": 0,
+   "critChance": 4,
+   "critDamage": 150,
+   "health": 9933,
+   "armor": 303,
+   "magicResist": 4,
+   "evasion": 1,
+   "blockChance": 0,
+   "createdAt": "2026-09-27T23:34:22.645Z",
+   "updatedAt": "2026-09-30T14:33:52.238Z",
+   "drops": [
+    {
+     "id": 84,
+     "creatureId": 32,
+     "itemId": 300,
+     "enabled": true,
+     "baseChance": 0.06,
+     "minQuantity": 1,
+     "maxQuantity": 1,
+     "requiredLevel": 55,
+     "item": {
+      "name": "Troll Blood"
+     }
+    },
+    {
+     "id": 85,
+     "creatureId": 32,
+     "itemId": 173,
+     "enabled": true,
+     "baseChance": 0.3,
+     "minQuantity": 1,
+     "maxQuantity": 2,
+     "requiredLevel": 50,
+     "item": {
+      "name": "Small Bones"
+     }
+    }
+   ]
+  },
+  {
+   "id": 33,
+   "name": "Orc",
+   "description": "A vicious raider armed with a hooked spear. Orcs shadow larger brutes, testing every opening before their master can bring down a heavier blow.",
+   "kind": "MONSTER",
+   "asset": "/assets/creatures/monsters/common/orc.png",
+   "enabled": true,
+   "attackStyle": "MELEE",
+   "attackChance": 0,
+   "damageMin": 16,
+   "damageMax": 24,
+   "magicDamageMin": 0,
+   "magicDamageMax": 0,
+   "damageType": null,
+   "elementalDamageMin": 0,
+   "elementalDamageMax": 0,
+   "critChance": 5,
+   "critDamage": 150,
+   "health": 819,
+   "armor": 88,
+   "magicResist": 0,
+   "evasion": 5,
+   "blockChance": 0,
+   "createdAt": "2026-09-28T11:06:13.750Z",
+   "updatedAt": "2026-09-30T14:33:52.255Z",
+   "drops": [
+    {
+     "id": 86,
+     "creatureId": 33,
+     "itemId": 146,
+     "enabled": true,
+     "baseChance": 0.4,
+     "minQuantity": 1,
+     "maxQuantity": 2,
+     "requiredLevel": 40,
+     "item": {
+      "name": "Cloth Scraps"
+     }
+    },
+    {
+     "id": 87,
+     "creatureId": 33,
+     "itemId": 173,
+     "enabled": true,
+     "baseChance": 0.3,
+     "minQuantity": 1,
+     "maxQuantity": 2,
+     "requiredLevel": 40,
+     "item": {
+      "name": "Small Bones"
+     }
+    }
+   ]
+  },
+  {
+   "id": 34,
+   "name": "Warg",
+   "description": "A tether-scarred raiding hound bred to run down anything its handlers point at. A warg is quick alone; in a pack it is relentless.",
+   "kind": "MONSTER",
+   "asset": "/assets/creatures/monsters/common/warg.png",
+   "enabled": true,
+   "attackStyle": "MELEE",
+   "attackChance": 0,
+   "damageMin": 15,
+   "damageMax": 24,
+   "magicDamageMin": 0,
+   "magicDamageMax": 0,
+   "damageType": null,
+   "elementalDamageMin": 0,
+   "elementalDamageMax": 0,
+   "critChance": 8,
+   "critDamage": 150,
+   "health": 819,
+   "armor": 88,
+   "magicResist": 0,
+   "evasion": 10,
+   "blockChance": 0,
+   "createdAt": "2026-09-28T11:06:13.798Z",
+   "updatedAt": "2026-09-30T14:33:52.275Z",
+   "drops": [
+    {
+     "id": 88,
+     "creatureId": 34,
+     "itemId": 178,
+     "enabled": true,
+     "baseChance": 0.4,
+     "minQuantity": 1,
+     "maxQuantity": 1,
+     "requiredLevel": 40,
+     "item": {
+      "name": "Thick Fur"
+     }
+    },
+    {
+     "id": 89,
+     "creatureId": 34,
+     "itemId": 173,
+     "enabled": true,
+     "baseChance": 0.3,
+     "minQuantity": 1,
+     "maxQuantity": 2,
+     "requiredLevel": 40,
+     "item": {
+      "name": "Small Bones"
+     }
+    }
+   ]
+  },
+  {
+   "id": 35,
+   "name": "Ogre",
+   "description": "A brutal raider with a butcher's cleaver and enough discipline to make its strength dangerous. Ogres hold a territory until nothing nearby can stand up to them.",
+   "kind": "MONSTER",
+   "asset": "/assets/creatures/monsters/rare/ogre.png",
+   "enabled": true,
+   "attackStyle": "MELEE",
+   "attackChance": 0,
+   "damageMin": 21,
+   "damageMax": 33,
+   "magicDamageMin": 0,
+   "magicDamageMax": 0,
+   "damageType": null,
+   "elementalDamageMin": 0,
+   "elementalDamageMax": 0,
+   "critChance": 5,
+   "critDamage": 150,
+   "health": 1990,
+   "armor": 128,
+   "magicResist": 2,
+   "evasion": 2,
+   "blockChance": 1,
+   "createdAt": "2026-09-28T11:06:13.838Z",
+   "updatedAt": "2026-09-30T14:33:52.293Z",
+   "drops": [
+    {
+     "id": 90,
+     "creatureId": 35,
+     "itemId": 178,
+     "enabled": true,
+     "baseChance": 0.3,
+     "minQuantity": 1,
+     "maxQuantity": 1,
+     "requiredLevel": 40,
+     "item": {
+      "name": "Thick Fur"
+     }
+    },
+    {
+     "id": 91,
+     "creatureId": 35,
+     "itemId": 173,
+     "enabled": true,
+     "baseChance": 0.35,
+     "minQuantity": 1,
+     "maxQuantity": 2,
+     "requiredLevel": 40,
+     "item": {
+      "name": "Small Bones"
+     }
+    },
+    {
+     "id": 94,
+     "creatureId": 35,
+     "itemId": 317,
+     "enabled": true,
+     "baseChance": 0.025,
+     "minQuantity": 1,
+     "maxQuantity": 1,
+     "requiredLevel": 40,
+     "item": {
+      "name": "Ogre Cleaver"
+     }
+    }
+   ]
+  },
+  {
+   "id": 36,
+   "name": "Trollhound",
+   "description": "A cave-bred kennel beast that follows a troll's scent through the dark. Its bite is ugly, but its true danger is returning with the rest of the pack.",
+   "kind": "MONSTER",
+   "asset": "/assets/creatures/monsters/common/trollhound.png",
+   "enabled": true,
+   "attackStyle": "MELEE",
+   "attackChance": 0,
+   "damageMin": 34,
+   "damageMax": 50,
+   "magicDamageMin": 0,
+   "magicDamageMax": 0,
+   "damageType": null,
+   "elementalDamageMin": 0,
+   "elementalDamageMax": 0,
+   "critChance": 6,
+   "critDamage": 155,
+   "health": 1451,
+   "armor": 148,
+   "magicResist": 2,
+   "evasion": 4,
+   "blockChance": 0,
+   "createdAt": "2026-09-28T11:06:13.880Z",
+   "updatedAt": "2026-09-30T14:33:52.310Z",
+   "drops": [
+    {
+     "id": 92,
+     "creatureId": 36,
+     "itemId": 178,
+     "enabled": true,
+     "baseChance": 0.5,
+     "minQuantity": 1,
+     "maxQuantity": 2,
+     "requiredLevel": 50,
+     "item": {
+      "name": "Thick Fur"
+     }
+    },
+    {
+     "id": 93,
+     "creatureId": 36,
+     "itemId": 173,
+     "enabled": true,
+     "baseChance": 0.4,
+     "minQuantity": 1,
+     "maxQuantity": 2,
+     "requiredLevel": 50,
+     "item": {
+      "name": "Small Bones"
+     }
+    }
+   ]
+  }
+ ],
+ "dungeons": [
+  {
+   "id": 1,
+   "locationId": 1,
+   "name": "Gloamvault",
+   "description": "Flooded vaults beneath the Quay ward, where goblin scavengers hoard lamp oil and stolen cloth in the dark.",
+   "difficulty": "NORMAL",
+   "requiredLevel": 60,
+   "durationSeconds": 7200,
+   "packSize": 1,
+   "xpReward": 80,
+   "enabled": true,
+   "sortOrder": 10,
+   "mapX": 79.23,
+   "mapY": 34.91,
+   "createdAt": "2026-09-17T12:14:01.290Z",
+   "updatedAt": "2026-09-30T19:14:11.259Z",
+   "monsters": [
+    {
+     "id": 1,
+     "dungeonId": 1,
+     "creatureId": 9,
+     "enabled": true,
+     "minCount": 3,
+     "maxCount": 8,
+     "creature": {
+      "name": "Bomber Goblin"
+     }
+    },
+    {
+     "id": 2,
+     "dungeonId": 1,
+     "creatureId": 20,
+     "enabled": true,
+     "minCount": 2,
+     "maxCount": 4,
+     "creature": {
+      "name": "Goblin"
+     }
+    },
+    {
+     "id": 13,
+     "dungeonId": 1,
+     "creatureId": 11,
+     "enabled": true,
+     "minCount": 1,
+     "maxCount": 2,
+     "creature": {
+      "name": "Tunnel goblin"
+     }
+    }
+   ],
+   "location": {
+    "name": "Valedor",
+    "requiredLevel": 1
+   }
+  },
+  {
+   "id": 2,
+   "locationId": 5,
+   "name": "Trollbreaker Cavern",
+   "description": "A wind-carved fissure beneath the high passes where stoneback trolls wallow in meltwater and old bones.",
+   "difficulty": "DEADLY",
+   "requiredLevel": 300,
+   "durationSeconds": 21600,
+   "packSize": 2,
+   "xpReward": 1000,
+   "enabled": true,
+   "sortOrder": 60,
+   "mapX": null,
+   "mapY": null,
+   "createdAt": "2026-09-24T21:17:52.956Z",
+   "updatedAt": "2026-09-30T19:16:18.899Z",
+   "monsters": [
+    {
+     "id": 3,
+     "dungeonId": 2,
+     "creatureId": 21,
+     "enabled": true,
+     "minCount": 1,
+     "maxCount": 1,
+     "creature": {
+      "name": "Stoneback Troll"
+     }
+    },
+    {
+     "id": 10,
+     "dungeonId": 2,
+     "creatureId": 36,
+     "enabled": true,
+     "minCount": 4,
+     "maxCount": 6,
+     "creature": {
+      "name": "Trollhound"
+     }
+    }
+   ],
+   "location": {
+    "name": "Frostcrown Peaks",
+    "requiredLevel": 50
+   }
+  },
+  {
+   "id": 4,
+   "locationId": 5,
+   "name": "Drowned Mouth Grotto",
+   "description": "A wet limestone hollow below the high passes, where cave trolls bellow at echoes and guard the bones they cannot count.",
+   "difficulty": "HARD",
+   "requiredLevel": 180,
+   "durationSeconds": 18000,
+   "packSize": 2,
+   "xpReward": 1300,
+   "enabled": true,
+   "sortOrder": 50,
+   "mapX": null,
+   "mapY": null,
+   "createdAt": "2026-09-27T23:34:22.754Z",
+   "updatedAt": "2026-09-30T19:16:21.560Z",
+   "monsters": [
+    {
+     "id": 5,
+     "dungeonId": 4,
+     "creatureId": 32,
+     "enabled": true,
+     "minCount": 1,
+     "maxCount": 1,
+     "creature": {
+      "name": "Cave Troll"
+     }
+    },
+    {
+     "id": 9,
+     "dungeonId": 4,
+     "creatureId": 36,
+     "enabled": true,
+     "minCount": 3,
+     "maxCount": 5,
+     "creature": {
+      "name": "Trollhound"
+     }
+    }
+   ],
+   "location": {
+    "name": "Frostcrown Peaks",
+    "requiredLevel": 50
+   }
+  },
+  {
+   "id": 5,
+   "locationId": 4,
+   "name": "Blackjaw Stockade",
+   "description": "A crude timber stockade hidden in the ashwood, where an ogre drives orc raiders and chained wargs from its cleaver-sharpening yard.",
+   "difficulty": "HARD",
+   "requiredLevel": 100,
+   "durationSeconds": 14400,
+   "packSize": 2,
+   "xpReward": 630,
+   "enabled": true,
+   "sortOrder": 10,
+   "mapX": null,
+   "mapY": null,
+   "createdAt": "2026-09-28T11:06:14.032Z",
+   "updatedAt": "2026-09-30T19:15:01.610Z",
+   "monsters": [
+    {
+     "id": 6,
+     "dungeonId": 5,
+     "creatureId": 35,
+     "enabled": true,
+     "minCount": 1,
+     "maxCount": 1,
+     "creature": {
+      "name": "Ogre"
+     }
+    },
+    {
+     "id": 7,
+     "dungeonId": 5,
+     "creatureId": 33,
+     "enabled": true,
+     "minCount": 3,
+     "maxCount": 5,
+     "creature": {
+      "name": "Orc"
+     }
+    },
+    {
+     "id": 8,
+     "dungeonId": 5,
+     "creatureId": 34,
+     "enabled": true,
+     "minCount": 2,
+     "maxCount": 3,
+     "creature": {
+      "name": "Warg"
+     }
+    },
+    {
+     "id": 11,
+     "dungeonId": 5,
+     "creatureId": 20,
+     "enabled": true,
+     "minCount": 1,
+     "maxCount": 3,
+     "creature": {
+      "name": "Goblin"
+     }
+    },
+    {
+     "id": 12,
+     "dungeonId": 5,
+     "creatureId": 11,
+     "enabled": true,
+     "minCount": 1,
+     "maxCount": 3,
+     "creature": {
+      "name": "Tunnel goblin"
+     }
+    }
+   ],
+   "location": {
+    "name": "Goblins Camp",
+    "requiredLevel": 40
+   }
+  }
+ ],
+ "locations": [
+  {
+   "id": 1,
+   "name": "Valedor",
+   "requiredLevel": 1,
+   "gatheringEnabled": true,
+   "gatheringRequiredLevel": 1,
+   "mapImage": "/assets/world/crownhold-region-map-v1.png",
+   "mapX": 61.58,
+   "mapY": 74.42,
+   "createdAt": "2025-12-25T18:32:58.000Z",
+   "updatedAt": "2026-09-26T22:23:19.703Z"
+  },
+  {
+   "id": 2,
+   "name": "Greenveil Plains",
+   "requiredLevel": 1,
+   "gatheringEnabled": true,
+   "gatheringRequiredLevel": 1,
+   "mapImage": "/assets/world/greenveil-plains-region-map-v1.png",
+   "mapX": 23,
+   "mapY": 56,
+   "createdAt": "2025-12-26T09:56:14.000Z",
+   "updatedAt": "2026-10-19T22:38:08.815Z"
+  },
+  {
+   "id": 3,
+   "name": "Citadel",
+   "requiredLevel": 1,
+   "gatheringEnabled": false,
+   "gatheringRequiredLevel": 1,
+   "mapImage": "/assets/world/citadel-region-map-v1.png",
+   "mapX": 42.5,
+   "mapY": 50,
+   "createdAt": "2026-09-14T17:08:47.397Z",
+   "updatedAt": "2026-09-22T09:08:25.376Z"
+  },
+  {
+   "id": 4,
+   "name": "Goblins Camp",
+   "requiredLevel": 40,
+   "gatheringEnabled": true,
+   "gatheringRequiredLevel": 12,
+   "mapImage": null,
+   "mapX": 63.76,
+   "mapY": 29.44,
+   "createdAt": "2026-09-14T17:08:47.522Z",
+   "updatedAt": "2026-10-19T22:38:08.827Z"
+  },
+  {
+   "id": 5,
+   "name": "Frostcrown Peaks",
+   "requiredLevel": 50,
+   "gatheringEnabled": true,
+   "gatheringRequiredLevel": 30,
+   "mapImage": "/assets/world/frostcrown-peaks-region-map-v1.png",
+   "mapX": 15.11,
+   "mapY": 17.83,
+   "createdAt": "2026-09-14T17:08:47.644Z",
+   "updatedAt": "2026-10-19T22:38:08.837Z"
+  },
+  {
+   "id": 6,
+   "name": "Ruins of Caldrath",
+   "requiredLevel": 80,
+   "gatheringEnabled": true,
+   "gatheringRequiredLevel": 42,
+   "mapImage": null,
+   "mapX": 51.32,
+   "mapY": 31.15,
+   "createdAt": "2026-09-14T17:08:47.763Z",
+   "updatedAt": "2026-10-19T22:38:08.848Z"
+  },
+  {
+   "id": 7,
+   "name": "Mount Doom",
+   "requiredLevel": 150,
+   "gatheringEnabled": true,
+   "gatheringRequiredLevel": 85,
+   "mapImage": null,
+   "mapX": 43.43,
+   "mapY": 15.66,
+   "createdAt": "2026-09-14T17:08:47.884Z",
+   "updatedAt": "2026-09-24T18:32:53.210Z"
+  },
+  {
+   "id": 8,
+   "name": "Pirate Island",
+   "requiredLevel": 200,
+   "gatheringEnabled": false,
+   "gatheringRequiredLevel": 1,
+   "mapImage": null,
+   "mapX": 8,
+   "mapY": 92.69,
+   "createdAt": "2026-09-14T17:08:48.006Z",
+   "updatedAt": "2026-09-26T22:44:56.963Z"
+  },
+  {
+   "id": 11,
+   "name": "Sunscar Badlands",
+   "requiredLevel": 150,
+   "gatheringEnabled": false,
+   "gatheringRequiredLevel": 1,
+   "mapImage": null,
+   "mapX": 28.81,
+   "mapY": 74.9,
+   "createdAt": "2026-09-26T22:46:37.096Z",
+   "updatedAt": "2026-09-26T22:46:56.141Z"
+  },
+  {
+   "id": 12,
+   "name": "Dreadspire Reach",
+   "requiredLevel": 250,
+   "gatheringEnabled": false,
+   "gatheringRequiredLevel": 1,
+   "mapImage": null,
+   "mapX": 69.54,
+   "mapY": 42.48,
+   "createdAt": "2026-09-26T22:48:57.972Z",
+   "updatedAt": "2026-09-26T22:51:31.232Z"
+  },
+  {
+   "id": 13,
+   "name": "Cinderfall Citadel",
+   "requiredLevel": 380,
+   "gatheringEnabled": false,
+   "gatheringRequiredLevel": 1,
+   "mapImage": null,
+   "mapX": 86.85,
+   "mapY": 32.28,
+   "createdAt": "2026-09-26T22:50:59.703Z",
+   "updatedAt": "2026-09-26T22:51:31.228Z"
+  }
+ ],
+ "grounds": [
+  {
+   "id": 1,
+   "locationId": 1,
+   "name": "Crownwood Fringe",
+   "description": "Managed woodland beyond the outer wall, crossed by deer paths and kitchen-garden hedges.",
+   "requiredHuntingLevel": 1,
+   "enabled": true,
+   "sortOrder": 10,
+   "mapX": 10.36,
+   "mapY": 7.69,
+   "accidentChance": 0.02,
+   "accidentDamageMin": 2,
+   "accidentDamageMax": 4,
+   "createdAt": "2026-09-16T23:21:36.189Z",
+   "updatedAt": "2026-09-30T14:33:52.652Z",
+   "location": {
+    "name": "Valedor"
+   },
+   "creatures": [
+    {
+     "id": 1,
+     "groundId": 1,
+     "creatureId": 1,
+     "enabled": true,
+     "encounterWeight": 1,
+     "creature": {
+      "name": "Meadow Hare"
+     }
+    },
+    {
+     "id": 2,
+     "groundId": 1,
+     "creatureId": 2,
+     "enabled": true,
+     "encounterWeight": 1,
+     "creature": {
+      "name": "Red Deer"
+     }
+    },
+    {
+     "id": 26,
+     "groundId": 1,
+     "creatureId": 3,
+     "enabled": true,
+     "encounterWeight": 1,
+     "creature": {
+      "name": "Wild Boar"
+     }
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "locationId": 2,
+   "name": "Sunmeadow Fields",
+   "description": "Long grass, low hedges, and open sightlines favor patient tracking over a hurried chase.",
+   "requiredHuntingLevel": 1,
+   "enabled": true,
+   "sortOrder": 10,
+   "mapX": 38.02,
+   "mapY": 71.87,
+   "accidentChance": 0.025,
+   "accidentDamageMin": 2,
+   "accidentDamageMax": 4,
+   "createdAt": "2026-09-16T23:21:36.915Z",
+   "updatedAt": "2026-09-30T14:33:52.671Z",
+   "location": {
+    "name": "Greenveil Plains"
+   },
+   "creatures": [
+    {
+     "id": 3,
+     "groundId": 2,
+     "creatureId": 1,
+     "enabled": true,
+     "encounterWeight": 5,
+     "creature": {
+      "name": "Meadow Hare"
+     }
+    },
+    {
+     "id": 4,
+     "groundId": 2,
+     "creatureId": 2,
+     "enabled": true,
+     "encounterWeight": 3,
+     "creature": {
+      "name": "Red Deer"
+     }
+    },
+    {
+     "id": 5,
+     "groundId": 2,
+     "creatureId": 3,
+     "enabled": true,
+     "encounterWeight": 1,
+     "creature": {
+      "name": "Wild Boar"
+     }
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "locationId": 2,
+   "name": "Oldstone Burrows",
+   "description": "Collapsed stonework and tangled banks shelter small game, but loose footing rewards care.",
+   "requiredHuntingLevel": 5,
+   "enabled": true,
+   "sortOrder": 20,
+   "mapX": 14.91,
+   "mapY": 56.74,
+   "accidentChance": 0.04,
+   "accidentDamageMin": 2,
+   "accidentDamageMax": 4,
+   "createdAt": "2026-09-16T23:21:37.879Z",
+   "updatedAt": "2026-09-30T14:33:52.688Z",
+   "location": {
+    "name": "Greenveil Plains"
+   },
+   "creatures": [
+    {
+     "id": 6,
+     "groundId": 3,
+     "creatureId": 1,
+     "enabled": true,
+     "encounterWeight": 4,
+     "creature": {
+      "name": "Meadow Hare"
+     }
+    },
+    {
+     "id": 7,
+     "groundId": 3,
+     "creatureId": 3,
+     "enabled": true,
+     "encounterWeight": 2,
+     "creature": {
+      "name": "Wild Boar"
+     }
+    }
+   ]
+  },
+  {
+   "id": 4,
+   "locationId": 3,
+   "name": "Riverward Copse",
+   "description": "A strip of coppiced woodland between old levees where animals come to drink at dusk.",
+   "requiredHuntingLevel": 8,
+   "enabled": true,
+   "sortOrder": 10,
+   "mapX": 14.74,
+   "mapY": 11.91,
+   "accidentChance": 0.035,
+   "accidentDamageMin": 2,
+   "accidentDamageMax": 4,
+   "createdAt": "2026-09-16T23:21:38.600Z",
+   "updatedAt": "2026-09-30T14:33:52.707Z",
+   "location": {
+    "name": "Citadel"
+   },
+   "creatures": [
+    {
+     "id": 8,
+     "groundId": 4,
+     "creatureId": 2,
+     "enabled": true,
+     "encounterWeight": 4,
+     "creature": {
+      "name": "Red Deer"
+     }
+    },
+    {
+     "id": 9,
+     "groundId": 4,
+     "creatureId": 3,
+     "enabled": true,
+     "encounterWeight": 3,
+     "creature": {
+      "name": "Wild Boar"
+     }
+    },
+    {
+     "id": 10,
+     "groundId": 4,
+     "creatureId": 4,
+     "enabled": true,
+     "encounterWeight": 1,
+     "creature": {
+      "name": "Grey Wolf"
+     }
+    }
+   ]
+  },
+  {
+   "id": 5,
+   "locationId": 4,
+   "name": "Ashwood Thicket",
+   "description": "Dense ash trunks and smoky undergrowth conceal strong game and territorial predators.",
+   "requiredHuntingLevel": 18,
+   "enabled": true,
+   "sortOrder": 10,
+   "mapX": null,
+   "mapY": null,
+   "accidentChance": 0.055,
+   "accidentDamageMin": 8,
+   "accidentDamageMax": 18,
+   "createdAt": "2026-09-16T23:21:39.559Z",
+   "updatedAt": "2026-09-30T14:33:52.726Z",
+   "location": {
+    "name": "Goblins Camp"
+   },
+   "creatures": [
+    {
+     "id": 11,
+     "groundId": 5,
+     "creatureId": 3,
+     "enabled": true,
+     "encounterWeight": 4,
+     "creature": {
+      "name": "Wild Boar"
+     }
+    },
+    {
+     "id": 12,
+     "groundId": 5,
+     "creatureId": 4,
+     "enabled": true,
+     "encounterWeight": 3,
+     "creature": {
+      "name": "Grey Wolf"
+     }
+    },
+    {
+     "id": 13,
+     "groundId": 5,
+     "creatureId": 8,
+     "enabled": true,
+     "encounterWeight": 0.5,
+     "creature": {
+      "name": "Ashback Bear"
+     }
+    },
+    {
+     "id": 29,
+     "groundId": 5,
+     "creatureId": 27,
+     "enabled": true,
+     "encounterWeight": 2,
+     "creature": {
+      "name": "Briarback Badger"
+     }
+    }
+   ]
+  },
+  {
+   "id": 6,
+   "locationId": 4,
+   "name": "Reedfen Tracks",
+   "description": "Raised paths cross black water and reed beds where prints disappear as quickly as they form.",
+   "requiredHuntingLevel": 24,
+   "enabled": true,
+   "sortOrder": 20,
+   "mapX": null,
+   "mapY": null,
+   "accidentChance": 0.07,
+   "accidentDamageMin": 8,
+   "accidentDamageMax": 18,
+   "createdAt": "2026-09-16T23:21:40.518Z",
+   "updatedAt": "2026-09-30T14:33:52.744Z",
+   "location": {
+    "name": "Goblins Camp"
+   },
+   "creatures": [
+    {
+     "id": 14,
+     "groundId": 6,
+     "creatureId": 3,
+     "enabled": true,
+     "encounterWeight": 3,
+     "creature": {
+      "name": "Wild Boar"
+     }
+    },
+    {
+     "id": 15,
+     "groundId": 6,
+     "creatureId": 5,
+     "enabled": true,
+     "encounterWeight": 2,
+     "creature": {
+      "name": "Marsh Crocodile"
+     }
+    },
+    {
+     "id": 16,
+     "groundId": 6,
+     "creatureId": 4,
+     "enabled": true,
+     "encounterWeight": 1,
+     "creature": {
+      "name": "Grey Wolf"
+     }
+    }
+   ]
+  },
+  {
+   "id": 7,
+   "locationId": 5,
+   "name": "Whitepine Slopes",
+   "description": "Wind-cut pine slopes hold narrow game trails above deep drifts and hidden stone.",
+   "requiredHuntingLevel": 35,
+   "enabled": true,
+   "sortOrder": 10,
+   "mapX": 42.52,
+   "mapY": 21.33,
+   "accidentChance": 0.08,
+   "accidentDamageMin": 9,
+   "accidentDamageMax": 21,
+   "createdAt": "2026-09-16T23:21:41.482Z",
+   "updatedAt": "2026-09-30T14:33:52.759Z",
+   "location": {
+    "name": "Frostcrown Peaks"
+   },
+   "creatures": [
+    {
+     "id": 17,
+     "groundId": 7,
+     "creatureId": 6,
+     "enabled": true,
+     "encounterWeight": 5,
+     "creature": {
+      "name": "Mountain Goat"
+     }
+    },
+    {
+     "id": 18,
+     "groundId": 7,
+     "creatureId": 7,
+     "enabled": true,
+     "encounterWeight": 2,
+     "creature": {
+      "name": "Frostfang Lynx"
+     }
+    },
+    {
+     "id": 30,
+     "groundId": 7,
+     "creatureId": 28,
+     "enabled": true,
+     "encounterWeight": 3,
+     "creature": {
+      "name": "Snowhorn Ram"
+     }
+    }
+   ]
+  },
+  {
+   "id": 8,
+   "locationId": 6,
+   "name": "Broken Gardens",
+   "description": "Overgrown terraces and roofless courts draw prey, predators, and hunters into close quarters.",
+   "requiredHuntingLevel": 52,
+   "enabled": true,
+   "sortOrder": 10,
+   "mapX": null,
+   "mapY": null,
+   "accidentChance": 0.075,
+   "accidentDamageMin": 14,
+   "accidentDamageMax": 32,
+   "createdAt": "2026-09-16T23:21:42.203Z",
+   "updatedAt": "2026-09-30T14:33:52.775Z",
+   "location": {
+    "name": "Ruins of Caldrath"
+   },
+   "creatures": [
+    {
+     "id": 19,
+     "groundId": 8,
+     "creatureId": 2,
+     "enabled": true,
+     "encounterWeight": 3,
+     "creature": {
+      "name": "Red Deer"
+     }
+    },
+    {
+     "id": 20,
+     "groundId": 8,
+     "creatureId": 4,
+     "enabled": true,
+     "encounterWeight": 3,
+     "creature": {
+      "name": "Grey Wolf"
+     }
+    },
+    {
+     "id": 21,
+     "groundId": 8,
+     "creatureId": 8,
+     "enabled": true,
+     "encounterWeight": 1,
+     "creature": {
+      "name": "Ashback Bear"
+     }
+    },
+    {
+     "id": 31,
+     "groundId": 8,
+     "creatureId": 29,
+     "enabled": true,
+     "encounterWeight": 2.5,
+     "creature": {
+      "name": "Ruin Viper"
+     }
+    }
+   ]
+  },
+  {
+   "id": 9,
+   "locationId": 7,
+   "name": "Cinderwood Shelf",
+   "description": "Charred woodland clings to volcanic ledges where heat haze and brittle ground hide every misstep.",
+   "requiredHuntingLevel": 70,
+   "enabled": true,
+   "sortOrder": 10,
+   "mapX": null,
+   "mapY": null,
+   "accidentChance": 0.1,
+   "accidentDamageMin": 25,
+   "accidentDamageMax": 58,
+   "createdAt": "2026-09-16T23:21:43.162Z",
+   "updatedAt": "2026-09-30T14:33:52.790Z",
+   "location": {
+    "name": "Mount Doom"
+   },
+   "creatures": [
+    {
+     "id": 22,
+     "groundId": 9,
+     "creatureId": 6,
+     "enabled": true,
+     "encounterWeight": 3,
+     "creature": {
+      "name": "Mountain Goat"
+     }
+    },
+    {
+     "id": 23,
+     "groundId": 9,
+     "creatureId": 8,
+     "enabled": true,
+     "encounterWeight": 2,
+     "creature": {
+      "name": "Ashback Bear"
+     }
+    },
+    {
+     "id": 32,
+     "groundId": 9,
+     "creatureId": 30,
+     "enabled": true,
+     "encounterWeight": 3,
+     "creature": {
+      "name": "Cinder Jackal"
+     }
+    }
+   ]
+  },
+  {
+   "id": 10,
+   "locationId": 8,
+   "name": "Mangrove Channels",
+   "description": "Tidal roots and hidden pools make quiet progress possible, but retreat difficult.",
+   "requiredHuntingLevel": 80,
+   "enabled": true,
+   "sortOrder": 10,
+   "mapX": null,
+   "mapY": null,
+   "accidentChance": 0.09,
+   "accidentDamageMin": 33,
+   "accidentDamageMax": 76,
+   "createdAt": "2026-09-16T23:21:43.890Z",
+   "updatedAt": "2026-09-30T14:33:52.808Z",
+   "location": {
+    "name": "Pirate Island"
+   },
+   "creatures": [
+    {
+     "id": 24,
+     "groundId": 10,
+     "creatureId": 5,
+     "enabled": true,
+     "encounterWeight": 4,
+     "creature": {
+      "name": "Marsh Crocodile"
+     }
+    },
+    {
+     "id": 25,
+     "groundId": 10,
+     "creatureId": 3,
+     "enabled": true,
+     "encounterWeight": 2,
+     "creature": {
+      "name": "Wild Boar"
+     }
+    },
+    {
+     "id": 33,
+     "groundId": 10,
+     "creatureId": 31,
+     "enabled": true,
+     "encounterWeight": 1.5,
+     "creature": {
+      "name": "Mangrove Panther"
+     }
+    }
+   ]
+  }
+ ],
+ "growth": [
+  {
+   "id": 345,
+   "statType": "PHYSICAL_DAMAGE_MIN",
+   "baseValue": 1,
+   "perLevel": 0.2,
+   "maxBonus": null,
+   "updatedAt": "2026-09-17T16:58:14.262Z"
+  },
+  {
+   "id": 346,
+   "statType": "PHYSICAL_DAMAGE_MAX",
+   "baseValue": 5,
+   "perLevel": 0.3,
+   "maxBonus": null,
+   "updatedAt": "2026-09-17T16:58:14.262Z"
+  },
+  {
+   "id": 347,
+   "statType": "MAGIC_DAMAGE_MIN",
+   "baseValue": 0,
+   "perLevel": 0,
+   "maxBonus": null,
+   "updatedAt": "2026-09-17T16:58:14.262Z"
+  },
+  {
+   "id": 348,
+   "statType": "MAGIC_DAMAGE_MAX",
+   "baseValue": 0,
+   "perLevel": 0,
+   "maxBonus": null,
+   "updatedAt": "2026-09-17T16:58:14.262Z"
+  },
+  {
+   "id": 349,
+   "statType": "CRITICAL_CHANCE",
+   "baseValue": 5,
+   "perLevel": 0.1,
+   "maxBonus": 10,
+   "updatedAt": "2026-09-17T16:58:14.262Z"
+  },
+  {
+   "id": 350,
+   "statType": "CRITICAL_DAMAGE",
+   "baseValue": 150,
+   "perLevel": 0.5,
+   "maxBonus": 50,
+   "updatedAt": "2026-09-17T16:58:14.262Z"
+  },
+  {
+   "id": 352,
+   "statType": "ACCURACY",
+   "baseValue": 10,
+   "perLevel": 0.2,
+   "maxBonus": 20,
+   "updatedAt": "2026-09-17T16:58:14.262Z"
+  },
+  {
+   "id": 353,
+   "statType": "ARMOR",
+   "baseValue": 0,
+   "perLevel": 0.5,
+   "maxBonus": null,
+   "updatedAt": "2026-09-17T16:58:14.262Z"
+  },
+  {
+   "id": 355,
+   "statType": "EVASION_MELEE",
+   "baseValue": 5,
+   "perLevel": 0.1,
+   "maxBonus": 10,
+   "updatedAt": "2026-09-17T16:58:14.262Z"
+  },
+  {
+   "id": 356,
+   "statType": "EVASION_RANGED",
+   "baseValue": 5,
+   "perLevel": 0.1,
+   "maxBonus": 10,
+   "updatedAt": "2026-09-17T16:58:14.262Z"
+  },
+  {
+   "id": 357,
+   "statType": "EVASION_MAGIC",
+   "baseValue": 5,
+   "perLevel": 0.1,
+   "maxBonus": 10,
+   "updatedAt": "2026-09-17T16:58:14.262Z"
+  },
+  {
+   "id": 358,
+   "statType": "BLOCK_CHANCE",
+   "baseValue": 0,
+   "perLevel": 0,
+   "maxBonus": null,
+   "updatedAt": "2026-09-17T16:58:14.262Z"
+  },
+  {
+   "id": 359,
+   "statType": "FIRE_RESIST",
+   "baseValue": 0,
+   "perLevel": 0.1,
+   "maxBonus": 10,
+   "updatedAt": "2026-09-17T16:58:14.262Z"
+  },
+  {
+   "id": 360,
+   "statType": "COLD_RESIST",
+   "baseValue": 0,
+   "perLevel": 0.1,
+   "maxBonus": 10,
+   "updatedAt": "2026-09-17T16:58:14.262Z"
+  },
+  {
+   "id": 361,
+   "statType": "LIGHTNING_RESIST",
+   "baseValue": 0,
+   "perLevel": 0.1,
+   "maxBonus": 10,
+   "updatedAt": "2026-09-17T16:58:14.262Z"
+  },
+  {
+   "id": 362,
+   "statType": "POISON_RESIST",
+   "baseValue": 0,
+   "perLevel": 0.1,
+   "maxBonus": 10,
+   "updatedAt": "2026-09-17T16:58:14.262Z"
+  },
+  {
+   "id": 363,
+   "statType": "HEALTH",
+   "baseValue": 100,
+   "perLevel": 10,
+   "maxBonus": null,
+   "updatedAt": "2026-09-17T16:58:14.262Z"
+  },
+  {
+   "id": 364,
+   "statType": "MANA",
+   "baseValue": 50,
+   "perLevel": 2,
+   "maxBonus": null,
+   "updatedAt": "2026-09-17T16:58:14.262Z"
+  },
+  {
+   "id": 365,
+   "statType": "HEALTH_REGEN",
+   "baseValue": 0.001,
+   "perLevel": 0.001,
+   "maxBonus": null,
+   "updatedAt": "2026-09-17T16:58:14.262Z"
+  },
+  {
+   "id": 366,
+   "statType": "MANA_REGEN",
+   "baseValue": 1,
+   "perLevel": 0.02,
+   "maxBonus": null,
+   "updatedAt": "2026-09-17T16:58:14.262Z"
+  },
+  {
+   "id": 367,
+   "statType": "PRAYER_POINTS",
+   "baseValue": 10,
+   "perLevel": 0,
+   "maxBonus": null,
+   "updatedAt": "2026-09-17T16:58:14.262Z"
+  },
+  {
+   "id": 368,
+   "statType": "MOVEMENT_SPEED",
+   "baseValue": 100,
+   "perLevel": 0,
+   "maxBonus": null,
+   "updatedAt": "2026-09-17T16:58:14.262Z"
+  },
+  {
+   "id": 369,
+   "statType": "LUCK",
+   "baseValue": 0,
+   "perLevel": 0,
+   "maxBonus": null,
+   "updatedAt": "2026-09-17T16:58:14.262Z"
+  },
+  {
+   "id": 370,
+   "statType": "GOLD_FIND",
+   "baseValue": 0,
+   "perLevel": 0,
+   "maxBonus": null,
+   "updatedAt": "2026-09-17T16:58:14.262Z"
+  },
+  {
+   "id": 371,
+   "statType": "EXPERIENCE_GAIN",
+   "baseValue": 100,
+   "perLevel": 0,
+   "maxBonus": null,
+   "updatedAt": "2026-09-17T16:58:14.262Z"
+  },
+  {
+   "id": 372,
+   "statType": "LIFESTEAL",
+   "baseValue": 0,
+   "perLevel": 0,
+   "maxBonus": null,
+   "updatedAt": "2026-09-17T16:58:14.262Z"
+  },
+  {
+   "id": 373,
+   "statType": "THORNS",
+   "baseValue": 0,
+   "perLevel": 0,
+   "maxBonus": null,
+   "updatedAt": "2026-09-17T16:58:14.262Z"
+  },
+  {
+   "id": 374,
+   "statType": "WOODCUTTING_EFFICIENCY",
+   "baseValue": 0,
+   "perLevel": 0,
+   "maxBonus": null,
+   "updatedAt": "2026-09-17T16:58:14.262Z"
+  },
+  {
+   "id": 375,
+   "statType": "MINING_EFFICIENCY",
+   "baseValue": 0,
+   "perLevel": 0,
+   "maxBonus": null,
+   "updatedAt": "2026-09-17T16:58:14.262Z"
+  },
+  {
+   "id": 376,
+   "statType": "FISHING_EFFICIENCY",
+   "baseValue": 0,
+   "perLevel": 0,
+   "maxBonus": null,
+   "updatedAt": "2026-09-17T16:58:14.262Z"
+  },
+  {
+   "id": 377,
+   "statType": "GATHERING_EFFICIENCY",
+   "baseValue": 0,
+   "perLevel": 0,
+   "maxBonus": null,
+   "updatedAt": "2026-09-17T16:58:14.262Z"
+  },
+  {
+   "id": 378,
+   "statType": "HUNTING_EFFICIENCY",
+   "baseValue": 0,
+   "perLevel": 0,
+   "maxBonus": null,
+   "updatedAt": "2026-09-17T16:58:14.262Z"
+  },
+  {
+   "id": 379,
+   "statType": "MAGIC_RESIST",
+   "baseValue": 0,
+   "perLevel": 0.1,
+   "maxBonus": 10,
+   "updatedAt": "2026-09-30T14:33:52.852Z"
+  },
+  {
+   "id": 380,
+   "statType": "ATTACK_SPEED",
+   "baseValue": 1,
+   "perLevel": 0,
+   "maxBonus": null,
+   "updatedAt": "2026-09-30T14:33:52.852Z"
+  }
+ ],
+ "combat": null,
+ "dungeonConfig": [
+  {
+   "id": 1,
+   "minimumHealthToStartPercent": 25,
+   "deathLootKeepChance": 0.35,
+   "deathLootQuantityPercent": 25,
+   "createdAt": "2026-09-17T14:13:46.651Z",
+   "updatedAt": "2026-09-17T14:13:46.651Z"
+  }
+ ],
+ "players": 11
+}

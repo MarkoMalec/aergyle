@@ -346,17 +346,23 @@ between tiers are deliberate: that's where new gear goes.
 | 5-10 | Tin Sword, Leather Belt, Wayfarer Shortblade, Tinker's Brass Signet, Rowan Bead Necklace | |
 | 15 | Gold set and Gold jewelry | |
 | 20-30 | Bearded Greataxe, Iron Shield, Briarcleaver, Mossweave (gathering) | |
-| 35-40 | Ironbark set | Gloamvault, Crownhold (35, 2 h) |
+| 35-40 | Ironbark set | Thornroad Hollow, Greenveil Plains (35, 2 h) |
+| 45 | | Sunken Masonworks, Citadel (45, 2.5 h) |
 | 60 | Reedwind Bow, Fordstone Talisman | Gloamvault, Valedor (60, 3 h) |
+| 80 | | Caldrath Undervaults (80, 3 h) |
 | 100-120 | Frostsilver set, Ogre Cleaver, Cindermaul | Blackjaw Stockade (100, 4 h) |
-| 150-180 | Dragonscale Shoulder Pads, Cinderweave set | Drowned Mouth Grotto (180, 5 h) |
-| 200-260 | Silver Revolver, Diamond Ring, Duskglass Staff | |
-| 300 | Duskwarden set | Trollbreaker Cavern (300, 6 h) |
+| 130 | | Bogmouth Kilns, Goblins Camp (130, 4 h, boss) |
+| 150-180 | Dragonscale Shoulder Pads, Cinderweave set | Emberhorn Labyrinth, Mount Doom (160, 4.5 h, boss); Drowned Mouth Grotto (180, 5 h, boss) |
+| 200-260 | Silver Revolver, Diamond Ring, Duskglass Staff | Hollowmaw Sinkhole, Sunscar Badlands (210, 5 h); Wreckers' Grotto, Pirate Island (235, 5.5 h); Dreadspire Ossuary (260, 5.5 h); all with a boss |
+| 300 | Duskwarden set | Trollbreaker Cavern (300, 6 h, boss) |
 | 340 | Embervein Sword | |
 
-Monsters that aren't in a dungeon yet got levels for dungeons in the gaps:
-Puddle Slime 45, Mire ooze 80, Bat 130, Carrion Hound 150, Cavefang Spider
-230, Rattlebone Skeleton 260. Crafting recipes kept their skill levels. On the live curves
+The 20 October 2026 roster pass (`prisma/content/dungeons.ts`) gave every
+monster a dungeon. Each dungeon's own monsters were sized with
+`monsterBudget` and share one damage scale, found with the production
+resolver, so an on-level reference character clears it 75% of the time (65%
+with a boss). Ten levels over clears 88-100% of runs. XP follows the
+2.5 × vocation rate above. Crafting recipes kept their skill levels. On the live curves
 they already cost about as much XP as the character levels their gear now
 sits at: skill 20 ≈ character 35, 65 ≈ 124, 105 ≈ 208.
 

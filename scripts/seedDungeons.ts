@@ -2,7 +2,11 @@ import "dotenv/config";
 import { readFile } from "node:fs/promises";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
-import { DUNGEON_MONSTERS, DUNGEONS } from "../prisma/content/dungeons";
+import {
+  DUNGEON_MONSTERS,
+  DUNGEONS,
+  type DungeonDefinition,
+} from "../prisma/content/dungeons";
 import { changedFields } from "./seedHelpers";
 
 type Mode = "--check" | "--apply" | "--verify";
@@ -213,14 +217,14 @@ async function main(selectedMode: Mode) {
         note(`${matchedLocationName} · ${name}`, Boolean(found), diff);
         if (!dungeonId) continue;
 
-        for (const monster of monsters) {
+        for (const monster of monsters as DungeonDefinition["monsters"]) {
           const creatureId = creatureIds.get(monster.name);
           if (!creatureId) {
             if (selectedMode === "--check") continue;
             throw new Error(`Missing monster ${monster.name}`);
           }
           const expectedAssignment = {
-            enabled: true,
+            enabled: monster.enabled ?? true,
             minCount: monster.minCount,
             maxCount: monster.maxCount,
           };
@@ -230,6 +234,23 @@ async function main(selectedMode: Mode) {
           const foundAssignment = await tx.dungeonMonster.findUnique({
             where: assignmentWhere,
           });
+          // A switched-off placement is only ever updated, never created.
+          if (!foundAssignment && !expectedAssignment.enabled) continue;
+          if (foundAssignment) {
+            const assignmentChanges = changedFields(
+              foundAssignment as unknown as Record<string, unknown>,
+              expectedAssignment,
+            );
+            if (assignmentChanges.length > 0) {
+              note(
+                `${name} · ${monster.name}`,
+                true,
+                assignmentChanges,
+              );
+            }
+          } else {
+            note(`${name} · ${monster.name}`, false, []);
+          }
           const assignmentDiff = foundAssignment
             ? changedFields(
                 foundAssignment as unknown as Record<string, unknown>,

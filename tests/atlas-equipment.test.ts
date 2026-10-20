@@ -20,8 +20,9 @@ void test("the pack contains six distinct weapons and complete Rare/Epic armor s
   assert.equal(new Set(ATLAS_EQUIPMENT.map((item) => item.name)).size, 22);
   const weapons = ATLAS_EQUIPMENT.filter((item) => !item.set);
   assert.equal(weapons.length, 6);
-  assert.equal(new Set(weapons.map((item) => item.itemType)).size, 6);
+  assert.equal(new Set(weapons.map((item) => item.itemType)).size, 5);
   const ogreCleaver = weapons.find((item) => item.slug === "ogre-cleaver");
+  assert.equal(ogreCleaver?.itemType, "SWORD");
   assert.equal(ogreCleaver?.twoHanded, true);
   for (const [set, level, rarity] of [
     ["trailwarden", 1, "RARE"],

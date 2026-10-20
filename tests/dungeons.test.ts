@@ -4,7 +4,11 @@ import { test } from "node:test";
 import { COMPONENT_ITEMS } from "../prisma/content/componentExpansion";
 import { ALCHEMY_ITEMS } from "../prisma/content/alchemy";
 import { ATLAS_EQUIPMENT } from "../prisma/content/atlasEquipment";
-import { DUNGEON_MONSTERS, DUNGEONS } from "../prisma/content/dungeons";
+import {
+  ADMIN_LOCATION_NAMES,
+  DUNGEON_MONSTERS,
+  DUNGEONS,
+} from "../prisma/content/dungeons";
 import { HUNTING_ITEMS } from "../prisma/content/hunting";
 import { TAILORING_ITEMS } from "../prisma/content/tailoring";
 import { WORLD_ATLAS_LOCATION_MARKERS } from "../src/game/world/atlasLocations";
@@ -349,9 +353,10 @@ void test("recommended health is stable, scales with population and pack size, a
 });
 
 void test("dungeon content places boss-and-minion dungeon groups with valid loot", () => {
-  const locations = new Set(
-    WORLD_ATLAS_LOCATION_MARKERS.map((location) => location.name),
-  );
+  const locations = new Set<string>([
+    ...WORLD_ATLAS_LOCATION_MARKERS.map((location) => location.name),
+    ...ADMIN_LOCATION_NAMES,
+  ]);
   const monsterNames = new Set(DUNGEON_MONSTERS.map((monster) => monster.name));
   const knownItems = new Set<string>([
     ...HUNTING_ITEMS.map((item) => item.name),
@@ -390,6 +395,8 @@ void test("dungeon content places boss-and-minion dungeon groups with valid loot
     { name: "Ogre", minCount: 1, maxCount: 1 },
     { name: "Orc", minCount: 3, maxCount: 5 },
     { name: "Warg", minCount: 2, maxCount: 3 },
+    { name: "Goblin", minCount: 1, maxCount: 3 },
+    { name: "Tunnel goblin", minCount: 1, maxCount: 3 },
   ]);
   assert.equal(ogreStockade?.packSize, 2);
   assert.equal(caveTrollGrotto?.packSize, 2);

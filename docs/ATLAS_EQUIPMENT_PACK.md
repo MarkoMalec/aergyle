@@ -23,14 +23,14 @@ These are coordinated armor collections; no additional set-bonus mechanic is int
 
 ## Weapons
 
-| Weapon              | Type  | Default rarity | Required level | Base damage    | Price |
-| ------------------- | ----- | -------------- | -------------: | -------------- | ----: |
-| Wayfarer Shortblade | Sword | Rare           |              1 | 5–9 physical   |   110 |
-| Briarcleaver        | Axe   | Rare           |             10 | 18–29 physical |   650 |
-| Reedwind Bow        | Bow   | Rare           |             20 | 30–46 physical | 1,800 |
-| Cindermaul          | Mace  | Epic           |             35 | 52–78 physical | 4,600 |
-| Ogre Cleaver        | Great Axe, two-handed | Rare |        40 | 38–56 physical | 3,400 |
-| Duskglass Staff     | Staff | Epic           |             50 | 72–108 magic   | 7,800 |
+| Weapon              | Type              | Default rarity | Required level | Base damage    | Price |
+| ------------------- | ----------------- | -------------- | -------------: | -------------- | ----: |
+| Wayfarer Shortblade | Sword             | Rare           |              1 | 5–9 physical   |   110 |
+| Briarcleaver        | Axe               | Rare           |             10 | 18–29 physical |   650 |
+| Reedwind Bow        | Bow               | Rare           |             20 | 30–46 physical | 1,800 |
+| Cindermaul          | Mace              | Epic           |             35 | 52–78 physical | 4,600 |
+| Ogre Cleaver        | Sword, two-handed | Rare           |             40 | 38–56 physical | 3,400 |
+| Duskglass Staff     | Staff             | Epic           |             50 | 72–108 magic   | 7,800 |
 
 All items are non-stackable, have descriptions, prices, equipment slots and base stats. Their exact stat definitions are maintained in code, rather than duplicated in this guide.
 Ogre Cleaver is a rare drop from Ogres in Blackjaw Stockade.

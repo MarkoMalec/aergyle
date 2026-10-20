@@ -30,10 +30,10 @@
     {
       "slug": "ogre-cleaver",
       "family": "weapons",
-      "master": "ogre-cleaver-master.png",
+      "master": "ogre-cleaver-master-v2.png",
       "prompt": "ogre-cleaver.prompt.txt",
-      "runtime": "/assets/items/weapons/ogre-cleaver-atlas-v1.png",
-      "generatedFile": "exec-d8ed744c-6440-4cec-b6cc-c59ebfe864ad.png"
+      "runtime": "/assets/items/weapons/ogre-cleaver-atlas-v2.png",
+      "generatedFile": "exec-a8bcd65a-b026-4136-836e-d5814419df97.png"
     },
     {
       "slug": "trailwarden-helm",
