@@ -1,0 +1,11 @@
+{
+  "activatedAt": "2026-10-31T17:08:21.425Z",
+  "before": {
+    "id": 1,
+    "mapImage": "/assets/world/world-map-v1.png"
+  },
+  "after": {
+    "id": 1,
+    "mapImage": "/assets/world/atlas-v2/world-atlas-v2.webp"
+  }
+}

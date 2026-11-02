@@ -120,10 +120,22 @@ const config = {
             height: "0",
           },
         },
+        // The quest marker hovering over an NPC's head.
+        bob: {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-5px)" },
+        },
+        // A travel route inked once along a path with pathLength=1.
+        "route-draw": {
+          from: { strokeDashoffset: "1" },
+          to: { strokeDashoffset: "0" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        bob: "bob 2.4s ease-in-out infinite",
+        "route-draw": "route-draw 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both",
       },
     },
   },

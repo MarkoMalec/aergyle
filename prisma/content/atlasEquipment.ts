@@ -12,6 +12,8 @@ export interface AtlasItemDefinition {
   slug: string;
   /** Runtime sprite revision; v1 is used unless an item has redesigned art. */
   artVersion?: number;
+  /** Weapons sorted into a category folder under /assets/items/weapons. */
+  folder?: string;
   set: AtlasSet | null;
   name: string;
   description: string;
@@ -140,6 +142,7 @@ export const ATLAS_EQUIPMENT: readonly AtlasItemDefinition[] = [
   {
     slug: "ogre-cleaver",
     artVersion: 2,
+    folder: "swords",
     set: null,
     name: "Ogre Cleaver",
     description:
@@ -340,7 +343,10 @@ export const ATLAS_EQUIPMENT: readonly AtlasItemDefinition[] = [
 ];
 
 export function atlasSpritePath(item: AtlasItemDefinition): string {
-  return `/assets/items/${item.set ? "armor" : "weapons"}/${item.slug}-atlas-v${item.artVersion ?? 1}.png`;
+  const folder = item.set
+    ? "armor"
+    : ["weapons", item.folder].filter(Boolean).join("/");
+  return `/assets/items/${folder}/${item.slug}-atlas-v${item.artVersion ?? 1}.png`;
 }
 
 export function atlasItemCreateData(

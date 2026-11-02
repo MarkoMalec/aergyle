@@ -669,7 +669,7 @@ export async function getAdminPlayer(userId: string) {
       name: row.quest.name,
       repeat: row.quest.repeat,
       npc: row.quest.npc.name,
-      settlement: row.quest.npc.settlement.name,
+      settlement: row.quest.npc.settlement?.name ?? "No location",
       period: row.period,
       acceptedAt: row.acceptedAt.toISOString(),
       completedAt: iso(row.completedAt),

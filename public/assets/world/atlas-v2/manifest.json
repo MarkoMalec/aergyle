@@ -1,0 +1,88 @@
+{
+  "version": 2,
+  "aspectRatio": "3:2",
+  "nativeComposition": {
+    "width": 3072,
+    "height": 2048
+  },
+  "generatedQuarter": {
+    "width": 1536,
+    "height": 1024
+  },
+  "fullAtlas": {
+    "width": 7680,
+    "height": 5120
+  },
+  "tile": {
+    "width": 3840,
+    "height": 2560
+  },
+  "native4k": false,
+  "exportScale": 2.5,
+  "exportMethod": "Shared 3072x2048 composition with generated seam repairs; Lanczos3 resample once to 7680x5120; four exact non-overlapping crops.",
+  "origin": "top-left",
+  "order": [
+    "top-left",
+    "top-right",
+    "bottom-left",
+    "bottom-right"
+  ],
+  "gap": 0,
+  "overlap": 0,
+  "quarters": [
+    {
+      "id": "top-left",
+      "column": 0,
+      "row": 0,
+      "path": "/assets/world/atlas-v2/world-atlas-v2-top-left-4k.png",
+      "rectangle": {
+        "left": 0,
+        "top": 0,
+        "width": 3840,
+        "height": 2560
+      }
+    },
+    {
+      "id": "top-right",
+      "column": 1,
+      "row": 0,
+      "path": "/assets/world/atlas-v2/world-atlas-v2-top-right-4k.png",
+      "rectangle": {
+        "left": 3840,
+        "top": 0,
+        "width": 3840,
+        "height": 2560
+      }
+    },
+    {
+      "id": "bottom-left",
+      "column": 0,
+      "row": 1,
+      "path": "/assets/world/atlas-v2/world-atlas-v2-bottom-left-4k.png",
+      "rectangle": {
+        "left": 0,
+        "top": 2560,
+        "width": 3840,
+        "height": 2560
+      }
+    },
+    {
+      "id": "bottom-right",
+      "column": 1,
+      "row": 1,
+      "path": "/assets/world/atlas-v2/world-atlas-v2-bottom-right-4k.png",
+      "rectangle": {
+        "left": 3840,
+        "top": 2560,
+        "width": 3840,
+        "height": 2560
+      }
+    }
+  ],
+  "runtimeOverview": {
+    "path": "/assets/world/atlas-v2/world-atlas-v2.webp",
+    "width": 3072,
+    "height": 2048,
+    "format": "webp"
+  }
+}

@@ -1,5 +1,6 @@
 import "server-only";
 
+import { npcQuestMarker, questMarkerKind } from "~/game/settlements";
 import { VocationalActionType } from "~/generated/prisma/enums";
 import { prisma } from "~/lib/prisma";
 import { countItems, loadInventoryStacks } from "~/server/items/consumeItems";
@@ -152,7 +153,7 @@ export async function getSettlementPage(userId: string, settlementId: number) {
         headY: true,
         headSize: true,
         ...MAP_PIN_SELECT,
-        profession: true,
+        profession: { select: { name: true } },
         _count: { select: { offers: { where: liveOfferWhere(now) } } },
         quests: {
           where: visibleQuestWhere(presence.level),
@@ -199,6 +200,7 @@ export async function getSettlementPage(userId: string, settlementId: number) {
         questsAvailable: views.filter((view) => view.status === "AVAILABLE")
           .length,
         questsReady: views.filter((view) => view.ready).length,
+        questMarker: npcQuestMarker(views.map(questMarkerKind)),
       };
     }),
     projects,
@@ -219,9 +221,9 @@ export async function getNpcPage(
       id: true,
       name: true,
       portrait: true,
-      profession: true,
+      profession: { select: { name: true } },
       description: true,
-      settlement: { select: SETTLEMENT_SELECT },
+      settlement: { select: { ...SETTLEMENT_SELECT, mapImage: true } },
       offers: {
         where: liveOfferWhere(now),
         orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
@@ -240,10 +242,11 @@ export async function getNpcPage(
       },
     },
   });
-  if (!npc) return null;
+  if (!npc?.settlement) return null;
 
-  const { offers, quests, ...profile } = npc;
-  const present = presence.locationId === npc.settlement.location.id;
+  const { offers, quests, settlement, ...rest } = npc;
+  const profile = { ...rest, settlement };
+  const present = presence.locationId === settlement.location.id;
   if (!present) {
     return {
       npc: profile,

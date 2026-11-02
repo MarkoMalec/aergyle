@@ -1772,18 +1772,30 @@ model Settlement {
   @@index([locationId, enabled, sortOrder])
 }
 
-// Optional role that will grant an NPC services: blacksmiths offer rarity
-// upgrades (and later repairs). The services themselves come later.
-enum NpcProfession {
+// The old fixed profession list, replaced by NpcProfession rows. The column
+// stays until the deployed game no longer reads it; drop it afterwards.
+enum LegacyNpcProfession {
   BLACKSMITH
+}
+
+// An NPC's optional role (Blacksmith, Cook...), shown with its name. Admins
+// add, rename and delete professions on /admin/npcs.
+model NpcProfession {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  npcs Npc[]
 }
 
 // NPCs are identified by name; a profession is optional.
 model Npc {
-  id                Int            @id @default(autoincrement())
-  settlementId      Int
+  id                Int                  @id @default(autoincrement())
+  // Unassigned (no location) while null: hidden from players.
+  settlementId      Int?
   name              String
-  description       String?        @db.Text
+  description       String?              @db.Text
   portrait          String?
   // The square of the portrait shown as the NPC's head on the settlement
   // map: its top-left corner (x of the width, y of the height) and its side
@@ -1794,21 +1806,24 @@ model Npc {
   // Pin on the settlement map, in percent; unplaced when null.
   mapX              Float?
   mapY              Float?
-  profession        NpcProfession?
+  professionId      Int?
+  legacyProfession  LegacyNpcProfession? @map("profession")
   // Hidden from players until this community project is completed.
   requiredProjectId Int?
-  enabled           Boolean        @default(true)
-  sortOrder         Int            @default(0)
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
+  enabled           Boolean              @default(true)
+  sortOrder         Int                  @default(0)
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
 
-  settlement      Settlement        @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+  settlement      Settlement?       @relation(fields: [settlementId], references: [id], onDelete: SetNull)
   requiredProject CommunityProject? @relation("NpcUnlock", fields: [requiredProjectId], references: [id], onDelete: SetNull)
+  profession      NpcProfession?    @relation(fields: [professionId], references: [id], onDelete: SetNull)
   offers          NpcOffer[]
   quests          Quest[]
 
   @@index([settlementId, enabled, sortOrder])
   @@index([requiredProjectId])
+  @@index([professionId])
 }
 
 // An item an NPC sells at this NPC's own price, granted at the item's rarity.

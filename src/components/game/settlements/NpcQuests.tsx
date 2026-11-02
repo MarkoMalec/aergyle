@@ -1,18 +1,20 @@
 "use client";
 
-import { ChevronDown, CircleCheck, ScrollText } from "lucide-react";
+import { ChevronDown, CircleCheck } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "~/components/ui/collapsible";
+import { questMarkerKind } from "~/game/settlements";
 import { formatGold } from "~/lib/marketplace";
 import { cn } from "~/lib/utils";
 import type { QuestView } from "~/server/settlements";
 import {
   formatTimeLeft,
   QuestObjectiveChips,
+  QuestMarker,
   QuestProgressBar,
   QuestRepeatBadge,
   QuestRewards,
@@ -85,13 +87,7 @@ export function NpcQuests({
             )}
           >
             <CollapsibleTrigger className="flex w-full items-center gap-3 rounded-xl p-3 text-left hover:bg-secondary/30">
-              <ScrollText
-                className={cn(
-                  "h-4 w-4 shrink-0",
-                  quest.ready ? "text-success" : "text-primary",
-                )}
-                aria-hidden="true"
-              />
+              <QuestMarker kind={questMarkerKind(quest)} />
               <span className="min-w-0 flex-1 space-y-1.5">
                 <strong className="block truncate text-sm">{quest.name}</strong>
                 <span className="flex flex-wrap gap-1.5">

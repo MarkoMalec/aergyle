@@ -19,7 +19,7 @@ export default async function AdminNpcPage({
   const id = Number(params.id);
   if (!Number.isInteger(id) || id < 1) notFound();
 
-  const [npc, settlements, projects, items, creatures, dungeons] =
+  const [npc, settlements, professions, projects, items, creatures, dungeons] =
     await Promise.all([
       prisma.npc.findUnique({
         where: { id },
@@ -45,6 +45,10 @@ export default async function AdminNpcPage({
       prisma.settlement.findMany({
         orderBy: [{ location: { name: "asc" } }, { name: "asc" }],
         select: { id: true, name: true, location: { select: { name: true } } },
+      }),
+      prisma.npcProfession.findMany({
+        orderBy: { name: "asc" },
+        select: { id: true, name: true },
       }),
       prisma.communityProject.findMany({
         orderBy: [{ settlement: { name: "asc" } }, { name: "asc" }],
@@ -86,21 +90,35 @@ export default async function AdminNpcPage({
     <div className="space-y-8">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <Link
-            href={`/admin/settlements/${npc.settlement.id}`}
-            className="inline-flex items-center gap-1 text-xs text-white/50 hover:text-white"
-          >
-            <ArrowLeft className="h-3 w-3" /> {npc.settlement.name} (
-            {npc.settlement.location.name})
-          </Link>
+          <div className="flex flex-wrap items-center gap-x-2 text-xs text-white/50">
+            <Link
+              href="/admin/npcs"
+              className="inline-flex items-center gap-1 hover:text-white"
+            >
+              <ArrowLeft className="h-3 w-3" /> NPCs
+            </Link>
+            <span aria-hidden="true">·</span>
+            {npc.settlement ? (
+              <Link
+                href={`/admin/settlements/${npc.settlement.id}`}
+                className="hover:text-white"
+              >
+                {npc.settlement.name} ({npc.settlement.location.name})
+              </Link>
+            ) : (
+              <span>No location</span>
+            )}
+          </div>
           <h1 className="mt-2 text-3xl font-bold">{npc.name}</h1>
         </div>
-        <Link
-          href={npcHref(npc.settlement.id, npc.id)}
-          className="rounded-md border border-white/10 bg-gray-900/50 px-3 py-2 text-sm text-white/80 hover:bg-gray-800"
-        >
-          Open player page
-        </Link>
+        {npc.settlement ? (
+          <Link
+            href={npcHref(npc.settlement.id, npc.id)}
+            className="rounded-md border border-white/10 bg-gray-900/50 px-3 py-2 text-sm text-white/80 hover:bg-gray-800"
+          >
+            Open player page
+          </Link>
+        ) : null}
       </header>
 
       <NpcEditor
@@ -115,7 +133,7 @@ export default async function AdminNpcPage({
           headX: npc.headX,
           headY: npc.headY,
           headSize: npc.headSize,
-          profession: npc.profession,
+          professionId: npc.professionId,
           requiredProjectId: npc.requiredProjectId,
           enabled: npc.enabled,
           sortOrder: npc.sortOrder,
@@ -129,6 +147,7 @@ export default async function AdminNpcPage({
             enabled: offer.enabled,
           })),
         }}
+        professions={professions}
         settlements={settlements.map((settlement) => ({
           id: settlement.id,
           name: settlement.name,

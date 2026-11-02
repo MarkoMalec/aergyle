@@ -1,9 +1,9 @@
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, UserRound } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Panel } from "~/components/admin/fields";
 import { MapEditor } from "~/components/admin/MapEditor";
+import { NpcSummary } from "~/components/admin/settlements/NpcSummary";
 import { ProjectsEditor } from "~/components/admin/settlements/ProjectsEditor";
 import {
   NewNpcButton,
@@ -12,7 +12,7 @@ import {
 import { StorageEditor } from "~/components/admin/settlements/StorageEditor";
 import { NpcHead } from "~/components/game/map/NpcHead";
 import { StorageFace } from "~/components/game/map/StorageFace";
-import { NPC_PROFESSION_LABELS, settlementHref } from "~/game/settlements";
+import { settlementHref } from "~/game/settlements";
 import { headCrop, mapPoint } from "~/game/world/maps";
 import { prisma } from "~/lib/prisma";
 import { getStorageIcon } from "~/server/settlements";
@@ -59,7 +59,7 @@ export default async function AdminSettlementPage({
             headSize: true,
             mapX: true,
             mapY: true,
-            profession: true,
+            profession: { select: { name: true } },
             enabled: true,
             requiredProject: { select: { name: true } },
             _count: { select: { offers: true, quests: true } },
@@ -162,11 +162,7 @@ export default async function AdminSettlementPage({
             kind: "npc" as const,
             id: npc.id,
             name: npc.name,
-            detail: npc.enabled
-              ? npc.profession
-                ? NPC_PROFESSION_LABELS[npc.profession]
-                : "NPC"
-              : "Disabled",
+            detail: npc.enabled ? (npc.profession?.name ?? "NPC") : "Disabled",
             variant: "person" as const,
             face: <NpcHead portrait={npc.portrait} crop={headCrop(npc)} />,
             point: mapPoint(npc),
@@ -208,7 +204,7 @@ export default async function AdminSettlementPage({
 
       <Panel
         title="NPCs"
-        description="Open an NPC to edit its profile, what it sells and the quests it gives. You can move an NPC to another settlement from its page."
+        description="Open an NPC to edit its profile, what it sells and the quests it gives. Move NPCs between settlements on the NPCs page."
         action={<NewNpcButton settlementId={settlement.id} />}
       >
         {settlement.npcs.length === 0 ? (
@@ -221,42 +217,7 @@ export default async function AdminSettlementPage({
                   href={`/admin/npcs/${npc.id}`}
                   className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/20 p-3 hover:bg-gray-900/60"
                 >
-                  {npc.portrait?.startsWith("/") ? (
-                    <Image
-                      src={npc.portrait}
-                      alt=""
-                      width={56}
-                      height={84}
-                      className="h-[84px] w-14 shrink-0 rounded-lg bg-black/30 object-cover object-top"
-                    />
-                  ) : (
-                    <span className="grid h-[84px] w-14 shrink-0 place-items-center rounded-lg bg-black/30">
-                      <UserRound className="h-6 w-6 text-white/30" />
-                    </span>
-                  )}
-                  <span className="min-w-0 flex-1">
-                    <strong className="block truncate">{npc.name}</strong>
-                    <small className="block text-white/45">
-                      {npc.profession
-                        ? `${NPC_PROFESSION_LABELS[npc.profession]} · `
-                        : ""}
-                      {npc._count.offers} for sale · {npc._count.quests} quests
-                    </small>
-                    {npc.requiredProject ? (
-                      <small className="block text-amber-300/80">
-                        Hidden until “{npc.requiredProject.name}” is complete
-                      </small>
-                    ) : null}
-                  </span>
-                  <span
-                    className={
-                      npc.enabled
-                        ? "text-xs text-emerald-300"
-                        : "text-xs text-white/35"
-                    }
-                  >
-                    {npc.enabled ? "Enabled" : "Disabled"}
-                  </span>
+                  <NpcSummary npc={npc} />
                 </Link>
               </li>
             ))}

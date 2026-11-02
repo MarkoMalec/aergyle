@@ -15,7 +15,21 @@ export async function PATCH(request: NextRequest, context: Context) {
   const { offers, ...npc } = body.data;
   try {
     await prisma.$transaction(async (tx) => {
-      await tx.npc.update({ where: { id }, data: npc });
+      const current = await tx.npc.findUniqueOrThrow({
+        where: { id },
+        select: { settlementId: true },
+      });
+      await tx.npc.update({
+        where: { id },
+        data: {
+          ...npc,
+          // The pin belongs to the old settlement's map.
+          ...(current.settlementId !== npc.settlementId && {
+            mapX: null,
+            mapY: null,
+          }),
+        },
+      });
       // Offers keep their ids, so a player mid-purchase is unaffected.
       await tx.npcOffer.deleteMany({
         where: {

@@ -89,7 +89,7 @@ export function SettlementForm(props: {
   const remove = async () => {
     if (
       !window.confirm(
-        `Delete ${saved.name}? Its ${props.npcCount} NPCs (with their shops, quests and every player's quest progress) and ${props.projectCount} community projects are deleted too. This cannot be undone.`,
+        `Delete ${saved.name}? Its ${props.projectCount} community projects are deleted too, and its ${props.npcCount} NPCs move to No location. This cannot be undone.`,
       )
     ) {
       return;
@@ -205,7 +205,8 @@ export function SettlementForm(props: {
   );
 }
 
-export function NewNpcButton({ settlementId }: { settlementId: number }) {
+/** Creates a disabled NPC in the settlement, or with no location when null. */
+export function NewNpcButton({ settlementId }: { settlementId: number | null }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const create = async () => {
@@ -219,7 +220,7 @@ export function NewNpcButton({ settlementId }: { settlementId: number }) {
         headX: null,
         headY: null,
         headSize: null,
-        profession: null,
+        professionId: null,
         requiredProjectId: null,
         enabled: false,
         sortOrder: 0,

@@ -1,0 +1,87 @@
+{
+  "date": "2026-10-31",
+  "tool": "built-in image_gen.imagegen",
+  "fallbackCliUsed": false,
+  "sourceAtlas": "public/assets/world/world-map-v1.png",
+  "sources": [
+    {
+      "file": "source/world-layout-master.png",
+      "generatedPath": "/Users/malec/.codex/generated_images/01a192b0-85f3-7b51-b087-d4ac4299c8a7/exec-f6618877-0f00-4e0a-95bc-d9d61c8eab16.png",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "file": "source/top-left-generated.png",
+      "generatedPath": "/Users/malec/.codex/generated_images/01a192b0-85f3-7b51-b087-d4ac4299c8a7/exec-0798622e-f790-4030-bbc1-c0be7dfe7ad4.png",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "file": "source/top-right-generated.png",
+      "generatedPath": "/Users/malec/.codex/generated_images/01a192b0-85f3-7b51-b087-d4ac4299c8a7/exec-85d65673-c4c8-4411-bf43-1cd26acf3c0b.png",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "file": "source/bottom-left-generated.png",
+      "generatedPath": "/Users/malec/.codex/generated_images/01a192b0-85f3-7b51-b087-d4ac4299c8a7/exec-16b5c07a-30f1-48c4-924b-51da3eb97805.png",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "file": "source/bottom-right-generated.png",
+      "generatedPath": "/Users/malec/.codex/generated_images/01a192b0-85f3-7b51-b087-d4ac4299c8a7/exec-4089ef54-7ac1-4f74-bbe1-efeb43428f26.png",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "file": "source/seam-north-generated.png",
+      "generatedPath": "/Users/malec/.codex/generated_images/01a192b0-85f3-7b51-b087-d4ac4299c8a7/exec-c158dec9-b6b7-43a2-bae4-cc3e50b8bb6c.png",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "file": "source/seam-south-generated.png",
+      "generatedPath": "/Users/malec/.codex/generated_images/01a192b0-85f3-7b51-b087-d4ac4299c8a7/exec-e29a4814-b31d-4648-bed0-009801428168.png",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "file": "source/seam-west-generated.png",
+      "generatedPath": "/Users/malec/.codex/generated_images/01a192b0-85f3-7b51-b087-d4ac4299c8a7/exec-5a8131e0-30b9-4223-99f8-73609bd6dcfc.png",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "file": "source/seam-center-generated.png",
+      "generatedPath": "/Users/malec/.codex/generated_images/01a192b0-85f3-7b51-b087-d4ac4299c8a7/exec-6cac3951-acf0-4aba-8c34-7103c310d958.png",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "file": "source/seam-east-generated.png",
+      "generatedPath": "/Users/malec/.codex/generated_images/01a192b0-85f3-7b51-b087-d4ac4299c8a7/exec-55c98d3a-0b56-42b5-8be1-baea4efc99cd.png",
+      "width": 1536,
+      "height": 1024
+    }
+  ],
+  "export": {
+    "native4k": false,
+    "nativeComposition": {
+      "width": 3072,
+      "height": 2048
+    },
+    "quarter": {
+      "width": 3840,
+      "height": 2560
+    },
+    "full": {
+      "width": 7680,
+      "height": 5120
+    },
+    "scale": 2.5,
+    "resampler": "Lanczos3",
+    "script": "assemble.mjs",
+    "notes": "4K long-edge exports retaining original 3:2 aspect ratio. Native generator outputs are 1536x1024; no claim of native 4K detail. Shared generated seam repairs are composited before one global resize and exact tiling."
+  }
+}

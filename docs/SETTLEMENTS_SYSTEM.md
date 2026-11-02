@@ -15,27 +15,50 @@ travelling) to use them.
   current location's entry ("Explore …"), and other locations stay unseen
   until the player travels there. See [Maps](#maps).
 - **/settlements/[id]** shows the settlement map, with a head for each NPC,
-  and its community projects. The list beside the map says "Quest ready",
-  "N new quests" and "Trades"; a head with a quest to hand in glows green.
+  and its community projects. Each NPC with quests shows its most urgent
+  **quest marker** (`npcQuestMarker` in `src/game/settlements.ts`): a green
+  "?" to hand in, a gold "!" for a one-time quest to take, a blue "!" for a
+  daily or weekly one, a grey "?" while one is under way. Markers are the
+  bare glyph with a dark outline and a glow, never a disc. On the map it floats
+  over the head in a slowly turning burst of light and bobs (the grey one stays
+  plain and still); in the list beside the map
+  it takes the place of the chevron, so the markers form a column. A head with
+  a quest to hand in glows green, and its row is tinted green. The list rows
+  also say "Quest ready", "N new quests", "Quest in progress" and "Trades". On
+  phones the folded list shows the settlement's most urgent marker beside the
+  count.
 - **/settlements/[id]/storage** is the settlement's storage, opened from the
   chest on its map: the inventory and the storage side by side, with stacks
   dragged between them or moved with the arrows in the middle. Clicking the
   pin opens it as a window over the settlement (an intercepted route); a
   direct visit or a refresh shows the same thing as its own page. See
   [Storage](#storage).
-- **/settlements/[id]/npcs/[npcId]** shows the NPC's portrait, greeting and
-  quests on the left, and its wares and a sell panel on the right. Each quest
-  is a collapsible row: its header holds the name, status and repeat badges
-  and a progress bar; opened, it shows the objectives and rewards as artwork
-  with the count on top, and the accept, abandon or complete buttons. A quest
-  ready to hand in starts open.
+- **/settlements/[id]/npcs/[npcId]** opens on a hero: the NPC's full figure
+  standing in the settlement's blurred map art, with profession, name,
+  description and fact chips (wares, open quests, ready to hand in). Over the
+  head hovers the classic quest marker: a green "?" when a quest is ready to
+  hand in, a gold "!" when one is available, a grey "?" while one is under way.
+  Below it a trade window with Buy and Sell tabs and the player's gold (the
+  last change floats over it). Buy shows the wares as shelf cards (rarity glow,
+  price in red when unaffordable, how many the player owns, and how many an
+  accepted quest still needs); Sell shows the inventory with each item's value
+  and the inventory's total worth, flagging items an accepted quest asks for.
+  The chosen item sits in a sticky counter: quantity stepper with 10 and
+  Max/All, the total and the gold left afterwards, and a warning when a sale
+  would drop a quest below what it needs. Quests sit beside the trade window
+  on wide screens and above it on narrower ones. Each quest is a collapsible
+  row: its header holds the marker, name, status and repeat badges and a
+  progress bar; opened, it shows the objectives and rewards as artwork with the
+  count on top, and the accept, abandon or complete buttons. A quest ready to
+  hand in starts open.
 - The **Quests** button in the header (beside the gold) lists every active
   quest anywhere, with its progress and a link to the NPC to hand it in to.
   It loads when opened. Log out lives at the bottom of the sidebar.
 - **New-quest dots** mark one-time quests the player has not seen yet (see
-  below): on the Region menu item (and the mobile menu button), on the
-  settlement's pin and on the NPC's head, and on their rows in the map lists.
-  Hovering one says "New Quests available!".
+  below): on the Region menu item (and the mobile menu button), and on the
+  settlement's pin and row on the region map. On the settlement map the NPC's
+  quest marker pulses instead (as does the folded list's marker on phones).
+  Hovering either says "New Quests available!".
 
 Away from the location, the settlement and NPC pages show only a prompt to
 travel there.
@@ -67,11 +90,17 @@ the coordinates a new world starts from; the live pins are the database's.
 
 ## NPCs
 
-NPCs are presented by name. A **profession** is optional and exists only to
-grant services: `BLACKSMITH` is prepared for rarity upgrades and, later,
-repairs. The services themselves are not built yet; `upgradeUserItemRarity`
-in `src/utils/userItems.ts` already exists for the first one. Admins decide
+NPCs are presented by name. A **profession** is optional and shown with the
+name. Professions are rows (`NpcProfession`) that admins add, rename and
+delete on /admin/npcs; deleting one leaves its NPCs without a profession.
+No profession grants anything yet. Blacksmith services (rarity upgrades,
+later repairs) are planned; `upgradeUserItemRarity` in
+`src/utils/userItems.ts` already exists for the first one. The old enum
+column `Npc.profession` is no longer used and can be dropped. Admins decide
 how many NPCs each settlement has and can move an NPC to another settlement.
+An NPC can also have **no location** (`Npc.settlementId` null): it keeps its
+shop and quests but is hidden from players, like a disabled NPC. Deleting a
+settlement leaves its NPCs without a location instead of deleting them.
 
 ## Shops
 
@@ -171,7 +200,7 @@ shows only that location; while travelling there are none. A quest becomes
 unseen when it is enabled, when its project completes, when the character
 reaches its level, and when the player arrives where it is.
 
-The dots share one query (`GET /api/settlements/quests/unseen`). It is checked
+The dots and pulses share one query (`GET /api/settlements/quests/unseen`). It is checked
 again on every page change and level-up, when a journey ends, and after a
 settlement action, since a finished project can reveal quests.
 
@@ -221,7 +250,13 @@ every requirement weighs the same however many items it asks for.
   the map, drag it into position, and save.
 - **/admin/settlements/[id]** also has the **Settlement map** editor for its
   NPCs and its storage.
-- **/admin/npcs/[id]**: profile (name, settlement, profession, portrait path,
+- **/admin/npcs**: every NPC as a grid per settlement, grouped by location,
+  with a No location grid on top. Drag an NPC onto another settlement (or
+  onto No location) to move it; it starts unplaced on the new settlement's
+  map. New NPCs made here start disabled with no location. Cards open the
+  NPC and can delete it. **Professions** opens the list of NPC professions
+  to add, rename or delete.
+- **/admin/npcs/[id]**: profile (name, settlement or No location, profession, portrait path,
   map head, greeting, hidden-until project) and the shop, saved together from
   the bar that appears on unsaved changes. The map head is chosen on the
   portrait: drag the circle and zoom with the slider. Rare finds show whether
@@ -260,7 +295,7 @@ Items, creatures and dungeons are chosen with a searchable picker.
   `/api/settlements/quests/unseen` (GET), `/api/settlements/quests/seen`
   (POST), `/api/settlements/projects/contribute`,
   `/api/settlements/storage/[unlock|move]`. Admin API:
-  `/api/admin/settlements`, `/api/admin/npcs`, `/api/admin/quests`,
+  `/api/admin/settlements`, `/api/admin/npcs` (and `/api/admin/npcs/[id]/settlement` for board moves), `/api/admin/npc-professions`, `/api/admin/quests`,
   `/api/admin/community-projects`, `/api/admin/storages` (and
   `/api/admin/storages/config` for the shared chest icon).
 
@@ -268,8 +303,10 @@ Items, creatures and dungeons are chosen with a searchable picker.
 
 1. Deploy `prisma/migrations/20260919120000_settlements_npcs_quests/`,
    `prisma/migrations/20260919180000_user_seen_quests/`,
-   `prisma/migrations/20260919210000_region_settlement_maps/` and
-   `prisma/migrations/20260922120000_settlement_storage/`.
+   `prisma/migrations/20260919210000_region_settlement_maps/`,
+   `prisma/migrations/20260922120000_settlement_storage/`,
+   `prisma/migrations/20261022120000_npc_no_location/` and
+   `prisma/migrations/20261022140000_npc_professions/`.
 2. Run the rules and dungeon tests with `npm test`.
 3. Create settlements in /admin/settlements. NPC portraits live in
    `public/assets/npcs/`, map artwork in `public/assets/world/`.

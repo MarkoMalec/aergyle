@@ -1502,6 +1502,16 @@
     max-width: none;
     user-select: none;
   }
+  /* Give the world atlas a closer view while its percentage-based pins and
+     the fixed-size region, settlement, and admin maps keep their alignment. */
+  .game-atlas .atlas-map-canvas {
+    width: 1920px;
+    height: 1280px;
+  }
+  .game-atlas .atlas-map-image {
+    width: 100%;
+    height: 100%;
+  }
   .atlas-location-layer {
     position: absolute;
     z-index: 4;

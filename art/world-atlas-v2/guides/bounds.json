@@ -1,0 +1,32 @@
+{
+  "top-left": {
+    "left": 0,
+    "top": 0,
+    "width": 768,
+    "height": 512
+  },
+  "top-right": {
+    "left": 768,
+    "top": 0,
+    "width": 768,
+    "height": 512
+  },
+  "bottom-left": {
+    "left": 0,
+    "top": 512,
+    "width": 768,
+    "height": 512
+  },
+  "bottom-right": {
+    "left": 768,
+    "top": 512,
+    "width": 768,
+    "height": 512
+  },
+  "center": {
+    "left": 384,
+    "top": 256,
+    "width": 768,
+    "height": 512
+  }
+}

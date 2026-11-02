@@ -1,13 +1,18 @@
-import Image from "next/image";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, UserRound } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import { NpcHero } from "~/components/game/settlements/NpcHero";
 import { NpcQuests } from "~/components/game/settlements/NpcQuests";
-import { NpcSell } from "~/components/game/settlements/NpcSell";
-import { NpcShop } from "~/components/game/settlements/NpcShop";
+import {
+  NpcTrade,
+  type QuestNeed,
+} from "~/components/game/settlements/NpcTrade";
 import { PresenceNotice } from "~/components/game/settlements/PresenceNotice";
-import PageHeading from "~/components/game/ui/PageHeading";
-import { NPC_PROFESSION_LABELS, settlementHref } from "~/game/settlements";
+import {
+  npcQuestMarker,
+  questMarkerKind,
+  settlementHref,
+} from "~/game/settlements";
 import { getServerAuthSession } from "~/server/auth";
 import { getNpcPage } from "~/server/settlements";
 
@@ -28,6 +33,26 @@ export default async function NpcPage({
   if (!data) notFound();
   const { npc, offers, quests } = data;
 
+  const open = quests.filter((quest) => quest.status !== "COMPLETED").length;
+  const ready = quests.filter((quest) => quest.ready).length;
+  const marker = npcQuestMarker(quests.map(questMarkerKind));
+  // What this NPC's accepted quests still ask for, flagged in the shop and pack.
+  const needs: QuestNeed[] = quests.flatMap((quest) =>
+    quest.status === "ACTIVE"
+      ? quest.objectives.flatMap((objective) =>
+          objective.type === "DELIVER" && objective.target.itemId !== null
+            ? [
+                {
+                  itemId: objective.target.itemId,
+                  quantity: objective.quantity,
+                  quest: quest.name,
+                },
+              ]
+            : [],
+        )
+      : [],
+  );
+
   return (
     <main className="space-y-6">
       <Link
@@ -37,88 +62,62 @@ export default async function NpcPage({
         <ArrowLeft className="h-4 w-4" aria-hidden="true" />{" "}
         {npc.settlement.name}
       </Link>
-      <PageHeading
-        eyebrow={
-          npc.profession
-            ? NPC_PROFESSION_LABELS[npc.profession]
-            : npc.settlement.name
-        }
-        title={npc.name}
+
+      <NpcHero
+        name={npc.name}
+        portrait={npc.portrait}
+        description={npc.description}
+        profession={npc.profession?.name ?? null}
+        scene={npc.settlement.mapImage ?? npc.settlement.image}
+        marker={marker}
+        wares={offers.length}
+        quests={{ open, ready }}
       />
 
-      <div className="grid gap-6 lg:grid-cols-[370px_minmax(0,1fr)]">
-        <div className="min-w-0 space-y-6">
-          <section className="game-panel overflow-hidden">
-            <div className="relative mx-auto aspect-[2/3] max-w-[280px] bg-secondary/30 lg:max-w-none">
-              {npc.portrait?.startsWith("/") ? (
-                <Image
-                  src={npc.portrait}
-                  alt={npc.name}
-                  fill
-                  priority
-                  className="object-cover object-top"
-                  sizes="(max-width: 1024px) 280px, 360px"
-                />
-              ) : (
-                <UserRound
-                  className="absolute left-1/2 top-1/3 h-16 w-16 -translate-x-1/2 text-muted-foreground/40"
-                  aria-hidden="true"
-                />
-              )}
-            </div>
-            {npc.description ? (
-              <p className="whitespace-pre-line p-4 text-sm italic text-text-secondary">
-                {npc.description}
-              </p>
-            ) : null}
-          </section>
-
-          {data.present && quests.length > 0 ? (
-            <section className="game-panel">
+      {!data.present ? (
+        <PresenceNotice
+          traveling={data.traveling}
+          locationName={npc.settlement.location.name}
+        />
+      ) : (
+        // Quests come first on phones, as a sidebar beside the shop on wide screens.
+        <div
+          className={
+            quests.length > 0
+              ? "grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(320px,380px)] xl:items-start"
+              : undefined
+          }
+        >
+          {quests.length > 0 ? (
+            <section
+              id="quests"
+              className="game-panel-flat min-w-0 scroll-mt-6 xl:col-start-2 xl:row-start-1"
+            >
               <div className="game-panel-header">
                 <h2 className="game-section-title">Quests</h2>
+                {ready > 0 ? (
+                  <span className="rounded-full bg-success/15 px-2 py-0.5 text-[11px] font-semibold text-success">
+                    {ready} ready
+                  </span>
+                ) : null}
               </div>
               <div className="p-3 pt-4">
                 <NpcQuests npcId={npc.id} quests={quests} />
               </div>
             </section>
           ) : null}
-        </div>
-
-        <div className="min-w-0 space-y-6">
-          {!data.present ? (
-            <PresenceNotice
-              traveling={data.traveling}
-              locationName={npc.settlement.location.name}
+          <div className="min-w-0 xl:col-start-1 xl:row-start-1">
+            <NpcTrade
+              npcId={npc.id}
+              npcName={npc.name}
+              gold={data.gold}
+              offers={offers}
+              inventory={data.inventory}
+              needs={needs}
             />
-          ) : (
-            <>
-              {offers.length > 0 ? (
-                <section className="game-panel">
-                  <div className="game-panel-header">
-                    <h2 className="game-section-title">Wares</h2>
-                  </div>
-                  <div className="game-panel-body">
-                    <NpcShop offers={offers} gold={data.gold} />
-                  </div>
-                </section>
-              ) : null}
-              <section className="game-panel">
-                <div className="game-panel-header">
-                  <h2 className="game-section-title">Sell to {npc.name}</h2>
-                </div>
-                <div className="game-panel-body">
-                  <NpcSell
-                    npcId={npc.id}
-                    npcName={npc.name}
-                    inventory={data.inventory}
-                  />
-                </div>
-              </section>
-            </>
-          )}
+          </div>
         </div>
-      </div>
+      )}
     </main>
   );
 }

@@ -77,8 +77,7 @@ export async function GET(request: NextRequest) {
         id: true,
         name: true,
         portrait: true,
-        settlementId: true,
-        settlement: { select: { name: true } },
+        settlement: { select: { id: true, name: true } },
       },
       orderBy: { name: "asc" },
       take: PER_GROUP,
@@ -115,13 +114,19 @@ export async function GET(request: NextRequest) {
           : `/monsters/${creature.id}`,
       image: creature.asset,
     })),
-    npcs: npcs.map((npc) => ({
-      key: `npc-${npc.id}`,
-      label: npc.name,
-      detail: npc.settlement.name,
-      href: `/settlements/${npc.settlementId}/npcs/${npc.id}`,
-      image: npc.portrait,
-    })),
+    npcs: npcs.flatMap(({ settlement, ...npc }) =>
+      settlement
+        ? [
+            {
+              key: `npc-${npc.id}`,
+              label: npc.name,
+              detail: settlement.name,
+              href: `/settlements/${settlement.id}/npcs/${npc.id}`,
+              image: npc.portrait,
+            },
+          ]
+        : [],
+    ),
     settlements: settlements.map((settlement) => ({
       key: `settlement-${settlement.id}`,
       label: settlement.name,

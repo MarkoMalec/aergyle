@@ -1,0 +1,57 @@
+{
+  "pack": "handles-v1",
+  "generatedOn": "2026-10-21",
+  "generator": "OpenAI imagegen",
+  "masters": [
+    {
+      "item": "Birch Handle",
+      "file": "birch-handle-master.png",
+      "sourceOutput": "/Users/malec/.codex/generated_images/01a15e40-6cf6-71b0-9111-f31107ffa33a/exec-9b1f3716-0899-4be6-a0e9-f4060d8fc377.png"
+    },
+    {
+      "item": "Pine Handle",
+      "file": "pine-handle-master.png",
+      "sourceOutput": "/Users/malec/.codex/generated_images/01a15e40-6cf6-71b0-9111-f31107ffa33a/exec-7d4171ab-a4c3-4c2a-abfa-5ed806c0adbb.png"
+    },
+    {
+      "item": "Willow Handle",
+      "file": "willow-handle-master.png",
+      "sourceOutput": "/Users/malec/.codex/generated_images/01a15e40-6cf6-71b0-9111-f31107ffa33a/exec-42df428a-c4ce-4efc-9dbc-9a7a787a20ed.png"
+    },
+    {
+      "item": "Ash Handle",
+      "file": "ash-handle-master.png",
+      "sourceOutput": "/Users/malec/.codex/generated_images/01a15e40-6cf6-71b0-9111-f31107ffa33a/exec-36f15e36-3f06-48fd-b1cb-26c0f1b1965f.png"
+    },
+    {
+      "item": "Frostpine Handle",
+      "file": "frostpine-handle-master.png",
+      "sourceOutput": "/Users/malec/.codex/generated_images/01a15e40-6cf6-71b0-9111-f31107ffa33a/exec-98891c22-1dac-421b-882b-406025184384.png"
+    },
+    {
+      "item": "Gloamwood Handle",
+      "file": "gloamwood-handle-master.png",
+      "sourceOutput": "/Users/malec/.codex/generated_images/01a15e40-6cf6-71b0-9111-f31107ffa33a/exec-b16ee5cc-d23d-4577-91a5-ed98dbdf8ce3.png"
+    },
+    {
+      "item": "Emberwood Handle",
+      "file": "emberwood-handle-master.png",
+      "sourceOutput": "/Users/malec/.codex/generated_images/01a15e40-6cf6-71b0-9111-f31107ffa33a/exec-dc5604a0-c5bb-4cdb-a58c-7c4813bd1fe6.png"
+    },
+    {
+      "item": "Ironbark Handle",
+      "file": "ironbark-handle-master.png",
+      "sourceOutput": "/Users/malec/.codex/generated_images/01a15e40-6cf6-71b0-9111-f31107ffa33a/exec-cebcabe5-e241-4a19-b9a1-c780f849d76c.png"
+    },
+    {
+      "item": "Saltcedar Handle",
+      "file": "saltcedar-handle-master.png",
+      "sourceOutput": "/Users/malec/.codex/generated_images/01a15e40-6cf6-71b0-9111-f31107ffa33a/exec-370294be-3937-4e7c-b43f-d10154791b83.png"
+    }
+  ],
+  "runtime": {
+    "canvas": "256x256 RGBA PNG",
+    "occupiedSafeArea": "210px on the longest alpha-bound dimension",
+    "background": "transparent"
+  }
+}

@@ -16,8 +16,6 @@ import {
 import { SearchSelect, type SearchOption } from "~/components/admin/SearchSelect";
 import { HeadCropField } from "~/components/admin/settlements/HeadCropField";
 import { Button } from "~/components/ui/button";
-import type { NpcProfession } from "~/generated/prisma/enums";
-import { NPC_PROFESSION_LABELS } from "~/game/settlements";
 import { headCrop } from "~/game/world/maps";
 import { cn } from "~/lib/utils";
 
@@ -40,14 +38,14 @@ type AdminOffer = {
 
 type AdminNpc = {
   id: number;
-  settlementId: number;
+  settlementId: number | null;
   name: string;
   description: string | null;
   portrait: string | null;
   headX: number | null;
   headY: number | null;
   headSize: number | null;
-  profession: NpcProfession | null;
+  professionId: number | null;
   requiredProjectId: number | null;
   enabled: boolean;
   sortOrder: number;
@@ -282,6 +280,7 @@ function OfferRow(props: {
 export function NpcEditor(props: {
   npc: AdminNpc;
   settlements: SearchOption[];
+  professions: SearchOption[];
   projects: SearchOption[];
   items: SearchOption[];
 }) {
@@ -347,7 +346,7 @@ export function NpcEditor(props: {
     try {
       await adminRequest(`/api/admin/npcs/${props.npc.id}`, "DELETE");
       toast.success(`${initialProfile.name} deleted`);
-      router.push(`/admin/settlements/${initialProfile.settlementId}`);
+      router.push("/admin/npcs");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Unable to delete");
       setBusy(false);
@@ -358,7 +357,7 @@ export function NpcEditor(props: {
     <div className="space-y-8">
       <Panel
         title="Profile"
-        description="Players know NPCs by name. A profession is optional and only adds services: blacksmiths will offer rarity upgrades and, later, repairs."
+        description="Players know NPCs by name. A profession is optional and is shown with the name."
         action={
           <Button variant="destructive" onClick={() => void remove()} disabled={busy}>
             <Trash2 className="mr-2 h-4 w-4" />
@@ -383,32 +382,27 @@ export function NpcEditor(props: {
                 onChange={(event) => update({ name: event.target.value })}
               />
             </Field>
-            <Field label="Settlement" hint="Move the NPC by choosing another.">
+            <Field
+              label="Settlement"
+              hint="Move the NPC by choosing another. With no location it is hidden from players."
+            >
               <SearchSelect
                 options={props.settlements}
                 value={profile.settlementId}
-                onChange={(settlementId) => {
-                  if (settlementId) update({ settlementId });
-                }}
+                noneLabel="No location"
+                onChange={(settlementId) => update({ settlementId })}
               />
             </Field>
-            <Field label="Profession">
-              <select
-                className={inputClass}
-                value={profile.profession ?? ""}
-                onChange={(event) =>
-                  update({
-                    profession: (event.target.value || null) as NpcProfession | null,
-                  })
-                }
-              >
-                <option value="">None</option>
-                {Object.entries(NPC_PROFESSION_LABELS).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
+            <Field
+              label="Profession"
+              hint="Add or rename professions on the NPCs page."
+            >
+              <SearchSelect
+                options={props.professions}
+                value={profile.professionId}
+                noneLabel="None"
+                onChange={(professionId) => update({ professionId })}
+              />
             </Field>
             <EnabledField
               value={profile.enabled}

@@ -1,6 +1,6 @@
 # Reusable Handles and Materials
 
-This content pack adds five ordinary, stackable item templates. None is bound
+This content pack adds fourteen ordinary, stackable item templates. None is bound
 to one consumer: recipes refer to the same global item IDs that trading,
 inventory, loot, quests, and future crafting systems can reuse.
 
@@ -10,13 +10,18 @@ inventory, loot, quests, and future crafting systems can reuse.
 | ---------------- | -------- | ------------------------------------------------------------ |
 | Wooden Handle    | MATERIAL | Carpentry: 1 Oak Plank                                       |
 | Duskbound Handle | MATERIAL | Carpentry: 1 Elderwood Plank, 1 Dusk Oil, 1 Hardened Leather |
+| Birch Handle     | MATERIAL | Carpentry: 1 Birch Plank                                     |
+| Pine Handle      | MATERIAL | Carpentry: 1 Pine Plank                                      |
+| Willow Handle    | MATERIAL | Carpentry: 1 Willow Plank                                    |
+| Ash Handle       | MATERIAL | Carpentry: 1 Ash Plank                                       |
+| Frostpine Handle | MATERIAL | Carpentry: 1 Frostpine Plank                                 |
+| Gloamwood Handle | MATERIAL | Carpentry: 1 Gloamwood Plank                                 |
+| Emberwood Handle | MATERIAL | Carpentry: 1 Emberwood Plank                                 |
+| Ironbark Handle  | MATERIAL | Carpentry: 1 Ironbark Plank                                  |
+| Saltcedar Handle | MATERIAL | Carpentry: 1 Saltcedar Plank                                 |
 | Dusk Oil         | MATERIAL | 12% Goblin drop (Gloamvault dungeon, Crownhold)              |
 | Tempering Resin  | MATERIAL | Gathering at Goblins Camp and Ruins of Caldrath              |
 | Hardened Leather | HIDE     | Tailoring: 2 Soft Hide, 1 Tempering Resin                    |
-
-The Basic Pickaxe's Blacksmithing recipe now consumes 1 Iron Ingot and 1 Wooden
-Handle. That recipe is only the first use of Wooden Handle; it does not confer
-any exclusivity on the item.
 
 ## Dungeon loot
 
@@ -32,7 +37,5 @@ npm run db:seed:components -- --apply
 npm run db:seed:components -- --verify
 ```
 
-The importer is idempotent. It creates or updates the five item templates,
-configures three crafting recipes and the Tempering Resin gathering source, and
-replaces the Basic Pickaxe's legacy generic Plank requirement with Wooden
-Handle while preserving the pickaxe recipe's other settings.
+The importer is idempotent. It creates or updates the fourteen item templates,
+configures twelve crafting recipes and the Tempering Resin gathering source.

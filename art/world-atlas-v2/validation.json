@@ -1,0 +1,59 @@
+{
+  "checkedAt": "2026-10-31T16:24:20.919Z",
+  "native4k": false,
+  "originalAspectRatioPreserved": true,
+  "fullAtlas": {
+    "width": 7680,
+    "height": 5120
+  },
+  "everyTilePixelMatchesSharedMaster": true,
+  "gapPixels": 0,
+  "overlapPixels": 0,
+  "note": "Pixel reconstruction verifies export alignment. Artistic continuity was separately reviewed in the complete preview and native-resolution seam crops.",
+  "quarters": [
+    {
+      "id": "top-left",
+      "width": 3840,
+      "height": 2560,
+      "format": "png",
+      "colorSpace": "srgb",
+      "opaque": true,
+      "bytes": 14033601,
+      "sha256": "481a62f7984c15a543544b82f0b5180e66c4f3352d3604d4340ce12f19dc2e27",
+      "exactPixelMatchToMaster": true
+    },
+    {
+      "id": "top-right",
+      "width": 3840,
+      "height": 2560,
+      "format": "png",
+      "colorSpace": "srgb",
+      "opaque": true,
+      "bytes": 12830128,
+      "sha256": "b912c2ba118fee2239afc333f91079b689a1fea2fa711851526efc24c833dd3a",
+      "exactPixelMatchToMaster": true
+    },
+    {
+      "id": "bottom-left",
+      "width": 3840,
+      "height": 2560,
+      "format": "png",
+      "colorSpace": "srgb",
+      "opaque": true,
+      "bytes": 14293705,
+      "sha256": "1eb216306684d6b7102c307b5ab095b847614ee78e7f3a18eaebaaef8137bb9c",
+      "exactPixelMatchToMaster": true
+    },
+    {
+      "id": "bottom-right",
+      "width": 3840,
+      "height": 2560,
+      "format": "png",
+      "colorSpace": "srgb",
+      "opaque": true,
+      "bytes": 12715374,
+      "sha256": "9fbba4d0b14f5f1376e6ca5886b7946c36c9d53248c6125797f5584e16fed23d",
+      "exactPixelMatchToMaster": true
+    }
+  ]
+}

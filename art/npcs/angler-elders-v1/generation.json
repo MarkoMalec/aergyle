@@ -1,0 +1,81 @@
+{
+  "generator": "Built-in image_gen",
+  "generatedOn": "2026-10-22",
+  "pack": "elder-angler-npcs-v1",
+  "artDirection": "Grounded, unglamorous Aergyle civilian anglers with readable work kits and age-specific silhouettes",
+  "masterSize": "1024x1536 RGBA PNG",
+  "runtimeSize": "512x768 RGBA PNG",
+  "runtimeExport": "sips resize from masters with RGBA preserved",
+  "assets": [
+    {
+      "name": "Garron Pike",
+      "race": "Human",
+      "gender": "Male",
+      "age": 47,
+      "profession": "River angler and eel-trap keeper",
+      "master": "garron-pike-angler-master.png",
+      "runtime": "/assets/npcs/garron-pike-angler-v1.png",
+      "generatedFile": "exec-cd9b25fc-8286-443d-9ba1-df733e70433d.png"
+    },
+    {
+      "name": "Tebb Rillhook",
+      "race": "Midget",
+      "gender": "Male",
+      "age": 52,
+      "profession": "Canal angler and tackle repairer",
+      "master": "tebb-rillhook-angler-master.png",
+      "runtime": "/assets/npcs/tebb-rillhook-angler-v1.png",
+      "generatedFile": "exec-de40380e-2305-445e-99fb-0a729f24a997.png"
+    },
+    {
+      "name": "Rusk Fenlock",
+      "race": "Human",
+      "gender": "Male",
+      "age": 64,
+      "profession": "Marsh angler and net salvage worker",
+      "master": "rusk-fenlock-angler-master.png",
+      "runtime": "/assets/npcs/rusk-fenlock-angler-v1.png",
+      "generatedFile": "exec-ef63c95e-27c0-4890-bc6c-24152810a9f9.png"
+    },
+    {
+      "name": "Branik Cragfoot",
+      "race": "Midget",
+      "gender": "Male",
+      "age": 73,
+      "profession": "Highland ice-hole angler",
+      "master": "branik-cragfoot-angler-master.png",
+      "runtime": "/assets/npcs/branik-cragfoot-angler-v1.png",
+      "generatedFile": "exec-3a2558f3-fe08-4944-accd-a950ea2680c2.png"
+    },
+    {
+      "name": "Lucan Morrow",
+      "race": "Human",
+      "gender": "Male",
+      "age": 81,
+      "profession": "Estuary angler and hand-line maker",
+      "master": "lucan-morrow-angler-master.png",
+      "runtime": "/assets/npcs/lucan-morrow-angler-v1.png",
+      "generatedFile": "exec-37f039ae-1261-4400-89ce-113906a06fbe.png"
+    },
+    {
+      "name": "Mavin Broach",
+      "race": "Midget",
+      "gender": "Male",
+      "age": 90,
+      "profession": "Rocky-coast angler and crab-line tender",
+      "master": "mavin-broach-angler-master.png",
+      "runtime": "/assets/npcs/mavin-broach-angler-v1.png",
+      "generatedFile": "exec-b08c6ece-626b-4797-ba54-8223873ce48c.png"
+    },
+    {
+      "name": "Osric Vale",
+      "race": "Human",
+      "gender": "Male",
+      "age": 99,
+      "profession": "Lakeside angler and retired fishing guide",
+      "master": "osric-vale-angler-master.png",
+      "runtime": "/assets/npcs/osric-vale-angler-v1.png",
+      "generatedFile": "exec-699f0045-59e4-4ea9-86b0-5bec53dd480b.png"
+    }
+  ]
+}

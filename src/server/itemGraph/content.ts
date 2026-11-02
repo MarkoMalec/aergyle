@@ -158,7 +158,7 @@ export async function loadItemGraphContent(): Promise<ItemGraphContent> {
     questName: row.quest.name,
     npcId: row.quest.npc.id,
     quantity: row.quantity,
-    available: row.quest.enabled && row.quest.npc.enabled && row.quest.npc.settlement.enabled,
+    available: row.quest.enabled && row.quest.npc.enabled && row.quest.npc.settlement?.enabled === true,
   });
 
   return {
@@ -230,7 +230,7 @@ export async function loadItemGraphContent(): Promise<ItemGraphContent> {
       itemId: offer.itemId,
       npcId: offer.npc.id,
       npcName: offer.npc.name,
-      settlementName: offer.npc.settlement.name,
+      settlementName: offer.npc.settlement?.name ?? "No location",
       price: Number(offer.price),
       limited: offer.availableFrom !== null || offer.availableUntil !== null,
       gated: offer.requiredProjectId !== null || offer.npc.requiredProjectId !== null,
@@ -238,7 +238,7 @@ export async function loadItemGraphContent(): Promise<ItemGraphContent> {
       available:
         offer.enabled &&
         offer.npc.enabled &&
-        offer.npc.settlement.enabled &&
+        offer.npc.settlement?.enabled === true &&
         (offer.availableUntil === null || offer.availableUntil > now),
     })),
     questRewards: rewards.map(questLink),

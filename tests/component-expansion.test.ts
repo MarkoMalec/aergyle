@@ -3,7 +3,6 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { inflateSync } from "node:zlib";
 import {
-  BASIC_PICKAXE_REQUIREMENTS,
   COMPONENT_CRAFTS,
   COMPONENT_GATHERING_SOURCES,
   COMPONENT_ITEMS,
@@ -97,19 +96,28 @@ function inspectRgbaPng(png: Buffer) {
   };
 }
 
-void test("component expansion defines five reusable stackable items", () => {
+void test("component expansion defines fourteen reusable stackable items", () => {
   assert.deepEqual(
     COMPONENT_ITEMS.map((item) => item.name),
     [
       "Wooden Handle",
       "Duskbound Handle",
+      "Birch Handle",
+      "Pine Handle",
+      "Willow Handle",
+      "Ash Handle",
+      "Frostpine Handle",
+      "Gloamwood Handle",
+      "Emberwood Handle",
+      "Ironbark Handle",
+      "Saltcedar Handle",
       "Dusk Oil",
       "Tempering Resin",
       "Hardened Leather",
     ],
   );
-  assert.equal(new Set(COMPONENT_ITEMS.map((item) => item.slug)).size, 5);
-  assert.equal(new Set(COMPONENT_ITEMS.map((item) => item.sprite)).size, 5);
+  assert.equal(new Set(COMPONENT_ITEMS.map((item) => item.slug)).size, 14);
+  assert.equal(new Set(COMPONENT_ITEMS.map((item) => item.sprite)).size, 14);
 
   for (const definition of COMPONENT_ITEMS) {
     const item = componentItemCreateData(definition);
@@ -150,11 +158,27 @@ void test("crafting chains preserve general-purpose component types", () => {
   );
 });
 
-void test("Basic Pickaxe consumes a normal Wooden Handle", () => {
-  assert.deepEqual(BASIC_PICKAXE_REQUIREMENTS, [
-    { itemName: "Iron Ingot", quantityPerUnit: 1 },
-    { itemName: "Wooden Handle", quantityPerUnit: 1 },
-  ]);
+void test("new handles currently require only their corresponding plank", () => {
+  const crafts = new Map(
+    COMPONENT_CRAFTS.map((craft) => [craft.outputItemName, craft]),
+  );
+  const plankOnlyHandles = [
+    ["Birch Handle", "Birch Plank"],
+    ["Pine Handle", "Pine Plank"],
+    ["Willow Handle", "Willow Plank"],
+    ["Ash Handle", "Ash Plank"],
+    ["Frostpine Handle", "Frostpine Plank"],
+    ["Gloamwood Handle", "Gloamwood Plank"],
+    ["Emberwood Handle", "Emberwood Plank"],
+    ["Ironbark Handle", "Ironbark Plank"],
+    ["Saltcedar Handle", "Saltcedar Plank"],
+  ] as const;
+
+  for (const [handleName, plankName] of plankOnlyHandles) {
+    assert.deepEqual(crafts.get(handleName)?.requirements, [
+      { itemName: plankName, quantityPerUnit: 1 },
+    ]);
+  }
 });
 
 void test("crafting rules support prepared leather and wrapped woodwork", () => {

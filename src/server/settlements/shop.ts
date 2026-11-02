@@ -46,7 +46,7 @@ export async function buyNpcOffer(params: {
       },
     },
   });
-  if (!offer) throw new Error("That item is no longer for sale");
+  if (!offer?.npc.settlement) throw new Error("That item is no longer for sale");
   await assertPresentAt(userId, offer.npc.settlement.location);
 
   const total = roundGold(Number(offer.price) * quantity);
@@ -105,7 +105,7 @@ export async function sellToNpc(params: {
       },
     },
   });
-  if (!npc) throw new Error("There is no one here to sell to");
+  if (!npc?.settlement) throw new Error("There is no one here to sell to");
   await assertPresentAt(userId, npc.settlement.location);
 
   const stack = await prisma.userItem.findFirst({

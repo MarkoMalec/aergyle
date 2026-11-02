@@ -253,15 +253,21 @@ export async function getQuestJournal(userId: string) {
 
   return rows
     .filter((row) => row.period === questPeriod(row.quest.repeat, now))
-    .map(({ quest, ...userQuest }) => ({
-      ...toQuestView(quest, { userQuest, held, now }),
-      npc: { id: quest.npc.id, name: quest.npc.name },
-      settlement: {
-        id: quest.npc.settlement.id,
-        name: quest.npc.settlement.name,
-        locationName: quest.npc.settlement.location.name,
-      },
-    }));
+    .flatMap(({ quest, ...userQuest }) => {
+      const settlement = quest.npc.settlement;
+      if (!settlement) return [];
+      return [
+        {
+          ...toQuestView(quest, { userQuest, held, now }),
+          npc: { id: quest.npc.id, name: quest.npc.name },
+          settlement: {
+            id: settlement.id,
+            name: settlement.name,
+            locationName: settlement.location.name,
+          },
+        },
+      ];
+    });
 }
 
 export type UnseenQuest = Awaited<ReturnType<typeof getUnseenQuests>>[number];
@@ -325,7 +331,7 @@ async function findAvailableQuest(userId: string, questId: number) {
 
 export async function acceptQuest(userId: string, questId: number) {
   const quest = await findAvailableQuest(userId, questId);
-  if (!quest) throw new Error("That quest is not available");
+  if (!quest?.npc.settlement) throw new Error("That quest is not available");
   await assertPresentAt(userId, quest.npc.settlement.location);
 
   const period = questPeriod(quest.repeat);
@@ -349,7 +355,7 @@ export async function acceptQuest(userId: string, questId: number) {
 /** Hands in deliveries, then grants gold, items and character XP. */
 export async function completeQuest(userId: string, questId: number) {
   const quest = await findAvailableQuest(userId, questId);
-  if (!quest) throw new Error("That quest is not available");
+  if (!quest?.npc.settlement) throw new Error("That quest is not available");
   await assertPresentAt(userId, quest.npc.settlement.location);
 
   const now = new Date();

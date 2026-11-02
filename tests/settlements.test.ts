@@ -9,6 +9,7 @@ import {
   questPeriod,
   questResetsAt,
 } from "../src/server/settlements/rules";
+import { npcQuestMarker, questMarkerKind } from "../src/game/settlements";
 import {
   clampHeadCrop,
   DEFAULT_HEAD_CROP,
@@ -239,4 +240,28 @@ void test("a move that does not fit is refused before anything is written", () =
     }),
     null,
   );
+});
+
+void test("NPCs show their most urgent quest marker", () => {
+  const quest = (
+    status: "AVAILABLE" | "ACTIVE" | "COMPLETED",
+    repeat: "ONCE" | "DAILY" | "WEEKLY" = "ONCE",
+    ready = false,
+  ) => questMarkerKind({ status, repeat, ready });
+
+  assert.equal(quest("ACTIVE", "DAILY", true), "ready");
+  assert.equal(quest("AVAILABLE"), "available");
+  assert.equal(quest("AVAILABLE", "WEEKLY"), "repeatable");
+  assert.equal(quest("ACTIVE"), "active");
+  assert.equal(quest("COMPLETED"), "completed");
+
+  assert.equal(
+    npcQuestMarker(["active", "repeatable", "available", "ready"]),
+    "ready",
+  );
+  assert.equal(npcQuestMarker(["repeatable", "available"]), "available");
+  assert.equal(npcQuestMarker(["completed", "active"]), "active");
+  // Finished quests leave nothing to mark.
+  assert.equal(npcQuestMarker(["completed"]), null);
+  assert.equal(npcQuestMarker([]), null);
 });

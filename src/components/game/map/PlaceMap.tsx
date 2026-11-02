@@ -13,6 +13,7 @@ import {
 } from "react";
 import DragScrollContainer from "~/components/game/map/DragScrollContainer";
 import { MAP_SIZE, type MapPoint } from "~/game/world/maps";
+import { cn } from "~/lib/utils";
 
 export type MapPinVariant = "place" | "settlement" | "person";
 
@@ -34,6 +35,8 @@ export type MapPlace = {
   face: ReactNode;
   /** Shown on the pin and in the list, such as a new-quest dot. */
   indicator?: ReactNode;
+  /** Hovers over the pin and ends the list row, such as a quest marker. */
+  marker?: { pin: ReactNode; row: ReactNode };
   /** Unplaced places are only listed. */
   point: MapPoint | null;
 };
@@ -69,12 +72,18 @@ export function MapPinContent(props: {
   face: ReactNode;
   name: string;
   indicator?: ReactNode;
+  marker?: ReactNode;
 }) {
   return (
     <>
       <span className="map-pin-face">{props.face}</span>
       {props.indicator ? (
         <span className="map-pin-indicator">{props.indicator}</span>
+      ) : null}
+      {props.marker ? (
+        <span className="absolute bottom-[calc(var(--pin-face)/2+6px)] left-0 -translate-x-1/2">
+          {props.marker}
+        </span>
       ) : null}
       <span className="map-pin-label">{props.name}</span>
     </>
@@ -127,6 +136,8 @@ export function PlaceMap(props: {
   alt: string;
   places: MapPlace[];
   emptyText: string;
+  /** Beside the count on the folded list, such as the best quest marker. */
+  listBadge?: ReactNode;
 }) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState<string | null>(null);
@@ -203,6 +214,7 @@ export function PlaceMap(props: {
                   face={place.locked ? <LockKeyhole /> : place.face}
                   name={place.name}
                   indicator={place.indicator}
+                  marker={place.locked ? undefined : place.marker?.pin}
                 />
               </PlaceLink>
             ))}
@@ -219,6 +231,7 @@ export function PlaceMap(props: {
         >
           <span>Places</span>
           <small>{props.places.length}</small>
+          {props.listBadge}
           <ChevronDown aria-hidden="true" />
         </button>
         <div className="place-map-list-body">
@@ -233,7 +246,11 @@ export function PlaceMap(props: {
                   <li key={place.key}>
                     <PlaceLink
                       place={place}
-                      className="place-map-row"
+                      className={cn(
+                        "place-map-row",
+                        // Something waiting to be handed in lights the row.
+                        place.ready && "bg-success/10 hover:bg-success/15",
+                      )}
                       active={active === place.key}
                       onActive={(on) => {
                         activate(place.key)(on);
@@ -251,7 +268,7 @@ export function PlaceMap(props: {
                       {place.locked ? (
                         <LockKeyhole aria-hidden="true" />
                       ) : (
-                        <ChevronRight aria-hidden="true" />
+                        place.marker?.row ?? <ChevronRight aria-hidden="true" />
                       )}
                     </PlaceLink>
                   </li>

@@ -31,6 +31,7 @@ const adminNavItems: Array<{ href: string; label: string }> = [
   { href: "/admin/vocations", label: "Vocation resources" },
   { href: "/admin/locations", label: "Locations" },
   { href: "/admin/settlements", label: "Settlements" },
+  { href: "/admin/npcs", label: "NPCs" },
   { href: "/admin/travel", label: "Travel" },
   { href: "/admin/skills", label: "Skills" },
   { href: "/admin/leveling", label: "Leveling" },

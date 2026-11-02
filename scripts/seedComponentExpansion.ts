@@ -3,7 +3,6 @@ import { readFile } from "node:fs/promises";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 import {
-  BASIC_PICKAXE_REQUIREMENTS,
   COMPONENT_CRAFTS,
   COMPONENT_GATHERING_SOURCES,
   COMPONENT_ITEMS,
@@ -29,9 +28,9 @@ const prisma = new PrismaClient({
 });
 
 async function validateDefinitions() {
-  if (COMPONENT_ITEMS.length !== 5 || COMPONENT_CRAFTS.length !== 3) {
+  if (COMPONENT_ITEMS.length !== 14 || COMPONENT_CRAFTS.length !== 12) {
     throw new Error(
-      "Component expansion must define five items and three crafts",
+      "Component expansion must define fourteen items and twelve crafts",
     );
   }
 
@@ -77,10 +76,17 @@ async function main(selectedMode: Mode) {
     async (tx) => {
       const expectedDependencyTypes = new Map([
         ["Oak Plank", "MATERIAL"],
+        ["Birch Plank", "MATERIAL"],
+        ["Pine Plank", "MATERIAL"],
+        ["Willow Plank", "MATERIAL"],
+        ["Ash Plank", "MATERIAL"],
+        ["Frostpine Plank", "MATERIAL"],
         ["Elderwood Plank", "MATERIAL"],
+        ["Gloamwood Plank", "MATERIAL"],
+        ["Emberwood Plank", "MATERIAL"],
+        ["Ironbark Plank", "MATERIAL"],
+        ["Saltcedar Plank", "MATERIAL"],
         ["Soft Hide", "HIDE"],
-        ["Iron Ingot", "INGOT"],
-        ["Basic Pickaxe", "PICKAXE"],
       ] as const);
       const dependencyItems = await tx.item.findMany({
         where: { name: { in: [...expectedDependencyTypes.keys()] } },
@@ -373,56 +379,6 @@ async function main(selectedMode: Mode) {
           `${craft.outputItemName}: ${craft.actionType} recipe configured`,
         );
       }
-
-      const pickaxeItemId = itemIds.get("Basic Pickaxe")!;
-      const pickaxeResource = await tx.vocationalResource.findUnique({
-        where: { itemId: pickaxeItemId },
-        include: {
-          requirements: {
-            select: { itemId: true, quantityPerUnit: true },
-          },
-        },
-      });
-      if (!pickaxeResource || pickaxeResource.actionType !== "BLACKSMITHING") {
-        throw new Error(
-          "Basic Pickaxe must have an existing Blacksmithing recipe",
-        );
-      }
-      const pickaxeRequirementRows = BASIC_PICKAXE_REQUIREMENTS.flatMap(
-        (requirement) => {
-          const itemId = itemIds.get(requirement.itemName);
-          return itemId
-            ? [{ itemId, quantityPerUnit: requirement.quantityPerUnit }]
-            : [];
-        },
-      );
-      const pickaxeMatches =
-        pickaxeRequirementRows.length === BASIC_PICKAXE_REQUIREMENTS.length &&
-        sameRequirements(pickaxeResource.requirements, pickaxeRequirementRows);
-      if (selectedMode === "--verify" && !pickaxeMatches) {
-        throw new Error("Basic Pickaxe requirements differ");
-      }
-      if (selectedMode === "--apply") {
-        if (
-          pickaxeRequirementRows.length !== BASIC_PICKAXE_REQUIREMENTS.length
-        ) {
-          throw new Error(
-            "Basic Pickaxe is missing a required ingredient item",
-          );
-        }
-        await tx.vocationalRequirement.deleteMany({
-          where: { resourceId: pickaxeResource.id },
-        });
-        await tx.vocationalRequirement.createMany({
-          data: pickaxeRequirementRows.map((requirement) => ({
-            resourceId: pickaxeResource.id,
-            ...requirement,
-          })),
-        });
-      }
-      notes.push(
-        `Basic Pickaxe: ${selectedMode === "--apply" ? "requirements updated" : pickaxeMatches ? "ready" : "would replace legacy Plank with Wooden Handle"}`,
-      );
     },
     { maxWait: 10_000, timeout: 60_000 },
   );

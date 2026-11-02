@@ -1,12 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Castle } from "lucide-react";
+import { Castle, Check } from "lucide-react";
 import type React from "react";
 import { ItemArtwork } from "~/components/game/items/ItemArtwork";
 import { CoinsIcon } from "~/components/game/ui/coins-icon";
 import {
   QUEST_OBJECTIVE_LABELS,
   QUEST_REPEAT_LABELS,
+  type QuestMarkerKind,
 } from "~/game/settlements";
 import { formatGold } from "~/lib/marketplace";
 import { cn } from "~/lib/utils";
@@ -49,6 +50,168 @@ export function QuestProgressBar({ quest }: { quest: QuestView }) {
         style={{ width: `${Math.floor(questProgress(quest) * 100)}%` }}
       />
     </div>
+  );
+}
+
+const MARKERS: Record<
+  QuestMarkerKind,
+  { glyph: "!" | "?" | null; label: string; color: string; lit: boolean }
+> = {
+  ready: {
+    glyph: "?",
+    label: "Ready to hand in",
+    color: "var(--success)",
+    lit: true,
+  },
+  available: {
+    glyph: "!",
+    label: "Quest available",
+    color: "var(--currency)",
+    lit: true,
+  },
+  repeatable: {
+    glyph: "!",
+    label: "Daily or weekly quest available",
+    color: "var(--info)",
+    lit: true,
+  },
+  active: {
+    glyph: "?",
+    label: "In progress",
+    color: "var(--muted-foreground)",
+    lit: false,
+  },
+  completed: {
+    glyph: null,
+    label: "Completed",
+    color: "var(--muted-foreground)",
+    lit: false,
+  },
+};
+
+const OUTLINE = "hsl(var(--background))";
+const QUESTION = "M6.5 11 C6.5 3 17.5 3 17.5 10.5 C17.5 16 12 16.5 12 22.5";
+
+/** "!" or "?" as a shape with a dark outline, so it reads on any artwork. */
+function QuestGlyph(props: { glyph: "!" | "?"; fill: string; height: number }) {
+  return (
+    <svg
+      viewBox="0 0 24 40"
+      width={props.height * 0.6}
+      height={props.height}
+      aria-hidden="true"
+      className="overflow-visible"
+    >
+      {props.glyph === "!" ? (
+        <g
+          fill={props.fill}
+          stroke={OUTLINE}
+          strokeWidth={3.5}
+          strokeLinejoin="round"
+          paintOrder="stroke"
+        >
+          <path d="M6.5 5.5 C6.5 1.5 17.5 1.5 17.5 5.5 L14.6 24.5 C14.2 27.5 9.8 27.5 9.4 24.5 Z" />
+          <circle cx="12" cy="34" r="4.6" />
+        </g>
+      ) : (
+        <g fill="none" strokeLinecap="round" strokeLinejoin="round">
+          <path d={QUESTION} stroke={OUTLINE} strokeWidth={10.5} />
+          <path d={QUESTION} stroke={props.fill} strokeWidth={6} />
+          <circle
+            cx="12"
+            cy="33.5"
+            r="4.6"
+            fill={props.fill}
+            stroke={OUTLINE}
+            strokeWidth={3.5}
+            paintOrder="stroke"
+          />
+        </g>
+      )}
+    </svg>
+  );
+}
+
+/**
+ * The classic quest-giver mark: "!" to take a quest, "?" once it's under way.
+ * With `burst`, rays of light turn slowly behind it; with `pulse`, a glow
+ * keeps pinging out of it.
+ */
+export function QuestMarker({
+  kind,
+  size = 22,
+  burst = false,
+  pulse = false,
+  label,
+  className,
+}: {
+  kind: QuestMarkerKind;
+  /** The glyph's height in pixels. */
+  size?: number;
+  burst?: boolean;
+  pulse?: boolean;
+  /** Replaces the kind's own label, e.g. to say the quests are new. */
+  label?: string;
+  className?: string;
+}) {
+  const marker = MARKERS[kind];
+  const color = (alpha = 1) => `hsl(${marker.color} / ${alpha})`;
+  const rays = burst && marker.lit;
+  const box = Math.round(rays ? size * 1.8 : size);
+  const glow = Math.max(3, Math.round(size / 5));
+
+  return (
+    <span
+      role="img"
+      aria-label={label ?? marker.label}
+      title={label ?? marker.label}
+      className={cn("relative grid shrink-0 place-items-center", className)}
+      style={{ width: box, height: box }}
+    >
+      {rays ? (
+        <>
+          <span
+            aria-hidden="true"
+            className="absolute inset-0 rounded-full bg-[radial-gradient(circle,hsl(var(--background)/0.7)_25%,transparent_70%)]"
+          />
+          <span
+            aria-hidden="true"
+            className="absolute inset-0 rounded-full [mask-image:radial-gradient(circle,#000_20%,transparent_70%)] motion-safe:animate-[spin_14s_linear_infinite]"
+            style={{
+              background: `repeating-conic-gradient(${color()} 0deg 7deg, transparent 7deg 30deg)`,
+            }}
+          />
+        </>
+      ) : null}
+      {pulse ? (
+        <span
+          aria-hidden="true"
+          className="absolute rounded-full blur-[2px] motion-safe:animate-ping"
+          style={{
+            inset: (box - size * 0.9) / 2,
+            background: color(0.55),
+          }}
+        />
+      ) : null}
+      <span
+        className="relative grid place-items-center"
+        style={{
+          filter: marker.lit
+            ? `drop-shadow(0 2px 3px rgb(0 0 0 / 0.45)) drop-shadow(0 0 ${glow}px ${color(0.75)})`
+            : "drop-shadow(0 2px 3px rgb(0 0 0 / 0.45))",
+        }}
+      >
+        {marker.glyph ? (
+          <QuestGlyph glyph={marker.glyph} fill={color()} height={size} />
+        ) : (
+          <Check
+            aria-hidden="true"
+            strokeWidth={3}
+            style={{ color: color(), width: size * 0.8, height: size * 0.8 }}
+          />
+        )}
+      </span>
+    </span>
   );
 }
 

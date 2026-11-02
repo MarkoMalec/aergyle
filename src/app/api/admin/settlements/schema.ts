@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { Prisma } from "~/generated/prisma/client";
 import {
-  NpcProfession,
   QuestObjectiveType,
   QuestRepeat,
   SettlementKind,
@@ -56,7 +55,8 @@ const offerSchema = z
   );
 
 export const npcSchema = z.object({
-  settlementId: id,
+  // Null: no location; the NPC is hidden from players.
+  settlementId: id.nullable(),
   name,
   description,
   portrait: assetPath.nullable(),
@@ -64,12 +64,17 @@ export const npcSchema = z.object({
   headX: fraction.nullable(),
   headY: fraction.nullable(),
   headSize: fraction.nullable(),
-  profession: z.enum(values(NpcProfession)).nullable(),
+  professionId: id.nullable(),
   requiredProjectId: id.nullable(),
   enabled: z.boolean(),
   sortOrder,
   offers: z.array(offerSchema).max(500),
 });
+
+// Moves an NPC to another settlement, or to no location.
+export const npcMoveSchema = z.object({ settlementId: id.nullable() });
+
+export const professionSchema = z.object({ name });
 
 const objectiveSchema = z
   .object({

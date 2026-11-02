@@ -8,7 +8,7 @@ export function PresenceNotice(props: {
   locationName: string | null;
 }) {
   return (
-    <div className="game-panel game-panel-body flex flex-wrap items-center justify-between gap-4">
+    <div className="game-panel-flat game-panel-body flex flex-wrap items-center justify-between gap-4">
       <div className="flex items-center gap-3">
         <Compass className="h-6 w-6 shrink-0 text-primary" aria-hidden="true" />
         <div>

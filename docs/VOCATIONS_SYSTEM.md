@@ -13,7 +13,7 @@ empty list accepts every type. The shipped defaults are:
 
 - Blacksmithing refines ore into ingots and produces armor, tools and metal components.
 - Weaponsmithing owns dedicated melee-weapon production.
-- Carpentry processes logs into wooden components, bows and practical wooden items.
+- Carpentry processes logs into wooden components, bows, crossbows and practical wooden items (the crafted weapons pack adds staves and wands).
 - Alchemy turns herbs and materials into potions and reagents.
 
 Rules are checked when a resource is saved or moved between skills, never
@@ -97,6 +97,9 @@ The skill page loads the resource list server-side.
 Tip: use Prisma Studio (`npm run db:studio`) to tweak values quickly.
 
 The first multi-location content set is documented in [VOCATION_EXPANSION_PACK.md](VOCATION_EXPANSION_PACK.md).
+
+Crafted weapons and shields (Weaponsmithing, Carpentry, Blacksmithing, levels
+1–72) are documented in [CRAFTED_WEAPONS.md](CRAFTED_WEAPONS.md).
 
 Cooking's recipe gates, per-dish ingredients, and timed food effects are documented in [COOKING_SYSTEM.md](COOKING_SYSTEM.md).
 

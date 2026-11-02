@@ -6,12 +6,12 @@ import { NpcHead } from "~/components/game/map/NpcHead";
 import { PlaceMap, type MapPlace } from "~/components/game/map/PlaceMap";
 import { StorageFace } from "~/components/game/map/StorageFace";
 import { CommunityProjects } from "~/components/game/settlements/CommunityProjects";
-import { NewQuestsDot } from "~/components/game/settlements/NewQuestsDot";
 import { PresenceNotice } from "~/components/game/settlements/PresenceNotice";
+import { QuestMapMarker } from "~/components/game/settlements/QuestMapMarker";
 import PageHeading from "~/components/game/ui/PageHeading";
 import {
-  NPC_PROFESSION_LABELS,
   npcHref,
+  npcQuestMarker,
   SETTLEMENT_KIND_LABELS,
   storageHref,
 } from "~/game/settlements";
@@ -39,12 +39,14 @@ export default async function SettlementPage({
     key: `npc-${npc.id}`,
     name: npc.name,
     detail: [
-      npc.profession ? NPC_PROFESSION_LABELS[npc.profession] : null,
+      npc.profession?.name ?? null,
       npc.questsReady > 0
         ? "Quest ready"
         : npc.questsAvailable > 0
           ? `${npc.questsAvailable} new quest${npc.questsAvailable === 1 ? "" : "s"}`
-          : null,
+          : npc.questMarker === "active"
+            ? "Quest in progress"
+            : null,
       npc.wares > 0 ? "Trades" : null,
     ]
       .filter(Boolean)
@@ -54,9 +56,22 @@ export default async function SettlementPage({
     ready: npc.questsReady > 0,
     variant: "person",
     face: <NpcHead portrait={npc.portrait} crop={headCrop(npc)} />,
-    indicator: <NewQuestsDot npcId={npc.id} className="-right-1.5 -top-1.5" />,
+    marker: npc.questMarker
+      ? {
+          pin: (
+            <QuestMapMarker kind={npc.questMarker} size="pin" npcId={npc.id} />
+          ),
+          row: (
+            <QuestMapMarker kind={npc.questMarker} size="row" npcId={npc.id} />
+          ),
+        }
+      : undefined,
     point: mapPoint(npc),
   }));
+  // The folded list (phones) shows the most urgent marker in the settlement.
+  const topMarker = npcQuestMarker(
+    npcs.flatMap((npc) => npc.questMarker ?? []),
+  );
   // The storage stands with the NPCs on the settlement's own map.
   const places: MapPlace[] = storage
     ? [
@@ -117,6 +132,15 @@ export default async function SettlementPage({
             alt={`Map of ${settlement.name}`}
             places={places}
             emptyText="No one is around right now."
+            listBadge={
+              topMarker ? (
+                <QuestMapMarker
+                  kind={topMarker}
+                  size="badge"
+                  settlementId={settlement.id}
+                />
+              ) : undefined
+            }
           />
 
           {projects.length > 0 ? (
