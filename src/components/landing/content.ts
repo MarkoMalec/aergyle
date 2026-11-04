@@ -131,9 +131,12 @@ export const DUNGEON_NAMES = [
   "Dreadspire Ossuary",
 ] as const;
 
-/** One 8-hour Copper Ore shift at its seeded pace: 11 s and 3 XP per ore. */
+/**
+ * One Copper Ore run at its seeded pace: 11 s and 3 XP per ore. Four hours'
+ * worth, the shortest run length planned for /admin/vocations, so the haul
+ * never shows more than one run can earn.
+ */
 export const AWAY_SHIFT = {
-  hours: 8,
-  ore: Math.floor((8 * 3600) / 11),
-  xp: Math.floor((8 * 3600) / 11) * 3,
+  ore: Math.floor((4 * 3600) / 11),
+  xp: Math.floor((4 * 3600) / 11) * 3,
 } as const;

@@ -727,7 +727,7 @@ export function Nightfall() {
           }
         >
           <p className={LEAD}>
-            Give your wayfarer a task for up to eight hours and get on with
+            Give your wayfarer a task that lasts for hours and get on with
             your life. Every swing, cast and smelt is counted while you are
             gone, and the haul is waiting the moment you come back.
           </p>

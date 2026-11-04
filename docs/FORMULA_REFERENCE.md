@@ -90,7 +90,7 @@ editable in /admin): gathering 1–4 hours gives 3/5/7/9 rolls, quantity
 | Rule | Formula | Shape | Where |
 | --- | --- | --- | --- |
 | Action time | `max(1, round(base × 100 / (100 + efficiency)))`; 100 efficiency halves the time | Saturating | `computeEffectiveUnitSeconds`, `VOCATION_EFFICIENCY_HALF_TIME` in `src/game/vocationStats.ts` |
-| Units, XP and items | `units = floor(elapsed / unit seconds)`; XP = units × XP per unit; items = units × yield per unit; capped by materials, bait and bag space; runs last at most 8 hours | Linear | `computeVocationalProgress` in `src/server/vocations/progress.ts`; `src/server/vocations/claim.ts`; `MAX_VOCATION_DURATION_SECONDS` |
+| Units, XP and items | `units = floor(elapsed / unit seconds)`; XP = units × XP per unit; items = units × yield per unit; capped by materials, bait and bag space; runs last at most the run length set on `/admin/vocations` (8 hours until saved) | Linear | `computeVocationalProgress` in `src/server/vocations/progress.ts`; `src/server/vocations/claim.ts`; `getMaxVocationDurationSeconds` (`VocationConfig`) |
 | Travel time | `max(1, round(base × 100 / max(10, movement speed)))`; routes without a saved time take 4 hours | Saturating | `applyMovementSpeed` in `src/game/world/travel.ts` |
 
 ## Health and consumables

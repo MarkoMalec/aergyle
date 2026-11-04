@@ -12,6 +12,7 @@ import {
   computeEffectiveUnitSeconds,
   getToolEfficiencyForAction,
 } from "~/server/vocations/tools";
+import { getMaxVocationDurationSeconds } from "~/server/vocations/config";
 import { getCraftingRule } from "~/game/crafting";
 
 // Recipe visibility and location availability are character-specific.
@@ -196,10 +197,10 @@ const SkillPage = async ({
       })
     : [];
 
-  const appliedEfficiency =
-    userId && actionType
-      ? await getToolEfficiencyForAction(userId, actionType)
-      : 0;
+  const [appliedEfficiency, maxDurationSeconds] = await Promise.all([
+    userId && actionType ? getToolEfficiencyForAction(userId, actionType) : 0,
+    getMaxVocationDurationSeconds(),
+  ]);
 
   const resourcesWithEfficiency = resources.map((resource) => {
     const { unitSeconds } = computeEffectiveUnitSeconds(
@@ -220,6 +221,7 @@ const SkillPage = async ({
         <SkillVocationalResources
           resources={resourcesWithEfficiency}
           actionType={actionType}
+          maxDurationSeconds={maxDurationSeconds}
         />
       ) : (
         <div className="text-sm text-muted-foreground">

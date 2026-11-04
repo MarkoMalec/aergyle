@@ -61,7 +61,7 @@ Earned units are settled by `claimVocationalRewards` (`src/server/vocations/clai
 
 All routes require an authenticated session.
 
-- `POST /api/vocations/start` `{ resourceId, locationId?, durationSeconds?, quantity?, baitUserItemId? }` → start an activity. `quantity` sets the duration to `quantity × unitSeconds` (still capped at 8h); the start dialog sends it for resources with inputs.
+- `POST /api/vocations/start` `{ resourceId, locationId?, durationSeconds?, quantity?, baitUserItemId? }` → start an activity. `quantity` sets the duration to `quantity × unitSeconds` (still capped at the run length set on `/admin/vocations`, 8h until one is saved); the start dialog sends it for resources with inputs.
 - `GET /api/activity/status` → every activity's status in one response; its `vocation` entry is the current activity + derived progress (settles due units first)
 - `POST /api/vocations/stop` → grant what was earned, then stop the activity
 

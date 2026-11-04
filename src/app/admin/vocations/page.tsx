@@ -5,7 +5,9 @@ import {
   VocationResourcesBoard,
   type VocationResourceRow,
 } from "~/components/admin/vocations/VocationResourcesBoard";
+import { VocationRunLengthEditor } from "~/components/admin/vocations/VocationRunLengthEditor";
 import { requireAdminPageAccess } from "~/server/admin/auth";
+import { getMaxVocationDurationSeconds } from "~/server/vocations/config";
 import { getSkillItemRules } from "~/server/vocations/skillRules";
 
 export const dynamic = "force-dynamic";
@@ -13,32 +15,34 @@ export const revalidate = 0;
 
 export default async function AdminVocationsPage() {
   await requireAdminPageAccess();
-  const [resources, locationCount, itemRules] = await Promise.all([
-    prisma.vocationalResource.findMany({
-      select: {
-        id: true,
-        actionType: true,
-        name: true,
-        itemId: true,
-        requiredRecipeItemId: true,
-        requiredSkillLevel: true,
-        defaultSeconds: true,
-        yieldPerUnit: true,
-        xpPerUnit: true,
-        item: { select: { name: true, sprite: true, itemType: true } },
-        requiredRecipeItem: { select: { name: true } },
-        // Item types decide which skills a resource may move to.
-        requirements: { select: { item: { select: { itemType: true } } } },
-        locations: {
-          where: { enabled: true },
-          select: { locationId: true },
+  const [resources, locationCount, itemRules, maxDurationSeconds] =
+    await Promise.all([
+      prisma.vocationalResource.findMany({
+        select: {
+          id: true,
+          actionType: true,
+          name: true,
+          itemId: true,
+          requiredRecipeItemId: true,
+          requiredSkillLevel: true,
+          defaultSeconds: true,
+          yieldPerUnit: true,
+          xpPerUnit: true,
+          item: { select: { name: true, sprite: true, itemType: true } },
+          requiredRecipeItem: { select: { name: true } },
+          // Item types decide which skills a resource may move to.
+          requirements: { select: { item: { select: { itemType: true } } } },
+          locations: {
+            where: { enabled: true },
+            select: { locationId: true },
+          },
         },
-      },
-      orderBy: [{ actionType: "asc" }, { sortOrder: "asc" }, { id: "asc" }],
-    }),
-    prisma.location.count(),
-    getSkillItemRules(),
-  ]);
+        orderBy: [{ actionType: "asc" }, { sortOrder: "asc" }, { id: "asc" }],
+      }),
+      prisma.location.count(),
+      getSkillItemRules(),
+      getMaxVocationDurationSeconds(),
+    ]);
 
   const rows: VocationResourceRow[] = resources.map((resource) => ({
     id: resource.id,
@@ -90,6 +94,8 @@ export default async function AdminVocationsPage() {
           </Link>
         </div>
       </div>
+
+      <VocationRunLengthEditor initialSeconds={maxDurationSeconds} />
 
       <VocationResourcesBoard
         resources={rows}

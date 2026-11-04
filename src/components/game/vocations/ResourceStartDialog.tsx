@@ -12,7 +12,10 @@ import { Badge } from "~/components/ui/badge";
 import toast from "react-hot-toast";
 import { useVocationalActiveActionContext } from "~/components/game/actions/VocationalActiveActionProvider";
 import type { StatusResponse } from "~/components/game/actions/useVocationalActiveAction";
-import { formatDuration } from "~/components/game/actions/format";
+import {
+  formatDuration,
+  formatLength,
+} from "~/components/game/actions/format";
 import { useEquipmentContext } from "~/context/equipmentContext";
 import { useOptionalDndContext } from "~/components/dnd/DnDContext";
 import {
@@ -30,7 +33,6 @@ import { cn } from "~/lib/utils";
 import { Clock, Minus, Plus } from "lucide-react";
 import Link from "next/link";
 import { getCraftingRule } from "~/game/crafting";
-import { MAX_VOCATION_DURATION_SECONDS } from "~/server/vocations/constants";
 
 type ResourceStartDialogProps = {
   resource: {
@@ -51,6 +53,8 @@ type ResourceStartDialogProps = {
   } | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** The admin's run length; no run lasts longer. */
+  maxDurationSeconds: number;
 };
 
 const sectionLabelClass = "game-eyebrow text-muted-foreground";
@@ -61,6 +65,7 @@ export default function ResourceStartDialog({
   resource,
   open,
   onOpenChange,
+  maxDurationSeconds,
 }: ResourceStartDialogProps) {
   const [isStarting, setIsStarting] = useState(false);
   const [baitUserItemId, setBaitUserItemId] = useState<number | null>(null);
@@ -159,7 +164,7 @@ export default function ResourceStartDialog({
   );
   const maxByTime = Math.max(
     1,
-    Math.floor(MAX_VOCATION_DURATION_SECONDS / unitSeconds),
+    Math.floor(maxDurationSeconds / unitSeconds),
   );
   const maxQuantity = Math.min(maxByInputs, maxByTime);
   const userHasResource = maxByInputs >= 1;
@@ -402,8 +407,7 @@ export default function ResourceStartDialog({
                     </label>
                     {maxByTime < maxByInputs ? (
                       <span className="text-xs text-muted-foreground">
-                        {Math.round(MAX_VOCATION_DURATION_SECONDS / 3600)}h
-                        limit
+                        {formatLength(maxDurationSeconds)} limit
                       </span>
                     ) : null}
                   </div>

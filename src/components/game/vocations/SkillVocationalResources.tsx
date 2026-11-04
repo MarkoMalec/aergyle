@@ -49,6 +49,7 @@ export type SkillVocationalResource = {
 export default function SkillVocationalResources(props: {
   resources: SkillVocationalResource[];
   actionType: VocationalActionType;
+  maxDurationSeconds: number;
 }) {
   const { resources, actionType } = props;
   const skillProgressState = useSkillProgress();
@@ -205,6 +206,7 @@ export default function SkillVocationalResources(props: {
         resource={selectedResource}
         open={dialogOpen}
         onOpenChange={setDialogOpen}
+        maxDurationSeconds={props.maxDurationSeconds}
       />
     </>
   );

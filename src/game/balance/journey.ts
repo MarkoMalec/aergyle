@@ -20,11 +20,12 @@ import {
 
 /**
  * Plays a character forward day by day. Each day the player has a number of
- * activity hours and check-ins: an activity runs only until its idle cap (8 h
- * for vocations, the tier or run length for expeditions and dungeons), so a
- * player who checks in rarely can't fill a day with short runs. Within the
- * hours an activity gets, the character always uses the best source open at
- * its current levels, re-choosing at every level-up.
+ * activity hours and check-ins: an activity runs only until its idle cap (the
+ * run length set on /admin/vocations for vocations, the tier or run length for
+ * expeditions and dungeons), so a player who checks in rarely can't fill a
+ * day with short runs. Within the hours an activity gets, the character always
+ * uses the best source open at its current levels, re-choosing at every
+ * level-up.
  *
  * Between level-ups XP rates are constant, so time is advanced one level-up at
  * a time and every "level reached" moment is exact, not sampled.

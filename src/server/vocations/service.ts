@@ -4,7 +4,7 @@ import type { UserVocationalActivity } from "~/generated/prisma/client";
 import { prisma } from "~/lib/prisma";
 import { assertNoOtherActivity } from "~/server/activity";
 import { countItems } from "~/server/items/consumeItems";
-import { MAX_VOCATION_DURATION_SECONDS } from "~/server/vocations/constants";
+import { getMaxVocationDurationSeconds } from "~/server/vocations/config";
 import { computeVocationalProgress } from "~/server/vocations/progress";
 import { claimVocationalRewards } from "~/server/vocations/claim";
 import {
@@ -321,10 +321,13 @@ export async function startVocationalActivity(params: {
     }
   }
 
-  const efficiency = await getToolEfficiencyForAction(
-    userId,
-    resource.actionType as VocationalActionType,
-  );
+  const [efficiency, maxDurationSeconds] = await Promise.all([
+    getToolEfficiencyForAction(
+      userId,
+      resource.actionType as VocationalActionType,
+    ),
+    getMaxVocationDurationSeconds(),
+  ]);
   const { unitSeconds } = computeEffectiveUnitSeconds(
     secondsPerUnit,
     efficiency,
@@ -424,9 +427,9 @@ export async function startVocationalActivity(params: {
     params.quantity && params.quantity > 0 ? Math.floor(params.quantity) : null;
   const requestedSeconds = quantity
     ? quantity * unitSeconds
-    : params.durationSeconds ?? MAX_VOCATION_DURATION_SECONDS;
+    : params.durationSeconds ?? maxDurationSeconds;
   const durationSeconds = Math.min(
-    MAX_VOCATION_DURATION_SECONDS,
+    maxDurationSeconds,
     Math.max(1, Math.floor(requestedSeconds)),
   );
 

@@ -10,13 +10,7 @@ import { useReveal } from "./motion";
 
 const COUNT_MS = 2200;
 
-function formatClock(minutes: number) {
-  const h = Math.floor(minutes / 60);
-  const m = Math.floor(minutes % 60);
-  return `${h}h ${String(m).padStart(2, "0")}m`;
-}
-
-/** The game's "While you were away" summary for one full night of mining. */
+/** The game's "While you were away" summary for one mining run. */
 export function AwayHaul() {
   const [ref, reveal] = useReveal<HTMLDivElement>(0.4);
   const [progress, setProgress] = useState(1);
@@ -59,8 +53,7 @@ export function AwayHaul() {
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold">Mining · Copper Ore</p>
             <p className="truncate text-xs text-muted-foreground">
-              Citadel · {formatClock(AWAY_SHIFT.hours * 60 * progress)} of{" "}
-              {AWAY_SHIFT.hours}h
+              Citadel · Run complete
             </p>
           </div>
         </div>

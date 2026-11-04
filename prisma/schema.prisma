@@ -1189,6 +1189,16 @@ model VocationalSkillRule {
   updatedAt       DateTime             @updatedAt
 }
 
+// Singleton global rules for every vocational skill, edited on
+// /admin/vocations. A run snapshots its end time when it starts, so a new
+// run length only affects runs started afterwards.
+model VocationConfig {
+  id                 Int      @id @default(1)
+  maxDurationSeconds Int      @default(28800) // 8 hours
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
 // Location-specific configuration (overrides defaultSeconds per location)
 model LocationVocationalResource {
   id         Int @id @default(autoincrement())
