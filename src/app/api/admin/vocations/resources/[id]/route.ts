@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "~/lib/prisma";
 import { requireAdminApiAccess } from "~/server/admin/auth";
-import { resourceSchema, validateResourceInput } from "../schema";
+import {
+  levelSortOrder,
+  resourceSchema,
+  validateResourceInput,
+} from "../schema";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -34,17 +38,12 @@ export async function PATCH(req: NextRequest, ctx: { params: { id: string } }) {
         where: { id },
         select: { actionType: true },
       });
-      // A resource moved to another skill joins the bottom of that skill's
-      // list, like a new one; its old sortOrder means nothing there.
+      // A resource moved to another skill slots in by level, like a new one;
+      // its old sortOrder means nothing there.
       const sortOrder =
         current.actionType === v.actionType
           ? undefined
-          : ((
-              await tx.vocationalResource.aggregate({
-                where: { actionType: v.actionType },
-                _max: { sortOrder: true },
-              })
-            )._max.sortOrder ?? 0) + 10;
+          : await levelSortOrder(tx, v.actionType, v.requiredSkillLevel, id);
 
       const resource = await tx.vocationalResource.update({
         where: { id },

@@ -14,6 +14,24 @@ export interface TailoringMaterialDefinition {
   price: number;
   sprite: string;
   requiredGatheringLevel: number;
+  acquisition: "GATHERING" | "IMPORT";
+}
+
+/** A textile produced at the tailor's bench and used by higher-end clothing. */
+export interface TailoringTextileDefinition {
+  name: string;
+  description: string;
+  itemType: "MATERIAL";
+  rarity: ItemRarity;
+  price: number;
+  sprite: string;
+  requiredSkillLevel: number;
+  defaultSeconds: number;
+  xpPerUnit: number;
+  requirements: readonly {
+    itemName: string;
+    quantityPerUnit: number;
+  }[];
 }
 
 export interface TailoringBlueprintDefinition {
@@ -57,6 +75,7 @@ export const TAILORING_MATERIALS = [
     price: 5,
     sprite: "/assets/items/resources/textiles/cloth-scraps-tailoring-v1.png",
     requiredGatheringLevel: 1,
+    acquisition: "GATHERING",
   },
   {
     name: "Soft Hide",
@@ -67,6 +86,7 @@ export const TAILORING_MATERIALS = [
     price: 8,
     sprite: "/assets/items/resources/textiles/soft-hide-tailoring-v1.png",
     requiredGatheringLevel: 3,
+    acquisition: "GATHERING",
   },
   {
     name: "Spider Silk",
@@ -77,8 +97,135 @@ export const TAILORING_MATERIALS = [
     price: 22,
     sprite: "/assets/items/resources/textiles/spider-silk-tailoring-v1.png",
     requiredGatheringLevel: 12,
+    acquisition: "GATHERING",
+  },
+  {
+    name: "Raw Wool",
+    description:
+      "Springy sheep's fleece, washed but still waiting for a skilled hand to card and weave it.",
+    itemType: "MATERIAL",
+    rarity: "COMMON",
+    price: 10,
+    sprite: "/assets/items/resources/textiles/raw-wool-tailoring-v1.png",
+    requiredGatheringLevel: 5,
+    acquisition: "GATHERING",
+  },
+  {
+    name: "Flax Fiber",
+    description:
+      "Long, dry fibers stripped from flax stalks, ready to be spun and woven into linen.",
+    itemType: "MATERIAL",
+    rarity: "COMMON",
+    price: 7,
+    sprite: "/assets/items/resources/textiles/flax-fiber-tailoring-v1.png",
+    requiredGatheringLevel: 8,
+    acquisition: "GATHERING",
+  },
+  {
+    name: "Silk Bolt",
+    description:
+      "An imported bolt of lustrous silk, precious enough that a tailor measures every cut twice.",
+    itemType: "MATERIAL",
+    rarity: "RARE",
+    price: 95,
+    sprite: "/assets/items/resources/textiles/silk-bolt-tailoring-v1.png",
+    requiredGatheringLevel: 18,
+    acquisition: "IMPORT",
   },
 ] as const satisfies readonly TailoringMaterialDefinition[];
+
+export const TAILORING_TEXTILES = [
+  {
+    name: "Linen Cloth",
+    description:
+      "A clean, pale bolt of flax linen: breathable, durable and a versatile base for fine tailoring.",
+    itemType: "MATERIAL",
+    rarity: "UNCOMMON",
+    price: 18,
+    sprite: "/assets/items/resources/textiles/linen-cloth-tailoring-v1.png",
+    requiredSkillLevel: 3,
+    defaultSeconds: 25,
+    xpPerUnit: 7,
+    requirements: [{ itemName: "Flax Fiber", quantityPerUnit: 3 }],
+  },
+  {
+    name: "Wool Fabric",
+    description:
+      "A sturdy, insulating bolt woven from carded wool; ideal for practical outerwear.",
+    itemType: "MATERIAL",
+    rarity: "UNCOMMON",
+    price: 34,
+    sprite: "/assets/items/resources/textiles/wool-fabric-tailoring-v1.png",
+    requiredSkillLevel: 6,
+    defaultSeconds: 35,
+    xpPerUnit: 10,
+    requirements: [
+      { itemName: "Raw Wool", quantityPerUnit: 3 },
+      { itemName: "Linen Cloth", quantityPerUnit: 1 },
+    ],
+  },
+  {
+    name: "Satin",
+    description:
+      "Silk woven with a glossy face and a smooth drape, reserved for ceremonial and noble work.",
+    itemType: "MATERIAL",
+    rarity: "RARE",
+    price: 160,
+    sprite: "/assets/items/resources/textiles/satin-tailoring-v1.png",
+    requiredSkillLevel: 16,
+    defaultSeconds: 75,
+    xpPerUnit: 24,
+    requirements: [{ itemName: "Silk Bolt", quantityPerUnit: 2 }],
+  },
+  {
+    name: "Brocade",
+    description:
+      "Heavy silk fabric with gold-threaded patterning, made for garments meant to be noticed.",
+    itemType: "MATERIAL",
+    rarity: "EPIC",
+    price: 310,
+    sprite: "/assets/items/resources/textiles/brocade-tailoring-v1.png",
+    requiredSkillLevel: 24,
+    defaultSeconds: 110,
+    xpPerUnit: 38,
+    requirements: [
+      { itemName: "Satin", quantityPerUnit: 1 },
+      { itemName: "Silk Bolt", quantityPerUnit: 1 },
+    ],
+  },
+  {
+    name: "Damask",
+    description:
+      "Reversible patterned cloth whose subtle woven motifs reward a closer look.",
+    itemType: "MATERIAL",
+    rarity: "EPIC",
+    price: 290,
+    sprite: "/assets/items/resources/textiles/damask-tailoring-v1.png",
+    requiredSkillLevel: 27,
+    defaultSeconds: 120,
+    xpPerUnit: 42,
+    requirements: [
+      { itemName: "Satin", quantityPerUnit: 1 },
+      { itemName: "Linen Cloth", quantityPerUnit: 2 },
+    ],
+  },
+  {
+    name: "Flemish Cloth",
+    description:
+      "A renowned, tightly woven trade cloth with a dense hand and exceptional longevity.",
+    itemType: "MATERIAL",
+    rarity: "RARE",
+    price: 145,
+    sprite: "/assets/items/resources/textiles/flemish-cloth-tailoring-v1.png",
+    requiredSkillLevel: 30,
+    defaultSeconds: 135,
+    xpPerUnit: 48,
+    requirements: [
+      { itemName: "Wool Fabric", quantityPerUnit: 2 },
+      { itemName: "Linen Cloth", quantityPerUnit: 2 },
+    ],
+  },
+] as const satisfies readonly TailoringTextileDefinition[];
 
 export const TAILORING_BLUEPRINTS = [
   {
@@ -207,7 +354,7 @@ export const TAILORING_GEAR = [
     xpPerUnit: 32,
     requiredBlueprintName: "Blueprint: Fieldweave Tunic",
     requirements: [
-      { itemName: "Cloth Scraps", quantityPerUnit: 8 },
+      { itemName: "Wool Fabric", quantityPerUnit: 3 },
       { itemName: "Soft Hide", quantityPerUnit: 4 },
       { itemName: "Spider Silk", quantityPerUnit: 2 },
     ],
@@ -228,6 +375,7 @@ export const TAILORING_GATHERING_POOLS = [
     resources: [
       { itemName: "Cloth Scraps", baseChance: 0.28, min: 1, max: 3 },
       { itemName: "Soft Hide", baseChance: 0.3, min: 1, max: 3 },
+      { itemName: "Raw Wool", baseChance: 0.24, min: 1, max: 3 },
       { itemName: "Spider Silk", baseChance: 0.12, min: 1, max: 1 },
     ],
   },
@@ -236,6 +384,8 @@ export const TAILORING_GATHERING_POOLS = [
     resources: [
       { itemName: "Soft Hide", baseChance: 0.25, min: 1, max: 3 },
       { itemName: "Spider Silk", baseChance: 0.18, min: 1, max: 2 },
+      { itemName: "Raw Wool", baseChance: 0.3, min: 1, max: 3 },
+      { itemName: "Flax Fiber", baseChance: 0.16, min: 1, max: 2 },
     ],
   },
   {
@@ -243,12 +393,14 @@ export const TAILORING_GATHERING_POOLS = [
     resources: [
       { itemName: "Cloth Scraps", baseChance: 0.24, min: 2, max: 4 },
       { itemName: "Spider Silk", baseChance: 0.25, min: 1, max: 2 },
+      { itemName: "Flax Fiber", baseChance: 0.28, min: 1, max: 3 },
     ],
   },
 ] as const;
 
 export const TAILORING_ITEMS = [
   ...TAILORING_MATERIALS,
+  ...TAILORING_TEXTILES,
   ...TAILORING_BLUEPRINTS,
   ...TAILORING_GEAR,
 ] as const;
@@ -263,6 +415,7 @@ export function tailoringRequirementsForGear(gear: TailoringGearDefinition) {
 export function tailoringItemCreateData(
   definition:
     | TailoringMaterialDefinition
+    | TailoringTextileDefinition
     | TailoringBlueprintDefinition
     | TailoringGearDefinition,
 ): Prisma.ItemCreateInput {

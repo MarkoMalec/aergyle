@@ -96,7 +96,7 @@ function inspectRgbaPng(png: Buffer) {
   };
 }
 
-void test("component expansion defines fourteen reusable stackable items", () => {
+void test("component expansion defines sixteen reusable stackable items", () => {
   assert.deepEqual(
     COMPONENT_ITEMS.map((item) => item.name),
     [
@@ -114,10 +114,12 @@ void test("component expansion defines fourteen reusable stackable items", () =>
       "Dusk Oil",
       "Tempering Resin",
       "Hardened Leather",
+      "Cured Leather",
+      "Reinforced Boarhide",
     ],
   );
-  assert.equal(new Set(COMPONENT_ITEMS.map((item) => item.slug)).size, 14);
-  assert.equal(new Set(COMPONENT_ITEMS.map((item) => item.sprite)).size, 14);
+  assert.equal(new Set(COMPONENT_ITEMS.map((item) => item.slug)).size, 16);
+  assert.equal(new Set(COMPONENT_ITEMS.map((item) => item.sprite)).size, 16);
 
   for (const definition of COMPONENT_ITEMS) {
     const item = componentItemCreateData(definition);
@@ -142,17 +144,32 @@ void test("crafting chains preserve general-purpose component types", () => {
     { itemName: "Soft Hide", quantityPerUnit: 2 },
     { itemName: "Tempering Resin", quantityPerUnit: 1 },
   ]);
+  assert.deepEqual(crafts.get("Cured Leather")?.requirements, [
+    { itemName: "Raw Hide", quantityPerUnit: 2 },
+    { itemName: "Tempering Resin", quantityPerUnit: 1 },
+  ]);
+  assert.deepEqual(crafts.get("Reinforced Boarhide")?.requirements, [
+    { itemName: "Raw Boar Hide", quantityPerUnit: 2 },
+    { itemName: "Cured Leather", quantityPerUnit: 1 },
+    { itemName: "Tempering Resin", quantityPerUnit: 1 },
+  ]);
   assert.deepEqual(crafts.get("Duskbound Handle")?.requirements, [
     { itemName: "Elderwood Plank", quantityPerUnit: 1 },
     { itemName: "Dusk Oil", quantityPerUnit: 1 },
     { itemName: "Hardened Leather", quantityPerUnit: 1 },
   ]);
-  assert.equal(
-    COMPONENT_ITEMS.find((item) => item.name === "Hardened Leather")?.itemType,
-    "HIDE",
-  );
+  for (const name of [
+    "Hardened Leather",
+    "Cured Leather",
+    "Reinforced Boarhide",
+  ]) {
+    assert.equal(
+      COMPONENT_ITEMS.find((item) => item.name === name)?.itemType,
+      "HIDE",
+    );
+  }
   assert.ok(
-    COMPONENT_ITEMS.filter((item) => item.name !== "Hardened Leather").every(
+    COMPONENT_ITEMS.filter((item) => item.itemType !== "HIDE").every(
       (item) => item.itemType === "MATERIAL",
     ),
   );

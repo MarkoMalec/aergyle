@@ -5,8 +5,8 @@ import type React from "react";
 import { ArrowRight, ChevronDown, Mail, Trophy, Users } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
-import { RARITY_VISUALS, rarityStyle } from "~/utils/rarity-colors";
-import { ArtSlot } from "./art";
+import { RARITY_VISUALS } from "~/utils/rarity-colors";
+import { ArtSlot, Glow } from "./art";
 import { AtlasMap } from "./AtlasMap";
 import { AwayHaul } from "./AwayHaul";
 import {
@@ -21,19 +21,24 @@ import {
   CRAFT_CHAINS,
   DUNGEON_NAMES,
   GATHERING_CALLINGS,
-  TOWNSFOLK,
   type CraftChain,
 } from "./content";
-import { Parallax, Reveal } from "./motion";
+import { FirstPageForm } from "./FirstPageForm";
+import { Parallax, PointerDrift, Reveal, ScrollVar } from "./motion";
+import { OrderBook } from "./OrderBook";
+import { Particles } from "./Particles";
 import { RarityShowcase } from "./RarityShowcase";
+import { Torchlight } from "./Torchlight";
+import { Townsfolk } from "./Townsfolk";
 
 // The page is one day in Aergyle: arrival at dawn, work by noon, the road
 // after midday, trade towards evening, danger at dusk, rest at night, and a
-// last page that is never written.
+// last page that is never written. Each scene carries its hour for the dial
+// in the header (DayDial).
 
 const WRAP = "mx-auto w-full max-w-[1400px] px-4 sm:px-8 lg:px-12";
 const H2 =
-  "font-display text-4xl font-semibold leading-[1.04] tracking-[-0.045em] text-balance sm:text-5xl lg:text-6xl";
+  "font-display text-4xl font-semibold leading-[1.04] tracking-[-0.025em] text-balance sm:text-5xl lg:text-6xl";
 const LEAD =
   "text-base leading-relaxed text-text-secondary text-pretty sm:text-lg";
 const INK = "hsl(var(--background))";
@@ -59,31 +64,39 @@ function Story({
   );
 }
 
-/** Full-bleed painting on wide screens; a banner above the text on phones. */
+/**
+ * Full-bleed painting on wide screens; a banner above the text on phones. It
+ * slides a little against the scroll, and `children` are lights painted on it.
+ */
 function SceneArt({
   name,
   alt,
-  position,
+  focus,
   fallback,
   shade,
+  children,
 }: {
   name: string;
   alt: string;
-  position: string;
+  focus: readonly [number, number];
   fallback: React.ReactNode;
   /** Extra ink on the side the text sits on, from lg up. */
   shade: "left" | "right" | "top-left";
+  children?: React.ReactNode;
 }) {
   return (
-    <div className="relative h-[54svh] min-h-[300px] lg:absolute lg:inset-0 lg:h-auto">
+    <ScrollVar className="relative h-[54svh] min-h-[300px] lg:absolute lg:inset-0 lg:h-auto">
       <ArtSlot
         name={name}
         alt={alt}
         sizes="100vw"
         className="absolute inset-0"
-        imageClassName={position}
+        focus={focus}
+        boxClassName="[transform:translate3d(0,calc((0.5_-_var(--p,0.5))_*_6%),0)_scale(1.06)]"
         fallback={fallback}
-      />
+      >
+        {children}
+      </ArtSlot>
       <div
         aria-hidden="true"
         className="absolute inset-0"
@@ -103,38 +116,122 @@ function SceneArt({
             "bg-[radial-gradient(ellipse_70%_60%_at_0%_0%,hsl(var(--background)/0.92),transparent_70%)]",
         )}
       />
-    </div>
+    </ScrollVar>
   );
 }
 
+/** A bank of mist sliding along a valley, in percent of the painting. */
+function Mist({
+  x,
+  y,
+  width,
+  delay,
+}: {
+  x: number;
+  y: number;
+  width: number;
+  delay: number;
+}) {
+  return (
+    <span
+      aria-hidden="true"
+      className="pointer-events-none absolute h-[9%] -translate-y-1/2 mix-blend-screen"
+      style={{ left: `${x}%`, top: `${y}%`, width: `${width}%` }}
+    >
+      <span
+        className="block h-full w-full rounded-[50%] bg-[radial-gradient(ellipse,rgba(255,232,200,0.3),transparent_70%)] motion-safe:animate-drift"
+        style={{ animationDelay: `${delay}s` }}
+      />
+    </span>
+  );
+}
+
+/** Words that rise into place one after another as the page opens. */
+function Rising({ words, from }: { words: string; from: number }) {
+  return (
+    <>
+      {words.split(" ").map((word, index) => (
+        <Fragment key={index}>
+          <span
+            className="inline-block motion-safe:animate-rise-in"
+            style={{ animationDelay: `${from + index * 90}ms` }}
+          >
+            {word}
+          </span>{" "}
+        </Fragment>
+      ))}
+    </>
+  );
+}
+
+const STARS = [
+  [30, 4],
+  [52, 5],
+  [57, 14],
+  [61, 9],
+  [68, 3],
+  [75, 7],
+  [83, 4],
+  [93, 8],
+] as const;
+
 export function DawnHero() {
   return (
-    <section className="relative isolate flex min-h-[100svh] flex-col overflow-hidden">
+    <PointerDrift
+      // Reads 05:45 on the dial with the page at the very top.
+      data-hour="5.15"
+      data-daypart="Dawn"
+      className="relative isolate flex min-h-[100svh] flex-col overflow-hidden"
+    >
       <div className="relative h-[64svh] min-h-[360px] lg:absolute lg:inset-0 lg:h-auto">
         <Parallax speed={0.22} className="absolute inset-0">
-          <ArtSlot
-            name="hero-dawn-v1"
-            alt="Dawn over Aergyle: a river valley running down to the walled city of Crownhold and the sea, snow peaks far behind"
-            sizes="100vw"
-            priority
-            className="absolute inset-0"
-            imageClassName="object-[64%_50%]"
-            fallback={<DawnBackdrop />}
-          />
+          <div className="absolute inset-0 motion-safe:animate-daybreak">
+            <ArtSlot
+              name="hero-dawn-v1"
+              alt="Dawn over Aergyle: a river valley running down to the walled city of Crownhold and the sea, snow peaks far behind"
+              sizes="100vw"
+              priority
+              className="absolute inset-0"
+              focus={[64, 50]}
+              // The valley leans away from the pointer, the wayfarer towards it.
+              boxClassName="[transform:translate3d(calc(var(--mx,0)_*_-0.7%),calc(var(--my,0)_*_-0.7%),0)_scale(1.04)]"
+              fallback={<DawnBackdrop />}
+            >
+              <Glow
+                x={80.4}
+                y={28.7}
+                size={36}
+                color="rgba(255, 208, 140, 0.5)"
+                motion="breathe"
+              />
+              <Glow
+                x={80.4}
+                y={36}
+                size={12}
+                color="rgba(255, 232, 190, 0.45)"
+                motion="twinkle"
+              />
+              <Mist x={2} y={47} width={42} delay={0} />
+              <Mist x={46} y={63} width={34} delay={-17} />
+            </ArtSlot>
+          </div>
         </Parallax>
         <Parallax
           speed={0.08}
           className="absolute bottom-0 right-[-14%] h-[92%] sm:right-[2%] lg:right-[5%] lg:h-[84%]"
         >
-          <ArtSlot
-            name="hero-wayfarer-v1"
-            alt="A wayfarer with an empty pack and a felling axe, looking out over the valley"
-            sizes="(min-width: 1024px) 34vw, 70vw"
-            priority
-            className="relative aspect-[2/3] h-full"
-            imageClassName="object-contain object-bottom"
-          />
+          <div className="h-full [transform:translate3d(calc(var(--mx,0)_*_1.2%),calc(var(--my,0)_*_0.6%),0)]">
+            <ArtSlot
+              name="hero-wayfarer-v1"
+              alt="A wayfarer with an empty pack and a felling axe, looking out over the valley"
+              sizes="(min-width: 1024px) 34vw, 70vw"
+              priority
+              className="relative aspect-[2/3] h-full"
+              imageClassName="object-contain object-bottom"
+            />
+          </div>
         </Parallax>
+        <Particles preset="motes" className="absolute inset-0" />
         <div
           aria-hidden="true"
           className="absolute inset-0"
@@ -148,17 +245,21 @@ export function DawnHero() {
         />
       </div>
 
-      <div className={cn(WRAP, "relative z-10 -mt-28 pb-14 lg:mt-auto lg:pb-24")}>
-        <h1 className="max-w-3xl font-display text-5xl font-semibold leading-[1.02] tracking-[-0.05em] text-balance sm:text-6xl lg:text-7xl">
-          The world is wide.{" "}
-          <span className="text-primary">Your pack is empty.</span>
+      <div
+        className={cn(WRAP, "relative z-10 -mt-28 pb-14 lg:mt-auto lg:pb-24")}
+      >
+        <h1 className="max-w-3xl text-balance font-display text-5xl font-semibold leading-[1.02] tracking-[-0.03em] sm:text-6xl lg:text-7xl">
+          <Rising words="The world is wide." from={250} />
+          <em className="text-primary">
+            <Rising words="Your pack is empty." from={650} />
+          </em>
         </h1>
-        <p className="mt-6 max-w-xl text-base leading-relaxed text-text-secondary text-pretty sm:text-lg">
-          Aergyle is a hand-painted idle MMO that lives in your browser.
-          Gather, craft, trade and fight your way across a living atlas, and
-          come back to find your wayfarer still hard at work.
+        <p className="mt-6 max-w-xl text-pretty text-base leading-relaxed text-text-secondary [animation-delay:1150ms] motion-safe:animate-rise-in sm:text-lg">
+          Aergyle is a hand-painted idle MMO that lives in your browser. Gather,
+          craft, trade and fight your way across a living atlas, and come back
+          to find your wayfarer still hard at work.
         </p>
-        <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-4">
+        <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-4 [animation-delay:1350ms] motion-safe:animate-rise-in">
           <Button asChild className="px-6">
             <Link href="/play?mode=register">
               Begin your journey <ArrowRight className="h-4 w-4" aria-hidden />
@@ -171,7 +272,7 @@ export function DawnHero() {
             I already have a wayfarer
           </Link>
         </div>
-        <p className="mt-6 text-sm text-muted-foreground">
+        <p className="mt-6 text-sm text-muted-foreground [animation-delay:1500ms] motion-safe:animate-rise-in">
           Plays in your browser. Nothing to install.
         </p>
       </div>
@@ -181,9 +282,9 @@ export function DawnHero() {
         className="absolute bottom-6 left-1/2 z-10 hidden -translate-x-1/2 flex-col items-center gap-1 rounded-md text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:flex"
       >
         Follow the road
-        <ChevronDown className="h-4 w-4" aria-hidden />
+        <ChevronDown className="h-4 w-4 motion-safe:animate-bob" aria-hidden />
       </a>
-    </section>
+    </PointerDrift>
   );
 }
 
@@ -191,6 +292,8 @@ export function FirstLight() {
   return (
     <section
       id="first-light"
+      data-hour="6.5"
+      data-daypart="First light"
       className="relative isolate scroll-mt-16 pt-24 sm:pt-32"
     >
       <div
@@ -202,14 +305,14 @@ export function FirstLight() {
         title={
           <>
             It starts at first light,{" "}
-            <span className="text-primary">with an axe.</span>
+            <em className="text-primary">with an axe.</em>
           </>
         }
       >
         <p className={cn(LEAD, "max-w-xl")}>
           Twelve callings, and not one of them is filler. Each levels on its
-          own, each feeds another, and every hour you put in leaves something
-          in your pack.
+          own, each feeds another, and every hour you put in leaves something in
+          your pack.
         </p>
       </Story>
 
@@ -222,18 +325,27 @@ export function FirstLight() {
             key={calling.skill}
             className="group relative h-[clamp(136px,12vw,232px)]"
           >
-            <Image
-              src={`/assets/skills/${calling.skill}-header.webp`}
-              alt=""
-              fill
-              sizes="(min-width: 1920px) 1920px, 100vw"
-              className="object-cover transition-[filter] duration-300 group-hover:brightness-110"
-            />
+            <ScrollVar className="absolute inset-0 overflow-hidden">
+              <div className="absolute inset-0 [transform:translate3d(0,calc((0.5_-_var(--p,0.5))_*_14%),0)_scale(1.18)]">
+                <Image
+                  src={`/assets/skills/${calling.skill}-header.webp`}
+                  alt=""
+                  fill
+                  sizes="(min-width: 1920px) 1920px, 100vw"
+                  className="object-cover transition-[filter] duration-300 group-hover:brightness-110"
+                />
+              </div>
+            </ScrollVar>
             <div
               aria-hidden="true"
               className="absolute inset-0 bg-[linear-gradient(90deg,hsl(var(--background)/0.94)_0%,hsl(var(--background)/0.62)_32%,transparent_62%)]"
             />
-            <div className={cn(WRAP, "relative flex h-full items-center gap-4 sm:gap-6")}>
+            <div
+              className={cn(
+                WRAP,
+                "relative flex h-full items-center gap-4 sm:gap-6",
+              )}
+            >
               <Image
                 src={`/assets/skills/icons/${calling.skill}.webp`}
                 alt=""
@@ -242,7 +354,7 @@ export function FirstLight() {
                 className="h-11 w-11 shrink-0 drop-shadow-[0_6px_10px_#000] sm:h-16 sm:w-16"
               />
               <div className="max-w-md">
-                <h3 className="font-display text-xl font-semibold tracking-[-0.03em] sm:text-2xl">
+                <h3 className="font-display text-xl font-semibold tracking-[-0.015em] sm:text-2xl">
                   {calling.name}
                 </h3>
                 <p className="mt-1 text-sm leading-snug text-text-secondary sm:text-base">
@@ -318,6 +430,12 @@ function ChainLinkMark({
         delay={delay - 120}
         className="h-px w-full bg-[repeating-linear-gradient(90deg,hsl(var(--primary)/0.6)_0_6px,transparent_6px_12px)]"
       />
+      {/* The work passing down the line. */}
+      <span
+        aria-hidden="true"
+        className="absolute inset-x-0 -top-px h-[3px] rounded-full bg-[linear-gradient(90deg,transparent,hsl(var(--primary)),transparent)] bg-[length:40%_100%] bg-no-repeat motion-safe:animate-spark motion-reduce:hidden"
+        style={{ animationDelay: `${delay * 2}ms` }}
+      />
       <Image
         src={`/assets/skills/icons/${link.skill}.webp`}
         alt=""
@@ -338,10 +456,23 @@ function ChainLinkMark({
 
 export function Noon() {
   return (
-    <section className="relative isolate overflow-hidden py-28 sm:py-40">
+    <section
+      data-hour="12"
+      data-daypart="Noon"
+      className="relative isolate overflow-hidden py-28 sm:py-40"
+    >
       <div
         aria-hidden="true"
-        className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_45%_55%_at_100%_60%,#d0784022,transparent_70%),radial-gradient(ellipse_40%_40%_at_0%_20%,#4b675324,transparent_70%)]"
+        className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_40%_40%_at_0%_20%,#4b675324,transparent_70%)]"
+      />
+      {/* The forge, just out of sight to the right. */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_45%_55%_at_100%_60%,#d0784038,transparent_70%)] motion-safe:animate-breathe"
+      />
+      <Particles
+        preset="embers"
+        className="absolute inset-y-0 right-0 -z-10 w-full lg:w-3/5"
       />
       <div
         className={cn(
@@ -352,7 +483,7 @@ export function Noon() {
         <Story
           title={
             <>
-              By noon, <span className="text-primary">the forge is hot.</span>
+              By noon, <em className="text-primary">the forge is hot.</em>
             </>
           }
         >
@@ -366,7 +497,10 @@ export function Noon() {
             what you gathered into the things the whole world runs on.
           </p>
         </Story>
-        <ul className="flex flex-col gap-10 sm:gap-14" aria-label="Crafting chains">
+        <ul
+          className="flex flex-col gap-10 sm:gap-14"
+          aria-label="Crafting chains"
+        >
           {CRAFT_CHAINS.map((chain, row) => (
             <ChainRow key={chain.steps[0]!.name} chain={chain} row={row} />
           ))}
@@ -378,7 +512,11 @@ export function Noon() {
 
 export function TheRoad() {
   return (
-    <section className="relative isolate py-24 sm:py-32">
+    <section
+      data-hour="14"
+      data-daypart="After midday"
+      className="relative isolate py-24 sm:py-32"
+    >
       <div
         aria-hidden="true"
         className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_60%_50%_at_20%_10%,#4b675330,transparent_70%)]"
@@ -388,15 +526,15 @@ export function TheRoad() {
           title={
             <>
               After midday,{" "}
-              <span className="text-primary">the easy roads run out.</span>
+              <em className="text-primary">the easy roads run out.</em>
             </>
           }
         >
           <p className={LEAD}>
-            Every journey takes real time, and the far roads want a level
-            before they let you through. Start in the walled city of
-            Crownhold. Earn the Frostcrown Peaks, the violet ruins of Caldrath,
-            the furnace of Mount Doom and, one day, the Farwater Keys.
+            Every journey takes real time, and the far roads want a level before
+            they let you through. Start in the walled city of Crownhold. Earn
+            the Frostcrown Peaks, the violet ruins of Caldrath, the furnace of
+            Mount Doom and, one day, the Farwater Keys.
           </p>
         </Story>
         <Reveal className="mt-14 sm:mt-16">
@@ -415,140 +553,58 @@ export function TheRoad() {
           title={
             <>
               Every town has someone{" "}
-              <span className="text-primary">who needs a hand.</span>
+              <em className="text-primary">who needs a hand.</em>
             </>
           }
         >
           <p className={LEAD}>
-            Shopkeepers with rare finds that never stay long. Quests by the
-            day and by the week. Town projects the whole settlement builds
-            together, opening new shops for everyone once they are done.
+            Shopkeepers with rare finds that never stay long. Quests by the day
+            and by the week. Town projects the whole settlement builds together,
+            opening new shops for everyone once they are done.
           </p>
         </Story>
-        <ul className="relative flex items-end justify-center before:absolute before:inset-x-[6%] before:bottom-12 before:h-16 before:rounded-[50%] before:bg-[radial-gradient(ellipse,#000000a0,transparent_70%)] lg:justify-end">
-          {TOWNSFOLK.map((person, index) => (
-            <Reveal
-              as="li"
-              key={person.name}
-              delay={index * 90}
-              className={cn(
-                "group relative -mx-3 w-24 shrink-0 sm:-mx-4 sm:w-32 lg:w-36",
-                index >= 4 && "hidden sm:block",
-              )}
-            >
-              <div className="relative aspect-[2/3] w-full">
-                <Image
-                  src={person.sprite}
-                  alt=""
-                  fill
-                  sizes="(min-width: 1024px) 144px, 128px"
-                  className="object-contain object-bottom transition-[filter] duration-300 group-hover:brightness-110"
-                />
-              </div>
-              <p className="mt-3 px-3 text-center text-xs font-semibold leading-tight sm:px-4 sm:text-sm">
-                {person.name}
-              </p>
-              <p className="px-3 text-center text-xs text-muted-foreground sm:px-4">
-                {person.trade}
-              </p>
-            </Reveal>
-          ))}
-        </ul>
+        <Reveal delay={150}>
+          <Townsfolk />
+        </Reveal>
       </div>
     </section>
   );
 }
 
-const ORDER_BOOK = {
-  asks: [
-    { price: 84, quantity: 120 },
-    { price: 86, quantity: 58 },
-    { price: 91, quantity: 300 },
-  ],
-  bids: [
-    { price: 79, quantity: 400 },
-    { price: 77, quantity: 1200 },
-    { price: 72, quantity: 75 },
-  ],
-};
-
-function OrderBook() {
-  return (
-    <div className="w-full max-w-[420px] rounded-2xl bg-popover p-5 shadow-[0_30px_80px_-20px_#03080b]">
-      <div className="flex items-center gap-4">
-        <div
-          className="rarity-frame relative h-14 w-14 shrink-0 rounded-xl p-1"
-          data-rarity="COMMON"
-          style={rarityStyle("COMMON")}
-        >
-          <Image
-            src="/assets/items/resources/ores/sunstone-ore-atlas-v1.png"
-            alt=""
-            width={56}
-            height={56}
-            className="h-full w-full object-contain"
-          />
-        </div>
-        <div className="min-w-0">
-          <p className="font-display text-lg font-semibold tracking-[-0.02em]">
-            Sunstone Ore
-          </p>
-          <p className="text-xs text-muted-foreground">Order book</p>
-        </div>
-      </div>
-      <div className="mt-4 grid grid-cols-2 gap-3 text-sm tabular-nums">
-        {(
-          [
-            ["Selling", ORDER_BOOK.asks, "text-danger"],
-            ["Buying", ORDER_BOOK.bids, "text-success"],
-          ] as const
-        ).map(([label, rows, tone]) => (
-          <div key={label} className="rounded-xl bg-surface-inset/70 p-3">
-            <p className="text-xs font-medium text-muted-foreground">{label}</p>
-            <ul className="mt-2 grid gap-1.5">
-              {rows.map((row) => (
-                <li key={row.price} className="flex justify-between gap-2">
-                  <span className={cn("font-semibold", tone)}>
-                    {row.price} g
-                  </span>
-                  <span className="text-text-secondary">
-                    ×{row.quantity.toLocaleString("en-US")}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
-      </div>
-      <svg
-        viewBox="0 0 200 40"
-        className="mt-4 h-10 w-full"
-        role="img"
-        aria-label="Price trend rising over the week"
-      >
-        <path
-          d="M0 30 L20 27 L40 31 L60 24 L80 26 L100 19 L120 22 L140 15 L160 17 L180 10 L200 12"
-          fill="none"
-          stroke="hsl(var(--primary))"
-          strokeWidth="2"
-          strokeLinejoin="round"
-          vectorEffect="non-scaling-stroke"
-        />
-      </svg>
-    </div>
-  );
-}
-
 export function Evening() {
   return (
-    <section className="relative isolate overflow-hidden lg:min-h-[820px]">
+    <section
+      data-hour="18"
+      data-daypart="Evening"
+      className="relative isolate overflow-hidden lg:min-h-[820px]"
+    >
       <SceneArt
         name="market-quay-v1"
         alt="The Quay ward market of Crownhold at golden hour, crowded stalls under lanterns and ship masts behind"
-        position="object-[62%_50%]"
+        focus={[62, 50]}
         fallback={<MarketBackdrop />}
         shade="left"
-      />
+      >
+        <Glow
+          x={84.7}
+          y={35.8}
+          size={30}
+          color="rgba(255, 196, 120, 0.42)"
+          motion="breathe"
+        />
+        <Glow x={24.7} y={19.2} size={11} color="rgba(255, 190, 110, 0.5)" />
+        {[46, 50, 54, 58].map((x, index) => (
+          <Glow
+            key={x}
+            x={x}
+            y={32}
+            size={3.2}
+            color="rgba(255, 214, 150, 0.8)"
+            motion="twinkle"
+            delay={index * 0.7}
+          />
+        ))}
+      </SceneArt>
       <div
         className={cn(
           WRAP,
@@ -559,15 +615,15 @@ export function Evening() {
           title={
             <>
               Towards evening,{" "}
-              <span className="text-primary">the quay gets loud.</span>
+              <em className="text-primary">the quay gets loud.</em>
             </>
           }
         >
           <p className={LEAD}>
             One wayfarer&apos;s surplus is another&apos;s missing piece. Sell
-            straight into the order book, list a rare roll at your own price,
-            or post a buy order and let the goods come to you. Price history
-            keeps everyone honest.
+            straight into the order book, list a rare roll at your own price, or
+            post a buy order and let the goods come to you. Price history keeps
+            everyone honest.
           </p>
           <ul className="mt-2 flex flex-wrap gap-x-6 gap-y-3 text-sm text-foreground/90">
             <li className="flex items-center gap-2">
@@ -594,21 +650,42 @@ export function Evening() {
 
 export function Dusk() {
   return (
-    <section className="relative isolate overflow-hidden">
-      <div className="relative flex flex-col lg:min-h-[900px]">
+    <section
+      data-hour="20.25"
+      data-daypart="Dusk"
+      className="relative isolate overflow-hidden"
+    >
+      {/* Only the heading stays out of the dark; the rest waits for the torch. */}
+      <Torchlight className="relative flex flex-col lg:min-h-[900px]">
         <SceneArt
           name="dungeon-descent-v1"
           alt="Stairs descending into the flooded vaults beneath the ruins of Caldrath, torchlight on violet stone"
-          position="object-[58%_45%]"
+          focus={[58, 45]}
           fallback={<DungeonBackdrop />}
           shade="top-left"
-        />
-        <div className={cn(WRAP, "relative -mt-24 lg:mt-0 lg:pt-36")}>
+        >
+          <Glow x={54.8} y={49.5} size={14} color="rgba(255, 150, 70, 0.5)" />
+          <Glow
+            x={89.2}
+            y={48.3}
+            size={14}
+            color="rgba(255, 150, 70, 0.5)"
+            delay={-1.3}
+          />
+          <Glow
+            x={75.5}
+            y={41.7}
+            size={20}
+            color="rgba(90, 220, 205, 0.32)"
+            motion="breathe"
+          />
+        </SceneArt>
+        <div className={cn(WRAP, "relative z-20 -mt-24 lg:mt-0 lg:pt-36")}>
           <Story
             title={
               <>
                 At dusk,{" "}
-                <span className="text-primary">some roads go underground.</span>
+                <em className="text-primary">some roads go underground.</em>
               </>
             }
           >
@@ -653,14 +730,17 @@ export function Dusk() {
             </Reveal>
           ))}
         </ul>
-      </div>
+      </Torchlight>
       <div className={cn(WRAP, "pb-8 pt-10")}>
         <ul
-          className="flex flex-wrap gap-x-5 gap-y-1 font-display text-xl font-semibold leading-snug tracking-[-0.035em] text-foreground/30 sm:gap-x-6 sm:text-3xl lg:text-4xl"
+          className="flex flex-wrap gap-x-5 gap-y-1 font-display text-xl font-semibold leading-snug tracking-[-0.02em] text-foreground/30 sm:gap-x-6 sm:text-3xl lg:text-4xl"
           aria-label="Dungeons"
         >
           {DUNGEON_NAMES.map((name) => (
-            <li key={name} className="transition-colors duration-300 hover:text-primary">
+            <li
+              key={name}
+              className="transition-colors duration-300 hover:text-primary"
+            >
               {name}
             </li>
           ))}
@@ -686,7 +766,7 @@ export function Spoils() {
           className="order-1 lg:order-2"
           title={
             <>
-              From Worthless <span className="text-primary">to Divine.</span>
+              From Worthless <em className="text-primary">to Divine.</em>
             </>
           }
         >
@@ -703,14 +783,62 @@ export function Spoils() {
 
 export function Nightfall() {
   return (
-    <section className="relative isolate overflow-hidden lg:min-h-[860px]">
+    <section
+      data-hour="22.75"
+      data-daypart="Nightfall"
+      className="relative isolate overflow-hidden lg:min-h-[860px]"
+    >
       <SceneArt
         name="night-camp-v1"
         alt="The wayfarer's riverside camp at night, a lantern on a pole, a line in the moonlit water and a sack of ore by the fire"
-        position="object-[36%_50%]"
+        focus={[36, 50]}
         fallback={<NightBackdrop />}
         shade="right"
-      />
+      >
+        <Glow x={20.2} y={72.8} size={20} color="rgba(255, 150, 60, 0.55)" />
+        <Glow
+          x={11.7}
+          y={27.5}
+          size={11}
+          color="rgba(255, 190, 110, 0.5)"
+          delay={-0.9}
+        />
+        <Glow
+          x={40.4}
+          y={10}
+          size={16}
+          color="rgba(200, 220, 255, 0.38)"
+          motion="breathe"
+        />
+        <Glow
+          x={72}
+          y={67}
+          size={9}
+          color="rgba(200, 220, 255, 0.4)"
+          motion="twinkle"
+        />
+        {STARS.map(([x, y], index) => (
+          <Glow
+            key={x}
+            x={x}
+            y={y}
+            size={0.6}
+            color="rgba(255, 255, 255, 0.95)"
+            motion="twinkle"
+            delay={-index * 0.83}
+          />
+        ))}
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute left-[90%] top-[5%] h-px w-[4%] -rotate-[18deg]"
+        >
+          <span className="block h-full w-full bg-[linear-gradient(90deg,#fff,transparent)] opacity-0 motion-safe:animate-shooting-star" />
+        </span>
+        <Particles
+          preset="fireflies"
+          className="absolute left-0 top-[40%] h-[60%] w-3/5"
+        />
+      </SceneArt>
       <div
         className={cn(
           WRAP,
@@ -722,14 +850,14 @@ export function Nightfall() {
           title={
             <>
               At nightfall, close the tab.{" "}
-              <span className="text-primary">Your wayfarer won&apos;t.</span>
+              <em className="text-primary">Your wayfarer won&apos;t.</em>
             </>
           }
         >
           <p className={LEAD}>
-            Give your wayfarer a task that lasts for hours and get on with
-            your life. Every swing, cast and smelt is counted while you are
-            gone, and the haul is waiting the moment you come back.
+            Give your wayfarer a task that lasts for hours and get on with your
+            life. Every swing, cast and smelt is counted while you are gone, and
+            the haul is waiting the moment you come back.
           </p>
         </Story>
         <Reveal delay={200} className="w-full lg:max-w-[540px]">
@@ -742,14 +870,36 @@ export function Nightfall() {
 
 export function LastPage() {
   return (
-    <section className="relative isolate overflow-hidden lg:min-h-[820px]">
+    <section
+      data-hour="23.6"
+      data-daypart="Midnight"
+      className="relative isolate overflow-hidden lg:min-h-[820px]"
+    >
       <SceneArt
         name="atlas-last-page-v1"
         alt="An open atlas by candlelight, one page painted with the known world and the facing page still blank"
-        position="object-[70%_50%]"
+        focus={[70, 35]}
         fallback={<AtlasBackdrop />}
         shade="left"
-      />
+      >
+        <Glow x={85.5} y={9} size={22} color="rgba(255, 190, 110, 0.42)" />
+        {/* The blank page. FirstPageForm writes the visitor's name onto it. */}
+        <div
+          data-atlas-ink
+          data-written="false"
+          aria-hidden="true"
+          className="pointer-events-none absolute left-[72.5%] top-[29%] w-[25%] origin-top-left rotate-[14.5deg] px-[2cqw] pt-[2.6cqw] font-display italic leading-tight text-[#2e1f12] opacity-0 mix-blend-multiply transition-opacity duration-1000 data-[written=true]:opacity-90"
+        >
+          <p className="text-[length:1.5cqw]">Day one.</p>
+          <p
+            data-atlas-name
+            className="mt-[0.5cqw] break-words text-[length:2.5cqw] font-semibold"
+          />
+          <p className="mt-[0.5cqw] text-[length:1.35cqw]">
+            set out from Crownhold at first light, with an empty pack.
+          </p>
+        </div>
+      </SceneArt>
       <div
         className={cn(
           WRAP,
@@ -760,7 +910,7 @@ export function LastPage() {
           title={
             <>
               The day ends.{" "}
-              <span className="text-primary">The story doesn&apos;t.</span>
+              <em className="text-primary">The story doesn&apos;t.</em>
             </>
           }
         >
@@ -769,13 +919,8 @@ export function LastPage() {
             gear keep arriving, and someone is always climbing. Every name in
             this world started out with an empty pack, exactly like yours.
           </p>
-          <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-4">
-            <Button asChild className="px-6">
-              <Link href="/play?mode=register">
-                Write your first page{" "}
-                <ArrowRight className="h-4 w-4" aria-hidden />
-              </Link>
-            </Button>
+          <div className="mt-4 grid justify-items-start gap-4">
+            <FirstPageForm />
             <Link
               href="/play?mode=signin"
               className="rounded-md text-sm font-medium text-foreground/80 underline-offset-4 transition-colors hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -791,22 +936,33 @@ export function LastPage() {
 
 export function LandingFooter() {
   return (
-    <footer className={cn(WRAP, "flex flex-wrap items-center justify-between gap-4 pb-10 pt-6 text-sm text-muted-foreground")}>
+    <footer
+      className={cn(
+        WRAP,
+        "flex flex-wrap items-center justify-between gap-4 pb-10 pt-6 text-sm text-muted-foreground",
+      )}
+    >
       <span className="flex items-center gap-3">
         <Image
           src="/assets/logo/aergyle-logo.png"
           alt=""
           width={30}
           height={24}
-          className="brightness-0 invert-[0.88] sepia-[0.25] opacity-70"
+          className="opacity-70 brightness-0 invert-[0.88] sepia-[0.25]"
         />
         Aergyle · A hand-painted idle MMO
       </span>
       <nav className="flex gap-5" aria-label="Footer">
-        <Link href="/play?mode=signin" className="transition-colors hover:text-foreground">
+        <Link
+          href="/play?mode=signin"
+          className="transition-colors hover:text-foreground"
+        >
           Sign in
         </Link>
-        <Link href="/play?mode=register" className="text-primary transition-colors hover:text-foreground">
+        <Link
+          href="/play?mode=register"
+          className="text-primary transition-colors hover:text-foreground"
+        >
           Create a wayfarer
         </Link>
       </nav>

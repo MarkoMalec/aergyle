@@ -7,6 +7,7 @@ import {
   TAILORING_GEAR,
   TAILORING_ITEMS,
   TAILORING_MATERIALS,
+  TAILORING_TEXTILES,
   tailoringItemCreateData,
   tailoringRequirementsForGear,
 } from "../prisma/content/tailoring";
@@ -55,9 +56,17 @@ void test("Tailoring ships four blueprint-gated gathering armor crafts", () => {
   }
 });
 
-void test("Tailoring inputs are obtainable Gathering resources", () => {
-  const materialNames = new Set(
+void test("Tailoring inputs are obtainable and higher textiles form a craft chain", () => {
+  const gatheringMaterialNames = new Set<string>(
+    TAILORING_MATERIALS.filter(
+      (material) => material.acquisition === "GATHERING",
+    ).map((material) => material.name),
+  );
+  const materialNames = new Set<string>(
     TAILORING_MATERIALS.map((material) => material.name),
+  );
+  const textileNames = new Set<string>(
+    TAILORING_TEXTILES.map((textile) => textile.name),
   );
   const gatheredNames = new Set(
     TAILORING_GATHERING_POOLS.flatMap((pool) =>
@@ -65,10 +74,37 @@ void test("Tailoring inputs are obtainable Gathering resources", () => {
     ),
   );
 
-  assert.deepEqual(gatheredNames, materialNames);
+  assert.deepEqual(gatheredNames, gatheringMaterialNames);
+  assert.deepEqual(
+    TAILORING_MATERIALS.filter(
+      (material) => material.acquisition === "IMPORT",
+    ).map((material) => material.name),
+    ["Silk Bolt"],
+  );
+  assert.deepEqual(
+    TAILORING_TEXTILES.find((textile) => textile.name === "Linen Cloth")
+      ?.requirements,
+    [{ itemName: "Flax Fiber", quantityPerUnit: 3 }],
+  );
   for (const gear of TAILORING_GEAR) {
     for (const requirement of gear.requirements) {
-      assert.ok(materialNames.has(requirement.itemName));
+      assert.ok(
+        materialNames.has(requirement.itemName) ||
+          textileNames.has(requirement.itemName),
+      );
+      assert.ok(requirement.quantityPerUnit > 0);
+    }
+  }
+
+  for (const textile of TAILORING_TEXTILES) {
+    assert.ok(textile.requiredSkillLevel > 0);
+    assert.ok(textile.requirements.length > 0);
+    for (const requirement of textile.requirements) {
+      assert.ok(
+        materialNames.has(requirement.itemName) ||
+          textileNames.has(requirement.itemName),
+      );
+      assert.notEqual(requirement.itemName, textile.name);
       assert.ok(requirement.quantityPerUnit > 0);
     }
   }
@@ -228,7 +264,7 @@ void test("the production grant path does not snapshot shared balance stats", as
 });
 
 void test("Tailoring runtime artwork is compact 256px RGBA PNG", () => {
-  assert.equal(new Set(TAILORING_ITEMS.map((item) => item.sprite)).size, 11);
+  assert.equal(new Set(TAILORING_ITEMS.map((item) => item.sprite)).size, 20);
   for (const spritePath of TAILORING_ITEMS.map((item) => item.sprite)) {
     const png = readFileSync(
       new URL(`../public${spritePath}`, import.meta.url),

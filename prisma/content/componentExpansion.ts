@@ -180,6 +180,26 @@ export const COMPONENT_ITEMS = [
     price: 50,
     sprite: "/assets/items/resources/textiles/hardened-leather-atlas-v1.png",
   },
+  {
+    slug: "cured-leather",
+    name: "Cured Leather",
+    description:
+      "Supple hide cured with resin and oil, ready for straps, lining, cases and durable everyday gear.",
+    itemType: "HIDE",
+    rarity: "COMMON",
+    price: 24,
+    sprite: "/assets/items/resources/textiles/cured-leather-hide-v1.png",
+  },
+  {
+    slug: "reinforced-boarhide",
+    name: "Reinforced Boarhide",
+    description:
+      "Thick leather plates stitched and riveted for hard-wearing armor, packs and field gear.",
+    itemType: "HIDE",
+    rarity: "RARE",
+    price: 110,
+    sprite: "/assets/items/resources/textiles/reinforced-boarhide-v1.png",
+  },
 ] as const satisfies readonly ComponentItemDefinition[];
 
 export const COMPONENT_CRAFTS = [
@@ -201,6 +221,31 @@ export const COMPONENT_CRAFTS = [
     xpPerUnit: 12,
     requirements: [
       { itemName: "Soft Hide", quantityPerUnit: 2 },
+      { itemName: "Tempering Resin", quantityPerUnit: 1 },
+    ],
+  },
+  {
+    outputItemName: "Cured Leather",
+    actionType: "TAILORING",
+    requiredSkillLevel: 8,
+    defaultSeconds: 30,
+    yieldPerUnit: 1,
+    xpPerUnit: 8,
+    requirements: [
+      { itemName: "Raw Hide", quantityPerUnit: 2 },
+      { itemName: "Tempering Resin", quantityPerUnit: 1 },
+    ],
+  },
+  {
+    outputItemName: "Reinforced Boarhide",
+    actionType: "TAILORING",
+    requiredSkillLevel: 28,
+    defaultSeconds: 65,
+    yieldPerUnit: 1,
+    xpPerUnit: 24,
+    requirements: [
+      { itemName: "Raw Boar Hide", quantityPerUnit: 2 },
+      { itemName: "Cured Leather", quantityPerUnit: 1 },
       { itemName: "Tempering Resin", quantityPerUnit: 1 },
     ],
   },

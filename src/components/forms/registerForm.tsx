@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { signIn } from "next-auth/react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -24,9 +24,11 @@ import {
   PLAYER_NAME_MAX,
   PLAYER_NAME_MIN,
   registerSchema,
+  sanitizePlayerName,
   type RegisterInput,
 } from "~/lib/auth-rules";
 import { cn } from "~/lib/utils";
+import { WAYFARER_NAME_KEY } from "~/lib/wayfarer-name";
 
 const FIELDS = new Set<keyof RegisterInput>(["name", "email", "password"]);
 
@@ -46,6 +48,18 @@ export default function RegisterForm({
     mode: "onTouched",
   });
   const password = form.watch("password");
+
+  // A name typed on the homepage's last page comes along, once.
+  useEffect(() => {
+    try {
+      const carried = sessionStorage.getItem(WAYFARER_NAME_KEY);
+      if (!carried) return;
+      sessionStorage.removeItem(WAYFARER_NAME_KEY);
+      form.setValue("name", sanitizePlayerName(carried));
+    } catch {
+      // Storage is off; the field simply starts empty.
+    }
+  }, [form]);
 
   const onSubmit = async (values: RegisterInput) => {
     onError(null);

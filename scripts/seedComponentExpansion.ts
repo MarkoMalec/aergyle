@@ -28,9 +28,9 @@ const prisma = new PrismaClient({
 });
 
 async function validateDefinitions() {
-  if (COMPONENT_ITEMS.length !== 14 || COMPONENT_CRAFTS.length !== 12) {
+  if (COMPONENT_ITEMS.length !== 16 || COMPONENT_CRAFTS.length !== 14) {
     throw new Error(
-      "Component expansion must define fourteen items and twelve crafts",
+      "Component expansion must define sixteen items and fourteen crafts",
     );
   }
 
@@ -87,6 +87,8 @@ async function main(selectedMode: Mode) {
         ["Ironbark Plank", "MATERIAL"],
         ["Saltcedar Plank", "MATERIAL"],
         ["Soft Hide", "HIDE"],
+        ["Raw Hide", "HIDE"],
+        ["Raw Boar Hide", "HIDE"],
       ] as const);
       const dependencyItems = await tx.item.findMany({
         where: { name: { in: [...expectedDependencyTypes.keys()] } },

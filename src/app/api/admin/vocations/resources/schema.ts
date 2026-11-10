@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { Prisma } from "~/generated/prisma/client";
 import { prisma } from "~/lib/prisma";
 import {
   ItemRarity,
@@ -96,4 +97,36 @@ export async function validateResourceInput(
   }
 
   return null;
+}
+
+/**
+ * The sortOrder for a resource joining `actionType`'s list by required level:
+ * right after the last row (in the current, possibly hand-arranged order) whose
+ * level is at or below it. Later rows shift down; the order is renumbered 10, 20, …
+ */
+export async function levelSortOrder(
+  tx: Prisma.TransactionClient,
+  actionType: VocationalActionType,
+  requiredSkillLevel: number,
+  excludeId?: number,
+) {
+  const rows = await tx.vocationalResource.findMany({
+    where: { actionType, id: excludeId ? { not: excludeId } : undefined },
+    select: { id: true, requiredSkillLevel: true, sortOrder: true },
+    orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+  });
+  let index = 0;
+  rows.forEach((row, i) => {
+    if (row.requiredSkillLevel <= requiredSkillLevel) index = i + 1;
+  });
+  for (const [i, row] of rows.entries()) {
+    const sortOrder = (i < index ? i + 1 : i + 2) * 10;
+    if (row.sortOrder !== sortOrder) {
+      await tx.vocationalResource.update({
+        where: { id: row.id },
+        data: { sortOrder },
+      });
+    }
+  }
+  return (index + 1) * 10;
 }

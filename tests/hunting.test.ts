@@ -7,6 +7,11 @@ import {
   HUNTING_GROUNDS,
   HUNTING_ITEMS,
 } from "../prisma/content/hunting";
+import {
+  TAILORING_MATERIALS,
+  TAILORING_TEXTILES,
+} from "../prisma/content/tailoring";
+import { COMPONENT_ITEMS } from "../prisma/content/componentExpansion";
 import { WORLD_ATLAS_LOCATION_MARKERS } from "../src/game/world/atlasLocations";
 import {
   applyLiveHuntingSafety,
@@ -140,6 +145,53 @@ void test("every animal has danger settings, an asset, and a valid material tabl
       assert.ok(drop.baseChance > 0 && drop.baseChance <= 1);
       assert.ok(drop.maxQuantity >= drop.minQuantity);
     }
+  }
+});
+
+void test("raw hide drops stay creature-specific and separate from textile content", () => {
+  const rawHideNames = [
+    "Raw Boar Hide",
+    "Raw Wolf Pelt",
+    "Raw Marsh Crocodile Skin",
+    "Raw Mountain Goat Hide",
+    "Raw Frost Lynx Pelt",
+    "Raw Ashback Bear Hide",
+  ] as const;
+  const rawHideSet = new Set(rawHideNames);
+  const hideItems = new Map(HUNTING_ITEMS.map((item) => [item.name, item]));
+  const nonHuntingNames = new Set<string>([
+    ...TAILORING_MATERIALS.map((item) => item.name),
+    ...TAILORING_TEXTILES.map((item) => item.name),
+    ...COMPONENT_ITEMS.map((item) => item.name),
+  ]);
+  const sourceByHide = new Map<string, string>();
+
+  for (const creature of HUNTING_CREATURES) {
+    for (const drop of creature.drops) {
+      if (rawHideSet.has(drop.itemName as (typeof rawHideNames)[number])) {
+        assert.ok(
+          !sourceByHide.has(drop.itemName),
+          `${drop.itemName} must have one distinct creature source`,
+        );
+        sourceByHide.set(drop.itemName, creature.name);
+      }
+    }
+  }
+
+  assert.deepEqual(
+    [...sourceByHide.entries()],
+    [
+      ["Raw Boar Hide", "Wild Boar"],
+      ["Raw Wolf Pelt", "Grey Wolf"],
+      ["Raw Marsh Crocodile Skin", "Marsh Crocodile"],
+      ["Raw Mountain Goat Hide", "Mountain Goat"],
+      ["Raw Frost Lynx Pelt", "Frostfang Lynx"],
+      ["Raw Ashback Bear Hide", "Ashback Bear"],
+    ],
+  );
+  for (const name of rawHideNames) {
+    assert.equal(hideItems.get(name)?.itemType, "HIDE");
+    assert.ok(!nonHuntingNames.has(name), `${name} duplicates another catalog`);
   }
 });
 

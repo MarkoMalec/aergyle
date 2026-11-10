@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Fraunces } from "next/font/google";
 import { homepageArt } from "~/components/landing/art";
 import { LandingHeader } from "~/components/landing/LandingHeader";
 import {
@@ -13,6 +14,14 @@ import {
   Spoils,
   TheRoad,
 } from "~/components/landing/scenes";
+
+// A storybook face for the headings, on this page only; the game keeps Geist.
+const display = Fraunces({
+  subsets: ["latin"],
+  style: ["normal", "italic"],
+  axes: ["opsz"],
+  variable: "--font-display",
+});
 
 const DESCRIPTION =
   "A hand-painted idle MMO in your browser. Gather, craft, trade and fight your way across a living atlas, and come back to find your wayfarer still at work.";
@@ -37,7 +46,9 @@ export function generateMetadata(): Metadata {
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen overflow-x-clip bg-background text-foreground">
+    <main
+      className={`${display.variable} min-h-screen overflow-x-clip bg-background text-foreground`}
+    >
       <LandingHeader />
       <DawnHero />
       <FirstLight />

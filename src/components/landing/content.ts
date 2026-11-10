@@ -96,13 +96,51 @@ export const CRAFT_CHAINS: readonly CraftChain[] = [
   },
 ];
 
+// The skill mentors, with the lines they greet you with on their skill pages
+// (SkillPageHeader.tsx).
 export const TOWNSFOLK = [
-  { name: "Dain Flintward", trade: "Miner", sprite: "/assets/npcs/dain-flintward-miner-v3.png" },
-  { name: "Elowen Briarwell", trade: "Gatherer", sprite: "/assets/npcs/elowen-briarwell-gatherer-v1.png" },
-  { name: "Orrin Quill", trade: "Alchemist", sprite: "/assets/npcs/orrin-quill-alchemist-v2.png" },
-  { name: "Varka Ten-Reeds", trade: "Hunter", sprite: "/assets/npcs/varka-ten-reeds-hunter-v1.png" },
-  { name: "Vesa Emberladle", trade: "Cook", sprite: "/assets/npcs/vesa-emberladle-cook-v1.png" },
-  { name: "Rusk Fenlock", trade: "Angler", sprite: "/assets/npcs/rusk-fenlock-angler-v1.png" },
+  {
+    name: "Dain Flintward",
+    trade: "Miner",
+    sprite: "/assets/npcs/dain-flintward-miner-v3.png",
+    quote:
+      "Stone keeps its riches for those who read the seams. Strike in anger and the mountain charges you for it.",
+  },
+  {
+    name: "Elowen Briarwell",
+    trade: "Gatherer",
+    sprite: "/assets/npcs/elowen-briarwell-gatherer-v1.png",
+    quote:
+      "The wild hides nothing from a careful hand. Notice what grows together, then take only what has another season to spare.",
+  },
+  {
+    name: "Orrin Quill",
+    trade: "Alchemist",
+    sprite: "/assets/npcs/orrin-quill-alchemist-v2.png",
+    quote:
+      "If a mixture glows before you ask it to, set it down. Curiosity is useful; keeping your eyebrows is useful too.",
+  },
+  {
+    name: "Sella Pikebriar",
+    trade: "Hunter",
+    sprite: "/assets/npcs/sella-pikebriar-hunter-v1.png",
+    quote:
+      "Leave a clean trail, take a clean shot, and thank the creature that carries you through winter.",
+  },
+  {
+    name: "Maelin Copperspoon",
+    trade: "Chef",
+    sprite: "/assets/npcs/maelin-copperspoon-chef-v1.png",
+    quote:
+      "A full belly can turn a cold road into a story worth telling. Season with what the land has given.",
+  },
+  {
+    name: "Marek Driftwater",
+    trade: "Angler",
+    sprite: "/assets/npcs/marek-driftwater-angler-v1.png",
+    quote:
+      "The river has no patience for noise. Mend your line, mind the current, and let the catch choose its moment.",
+  },
 ] as const;
 
 const MONSTERS = "/assets/creatures/monsters";

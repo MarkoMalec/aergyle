@@ -130,12 +130,78 @@ const config = {
           from: { strokeDashoffset: "1" },
           to: { strokeDashoffset: "0" },
         },
+        // Homepage. Fire, lantern and candle light in the paintings.
+        flicker: {
+          "0%, 100%": { opacity: "1", transform: "scale(1)" },
+          "22%": { opacity: "0.7", transform: "scale(0.95)" },
+          "41%": { opacity: "0.94", transform: "scale(1.04)" },
+          "63%": { opacity: "0.62", transform: "scale(0.93)" },
+          "82%": { opacity: "0.97", transform: "scale(1.02)" },
+        },
+        // Sun, moon and anything else that glows without burning.
+        breathe: {
+          "0%, 100%": { opacity: "0.55", transform: "scale(1)" },
+          "50%": { opacity: "1", transform: "scale(1.12)" },
+        },
+        twinkle: {
+          "0%, 100%": { opacity: "0.12" },
+          "50%": { opacity: "1" },
+        },
+        // Mist sliding along a valley.
+        drift: {
+          from: { transform: "translate3d(-7%, 0, 0)" },
+          to: { transform: "translate3d(7%, 0, 0)" },
+        },
+        // One quick streak, then a long wait for the next.
+        "shooting-star": {
+          "0%": { opacity: "0", transform: "translate3d(0, 0, 0)" },
+          "2%": { opacity: "1" },
+          "8%, 100%": { opacity: "0", transform: "translate3d(-900%, 0, 0)" },
+        },
+        // The hero painting coming out of the dark as the page opens.
+        daybreak: {
+          from: {
+            filter: "brightness(0.3) saturate(0.5)",
+            transform: "scale(1.07)",
+          },
+          to: { filter: "brightness(1) saturate(1)", transform: "scale(1)" },
+        },
+        "rise-in": {
+          from: { opacity: "0", transform: "translate3d(0, 0.55em, 0)" },
+          to: { opacity: "1", transform: "translate3d(0, 0, 0)" },
+        },
+        // A glint running along a crafting link; needs a narrow background.
+        spark: {
+          from: { backgroundPosition: "-70% 0" },
+          to: { backgroundPosition: "170% 0" },
+        },
+        // A row flashing as an order fills.
+        "row-flash": {
+          from: { backgroundColor: "hsl(var(--primary) / 0.22)" },
+          to: { backgroundColor: "transparent" },
+        },
+        // The frame's kick when a roll lands on something good.
+        "drop-pop": {
+          "0%": { transform: "scale(0.9)" },
+          "45%": { transform: "scale(1.08)" },
+          "100%": { transform: "scale(1)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         bob: "bob 2.4s ease-in-out infinite",
         "route-draw": "route-draw 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both",
+        flicker: "flicker 3.1s ease-in-out infinite",
+        breathe: "breathe 7s ease-in-out infinite",
+        twinkle: "twinkle 3.6s ease-in-out infinite",
+        drift: "drift 34s ease-in-out infinite alternate",
+        "shooting-star": "shooting-star 13s ease-out infinite",
+        daybreak: "daybreak 3.4s cubic-bezier(0.2, 0.7, 0.2, 1) both",
+        "rise-in": "rise-in 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both",
+        spark: "spark 2.8s linear infinite",
+        "row-flash": "row-flash 0.9s ease-out",
+        "drop-pop": "drop-pop 0.45s cubic-bezier(0.2, 0.7, 0.2, 1)",
       },
     },
   },

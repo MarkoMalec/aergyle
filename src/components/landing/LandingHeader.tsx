@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Button } from "~/components/ui/button";
+import { DayDial } from "./DayDial";
 
 export function LandingHeader() {
   const [scrolled, setScrolled] = useState(false);
@@ -37,6 +38,7 @@ export function LandingHeader() {
             Aergyle
           </span>
         </Link>
+        <DayDial className="hidden text-foreground/80 min-[430px]:flex" />
         <nav className="flex items-center gap-1 sm:gap-2" aria-label="Account">
           <Button asChild variant="ghost" className="text-foreground/85">
             <Link href="/play?mode=signin">Sign in</Link>

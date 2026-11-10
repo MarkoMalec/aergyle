@@ -228,7 +228,18 @@ async function main(selectedMode: Mode) {
 
       const locations = await tx.location.findMany({
         where: {
-          name: { in: HUNTING_GROUNDS.map((ground) => ground.locationName) },
+          name: {
+            in: [
+              ...new Set(
+                HUNTING_GROUNDS.flatMap((ground) => [
+                  ground.locationName,
+                  ...("locationAliases" in ground
+                    ? ground.locationAliases
+                    : []),
+                ]),
+              ),
+            ],
+          },
         },
         select: { id: true, name: true },
       });
@@ -236,11 +247,23 @@ async function main(selectedMode: Mode) {
         locations.map((location) => [location.name, location.id]),
       );
       for (const ground of HUNTING_GROUNDS) {
-        const locationId = locationByName.get(ground.locationName);
-        if (!locationId)
+        const locationAliases =
+          "locationAliases" in ground ? ground.locationAliases : [];
+        const matchedLocationName = [
+          ground.locationName,
+          ...locationAliases,
+        ].find((name) => locationByName.has(name));
+        const locationId = matchedLocationName
+          ? locationByName.get(matchedLocationName)
+          : undefined;
+        if (!locationId) {
+          const aliases = locationAliases.length
+            ? ` (also accepted: ${locationAliases.join(", ")})`
+            : "";
           throw new Error(
-            `Existing location not found: ${ground.locationName}`,
+            `Existing location not found: ${ground.locationName}${aliases}`,
           );
+        }
         const expected = {
           description: ground.description,
           requiredHuntingLevel: ground.requiredHuntingLevel,

@@ -8,6 +8,7 @@ import {
   TAILORING_GEAR,
   TAILORING_ITEMS,
   TAILORING_MATERIALS,
+  TAILORING_TEXTILES,
   tailoringItemCreateData,
   tailoringRequirementsForGear,
 } from "../prisma/content/tailoring";
@@ -27,11 +28,17 @@ const prisma = new PrismaClient({
 });
 
 async function validateDefinitions() {
-  if (TAILORING_MATERIALS.length !== 3) {
-    throw new Error("Tailoring must ship exactly three initial materials");
+  if (TAILORING_MATERIALS.length !== 6) {
+    throw new Error("Tailoring must ship exactly six base materials");
   }
-  if (TAILORING_BLUEPRINTS.length !== 4 || TAILORING_GEAR.length !== 4) {
-    throw new Error("Tailoring must ship four blueprints and four gear pieces");
+  if (
+    TAILORING_BLUEPRINTS.length !== 4 ||
+    TAILORING_GEAR.length !== 4 ||
+    TAILORING_TEXTILES.length !== 6
+  ) {
+    throw new Error(
+      "Tailoring must ship four blueprints, six textile crafts and four gear pieces",
+    );
   }
   const gearNames = new Set(TAILORING_GEAR.map((item) => item.name));
   const blueprintByGear = new Map(
@@ -207,7 +214,9 @@ async function main(selectedMode: Mode) {
         }
       }
 
-      for (const material of TAILORING_MATERIALS) {
+      for (const material of TAILORING_MATERIALS.filter(
+        (material) => material.acquisition === "GATHERING",
+      )) {
         const itemId = itemIds.get(material.name);
         if (!itemId) {
           if (selectedMode === "--check") continue;
@@ -294,9 +303,97 @@ async function main(selectedMode: Mode) {
         notes.push(`${material.name}: Gathering source configured`);
       }
 
-      for (const gear of TAILORING_GEAR) {
-        const outputItemId = itemIds.get(gear.name);
-        const requirementDefinitions = tailoringRequirementsForGear(gear);
+      // Silk is deliberately an import rather than a lucky field find. Every
+      // active trader carries a small, expensive supply so it has a reliable
+      // in-world source without flattening the higher tailoring tiers.
+      const importedMaterials = TAILORING_MATERIALS.filter(
+        (material) => material.acquisition === "IMPORT",
+      );
+      if (importedMaterials.length > 0) {
+        const vendors = await tx.npc.findMany({
+          where: { enabled: true },
+          include: {
+            offers: {
+              where: {
+                itemId: {
+                  in: importedMaterials
+                    .map((material) => itemIds.get(material.name))
+                    .filter((id): id is number => id !== undefined),
+                },
+              },
+            },
+          },
+        });
+
+        for (const material of importedMaterials) {
+          const itemId = itemIds.get(material.name);
+          if (!itemId) {
+            if (selectedMode !== "--check") {
+              throw new Error(
+                `Missing imported material item: ${material.name}`,
+              );
+            }
+            continue;
+          }
+          const expectedOffer = {
+            price: material.price * 2,
+            enabled: true,
+            sortOrder: 80,
+            availableFrom: null,
+            availableUntil: null,
+            requiredProjectId: null,
+          };
+          for (const vendor of vendors) {
+            const matches = vendor.offers.filter(
+              (offer) => offer.itemId === itemId,
+            );
+            const differs =
+              matches.length !== 1 ||
+              matches.some(
+                (offer) =>
+                  Number(offer.price) !== Number(expectedOffer.price) ||
+                  offer.enabled !== expectedOffer.enabled ||
+                  offer.sortOrder !== expectedOffer.sortOrder ||
+                  offer.availableFrom !== expectedOffer.availableFrom ||
+                  offer.availableUntil !== expectedOffer.availableUntil ||
+                  offer.requiredProjectId !== expectedOffer.requiredProjectId,
+              );
+            if (selectedMode === "--verify" && differs) {
+              throw new Error(
+                `${vendor.name}: ${material.name} import offer differs`,
+              );
+            }
+            if (selectedMode === "--apply") {
+              const primary = matches[0];
+              if (primary) {
+                await tx.npcOffer.update({
+                  where: { id: primary.id },
+                  data: expectedOffer,
+                });
+                if (matches.length > 1) {
+                  await tx.npcOffer.deleteMany({
+                    where: {
+                      id: { in: matches.slice(1).map((offer) => offer.id) },
+                    },
+                  });
+                }
+              } else {
+                await tx.npcOffer.create({
+                  data: { npcId: vendor.id, itemId, ...expectedOffer },
+                });
+              }
+            }
+          }
+          notes.push(`${material.name}: import stock configured`);
+        }
+      }
+
+      for (const craft of [...TAILORING_TEXTILES, ...TAILORING_GEAR]) {
+        const outputItemId = itemIds.get(craft.name);
+        const requirementDefinitions =
+          "requiredBlueprintName" in craft
+            ? tailoringRequirementsForGear(craft)
+            : craft.requirements;
         const requirementRows = requirementDefinitions.flatMap(
           (requirement) => {
             const itemId = itemIds.get(requirement.itemName);
@@ -310,19 +407,19 @@ async function main(selectedMode: Mode) {
           requirementRows.length !== requirementDefinitions.length
         ) {
           if (selectedMode === "--check") continue;
-          throw new Error(`${gear.name}: missing output or requirement item`);
+          throw new Error(`${craft.name}: missing output or requirement item`);
         }
 
         const expectedResource = {
           actionType: "TAILORING" as const,
-          name: gear.name,
+          name: craft.name,
           itemId: outputItemId,
           requiredRecipeItemId: null,
-          requiredSkillLevel: gear.requiredSkillLevel,
-          defaultSeconds: gear.defaultSeconds,
+          requiredSkillLevel: craft.requiredSkillLevel,
+          defaultSeconds: craft.defaultSeconds,
           yieldPerUnit: 1,
-          xpPerUnit: gear.xpPerUnit,
-          rarity: gear.rarity,
+          xpPerUnit: craft.xpPerUnit,
+          rarity: craft.rarity,
         };
         const found = await tx.vocationalResource.findUnique({
           where: { itemId: outputItemId },
@@ -335,7 +432,7 @@ async function main(selectedMode: Mode) {
         });
         if (found && found.actionType !== "TAILORING") {
           throw new Error(
-            `${gear.name} already belongs to ${found.actionType}`,
+            `${craft.name} already belongs to ${found.actionType}`,
           );
         }
         const differences = found
@@ -363,7 +460,7 @@ async function main(selectedMode: Mode) {
             !requirementsMatch ||
             !locationsMatch)
         ) {
-          throw new Error(`${gear.name}: Tailoring recipe differs`);
+          throw new Error(`${craft.name}: Tailoring recipe differs`);
         }
 
         if (selectedMode === "--apply") {
@@ -398,7 +495,7 @@ async function main(selectedMode: Mode) {
             });
           }
         }
-        notes.push(`${gear.name}: Tailoring recipe configured`);
+        notes.push(`${craft.name}: Tailoring recipe configured`);
       }
     },
     { maxWait: 10_000, timeout: 60_000 },
@@ -406,7 +503,7 @@ async function main(selectedMode: Mode) {
 
   console.table(notes.map((result) => ({ result })));
   console.log(
-    `${mode.slice(2)} complete: ${TAILORING_GEAR.length} crafts, ${TAILORING_BLUEPRINTS.length} physical blueprint requirements, ${TAILORING_MATERIALS.length} gathering materials.`,
+    `${mode.slice(2)} complete: ${TAILORING_GEAR.length + TAILORING_TEXTILES.length} crafts, ${TAILORING_BLUEPRINTS.length} physical blueprint requirements, ${TAILORING_MATERIALS.filter((material) => material.acquisition === "GATHERING").length} gathered materials, and ${TAILORING_MATERIALS.filter((material) => material.acquisition === "IMPORT").length} import material.`,
   );
 }
 

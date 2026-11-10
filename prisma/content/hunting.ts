@@ -53,6 +53,54 @@ export const HUNTING_ITEMS = [
     sprite: "/assets/items/resources/hunting/raw-hide-hunting-v1.png",
   },
   {
+    name: "Raw Boar Hide",
+    description:
+      "An untreated thick hide that can be cured into exceptionally rugged leather.",
+    itemType: "HIDE",
+    rarity: "UNCOMMON",
+    price: 18,
+    sprite: "/assets/items/resources/hunting/boarhide-hunting-v1.png",
+  },
+  {
+    name: "Raw Marsh Crocodile Skin",
+    description:
+      "Fresh green scutes from a river predator, ready to be cured into weatherproof panels and trim.",
+    itemType: "HIDE",
+    rarity: "RARE",
+    price: 36,
+    sprite:
+      "/assets/items/resources/hunting/marsh-crocodile-skin-hunting-v1.png",
+  },
+  {
+    name: "Raw Wolf Pelt",
+    description:
+      "A damp, shaggy grey pelt that needs cleaning and curing before it can become winter gear.",
+    itemType: "HIDE",
+    rarity: "UNCOMMON",
+    price: 20,
+    sprite: "/assets/items/resources/hunting/raw-wolf-pelt-hunting-v1.png",
+  },
+  {
+    name: "Raw Mountain Goat Hide",
+    description:
+      "A pale, short-haired alpine hide with a resilient grain beneath its coarse outer coat.",
+    itemType: "HIDE",
+    rarity: "UNCOMMON",
+    price: 26,
+    sprite:
+      "/assets/items/resources/hunting/raw-mountain-goat-hide-hunting-v1.png",
+  },
+  {
+    name: "Raw Ashback Bear Hide",
+    description:
+      "A massive dark bear hide marked by an ash-grey ridge, thick enough for demanding cold-weather work.",
+    itemType: "HIDE",
+    rarity: "RARE",
+    price: 48,
+    sprite:
+      "/assets/items/resources/hunting/raw-ashback-bear-hide-hunting-v1.png",
+  },
+  {
     name: "Small Bones",
     description:
       "Clean animal bones used in handles, needles, charms, stock, and careful alchemy.",
@@ -105,6 +153,15 @@ export const HUNTING_ITEMS = [
     rarity: "RARE",
     price: 28,
     sprite: "/assets/items/resources/hunting/thick-fur-hunting-v1.png",
+  },
+  {
+    name: "Raw Frost Lynx Pelt",
+    description:
+      "An uncured silver-spotted alpine pelt with dense insulating fur, valuable to any winter outfitter.",
+    itemType: "HIDE",
+    rarity: "EPIC",
+    price: 72,
+    sprite: "/assets/items/resources/hunting/frost-lynx-pelt-hunting-v1.png",
   },
 ] as const satisfies readonly HuntingItemDefinition[];
 
@@ -207,6 +264,13 @@ export const HUNTING_CREATURES = [
         requiredHuntingLevel: 8,
       },
       {
+        itemName: "Raw Boar Hide",
+        baseChance: 0.38,
+        minQuantity: 1,
+        maxQuantity: 2,
+        requiredHuntingLevel: 12,
+      },
+      {
         itemName: "Small Bones",
         baseChance: 0.46,
         minQuantity: 1,
@@ -238,6 +302,13 @@ export const HUNTING_CREATURES = [
         minQuantity: 1,
         maxQuantity: 2,
         requiredHuntingLevel: 12,
+      },
+      {
+        itemName: "Raw Wolf Pelt",
+        baseChance: 0.38,
+        minQuantity: 1,
+        maxQuantity: 2,
+        requiredHuntingLevel: 20,
       },
       {
         itemName: "Sharp Fang",
@@ -287,6 +358,13 @@ export const HUNTING_CREATURES = [
         requiredHuntingLevel: 25,
       },
       {
+        itemName: "Raw Marsh Crocodile Skin",
+        baseChance: 0.44,
+        minQuantity: 1,
+        maxQuantity: 2,
+        requiredHuntingLevel: 32,
+      },
+      {
         itemName: "Sharp Fang",
         baseChance: 0.5,
         minQuantity: 1,
@@ -327,6 +405,13 @@ export const HUNTING_CREATURES = [
         requiredHuntingLevel: 32,
       },
       {
+        itemName: "Raw Mountain Goat Hide",
+        baseChance: 0.42,
+        minQuantity: 1,
+        maxQuantity: 2,
+        requiredHuntingLevel: 40,
+      },
+      {
         itemName: "Curved Horn",
         baseChance: 0.58,
         minQuantity: 1,
@@ -358,6 +443,13 @@ export const HUNTING_CREATURES = [
         minQuantity: 1,
         maxQuantity: 2,
         requiredHuntingLevel: 45,
+      },
+      {
+        itemName: "Raw Frost Lynx Pelt",
+        baseChance: 0.28,
+        minQuantity: 1,
+        maxQuantity: 1,
+        requiredHuntingLevel: 52,
       },
       {
         itemName: "Sharp Fang",
@@ -405,6 +497,13 @@ export const HUNTING_CREATURES = [
         minQuantity: 2,
         maxQuantity: 3,
         requiredHuntingLevel: 62,
+      },
+      {
+        itemName: "Raw Ashback Bear Hide",
+        baseChance: 0.34,
+        minQuantity: 1,
+        maxQuantity: 2,
+        requiredHuntingLevel: 68,
       },
       {
         itemName: "Sharp Fang",
@@ -612,6 +711,8 @@ export const HUNTING_CREATURES = [
 
 type GroundDefinition = {
   locationName: AtlasLocationName;
+  /** Legacy database names accepted when a world predates the atlas rename. */
+  locationAliases?: readonly string[];
   name: string;
   description: string;
   requiredHuntingLevel: number;
@@ -625,6 +726,7 @@ type GroundDefinition = {
 export const HUNTING_GROUNDS = [
   {
     locationName: "Crownhold",
+    locationAliases: ["Valedor"],
     name: "Crownwood Fringe",
     description:
       "Managed woodland beyond the outer wall, crossed by deer paths and kitchen-garden hedges.",

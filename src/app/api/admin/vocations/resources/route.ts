@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "~/lib/prisma";
 import { requireAdminApiAccess } from "~/server/admin/auth";
-import { resourceSchema, validateResourceInput } from "./schema";
+import {
+  levelSortOrder,
+  resourceSchema,
+  validateResourceInput,
+} from "./schema";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -25,12 +29,13 @@ export async function POST(req: NextRequest) {
 
   try {
     const created = await prisma.$transaction(async (tx) => {
-      // New resources land at the bottom of their skill's list; /admin/vocations
-      // is where the order gets rearranged.
-      const lastInAction = await tx.vocationalResource.aggregate({
-        where: { actionType: v.actionType },
-        _max: { sortOrder: true },
-      });
+      // New resources slot in by required level; /admin/vocations can still
+      // rearrange them by hand.
+      const sortOrder = await levelSortOrder(
+        tx,
+        v.actionType,
+        v.requiredSkillLevel,
+      );
 
       const resource = await tx.vocationalResource.create({
         data: {
@@ -43,7 +48,7 @@ export async function POST(req: NextRequest) {
           yieldPerUnit: v.yieldPerUnit,
           xpPerUnit: v.xpPerUnit,
           rarity: v.rarity,
-          sortOrder: (lastInAction._max.sortOrder ?? 0) + 10,
+          sortOrder,
         },
       });
 
