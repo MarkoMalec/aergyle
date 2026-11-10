@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { getServerAuthSession } from "~/server/auth";
+import { playerErrorMessage } from "~/server/playerError";
+import { sharedRateLimiter } from "~/server/security/rateLimit";
 import { listConversations, sendMessage } from "~/server/communication";
 
 export const dynamic = "force-dynamic";
+
+const sends = sharedRateLimiter("messages", { limit: 10, windowMs: 60_000 });
 
 /** The player's conversations, with how many slots they have left. */
 export async function GET() {
@@ -18,6 +22,16 @@ export async function POST(request: Request) {
   const session = await getServerAuthSession();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const limit = sends.hit(session.user.id);
+  if (!limit.ok) {
+    return NextResponse.json(
+      { error: "You're doing that too fast. Wait a moment." },
+      {
+        status: 429,
+        headers: { "Retry-After": String(limit.retryAfterSeconds) },
+      },
+    );
   }
   const body = (await request.json().catch(() => null)) as {
     conversationId?: unknown;
@@ -44,7 +58,7 @@ export async function POST(request: Request) {
     );
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Could not send" },
+      { error: playerErrorMessage(error, "Could not send") },
       { status: 400 },
     );
   }

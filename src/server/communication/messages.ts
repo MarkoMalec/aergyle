@@ -8,7 +8,9 @@ import {
   systemPairKey,
   SYSTEM_SENDER_NAME,
 } from "~/game/communication";
+import type { Prisma } from "~/generated/prisma/client";
 import { prisma } from "~/lib/prisma";
+import { lockUser } from "~/server/userLock";
 
 /**
  * Private messages. Every thread is one `Conversation` with one
@@ -67,8 +69,11 @@ const SYSTEM_PLAYER: PlayerRef = {
   image: null,
 };
 
-function countVisible(userId: string) {
-  return prisma.conversationParticipant.count({
+/** The client or a transaction, so a send can count inside its locks. */
+type Db = Prisma.TransactionClient;
+
+function countVisible(userId: string, db: Db = prisma) {
+  return db.conversationParticipant.count({
     where: { userId, hidden: false },
   });
 }
@@ -90,17 +95,17 @@ export function countWaitingConversations(userId: string) {
  * first. Runs whenever they look at their list or free a slot, so nothing has
  * to be let in by hand.
  */
-async function promoteWaiting(userId: string) {
-  const room = MAX_CONVERSATIONS - (await countVisible(userId));
+async function promoteWaiting(userId: string, db: Db = prisma) {
+  const room = MAX_CONVERSATIONS - (await countVisible(userId, db));
   if (room <= 0) return;
-  const waiting = await prisma.conversationParticipant.findMany({
+  const waiting = await db.conversationParticipant.findMany({
     where: { userId, hidden: true, unread: true },
     orderBy: { conversation: { lastMessageAt: "desc" } },
     take: room,
     select: { conversationId: true },
   });
   if (waiting.length === 0) return;
-  await prisma.conversationParticipant.updateMany({
+  await db.conversationParticipant.updateMany({
     where: {
       userId,
       conversationId: { in: waiting.map((r) => r.conversationId) },
@@ -304,71 +309,84 @@ export async function sendMessage(params: {
   if (!recipient) throw new Error("Player not found");
 
   const pairKey = conversationPairKey(params.senderId, recipient.id);
-  const senderSide = await prisma.conversationParticipant.findFirst({
-    where: { userId: params.senderId, conversation: { pairKey } },
-    select: { hidden: true },
-  });
-  // Starting (or reopening) a thread takes one of the sender's own slots.
-  if (
-    (!senderSide || senderSide.hidden) &&
-    (await countVisible(params.senderId)) >= MAX_CONVERSATIONS
-  ) {
-    throw new Error(
-      `You can keep ${MAX_CONVERSATIONS} conversations. Delete one to start another.`,
-    );
-  }
-
   const now = new Date();
-  const conversationId = await prisma.$transaction(async (tx) => {
-    const conversation = await tx.conversation.upsert({
-      where: { pairKey },
-      create: {
-        pairKey,
-        lastMessageAt: now,
-        // The recipient's side starts hidden and is let in below only if they
-        // have a free slot, so a new thread can never push them past the limit.
-        participants: {
-          create: [
-            { userId: params.senderId },
-            { userId: recipient.id, hidden: true, unread: true },
-          ],
+  const write = () =>
+    prisma.$transaction(async (tx) => {
+      // Both sides' slot counts are checked and changed below; fixed lock order
+      // so two opposite sends can't deadlock.
+      for (const id of [params.senderId, recipient.id].sort()) {
+        await lockUser(tx, id);
+      }
+      const senderSide = await tx.conversationParticipant.findFirst({
+        where: { userId: params.senderId, conversation: { pairKey } },
+        select: { hidden: true },
+      });
+      // Starting (or reopening) a thread takes one of the sender's own slots.
+      if (
+        (!senderSide || senderSide.hidden) &&
+        (await countVisible(params.senderId, tx)) >= MAX_CONVERSATIONS
+      ) {
+        throw new Error(
+          `You can keep ${MAX_CONVERSATIONS} conversations. Delete one to start another.`,
+        );
+      }
+      const conversation = await tx.conversation.upsert({
+        where: { pairKey },
+        create: {
+          pairKey,
+          lastMessageAt: now,
+          // The recipient's side starts hidden and is let in below only if they
+          // have a free slot, so a new thread can never push them past the limit.
+          participants: {
+            create: [
+              { userId: params.senderId },
+              { userId: recipient.id, hidden: true, unread: true },
+            ],
+          },
         },
-      },
-      update: { lastMessageAt: now },
-      select: { id: true },
-    });
-    await tx.message.create({
-      data: {
-        conversationId: conversation.id,
-        senderId: params.senderId,
-        body,
-      },
-    });
-    // The sender always sees what they just wrote; anything they cleared
-    // before stays cleared.
-    await tx.conversationParticipant.update({
-      where: {
-        conversationId_userId: {
+        update: { lastMessageAt: now },
+        select: { id: true },
+      });
+      await tx.message.create({
+        data: {
           conversationId: conversation.id,
-          userId: params.senderId,
+          senderId: params.senderId,
+          body,
         },
-      },
-      data: { hidden: false, unread: false },
-    });
-    await tx.conversationParticipant.update({
-      where: {
-        conversationId_userId: {
-          conversationId: conversation.id,
-          userId: recipient.id,
+      });
+      // The sender always sees what they just wrote; anything they cleared
+      // before stays cleared.
+      await tx.conversationParticipant.update({
+        where: {
+          conversationId_userId: {
+            conversationId: conversation.id,
+            userId: params.senderId,
+          },
         },
-      },
-      data: { unread: true },
+        data: { hidden: false, unread: false },
+      });
+      await tx.conversationParticipant.update({
+        where: {
+          conversationId_userId: {
+            conversationId: conversation.id,
+            userId: recipient.id,
+          },
+        },
+        data: { unread: true },
+      });
+      // The recipient sees it now if they have room; otherwise it waits.
+      await promoteWaiting(recipient.id, tx);
+      return conversation.id;
     });
-    return conversation.id;
-  });
-
-  // The recipient sees it now if they have room; otherwise it waits.
-  await promoteWaiting(recipient.id);
+  let conversationId: number;
+  try {
+    conversationId = await write();
+  } catch (error) {
+    // Both players opening the thread at once: the loser's insert hits the
+    // winner's pairKey; the retry finds it and takes the update path.
+    if ((error as { code?: string } | null)?.code !== "P2002") throw error;
+    conversationId = await write();
+  }
   await trimMessages(conversationId);
   return { conversationId };
 }

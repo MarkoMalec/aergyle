@@ -100,6 +100,29 @@ function AccountPanel() {
             Discard
           </Button>
         ) : null}
+        <ActionButton
+          actionKey="ban"
+          variant={account.bannedAt ? "secondary" : "destructive"}
+          confirm={
+            account.bannedAt
+              ? undefined
+              : "Ban this player? They can't sign in, and open sessions end within a few minutes."
+          }
+          onClick={() =>
+            run(
+              "ban",
+              "",
+              "PATCH",
+              { banned: !account.bannedAt },
+              account.bannedAt ? "Unbanned" : "Banned",
+            )
+          }
+        >
+          {account.bannedAt ? "Unban" : "Ban"}
+        </ActionButton>
+        {account.bannedAt ? (
+          <Tag tone="bad">Banned {fromNow(account.bannedAt)}</Tag>
+        ) : null}
       </div>
 
       <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-3">

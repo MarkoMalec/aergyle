@@ -9,11 +9,8 @@ import {
   CollapsibleTrigger,
 } from "~/components/ui/collapsible";
 import { getSkillIcon } from "~/components/game/ui/Sidebars/navigation-links";
+import { formatInt } from "~/components/game/actions/format";
 import type { SkillProgressResponse } from "./SkillProgressContext";
-
-function formatInt(value: number) {
-  return new Intl.NumberFormat().format(Math.max(0, Math.floor(value)));
-}
 
 /**
  * The skill's level and experience, collapsible so the column can be reduced

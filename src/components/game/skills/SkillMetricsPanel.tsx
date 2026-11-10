@@ -1,11 +1,8 @@
 "use client";
 
 import { BarChart3, Clock, Package, Zap } from "lucide-react";
+import { formatInt } from "~/components/game/actions/format";
 import type { SkillMetrics } from "~/server/skills/metrics";
-
-function formatInt(value: number) {
-  return new Intl.NumberFormat().format(Math.max(0, Math.floor(value)));
-}
 
 /** "1d 0h 5m", the way a player reads time spent on a skill. */
 function formatSpan(totalSeconds: number) {

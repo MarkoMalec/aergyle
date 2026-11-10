@@ -12,10 +12,10 @@ import {
   type CreatureDropPoolEntry,
   type CreatureLootReward,
 } from "~/server/creatures/loot";
+import { clamp } from "~/lib/utils";
 import { rollInclusive } from "~/server/expeditions/random";
 import {
   calculateExpeditionRewardModifiers,
-  clampNumber,
   type ExpeditionRewardModifiers,
 } from "~/server/expeditions/rewards";
 
@@ -120,7 +120,7 @@ function chooseWeighted<T>(
     (sum, value) => sum + Math.max(0.001, weight(value)),
     0,
   );
-  let cursor = clampNumber(random(), 0, 0.999999999) * total;
+  let cursor = clamp(random(), 0, 0.999999999) * total;
   for (const value of values) {
     cursor -= Math.max(0.001, weight(value));
     if (cursor <= 0) return value;
@@ -169,7 +169,7 @@ export function resolveHuntingExpedition(
     efficiency: input.huntingEfficiency,
     quantityMultiplier: input.quantityMultiplier,
   });
-  const dangerScale = clampNumber(
+  const dangerScale = clamp(
     input.dangerMultiplier * input.globalDangerMultiplier,
     0,
     10,
@@ -178,7 +178,7 @@ export function resolveHuntingExpedition(
     ? Math.max(
         0,
         (input.defenses.maxHealth *
-          clampNumber(input.maxHealthLossPercent, 0, 100)) /
+          clamp(input.maxHealthLossPercent, 0, 100)) /
           100,
       )
     : 0;
@@ -210,7 +210,7 @@ export function resolveHuntingExpedition(
     };
     encounter.count += 1;
 
-    const attackChance = clampNumber(
+    const attackChance = clamp(
       creature.attackChance * dangerScale,
       0,
       0.95,
@@ -239,12 +239,12 @@ export function resolveHuntingExpedition(
     rollCreatureDrops(creature.drops, modifiers, random, tally);
 
     accidents.attempts += 1;
-    const movementFactor = clampNumber(
+    const movementFactor = clamp(
       1 - (input.defenses.movementSpeed - 100) * 0.005,
       0.5,
       1.5,
     );
-    const accidentChance = clampNumber(
+    const accidentChance = clamp(
       input.accidentChance * dangerScale * movementFactor,
       0,
       0.95,

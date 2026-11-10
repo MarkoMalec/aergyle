@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerAuthSession } from "~/server/auth";
 import { startTravel } from "~/server/travel/service";
+import { playerErrorMessage } from "~/server/playerError";
 
 export async function POST(req: NextRequest) {
   const session = await getServerAuthSession();
@@ -20,7 +21,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to start travel" },
+      { error: playerErrorMessage(error, "Failed to start travel") },
       { status: 400 },
     );
   }

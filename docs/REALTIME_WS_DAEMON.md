@@ -48,7 +48,7 @@ tile boundary instead, and status checks settle ticks the same way.
   - `DATABASE_URL` (points at the same DB)
   - `REALTIME_TOKEN_SECRET` (shared secret used to sign WS auth tokens)
   - Optional: `REALTIME_WS_PORT` (default `3001`)
-  - Optional: `VOCATION_TICK_LOOP_MS` (default `250`; also drives garden ticks)
+  - Optional: `VOCATION_TICK_LOOP_MS` (default `1000`; also drives garden ticks)
   - In Next.js (browser): `NEXT_PUBLIC_REALTIME_WS_URL` (e.g. `ws://<rpi-ip>:3001` or `wss://ws.example.com`)
 - Everything the daemon imports runs as plain Node, outside Next.js. Keep those
   modules (`claim.ts`, `garden/service.ts`, `harvestSchedule.ts` and what they

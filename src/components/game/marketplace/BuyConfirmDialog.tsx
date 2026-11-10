@@ -16,15 +16,13 @@ import {
 } from "~/components/ui/dialog";
 import { useRarityColors } from "~/hooks/use-rarity-colors";
 import { useUserGold } from "~/hooks/use-user-gold";
+import { formatGold } from "~/lib/marketplace";
 import type {
   MarketplaceGroupedItem,
   MarketplaceListing,
 } from "~/types/marketplace";
 import { rarityStyle } from "~/utils/rarity-colors";
 import { RarityBadge } from "~/utils/ui/rarity-badge";
-
-const formatGold = (value: number) =>
-  value.toLocaleString(undefined, { maximumFractionDigits: 2 });
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (

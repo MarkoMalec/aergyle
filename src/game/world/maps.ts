@@ -1,3 +1,4 @@
+import { clamp } from "~/lib/utils";
 /**
  * Every map (world atlas, region and settlement maps) is drawn at this size
  * and shown at it, so pins sit exactly where they were placed.
@@ -35,10 +36,6 @@ export function headCrop(npc: {
   return npc.headX === null || npc.headY === null || npc.headSize === null
     ? DEFAULT_HEAD_CROP
     : { x: npc.headX, y: npc.headY, size: npc.headSize };
-}
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value));
 }
 
 /**

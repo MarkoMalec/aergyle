@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerAuthSession } from "~/server/auth";
 import { startDungeonRun } from "~/server/dungeons";
+import { playerErrorMessage } from "~/server/playerError";
 
 export async function POST(request: Request) {
   const session = await getServerAuthSession();
@@ -24,7 +25,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error:
-          error instanceof Error ? error.message : "Failed to enter dungeon",
+          playerErrorMessage(error, "Failed to enter dungeon"),
       },
       { status: 400 },
     );

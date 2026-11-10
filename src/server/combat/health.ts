@@ -27,8 +27,10 @@ export async function getCharacterVitalsFromSnapshot(
   userId: string,
   character: Pick<CharacterStatSnapshot, "finalStats">,
   now = new Date(),
+  /** Pass the transaction to read the latest row inside it. */
+  db: HealthDb = prisma,
 ): Promise<CharacterVitals> {
-  const stored = await prisma.characterHealth.findUnique({ where: { userId } });
+  const stored = await db.characterHealth.findUnique({ where: { userId } });
   const maxHealth = character.finalStats.health;
   const healthRegen = character.finalStats.healthRegen;
   const currentHealth = stored

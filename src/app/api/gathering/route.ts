@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerAuthSession } from "~/server/auth";
 import { getGatheringPageData } from "~/server/gathering";
+import { playerErrorMessage } from "~/server/playerError";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -16,7 +17,7 @@ export async function GET() {
     return NextResponse.json(
       {
         error:
-          error instanceof Error ? error.message : "Failed to load Gathering",
+          playerErrorMessage(error, "Failed to load Gathering"),
       },
       { status: 500 },
     );

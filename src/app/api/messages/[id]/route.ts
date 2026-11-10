@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerAuthSession } from "~/server/auth";
+import { playerErrorMessage } from "~/server/playerError";
 import { deleteConversation, getConversation } from "~/server/communication";
 
 export const dynamic = "force-dynamic";
@@ -27,7 +28,7 @@ export async function GET(_request: Request, context: Context) {
     return NextResponse.json(await getConversation(session.user.id, id));
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Not found" },
+      { error: playerErrorMessage(error, "Not found") },
       { status: 404 },
     );
   }
@@ -49,7 +50,7 @@ export async function DELETE(_request: Request, context: Context) {
     return NextResponse.json(await deleteConversation(session.user.id, id));
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Could not delete" },
+      { error: playerErrorMessage(error, "Could not delete") },
       { status: 400 },
     );
   }

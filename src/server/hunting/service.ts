@@ -9,7 +9,8 @@ import {
   XpActionType,
 } from "~/generated/prisma/enums";
 import { prisma } from "~/lib/prisma";
-import { assertNoOtherActivity } from "~/server/activity";
+import { assertNoOtherActivity, closeInvalidRun } from "~/server/activity";
+import { lockUser } from "~/server/userLock";
 import {
   calculateHealthAfterDamage,
   getCharacterVitalsFromSnapshot,
@@ -712,6 +713,8 @@ export async function startHuntingExpedition(params: {
   const endsAt = new Date(now.getTime() + duration.durationSeconds * 1_000);
 
   await prisma.$transaction(async (tx) => {
+    await lockUser(tx, userId);
+    await assertNoOtherActivity(userId, "hunting", tx);
     if (existing?.claimedAt) {
       await tx.userHuntingExpedition.delete({ where: { id: existing.id } });
     }
@@ -796,10 +799,15 @@ export async function claimHuntingExpedition(userId: string) {
     throw new Error("Your character has not returned yet");
   }
 
+  const closeRun = () =>
+    prisma.userHuntingExpedition.updateMany({
+      where: { id: expedition.id, claimedAt: null },
+      data: { claimedAt: new Date() },
+    });
   const pool = parseCreaturePool(expedition.creaturePool);
   const risk = parseRiskConfig(expedition.riskConfig);
   if (pool.length === 0 || !risk) {
-    throw new Error("This expedition has no valid encounter snapshot");
+    return closeInvalidRun("hunting expedition", expedition.id, closeRun);
   }
   // Departure snapshots prevent balance changes from moving the goalposts.
   // Live global controls may only make an active hunt safer, never harsher.
@@ -839,33 +847,36 @@ export async function claimHuntingExpedition(userId: string) {
     random: createExpeditionRandom(expedition.resolutionSeed),
   });
   if (resolution.rewards.length === 0) {
-    throw new Error("The expedition returned no materials");
+    // Seeded, so every retry resolves to the same empty haul.
+    return closeInvalidRun("hunting expedition", expedition.id, closeRun);
   }
 
   const character = await getCharacterStatSnapshot(userId);
-  const vitals = await getCharacterVitalsFromSnapshot(userId, character);
-  const health = calculateHealthAfterDamage({
-    currentHealth: vitals.currentHealth,
-    maxHealth: vitals.maxHealth,
-    requestedDamage: resolution.report.totalDamage,
-    minimumRemainingHealthPercent: effectiveRisk.minimumRemainingHealthPercent,
-  });
+  const { health: maxHealth, healthRegen } = character.finalStats;
   const claimedAt = new Date();
-  const appliedReport = applyHealthFloorToReport(
-    resolution.report,
-    health.appliedDamage,
-  );
-  const report: ClaimedHuntingReport = {
-    ...appliedReport,
-    potentialDamage: resolution.report.totalDamage,
-    health: {
-      before: vitals.currentHealth,
-      after: health.currentHealth,
-      max: vitals.maxHealth,
-    },
-  };
 
   const awarded = await prisma.$transaction(async (tx) => {
+    // Read here, not before the transaction, so a heal (food) that lands
+    // during the claim is not overwritten by an older absolute value.
+    const { currentHealth: healthBefore } =
+      await getCharacterVitalsFromSnapshot(userId, character, claimedAt, tx);
+    const health = calculateHealthAfterDamage({
+      currentHealth: healthBefore,
+      maxHealth,
+      requestedDamage: resolution.report.totalDamage,
+      minimumRemainingHealthPercent:
+        effectiveRisk.minimumRemainingHealthPercent,
+    });
+    const report: ClaimedHuntingReport = {
+      ...applyHealthFloorToReport(resolution.report, health.appliedDamage),
+      potentialDamage: resolution.report.totalDamage,
+      health: {
+        before: healthBefore,
+        after: health.currentHealth,
+        max: maxHealth,
+      },
+    };
+
     const claimed = await tx.userHuntingExpedition.updateMany({
       where: {
         id: expedition.id,
@@ -963,16 +974,18 @@ export async function claimHuntingExpedition(userId: string) {
       description: "Hunting expedition",
     });
 
-    return { playerXp, huntingXp };
+    return { playerXp, huntingXp, health, report };
   });
+  const { health, report } = awarded;
 
   return {
     rewards: resolution.rewards,
     report,
     vitals: {
-      ...vitals,
       currentHealth: health.currentHealth,
-      percent: (health.currentHealth / vitals.maxHealth) * 100,
+      maxHealth,
+      healthRegen,
+      percent: (health.currentHealth / maxHealth) * 100,
       regeneratedAt: claimedAt.toISOString(),
     },
     xp: {

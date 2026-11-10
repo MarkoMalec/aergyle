@@ -18,7 +18,7 @@ import {
 import { Button } from "~/components/ui/button";
 import { formatWait } from "~/components/game/actions/format";
 import { ATTACK_STYLE_ICON, Fact } from "~/components/game/expeditions/parts";
-import { cn } from "~/lib/utils";
+import { clamp, cn } from "~/lib/utils";
 import type { Animal, Duration, Ground, Safety } from "./types";
 
 export type Health = {
@@ -37,9 +37,6 @@ const TONE_CLASSES: Record<Tone, { text: string; tint: string }> = {
   danger: { text: "text-danger", tint: "bg-danger/[0.14]" },
   muted: { text: "text-muted-foreground", tint: "bg-secondary/60" },
 };
-
-const clamp = (value: number, minimum: number, maximum: number) =>
-  Math.max(minimum, Math.min(maximum, value));
 
 /**
  * The server only rolls animals with weight and at least one drop unlocked at

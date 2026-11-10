@@ -93,6 +93,7 @@ export async function updatePlayer(
     experience?: bigint;
     locationId?: number | null;
     health?: number;
+    banned?: boolean;
   },
 ) {
   await requirePlayer(userId);
@@ -106,6 +107,7 @@ export async function updatePlayer(
     data.password = await hash(patch.password, PASSWORD_BCRYPT_ROUNDS);
   }
   if (patch.gold !== undefined) data.gold = patch.gold;
+  if (patch.banned !== undefined) data.bannedAt = patch.banned ? new Date() : null;
   if (patch.level !== undefined || patch.experience !== undefined) {
     const resolved = resolveLevelEdit(
       await getLevelCurve(),

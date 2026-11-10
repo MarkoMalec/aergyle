@@ -285,3 +285,21 @@ void test("invite passwords are unguessable and easy to read back", () => {
   }
   assert.equal(new Set(passwords).size, passwords.length);
 });
+
+test("playerErrorMessage shows game messages and hides internal errors", async () => {
+  const { playerErrorMessage } = await import("../src/server/playerError");
+  const quiet = console.error;
+  console.error = () => {};
+  try {
+    assert.equal(playerErrorMessage(new Error("Not enough gold"), "x"), "Not enough gold");
+    assert.equal(playerErrorMessage(new TypeError("a is undefined"), "Failed"), "Failed");
+    const prisma = Object.assign(new Error("Unique constraint failed on `UserQuest`"), {
+      name: "PrismaClientKnownRequestError",
+      code: "P2002",
+    });
+    assert.equal(playerErrorMessage(prisma, "Failed"), "That is already in progress.");
+    assert.equal(playerErrorMessage("boom", "Failed"), "Failed");
+  } finally {
+    console.error = quiet;
+  }
+});

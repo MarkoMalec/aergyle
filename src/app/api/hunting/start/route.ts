@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerAuthSession } from "~/server/auth";
 import { startHuntingExpedition } from "~/server/hunting";
+import { playerErrorMessage } from "~/server/playerError";
 
 export async function POST(request: Request) {
   const session = await getServerAuthSession();
@@ -30,7 +31,7 @@ export async function POST(request: Request) {
     );
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to depart" },
+      { error: playerErrorMessage(error, "Failed to depart") },
       { status: 400 },
     );
   }

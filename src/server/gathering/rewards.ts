@@ -2,9 +2,9 @@ import type { ItemRarity } from "~/generated/prisma/enums";
 import {
   calculateExpeditionEffectiveFindChance,
   calculateExpeditionRewardModifiers,
-  clampNumber,
   type ExpeditionRewardModifiers,
 } from "~/server/expeditions/rewards";
+import { clamp } from "~/lib/utils";
 
 export type GatheringRewardPoolEntry = {
   resourceId: number;
@@ -40,7 +40,7 @@ function rollInclusive(min: number, max: number, random: () => number) {
   const low = Math.max(1, Math.ceil(Math.min(min, max)));
   const high = Math.max(low, Math.floor(Math.max(min, max)));
   return (
-    low + Math.floor(clampNumber(random(), 0, 0.999999999) * (high - low + 1))
+    low + Math.floor(clamp(random(), 0, 0.999999999) * (high - low + 1))
   );
 }
 
@@ -49,12 +49,12 @@ function weightedFallback(
   random: () => number,
 ) {
   const totalWeight = pool.reduce(
-    (total, entry) => total + clampNumber(entry.baseChance, 0.001, 1),
+    (total, entry) => total + clamp(entry.baseChance, 0.001, 1),
     0,
   );
-  let cursor = clampNumber(random(), 0, 0.999999999) * totalWeight;
+  let cursor = clamp(random(), 0, 0.999999999) * totalWeight;
   for (const entry of pool) {
-    cursor -= clampNumber(entry.baseChance, 0.001, 1);
+    cursor -= clamp(entry.baseChance, 0.001, 1);
     if (cursor <= 0) return entry;
   }
   return pool[pool.length - 1]!;

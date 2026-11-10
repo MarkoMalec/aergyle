@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerAuthSession } from "~/server/auth";
+import { playerErrorMessage } from "~/server/playerError";
 import {
   consumeFoodFromInventory,
   getActiveFoodEffect,
@@ -43,7 +44,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         error:
-          error instanceof Error ? error.message : "Failed to consume food",
+          playerErrorMessage(error, "Failed to consume food"),
       },
       { status: 400 },
     );

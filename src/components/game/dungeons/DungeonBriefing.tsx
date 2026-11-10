@@ -17,7 +17,7 @@ import {
 import { Button } from "~/components/ui/button";
 import { ATTACK_STYLE_ICON, Fact } from "~/components/game/expeditions/parts";
 import { formatLength, formatWait } from "~/components/game/actions/format";
-import { cn } from "~/lib/utils";
+import { clamp, cn } from "~/lib/utils";
 import { DAMAGE_TYPE_TONE, DIFFICULTY_TONE, DifficultyPill } from "./shared";
 import type { Dungeon, DungeonMonster } from "./types";
 
@@ -99,11 +99,10 @@ function SurvivalGauge({
 }) {
   const verdict = survivalVerdict(dungeon, health);
   const tone = TONE_CLASSES[verdict.tone];
-  const clamp = (value: number) => Math.max(0, Math.min(1, value));
   const scale = Math.max(1, health.max);
-  const fill = clamp(health.current / scale);
+  const fill = clamp(health.current / scale, 0, 1);
   const recommended = dungeon.recommendedHealth;
-  const mark = recommended === null ? null : clamp(recommended / scale);
+  const mark = recommended === null ? null : clamp(recommended / scale, 0, 1);
 
   return (
     <section

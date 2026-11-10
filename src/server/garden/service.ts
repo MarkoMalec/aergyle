@@ -1,5 +1,6 @@
 import { prisma } from "~/lib/prisma";
 import { assertNoOtherActivity } from "~/server/activity";
+import { lockUser } from "~/server/userLock";
 import {
   ItemType,
   VocationalActionType,
@@ -304,6 +305,8 @@ export async function startGardenHarvest(params: {
   const now = new Date();
 
   return await prisma.$transaction(async (tx) => {
+    await lockUser(tx, userId);
+    await assertNoOtherActivity(userId, "garden", tx);
     const tiles = await tx.userGardenTile.findMany({
       where: { userId, tileIndex: { in: tileIndices } },
       select: {

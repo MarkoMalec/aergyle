@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerAuthSession } from "~/server/auth";
+import { playerErrorMessage } from "~/server/playerError";
 import { reportConversation } from "~/server/communication";
 
 type Context = { params: { id: string } };
@@ -30,7 +31,7 @@ export async function POST(request: Request, context: Context) {
     );
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Could not report" },
+      { error: playerErrorMessage(error, "Could not report") },
       { status: 400 },
     );
   }

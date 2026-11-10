@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerAuthSession } from "~/server/auth";
 import { startVocationalActivity } from "~/server/vocations";
 import { prisma } from "~/lib/prisma";
+import { playerErrorMessage } from "~/server/playerError";
 
 export async function POST(req: NextRequest) {
   const session = await getServerAuthSession();
@@ -45,7 +46,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(status);
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to start activity" },
+      { error: playerErrorMessage(error, "Failed to start activity") },
       { status: 400 },
     );
   }

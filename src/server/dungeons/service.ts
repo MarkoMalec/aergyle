@@ -8,7 +8,8 @@ import {
   type DungeonDifficulty,
 } from "~/generated/prisma/enums";
 import { prisma } from "~/lib/prisma";
-import { assertNoOtherActivity } from "~/server/activity";
+import { assertNoOtherActivity, closeInvalidRun } from "~/server/activity";
+import { lockUser } from "~/server/userLock";
 import {
   getCharacterVitalsFromSnapshot,
   writeCharacterHealth,
@@ -568,6 +569,8 @@ export async function startDungeonRun(params: {
   const endsAt = new Date(now.getTime() + dungeon.durationSeconds * 1_000);
 
   await prisma.$transaction(async (tx) => {
+    await lockUser(tx, userId);
+    await assertNoOtherActivity(userId, "dungeon", tx);
     if (existing?.claimedAt) {
       await tx.userDungeonRun.delete({ where: { id: existing.id } });
     }
@@ -627,7 +630,12 @@ export async function claimDungeonRun(userId: string) {
   const combat = parseCombatSnapshot(run.combatSnapshot);
   const deathRules = parseDeathRules(run.deathRules);
   if (pool.length === 0 || !combat || !deathRules) {
-    throw new Error("This dungeon run has no valid combat snapshot");
+    return closeInvalidRun("dungeon run", run.id, () =>
+      prisma.userDungeonRun.updateMany({
+        where: { id: run.id, claimedAt: null },
+        data: { claimedAt: new Date() },
+      }),
+    );
   }
   // The seed makes a retry (e.g. after a full inventory) resolve identically.
   const resolution = resolveDungeonRun({
@@ -644,30 +652,30 @@ export async function claimDungeonRun(userId: string) {
   const cleared = resolution.report.outcome === "CLEARED";
 
   const character = await getCharacterStatSnapshot(userId);
-  const vitals = await getCharacterVitalsFromSnapshot(userId, character);
-  // A cleared run always leaves the character standing, even if a timed food
-  // bonus to maximum health expired while they were inside.
-  const healthAfter = cleared
-    ? Math.max(
-        1,
-        Math.round(
-          (vitals.currentHealth - resolution.report.damageTaken) * 1_000,
-        ) / 1_000,
-      )
-    : 0;
+  const { health: maxHealth, healthRegen } = character.finalStats;
   const xpReward = cleared ? run.xpReward : 0;
   const claimedAt = new Date();
-  const report: ClaimedDungeonReport = {
-    ...resolution.report,
-    xp: xpReward,
-    health: {
-      before: vitals.currentHealth,
-      after: healthAfter,
-      max: vitals.maxHealth,
-    },
-  };
 
-  const playerXp = await prisma.$transaction(async (tx) => {
+  const claim = await prisma.$transaction(async (tx) => {
+    // Read here, not before the transaction, so a heal (food) that lands
+    // during the claim is not overwritten by an older absolute value.
+    const { currentHealth: healthBefore } =
+      await getCharacterVitalsFromSnapshot(userId, character, claimedAt, tx);
+    // A cleared run always leaves the character standing, even if a timed food
+    // bonus to maximum health expired while they were inside.
+    const healthAfter = cleared
+      ? Math.max(
+          1,
+          Math.round((healthBefore - resolution.report.damageTaken) * 1_000) /
+            1_000,
+        )
+      : 0;
+    const report: ClaimedDungeonReport = {
+      ...resolution.report,
+      xp: xpReward,
+      health: { before: healthBefore, after: healthAfter, max: maxHealth },
+    };
+
     const claimed = await tx.userDungeonRun.updateMany({
       where: {
         id: run.id,
@@ -742,27 +750,31 @@ export async function claimDungeonRun(userId: string) {
 
     // XP commits with the loot, so a crash cannot leave the run claimed and
     // the reward unpaid.
-    return xpReward > 0
-      ? await awardXp(
-          userId,
-          xpReward,
-          XpActionType.DUNGEON,
-          undefined,
-          `Dungeon cleared: ${run.dungeon.name}`,
-          { dungeonRunId: run.id },
-          { db: tx },
-        )
-      : null;
+    const playerXp =
+      xpReward > 0
+        ? await awardXp(
+            userId,
+            xpReward,
+            XpActionType.DUNGEON,
+            undefined,
+            `Dungeon cleared: ${run.dungeon.name}`,
+            { dungeonRunId: run.id },
+            { db: tx },
+          )
+        : null;
+    return { playerXp, healthAfter, report };
   });
+  const { playerXp, healthAfter, report } = claim;
 
   return {
     outcome: resolution.report.outcome,
     rewards: resolution.rewards,
     report,
     vitals: {
-      ...vitals,
       currentHealth: healthAfter,
-      percent: (healthAfter / vitals.maxHealth) * 100,
+      maxHealth,
+      healthRegen,
+      percent: (healthAfter / maxHealth) * 100,
       regeneratedAt: claimedAt.toISOString(),
     },
     xp: playerXp?.xpGained ?? 0,

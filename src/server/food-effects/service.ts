@@ -1,7 +1,7 @@
 import { ItemType } from "~/generated/prisma/enums";
 import { prisma } from "~/lib/prisma";
 import {
-  resolveRegeneratedHealth,
+  getCharacterVitalsFromSnapshot,
   writeCharacterHealth,
 } from "~/server/combat";
 import { removeFromStack } from "~/server/items/consumeItems";
@@ -42,6 +42,10 @@ export async function consumeFoodFromInventory(params: {
   userItemId: number;
 }) {
   const { userId, userItemId } = params;
+
+  // Read before the transaction so it never needs a second pool connection
+  // while holding one.
+  const character = await getCharacterStatSnapshot(userId);
 
   return prisma.$transaction(async (tx) => {
     const [userItem, inventory] = await Promise.all([
@@ -102,20 +106,8 @@ export async function consumeFoodFromInventory(params: {
       maxHealth: number;
     } | null = null;
     if (healingAmount > 0) {
-      const [character, storedHealth] = await Promise.all([
-        getCharacterStatSnapshot(userId),
-        tx.characterHealth.findUnique({ where: { userId } }),
-      ]);
-      const maxHealth = character.finalStats.health;
-      const currentHealth = storedHealth
-        ? resolveRegeneratedHealth({
-            currentHealth: storedHealth.currentHealth,
-            maxHealth,
-            healthRegen: character.finalStats.healthRegen,
-            regeneratedAt: storedHealth.regeneratedAt,
-            now,
-          })
-        : maxHealth;
+      const { currentHealth, maxHealth } =
+        await getCharacterVitalsFromSnapshot(userId, character, now, tx);
       const nextHealth = Math.min(maxHealth, currentHealth + healingAmount);
 
       await writeCharacterHealth({

@@ -416,6 +416,7 @@ export async function getAdminPlayer(userId: string) {
       password: true,
       last_online: true,
       last_action: true,
+      bannedAt: true,
       level: true,
       experience: true,
       gold: true,
@@ -606,6 +607,7 @@ export async function getAdminPlayer(userId: string) {
       providers: user.accounts,
       lastOnline: user.last_online.toISOString(),
       lastAction: user.last_action,
+      bannedAt: iso(user.bannedAt),
     },
     character: {
       level: user.level,

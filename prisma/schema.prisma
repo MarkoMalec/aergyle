@@ -49,6 +49,8 @@ model User {
   last_online             DateTime                       @default(now()) @db.Timestamp(0)
   last_action             String?
   createdAt               DateTime                       @default(now())
+  // Set by an admin: the player can no longer sign in, and live sessions end within minutes.
+  bannedAt                DateTime?
   // Shown on the player's public profile.
   bio                     String?                        @db.VarChar(300)
   // The user's current location in the world (one at a time).

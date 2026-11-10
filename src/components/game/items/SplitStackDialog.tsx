@@ -14,7 +14,7 @@ import {
 import { Button } from "~/components/ui/button";
 import { useRarityColors } from "~/hooks/use-rarity-colors";
 import { inventoryQueryKeys } from "~/lib/query-keys";
-import { cn } from "~/lib/utils";
+import { clamp, cn } from "~/lib/utils";
 import { rarityStyle } from "~/utils/rarity-colors";
 import { ItemArtwork } from "./ItemArtwork";
 import type { ItemWithStats } from "~/types/stats";
@@ -103,10 +103,9 @@ function SplitStackForm({
     },
   });
 
-  const clamp = (value: number) => Math.min(maxSplit, Math.max(1, value));
   const setAmount = (value: number) => {
     setDraft(null);
-    setSplitQuantity(clamp(value));
+    setSplitQuantity(clamp(value, 1, maxSplit));
   };
   const isValid = splitQuantity >= 1 && splitQuantity <= maxSplit;
   const fill =
@@ -184,7 +183,7 @@ function SplitStackForm({
               onChange={(event) => {
                 setDraft(event.target.value);
                 const parsed = Number.parseInt(event.target.value, 10);
-                if (Number.isFinite(parsed)) setSplitQuantity(clamp(parsed));
+                if (Number.isFinite(parsed)) setSplitQuantity(clamp(parsed, 1, maxSplit));
               }}
               onBlur={() => setDraft(null)}
               onFocus={(event) => event.target.select()}

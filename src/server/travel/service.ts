@@ -1,5 +1,6 @@
 import { prisma } from "~/lib/prisma";
 import { assertNoOtherActivity } from "~/server/activity";
+import { lockUser } from "~/server/userLock";
 import {
   applyMovementSpeed,
   FALLBACK_TRAVEL_SECONDS,
@@ -195,15 +196,19 @@ export async function startTravel(params: {
   });
   if (existing) throw new Error("You are already traveling");
 
-  await prisma.userTravelActivity.create({
-    data: {
-      userId,
-      fromLocationId,
-      toLocationId,
-      startedAt: now,
-      endsAt,
-      cancelledAt: null,
-    },
+  await prisma.$transaction(async (tx) => {
+    await lockUser(tx, userId);
+    await assertNoOtherActivity(userId, "travel", tx);
+    await tx.userTravelActivity.create({
+      data: {
+        userId,
+        fromLocationId,
+        toLocationId,
+        startedAt: now,
+        endsAt,
+        cancelledAt: null,
+      },
+    });
   });
 }
 

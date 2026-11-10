@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { formatSeconds } from "~/components/game/actions/format";
 import { useMemo, useState } from "react";
 import {
   ChevronDown,
@@ -33,11 +34,6 @@ type CategoryOption = {
 };
 
 const ALL_CATEGORIES = "__all";
-
-function formatSeconds(seconds: number) {
-  const rounded = seconds % 1 === 0 ? seconds.toFixed(0) : seconds.toFixed(2);
-  return rounded.replace(/\.0+$/, "").replace(/(\.\d+?)0+$/, "$1");
-}
 
 export default function CraftingResourceCatalog(props: {
   resources: SkillVocationalResource[];

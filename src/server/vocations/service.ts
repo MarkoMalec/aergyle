@@ -3,6 +3,7 @@ import type { ItemRarity } from "~/generated/prisma/enums";
 import type { UserVocationalActivity } from "~/generated/prisma/client";
 import { prisma } from "~/lib/prisma";
 import { assertNoOtherActivity } from "~/server/activity";
+import { lockUser } from "~/server/userLock";
 import { countItems } from "~/server/items/consumeItems";
 import { getMaxVocationDurationSeconds } from "~/server/vocations/config";
 import { computeVocationalProgress } from "~/server/vocations/progress";
@@ -436,22 +437,26 @@ export async function startVocationalActivity(params: {
   const now = new Date();
   const endsAt = new Date(now.getTime() + durationSeconds * 1000);
 
-  await prisma.userVocationalActivity.create({
-    data: {
-      userId,
-      actionType: resource.actionType as VocationalActionType,
-      resourceId: resource.id,
-      locationId: locationId ?? null,
-      startedAt: now,
-      endsAt,
-      unitSeconds,
-      unitsClaimed: 0,
-      baitUserItemId:
-        (resource.actionType as VocationalActionType) ===
-        VocationalActionType.FISHING
-          ? params.baitUserItemId ?? null
-          : null,
-    },
+  await prisma.$transaction(async (tx) => {
+    await lockUser(tx, userId);
+    await assertNoOtherActivity(userId, "vocation", tx);
+    await tx.userVocationalActivity.create({
+      data: {
+        userId,
+        actionType: resource.actionType as VocationalActionType,
+        resourceId: resource.id,
+        locationId: locationId ?? null,
+        startedAt: now,
+        endsAt,
+        unitSeconds,
+        unitsClaimed: 0,
+        baitUserItemId:
+          (resource.actionType as VocationalActionType) ===
+          VocationalActionType.FISHING
+            ? params.baitUserItemId ?? null
+            : null,
+      },
+    });
   });
 
   return await getVocationalStatus(userId);

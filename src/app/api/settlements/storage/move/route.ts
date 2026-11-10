@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerAuthSession } from "~/server/auth";
 import { moveStorageItem } from "~/server/settlements";
+import { playerErrorMessage } from "~/server/playerError";
 
 export async function POST(request: Request) {
   const session = await getServerAuthSession();
@@ -35,7 +36,7 @@ export async function POST(request: Request) {
     );
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Move failed" },
+      { error: playerErrorMessage(error, "Move failed") },
       { status: 400 },
     );
   }

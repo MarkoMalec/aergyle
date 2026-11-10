@@ -54,3 +54,14 @@ export function formatWait(seconds: number) {
   if (hours === 0) return `${minutes} min`;
   return minutes === 0 ? `${hours} h` : `${hours} h ${minutes} min`;
 }
+
+/** A whole, non-negative count in the reader's locale: "1,234". */
+export function formatInt(value: number) {
+  return new Intl.NumberFormat().format(Math.max(0, Math.floor(value)));
+}
+
+/** Seconds without trailing zeros: "5", "2.5", "0.25". */
+export function formatSeconds(seconds: number) {
+  const rounded = seconds % 1 === 0 ? seconds.toFixed(0) : seconds.toFixed(2);
+  return rounded.replace(/\.0+$/, "").replace(/(\.\d+?)0+$/, "$1");
+}

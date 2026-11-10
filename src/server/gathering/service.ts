@@ -8,7 +8,8 @@ import {
   XpActionType,
 } from "~/generated/prisma/enums";
 import { prisma } from "~/lib/prisma";
-import { assertNoOtherActivity } from "~/server/activity";
+import { assertNoOtherActivity, closeInvalidRun } from "~/server/activity";
+import { lockUser } from "~/server/userLock";
 import { calculateExpeditionEffectiveFindChance } from "~/server/expeditions/rewards";
 import {
   calculateGatheringRewardModifiers,
@@ -520,6 +521,8 @@ export async function startGatheringExpedition(params: {
   const endsAt = new Date(now.getTime() + duration.durationSeconds * 1000);
 
   await prisma.$transaction(async (tx) => {
+    await lockUser(tx, userId);
+    await assertNoOtherActivity(userId, "gathering", tx);
     if (existing?.claimedAt) {
       await tx.userGatheringExpedition.delete({ where: { id: existing.id } });
     }
@@ -573,7 +576,12 @@ export async function claimGatheringExpedition(userId: string) {
 
   const rewardPool = parseRewardPool(expedition.rewardPool);
   if (rewardPool.length === 0) {
-    throw new Error("This expedition has no valid reward pool");
+    return closeInvalidRun("gathering expedition", expedition.id, () =>
+      prisma.userGatheringExpedition.updateMany({
+        where: { id: expedition.id, claimedAt: null },
+        data: { claimedAt: new Date() },
+      }),
+    );
   }
   const rewards = calculateGatheringRewards({
     pool: rewardPool,

@@ -176,7 +176,7 @@ function startTickLoop(
 ) {
   // Simple loop: every VOCATION_TICK_LOOP_MS settle whatever came due.
   // Later: schedule each player's next tick precisely (min-heap) instead of polling.
-  const intervalMs = Number(process.env.VOCATION_TICK_LOOP_MS ?? 250);
+  const intervalMs = Number(process.env.VOCATION_TICK_LOOP_MS ?? 1000);
 
   // Prevent overlapping iterations if settling takes longer than the interval.
   let running = false;
@@ -274,8 +274,13 @@ async function main() {
 
   const wss = new WebSocketServer({ port: PORT, maxPayload: MAX_MESSAGE_BYTES });
   console.log(`[realtime-daemon] WebSocket server listening on :${PORT}`);
+  wss.on("error", (err) => console.error("[realtime-daemon] server error", err));
 
   wss.on("connection", (ws: WebSocket, req: IncomingMessage) => {
+    // Registered before any early return: an unhandled socket 'error' (e.g. a frame
+    // over maxPayload) would crash the whole daemon. terminate() still fires 'close'.
+    ws.on("error", () => ws.terminate());
+
     const token = parseTokenFromUrl(req.url ?? "");
     if (!token) {
       ws.close(1008, "Missing token");

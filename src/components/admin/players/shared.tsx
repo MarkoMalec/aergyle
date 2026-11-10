@@ -185,8 +185,7 @@ export function humanize(value: string) {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-export const formatGold = (value: number) =>
-  value.toLocaleString(undefined, { maximumFractionDigits: 2 });
+export { formatGold } from "~/lib/marketplace";
 
 export function formatDate(value: string | null) {
   return value ? new Date(value).toLocaleString() : "—";

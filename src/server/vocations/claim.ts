@@ -56,7 +56,11 @@ export async function claimVocationalRewards(params: {
   return prisma.$transaction(async (tx): Promise<VocationalClaimResult> => {
     // The daemon, page loads and start/stop can all claim for the same player at once.
     // Locking the activity row makes them take turns instead of paying out twice.
-    await tx.$queryRaw`SELECT id FROM UserVocationalActivity WHERE userId = ${userId} FOR UPDATE`;
+    const locked = await tx.$queryRaw<Array<{ id: number }>>`SELECT id FROM UserVocationalActivity WHERE userId = ${userId} FOR UPDATE`;
+    // Locked before the first plain read: that read fixes the transaction's
+    // snapshot, and the input stacks read below must not predate this lock.
+    // Skipped without an activity, since page loads claim for every player.
+    const inventory = locked.length > 0 ? await lockInventory(tx, userId) : null;
 
     const activity = await tx.userVocationalActivity.findUnique({
       where: { userId },
@@ -76,7 +80,8 @@ export async function claimVocationalRewards(params: {
       },
     });
 
-    if (!activity) {
+    // An activity created after the lock above is left for the next claim.
+    if (!activity || locked.length === 0) {
       return {
         claimedUnits: 0,
         grantedQuantity: 0,
@@ -145,9 +150,6 @@ export async function claimVocationalRewards(params: {
       where: { resourceId: activity.resourceId },
       select: { itemId: true, quantityPerUnit: true },
     });
-
-    // Load inventory slots + referenced UserItems so we can compute availability and consume.
-    const inventory = await lockInventory(tx, userId);
 
     const slots = normalizeInventorySlots(inventory?.slots, null);
     const userItemIds = slots

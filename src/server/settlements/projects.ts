@@ -182,7 +182,7 @@ export async function contributeToProject(params: {
     );
   }
 
-  const completed = await prisma.$transaction(async (tx) => {
+  const completedInTx = await prisma.$transaction(async (tx) => {
     // Compare-and-set, so two players can never overfill a requirement.
     const reserved = await tx.communityProjectRequirement.updateMany({
       where: { id: requirement.id, contributed: requirement.contributed },
@@ -208,6 +208,10 @@ export async function contributeToProject(params: {
     return syncProjectCompletion(tx, projectId);
   });
 
+  // Two players filling the last two requirements at once each see the other
+  // unfilled in their snapshot; re-check after commit (idempotent via completedAt).
+  const completed =
+    completedInTx || (await syncProjectCompletion(prisma, projectId));
   if (completed) {
     await announceProjectCompletion(projectId, project.name, project.settlement);
   }

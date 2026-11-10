@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerAuthSession } from "~/server/auth";
 import { abandonQuest, acceptQuest, completeQuest } from "~/server/settlements";
+import { playerErrorMessage } from "~/server/playerError";
 
 const ACTIONS = {
   accept: acceptQuest,
@@ -30,7 +31,7 @@ export async function POST(
     return NextResponse.json(await action(session.user.id, body.questId));
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Quest action failed" },
+      { error: playerErrorMessage(error, "Quest action failed") },
       { status: 400 },
     );
   }

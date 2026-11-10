@@ -46,6 +46,7 @@ export const playerSchema = z.object({
   experience: bigCount.optional(),
   locationId: id.nullable().optional(),
   health: z.number().min(0).max(1_000_000_000).optional(),
+  banned: z.boolean().optional(),
 });
 
 export const grantSchema = z.object({

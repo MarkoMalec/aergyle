@@ -3,6 +3,7 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { useVocationalActiveActionContext } from "~/components/game/actions/VocationalActiveActionProvider";
 import Image from "next/image";
+import { formatSeconds } from "~/components/game/actions/format";
 import ResourceStartDialog from "./ResourceStartDialog";
 import { Clock, ChevronRight, Lock } from "lucide-react";
 import { Badge } from "~/components/ui/badge";
@@ -16,11 +17,6 @@ import { useSkillProgress } from "~/components/game/skills/SkillProgressContext"
 import { TooltipProvider } from "~/components/ui/tooltip";
 import { getCraftingRule } from "~/game/crafting";
 import CraftingResourceCatalog from "./CraftingResourceCatalog";
-
-const formatSeconds = (seconds: number) => {
-  const rounded = seconds % 1 === 0 ? seconds.toFixed(0) : seconds.toFixed(2);
-  return rounded.replace(/\.0+$/, "").replace(/(\.\d+?)0+$/, "$1");
-};
 
 export type SkillVocationalResource = {
   id: number;

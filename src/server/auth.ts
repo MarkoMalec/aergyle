@@ -25,6 +25,27 @@ const DUMMY_HASH = '$2a$11$e4W7oXFTFO.BSn9qz/b94e65rJjXmAxJZ5HuHZ1fdhZZm59EoDR06
 const signInsByIp = sharedRateLimiter('sign-in-ip', { limit: 20, windowMs: 15 * 60_000 });
 const signInsByEmail = sharedRateLimiter('sign-in-email', { limit: 8, windowMs: 15 * 60_000 });
 
+const BAN_CHECK_MS = 5 * 60_000;
+// Server Components and route handlers can't write the session cookie back, so
+// a timestamp stored in the token would be lost and every request would hit the
+// DB. One Node process, so a Map is shared by all requests.
+const standing = new Map<string, { checkedAt: number; active: boolean }>();
+
+/** True while the user exists and isn't banned; looked up at most every 5 minutes. */
+async function isActive(userId: string) {
+  const now = Date.now();
+  const cached = standing.get(userId);
+  if (cached && now - cached.checkedAt < BAN_CHECK_MS) return cached.active;
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { bannedAt: true },
+  });
+  const active = Boolean(user) && user?.bannedAt === null;
+  if (standing.size > 5000) standing.clear();
+  standing.set(userId, { checkedAt: now, active });
+  return active;
+}
+
 /** Thrown from authorize(); the sign-in form turns it into a friendly message. */
 export const RATE_LIMITED_ERROR = 'RateLimited';
 
@@ -52,6 +73,10 @@ export const authOptions: NextAuthOptions = {
     jwt: async ({ token, user }) => {
       if (user) {
         token.id = user.id;
+      } else if (token.id && !(await isActive(token.id))) {
+        // Banned or deleted: a token with no id yields a session with no user
+        // id, which every route already treats as signed out.
+        return {} as typeof token;
       }
       return token;
     },
@@ -110,17 +135,22 @@ export const authOptions: NextAuthOptions = {
 
         const ip = getClientIp(req?.headers);
         const byIp = signInsByIp.hit(ip);
-        const byEmail = signInsByEmail.hit(email);
-        if (!byIp.ok || !byEmail.ok) throw new Error(RATE_LIMITED_ERROR);
+        // Only wrong passwords count against the email, so a stranger can't
+        // lock the owner out with attempts that never failed.
+        if (!byIp.ok || !signInsByEmail.peek(email).ok) throw new Error(RATE_LIMITED_ERROR);
 
         const user = await prisma.user.findUnique({
           where: { email },
-          select: { id: true, name: true, email: true, password: true },
+          select: { id: true, name: true, email: true, password: true, bannedAt: true },
         });
 
         // Discord-only accounts have no password and fail here like a typo.
         const matches = await compare(password, user?.password ?? DUMMY_HASH);
-        if (!user?.password || !matches) return null;
+        if (!user?.password || !matches) {
+          signInsByEmail.hit(email);
+          return null;
+        }
+        if (user.bannedAt) return null;
 
         signInsByEmail.reset(email);
 

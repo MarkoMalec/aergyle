@@ -80,6 +80,7 @@ export async function awardTrackXp(params: {
 
   const thresholds = await loadTrackThresholds(trackType);
 
+  // Atomic increment, so parallel awards cannot overwrite each other's XP.
   const current = await db.userTrackProgress.upsert({
     where: { userId_trackType_trackKey: { userId, trackType, trackKey } },
     create: {
@@ -87,23 +88,24 @@ export async function awardTrackXp(params: {
       trackType,
       trackKey,
       level: 1,
-      experience: 0n,
+      experience: BigInt(baseXpInt),
     },
-    update: {},
+    update: { experience: { increment: BigInt(baseXpInt) } },
     select: { id: true, level: true, experience: true },
   });
 
-  const oldLevel = current.level;
-  const oldXp = current.experience;
-  const newXp = oldXp + BigInt(baseXpInt);
-
+  const newXp = current.experience;
+  const oldXp = newXp - BigInt(baseXpInt);
+  const oldLevel = levelForTotalXp(thresholds, oldXp);
   const newLevel = levelForTotalXp(thresholds, newXp);
   const leveledUp = newLevel > oldLevel;
 
-  await db.userTrackProgress.update({
-    where: { id: current.id },
-    data: { level: newLevel, experience: newXp },
-  });
+  if (current.level !== newLevel) {
+    await db.userTrackProgress.update({
+      where: { id: current.id },
+      data: { level: newLevel },
+    });
+  }
 
   return {
     leveledUp,
@@ -123,19 +125,18 @@ export async function getTrackXpProgress(params: {
   const { userId, trackType, trackKey } = params;
 
   const [row, thresholds] = await Promise.all([
-    prisma.userTrackProgress.upsert({
+    prisma.userTrackProgress.findUnique({
       where: { userId_trackType_trackKey: { userId, trackType, trackKey } },
-      create: { userId, trackType, trackKey, level: 1, experience: 0n },
-      update: {},
-      select: { level: true, experience: true },
+      select: { experience: true },
     }),
     loadTrackThresholds(trackType),
   ]);
 
+  const xp = row?.experience ?? 0n;
   // Derived from XP, so a curve edit applies before the stored level catches up.
   return levelProgress(
     thresholds,
-    levelForTotalXp(thresholds, row.experience),
-    row.experience,
+    levelForTotalXp(thresholds, xp),
+    xp,
   );
 }

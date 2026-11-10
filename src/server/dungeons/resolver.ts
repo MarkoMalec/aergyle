@@ -15,10 +15,10 @@ import {
   type CreatureDropPoolEntry,
   type CreatureLootReward,
 } from "~/server/creatures/loot";
+import { clamp } from "~/lib/utils";
 import { rollInclusive } from "~/server/expeditions/random";
 import {
   calculateExpeditionRewardModifiers,
-  clampNumber,
   round2,
 } from "~/server/expeditions/rewards";
 import type { ComputedStats } from "~/types/stats";
@@ -186,8 +186,8 @@ export function applyDungeonDeathPenalty(
   rules: DungeonDeathRules,
   random: () => number,
 ): CreatureLootReward[] {
-  const keepChance = clampNumber(rules.keepChance, 0, 1);
-  const share = clampNumber(rules.quantityPercent, 0, 100) / 100;
+  const keepChance = clamp(rules.keepChance, 0, 1);
+  const share = clamp(rules.quantityPercent, 0, 100) / 100;
   return rewards.flatMap((reward) =>
     random() < keepChance
       ? [
@@ -244,7 +244,7 @@ export function resolveDungeonRun(
   }
   for (let index = lineup.length - 1; index > 0; index -= 1) {
     const swap = Math.floor(
-      clampNumber(random(), 0, 0.999999999) * (index + 1),
+      clamp(random(), 0, 0.999999999) * (index + 1),
     );
     [lineup[index], lineup[swap]] = [lineup[swap]!, lineup[index]!];
   }
@@ -260,12 +260,12 @@ export function resolveDungeonRun(
     }
     return encounter;
   };
-  const packSize = clampNumber(
+  const packSize = clamp(
     Math.floor(input.packSize),
     1,
     MAX_DUNGEON_PACK_SIZE,
   );
-  const attackSpeed = clampNumber(
+  const attackSpeed = clamp(
     combat.attackSpeed,
     0.1,
     MAX_ATTACKS_PER_ROUND,

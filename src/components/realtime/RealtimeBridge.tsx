@@ -24,6 +24,9 @@ async function fetchRealtimeToken() {
   return json.token;
 }
 
+const RETRY_BASE_MS = 1500;
+const RETRY_MAX_MS = 30_000;
+
 export function RealtimeBridge() {
   const { user } = useUserContext();
   const queryClient = useQueryClient();
@@ -40,6 +43,20 @@ export function RealtimeBridge() {
 
     let cancelled = false;
     let hasConnected = false;
+    let retryDelayMs = RETRY_BASE_MS;
+
+    // Exponential backoff with jitter, so a daemon restart doesn't make every client
+    // hit the token route in lockstep.
+    const scheduleReconnect = () => {
+      if (reconnectTimerRef.current) {
+        window.clearTimeout(reconnectTimerRef.current);
+      }
+      const delay = retryDelayMs + Math.random() * 1000;
+      retryDelayMs = Math.min(retryDelayMs * 2, RETRY_MAX_MS);
+      reconnectTimerRef.current = window.setTimeout(() => {
+        void connect();
+      }, delay);
+    };
 
     const handleEvent = (event: RealtimeServerEvent) => {
       if (event.type === "activity_tick") {
@@ -88,6 +105,9 @@ export function RealtimeBridge() {
         wsRef.current = ws;
 
         ws.onopen = () => {
+          // Reset on open: the token was valid and the daemon is up. (A connection the
+          // daemon accepts then drops at once is rare; its 1.5 s retry is cheap.)
+          retryDelayMs = RETRY_BASE_MS;
           setRealtimeConnected(true);
           // After a reconnect, activities may have moved on while we weren't listening.
           if (hasConnected) dispatchActiveActionEvent({ kind: "changed" });
@@ -104,18 +124,12 @@ export function RealtimeBridge() {
           }
         };
 
-        ws.onclose = () => {
+        ws.onclose = (e) => {
           wsRef.current = null;
           setRealtimeConnected(false);
-          if (cancelled) return;
-
-          // Simple reconnect with backoff.
-          if (reconnectTimerRef.current) {
-            window.clearTimeout(reconnectTimerRef.current);
-          }
-          reconnectTimerRef.current = window.setTimeout(() => {
-            void connect();
-          }, 1500);
+          // 1008 = rejected by the daemon (e.g. too many sockets): retrying would loop forever.
+          if (cancelled || e.code === 1008) return;
+          scheduleReconnect();
         };
 
         ws.onerror = () => {
@@ -123,12 +137,7 @@ export function RealtimeBridge() {
         };
       } catch {
         if (cancelled) return;
-        if (reconnectTimerRef.current) {
-          window.clearTimeout(reconnectTimerRef.current);
-        }
-        reconnectTimerRef.current = window.setTimeout(() => {
-          void connect();
-        }, 2000);
+        scheduleReconnect();
       }
     }
 

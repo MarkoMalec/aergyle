@@ -2,8 +2,9 @@ import type {
   CreatureAttackStyle,
   CreatureDamageType,
 } from "~/generated/prisma/enums";
+import { clamp } from "~/lib/utils";
 import { rollInclusive } from "~/server/expeditions/random";
-import { clampNumber, finiteNumber } from "~/server/expeditions/rewards";
+import { finiteNumber } from "~/server/expeditions/rewards";
 
 // Pure combat rules shared by Hunting retaliation and dungeon combat. Keep this
 // module free of server-only imports; admin simulators run it in the browser.
@@ -123,7 +124,7 @@ export function parseStrikeRules(value: unknown): StrikeRules {
 
 /** Converts a percentage stat into a 0-1 chance, capped at `cap` percent. */
 export function percentChance(percent: number, cap: number) {
-  return clampNumber(percent, 0, cap) / 100;
+  return clamp(percent, 0, cap) / 100;
 }
 
 /** Share of damage that gets through `protection` armor: K / (K + armor). */
@@ -143,7 +144,7 @@ export function criticalMultiplier(critDamage: number) {
 
 /** Share of damage a percentage resistance lets through. */
 function resistedShare(resistance: number) {
-  return 1 - clampNumber(resistance, -100, RESISTANCE_CAP) / 100;
+  return 1 - clamp(resistance, -100, RESISTANCE_CAP) / 100;
 }
 
 /** Rolled damage of one strike, before any defense. */

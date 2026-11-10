@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerAuthSession } from "~/server/auth";
 import { updateBio } from "~/server/players";
+import { playerErrorMessage } from "~/server/playerError";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,7 @@ export async function PATCH(request: Request) {
     return NextResponse.json(await updateBio(session.user.id, body.bio));
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Could not save" },
+      { error: playerErrorMessage(error, "Could not save") },
       { status: 400 },
     );
   }

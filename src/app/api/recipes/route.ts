@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerAuthSession } from "~/server/auth";
 import { getLearnedRecipes, learnRecipeFromInventory } from "~/server/recipes";
+import { playerErrorMessage } from "~/server/playerError";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -43,7 +44,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         error:
-          error instanceof Error ? error.message : "Failed to learn recipe",
+          playerErrorMessage(error, "Failed to learn recipe"),
       },
       { status: 400 },
     );

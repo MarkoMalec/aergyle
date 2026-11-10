@@ -179,19 +179,7 @@ export async function awardXp(
     throw new Error("vocationalActionType is only valid when actionType is VOCATION");
   }
 
-  const [user, thresholds] = await Promise.all([
-    db.user.findUnique({
-      where: { id: userId },
-      select: { experience: true },
-    }),
-    loadThresholds(),
-  ]);
-
-  if (!user) throw new Error("User not found");
-
-  // The update below also corrects a stored level the curve has moved.
-  const oldTotalXp = user.experience;
-  const oldLevel = levelForTotalXp(thresholds, oldTotalXp);
+  const thresholds = await loadThresholds();
 
   const multiplierRows = await readActiveMultipliers(db, userId);
   const xpMultiplier = combineMultipliers(multiplierRows, {
@@ -204,18 +192,23 @@ export async function awardXp(
   const finalXpInt = Math.max(0, Math.floor(baseAmount * xpMultiplier));
   const xpToAdd = BigInt(finalXpInt);
 
-  const newTotalXp = oldTotalXp + xpToAdd;
+  // Atomic increment: a read-then-write of the total loses XP when a tick and
+  // another award land together. Levels derive from the returned total.
+  const updated = await db.user.update({
+    where: { id: userId },
+    data: { experience: { increment: xpToAdd } },
+    select: { experience: true, level: true },
+  });
+  const newTotalXp = updated.experience;
+  const oldTotalXp = newTotalXp - xpToAdd;
+  const oldLevel = levelForTotalXp(thresholds, oldTotalXp);
   const newLevel = levelForTotalXp(thresholds, newTotalXp);
   const leveledUp = newLevel > oldLevel;
 
-  // Update user
-  await db.user.update({
-    where: { id: userId },
-    data: {
-      level: newLevel,
-      experience: newTotalXp,
-    },
-  });
+  // Also corrects a stored level the curve has moved.
+  if (updated.level !== newLevel) {
+    await db.user.update({ where: { id: userId }, data: { level: newLevel } });
+  }
 
   await recordDailyActivity({ db, userId, xp: finalXpInt });
 
