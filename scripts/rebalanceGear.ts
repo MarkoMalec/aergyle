@@ -113,6 +113,11 @@ const ITEM_PLAN: Record<string, ItemPlan> = {
     level: 100,
     note: "Dropped by the Ogre in Blackjaw Stockade (100).",
   },
+  "Labyrinth's Brand": {
+    level: 160,
+    attackSpeed: 0.7,
+    note: "Dropped by the Emberhorn Minotaur in Emberhorn Labyrinth (160).",
+  },
   "Reedwind Bow": { level: 60 },
   Cindermaul: { level: 120 },
   "Silver Revolver": { level: 200 },

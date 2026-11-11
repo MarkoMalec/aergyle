@@ -14,16 +14,22 @@ import {
   meetsItemLevelRequirement,
 } from "../src/utils/inventoryClient";
 
-void test("the pack contains six distinct weapons and complete Rare/Epic armor sets", () => {
-  assert.equal(ATLAS_EQUIPMENT.length, 22);
-  assert.equal(new Set(ATLAS_EQUIPMENT.map((item) => item.slug)).size, 22);
-  assert.equal(new Set(ATLAS_EQUIPMENT.map((item) => item.name)).size, 22);
+void test("the pack contains distinct weapons and complete Rare/Epic armor sets", () => {
+  assert.equal(ATLAS_EQUIPMENT.length, 23);
+  assert.equal(new Set(ATLAS_EQUIPMENT.map((item) => item.slug)).size, 23);
+  assert.equal(new Set(ATLAS_EQUIPMENT.map((item) => item.name)).size, 23);
   const weapons = ATLAS_EQUIPMENT.filter((item) => !item.set);
-  assert.equal(weapons.length, 6);
-  assert.equal(new Set(weapons.map((item) => item.itemType)).size, 5);
+  assert.equal(weapons.length, 7);
+  assert.equal(new Set(weapons.map((item) => item.itemType)).size, 6);
   const ogreCleaver = weapons.find((item) => item.slug === "ogre-cleaver");
   assert.equal(ogreCleaver?.itemType, "SWORD");
   assert.equal(ogreCleaver?.twoHanded, true);
+  const labyrinthsBrand = weapons.find(
+    (item) => item.slug === "labyrinths-brand",
+  );
+  assert.equal(labyrinthsBrand?.itemType, "GREATAXE");
+  assert.equal(labyrinthsBrand?.twoHanded, true);
+  assert.ok(!labyrinthsBrand?.name.includes("Greataxe"));
   for (const [set, level, rarity] of [
     ["trailwarden", 1, "RARE"],
     ["duskwarden", 300, "EPIC"],
@@ -43,7 +49,7 @@ void test("the pack contains six distinct weapons and complete Rare/Epic armor s
 });
 
 void test("all item definitions point to separate, optimized RGBA sprites", () => {
-  assert.equal(new Set(ATLAS_EQUIPMENT.map(atlasSpritePath)).size, 22);
+  assert.equal(new Set(ATLAS_EQUIPMENT.map(atlasSpritePath)).size, 23);
   for (const item of ATLAS_EQUIPMENT) {
     const sprite = readFileSync(
       new URL(`../public${atlasSpritePath(item)}`, import.meta.url),

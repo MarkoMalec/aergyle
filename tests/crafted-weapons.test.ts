@@ -82,6 +82,7 @@ void test("every categorized weapon sprite is in the catalog exactly once", () =
     "/assets/items/weapons/swords/ogre-cleaver-atlas-v2.png",
     "/assets/items/weapons/shields/buckler-v1.png",
     "/assets/items/weapons/greataxes/bearded-greataxe-v1.png",
+    "/assets/items/weapons/greataxes/labyrinths-brand-atlas-v1.png",
   ]);
   const packSprites = WEAPONS.map((item) => item.sprite);
 

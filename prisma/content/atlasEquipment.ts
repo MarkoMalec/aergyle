@@ -63,7 +63,7 @@ function armor(
   };
 }
 
-/** Six weapons and two complete, eight-slot armor sets. No implicit set bonuses. */
+/** Seven weapons and two complete, eight-slot armor sets. No implicit set bonuses. */
 export const ATLAS_EQUIPMENT: readonly AtlasItemDefinition[] = [
   {
     slug: "wayfarer-shortblade",
@@ -158,6 +158,26 @@ export const ATLAS_EQUIPMENT: readonly AtlasItemDefinition[] = [
       PHYSICAL_DAMAGE_MAX: 333,
       ATTACK_SPEED: 0.65,
       CRITICAL_DAMAGE: 26,
+    },
+  },
+  {
+    slug: "labyrinths-brand",
+    folder: "greataxes",
+    set: null,
+    name: "Labyrinth's Brand",
+    description:
+      "The Emberhorn Minotaur's hooked crescent axe, its weathered steel blade still warm at the collar. A straight ash haft keeps its brutal weight true through every swing.",
+    itemType: "GREATAXE",
+    equipTo: "weapon",
+    twoHanded: true,
+    rarity: "RARE",
+    requiredLevel: 160,
+    price: 5600,
+    stats: {
+      PHYSICAL_DAMAGE_MIN: 361,
+      PHYSICAL_DAMAGE_MAX: 488,
+      ATTACK_SPEED: 0.7,
+      CRITICAL_DAMAGE: 24,
     },
   },
   {

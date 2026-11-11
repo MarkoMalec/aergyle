@@ -466,6 +466,22 @@ void test("dungeon content places boss-and-minion dungeon groups with valid loot
     "Ogre should lead into the Cave Troll encounter",
   );
 
+  const emberhornMinotaur = DUNGEON_MONSTERS.find(
+    (monster) => monster.name === "Emberhorn Minotaur",
+  );
+  assert.deepEqual(
+    emberhornMinotaur?.drops.find(
+      (drop) => drop.itemName === "Labyrinth's Brand",
+    ),
+    {
+      itemName: "Labyrinth's Brand",
+      baseChance: 0.025,
+      minQuantity: 1,
+      maxQuantity: 1,
+      requiredLevel: 160,
+    },
+  );
+
   const orc = DUNGEON_MONSTERS.find((monster) => monster.name === "Orc");
   const warg = DUNGEON_MONSTERS.find((monster) => monster.name === "Warg");
   const trollhound = DUNGEON_MONSTERS.find(

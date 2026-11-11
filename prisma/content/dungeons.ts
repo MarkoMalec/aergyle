@@ -684,7 +684,15 @@ export const DUNGEON_MONSTERS = [
     blockChance: 0,
     critChance: 10,
     critDamage: 170,
-    drops: [],
+    drops: [
+      {
+        itemName: "Labyrinth's Brand",
+        baseChance: 0.025,
+        minQuantity: 1,
+        maxQuantity: 1,
+        requiredLevel: 160,
+      },
+    ],
   },
   {
     name: "Cave Troll",
