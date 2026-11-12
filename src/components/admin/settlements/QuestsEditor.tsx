@@ -35,7 +35,7 @@ type AdminQuest = {
   requiredLevel: number;
   rewardGold: number;
   rewardXp: number;
-  requiredProjectId: number | null;
+  requiredStageId: number | null;
   enabled: boolean;
   sortOrder: number;
   objectives: Objective[];
@@ -232,9 +232,9 @@ function QuestCard(props: {
           >
             <SearchSelect
               options={options.projects}
-              value={draft.requiredProjectId}
+              value={draft.requiredStageId}
               noneLabel="Always visible"
-              onChange={(requiredProjectId) => update({ requiredProjectId })}
+              onChange={(requiredStageId) => update({ requiredStageId })}
             />
           </Field>
           <NumberField
@@ -476,7 +476,7 @@ export function QuestsEditor(
         requiredLevel: 1,
         rewardGold: 0,
         rewardXp: 0,
-        requiredProjectId: null,
+        requiredStageId: null,
         enabled: false,
         sortOrder: 0,
         objectives: [],

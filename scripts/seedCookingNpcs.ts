@@ -71,7 +71,7 @@ async function main(selectedMode: Mode) {
                 sortOrder: true,
                 availableFrom: true,
                 availableUntil: true,
-                requiredProjectId: true,
+                requiredStageId: true,
               },
             },
           },
@@ -142,7 +142,7 @@ async function main(selectedMode: Mode) {
             sortOrder: offerIndex,
             availableFrom: null,
             availableUntil: null,
-            requiredProjectId: null,
+            requiredStageId: null,
           };
           const offerDiffers =
             matches.length !== 1 ||
@@ -153,7 +153,7 @@ async function main(selectedMode: Mode) {
                 offer.sortOrder !== expectedOffer.sortOrder ||
                 offer.availableFrom !== expectedOffer.availableFrom ||
                 offer.availableUntil !== expectedOffer.availableUntil ||
-                offer.requiredProjectId !== expectedOffer.requiredProjectId,
+                offer.requiredStageId !== expectedOffer.requiredStageId,
             );
 
           if (selectedMode === "--verify" && offerDiffers) {

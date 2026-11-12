@@ -15,6 +15,7 @@ import toast from "react-hot-toast";
 import { toCreatureAttackProfile } from "~/server/creatures/attackProfile";
 import { runHuntingSimulation } from "~/server/hunting/simulator";
 import { strikeRulesFor, type CombatConfig } from "~/server/combat/rules";
+import { SearchSelect, type SearchOption } from "~/components/admin/SearchSelect";
 import { Button } from "~/components/ui/button";
 import {
   CreatureEditor,
@@ -64,6 +65,7 @@ type Ground = {
   requiredHuntingLevel: number;
   enabled: boolean;
   sortOrder: number;
+  requiredStageId: number | null;
   accidentChance: number;
   accidentDamageMin: number;
   accidentDamageMax: number;
@@ -348,6 +350,8 @@ function GroundEditor(props: {
   initial: Ground[];
   creatures: AdminCreature[];
   locations: LocationOption[];
+  stages: SearchOption[];
+  locationId?: number;
   onChange: (grounds: Ground[]) => void;
 }) {
   const router = useRouter();
@@ -387,6 +391,7 @@ function GroundEditor(props: {
       requiredHuntingLevel: ground.requiredHuntingLevel,
       enabled: ground.enabled,
       sortOrder: ground.sortOrder,
+      requiredStageId: ground.requiredStageId,
       accidentChance: ground.accidentChance,
       accidentDamageMin: ground.accidentDamageMin,
       accidentDamageMax: ground.accidentDamageMax,
@@ -409,7 +414,9 @@ function GroundEditor(props: {
     }
   };
   const create = async () => {
-    const location = props.locations[0];
+    const location =
+      props.locations.find((row) => row.id === props.locationId) ??
+      props.locations[0];
     if (!location) return toast.error("Create a world location first");
     const response = await fetch("/api/admin/hunting/grounds", {
       method: "POST",
@@ -508,6 +515,15 @@ function GroundEditor(props: {
                     onChange={(event) =>
                       update(ground.id, { name: event.target.value })
                     }
+                  />
+                </label>
+                <label className={labelClass}>
+                  <span>Hidden until project</span>
+                  <SearchSelect
+                    options={props.stages}
+                    value={ground.requiredStageId}
+                    noneLabel="Always visible"
+                    onChange={(requiredStageId) => update(ground.id, { requiredStageId })}
                   />
                 </label>
                 <NumberField
@@ -859,6 +875,9 @@ export function HuntingAdminClient(props: {
   locations: LocationOption[];
   items: AdminItemOption[];
   combatConfig: CombatConfig;
+  stages: SearchOption[];
+  /** Set on a region page: only that region's grounds, no global settings. */
+  locationId?: number;
 }) {
   const [config, setConfig] = useState(props.config);
   const [durations, setDurations] = useState(props.durations);
@@ -868,6 +887,17 @@ export function HuntingAdminClient(props: {
   useEffect(() => setDurations(props.durations), [props.durations]);
   useEffect(() => setCreatures(props.creatures), [props.creatures]);
   useEffect(() => setGrounds(props.grounds), [props.grounds]);
+  const groundEditor = (
+    <GroundEditor
+      initial={grounds}
+      creatures={creatures}
+      locations={props.locations}
+      stages={props.stages}
+      locationId={props.locationId}
+      onChange={setGrounds}
+    />
+  );
+  if (props.locationId) return groundEditor;
   return (
     <div className="space-y-8">
       <SafetySettings initial={config} onChange={setConfig} />
@@ -880,12 +910,7 @@ export function HuntingAdminClient(props: {
         combatConfig={props.combatConfig}
       />
       <DurationEditor initial={durations} onChange={setDurations} />
-      <GroundEditor
-        initial={grounds}
-        creatures={creatures}
-        locations={props.locations}
-        onChange={setGrounds}
-      />
+      {groundEditor}
       <CreatureEditor
         kind="ANIMAL"
         initial={creatures}

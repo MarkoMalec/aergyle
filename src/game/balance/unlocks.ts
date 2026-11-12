@@ -17,13 +17,13 @@ export function contentUnlocks(content: BalanceContent): Unlock[] {
   const add = (unlock: Unlock) => unlocks.push(unlock);
 
   for (const location of content.locations) {
-    add({ track: "CHARACTER", level: location.requiredLevel, kind: "Location", name: location.name, href: `/admin/locations/${location.id}` });
+    add({ track: "CHARACTER", level: location.requiredLevel, kind: "Location", name: location.name, href: `/admin/world/${location.id}` });
   }
   for (const dungeon of content.dungeons) {
     add({ track: "CHARACTER", level: dungeon.requiredLevel, kind: "Dungeon", name: dungeon.name, href: "/admin/dungeons" });
   }
   for (const quest of content.quests) {
-    add({ track: "CHARACTER", level: quest.requiredLevel, kind: "Quest", name: quest.name, href: "/admin/settlements" });
+    add({ track: "CHARACTER", level: quest.requiredLevel, kind: "Quest", name: quest.name, href: "/admin/world?tab=npcs" });
   }
   for (const item of content.items) {
     add({ track: "CHARACTER", level: item.requiredLevel, kind: "Item", name: item.name, href: `/admin/items/${item.id}` });

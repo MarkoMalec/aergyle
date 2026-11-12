@@ -71,32 +71,12 @@ export default async function AdminPage() {
         </Link>
 
         <Link
-          href="/admin/locations"
+          href="/admin/world"
           className="rounded-lg border border-gray-800/60 bg-gray-900/40 p-4 hover:bg-gray-900/60"
         >
-          <div className="text-sm font-semibold">Locations</div>
+          <div className="text-sm font-semibold">World</div>
           <div className="mt-1 text-sm text-white/70">
-            Create locations and assign resources
-          </div>
-        </Link>
-
-        <Link
-          href="/admin/settlements"
-          className="rounded-lg border border-gray-800/60 bg-gray-900/40 p-4 hover:bg-gray-900/60"
-        >
-          <div className="text-sm font-semibold">Settlements</div>
-          <div className="mt-1 text-sm text-white/70">
-            NPCs, their shops and quests, and community projects
-          </div>
-        </Link>
-
-        <Link
-          href="/admin/travel"
-          className="rounded-lg border border-gray-800/60 bg-gray-900/40 p-4 hover:bg-gray-900/60"
-        >
-          <div className="text-sm font-semibold">Travel</div>
-          <div className="mt-1 text-sm text-white/70">
-            Set travel times between locations
+            Regions, settlements, NPCs, maps, dungeons, hunting, travel
           </div>
         </Link>
 

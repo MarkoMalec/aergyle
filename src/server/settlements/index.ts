@@ -1,7 +1,12 @@
 export { getNpcPage, getRegionPage, getSettlementPage } from "./pages";
 export {
+  claimProjectReward,
   contributeToProject,
-  syncProjectCompletion,
+  getRegionEffects,
+  getSettlementEffects,
+  restartProjectRound,
+  settleProjectRounds,
+  syncProjectStages,
   type ProjectView,
 } from "./projects";
 export {

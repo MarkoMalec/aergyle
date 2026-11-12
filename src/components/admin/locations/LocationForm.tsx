@@ -2,121 +2,108 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { CirclePlus, Save, Trash2 } from "lucide-react";
+import toast from "react-hot-toast";
+import { adminRequest, Field, inputClass } from "~/components/admin/fields";
 import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
 
-const schema = z.object({
-  name: z.string().min(1),
-  requiredLevel: z.number().int().min(1).max(500),
-});
-
-type FormValues = z.infer<typeof schema>;
-
+/**
+ * Create a region (no locationId) or rename/re-level one. Deleting asks with
+ * `deleteWarning`, since a region takes everything placed in it along.
+ */
 export function LocationForm(props: {
-  mode: "create" | "edit";
   locationId?: number;
-  initialValues?: Partial<FormValues>;
+  initialValues?: { name: string; requiredLevel: number };
+  deleteWarning?: string;
 }) {
   const router = useRouter();
-  const [isSaving, setIsSaving] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [name, setName] = useState(props.initialValues?.name ?? "");
+  const [requiredLevel, setRequiredLevel] = useState(
+    props.initialValues?.requiredLevel ?? 1,
+  );
+  const [busy, setBusy] = useState(false);
+  const editing = props.locationId !== undefined;
+  const dirty =
+    !editing ||
+    name !== props.initialValues?.name ||
+    requiredLevel !== props.initialValues?.requiredLevel;
 
-  const form = useForm<FormValues>({
-    resolver: zodResolver(schema),
-    defaultValues: {
-      name: "",
-      requiredLevel: 1,
-      ...props.initialValues,
-    },
-  });
-
-  const onSubmit = async (values: FormValues) => {
-    setIsSaving(true);
+  const save = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setBusy(true);
     try {
-      const res = await fetch(
-        props.mode === "create"
-          ? "/api/admin/locations"
-          : `/api/admin/locations/${props.locationId}`,
-        {
-          method: props.mode === "create" ? "POST" : "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(values),
-        },
+      const result = await adminRequest(
+        editing ? `/api/admin/locations/${props.locationId}` : "/api/admin/locations",
+        editing ? "PATCH" : "POST",
+        { name: name.trim(), requiredLevel },
       );
-
-      const json = await res.json().catch(() => null);
-      if (!res.ok) {
-        alert(json?.error ?? "Failed to save");
-        return;
-      }
-
-      router.push("/admin/locations");
-      router.refresh();
+      toast.success(editing ? "Region saved" : "Region created");
+      if (editing) router.refresh();
+      else router.push(`/admin/world/${(result as { id: number }).id}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to save");
     } finally {
-      setIsSaving(false);
+      setBusy(false);
     }
   };
 
-  const onDelete = async () => {
-    if (!props.locationId) return;
-    if (!confirm("Delete this location?")) return;
-
-    setIsDeleting(true);
+  const remove = async () => {
+    if (!confirm(props.deleteWarning ?? "Delete this region?")) return;
+    setBusy(true);
     try {
-      const res = await fetch(`/api/admin/locations/${props.locationId}`, {
-        method: "DELETE",
-      });
-      const json = await res.json().catch(() => null);
-      if (!res.ok) {
-        alert(json?.error ?? "Failed to delete");
-        return;
-      }
-
-      router.push("/admin/locations");
+      await adminRequest(`/api/admin/locations/${props.locationId}`, "DELETE");
+      toast.success("Region deleted");
+      router.push("/admin/world");
       router.refresh();
-    } finally {
-      setIsDeleting(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to delete");
+      setBusy(false);
     }
   };
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-      <div className="space-y-2">
-        <div className="text-sm text-white/80">Name</div>
-        <Input {...form.register("name")} />
-      </div>
-
-      <div className="space-y-2">
-        <div className="text-sm text-white/80">Required player level</div>
-        <Input
+    <form
+      onSubmit={(event) => void save(event)}
+      className="grid items-end gap-3 sm:grid-cols-[1fr_10rem_auto]"
+    >
+      <Field label="Name">
+        <input
+          className={inputClass}
+          value={name}
+          required
+          maxLength={120}
+          placeholder="e.g. Greenveil Plains"
+          onChange={(event) => setName(event.target.value)}
+        />
+      </Field>
+      <Field label="Required level">
+        <input
+          className={inputClass}
           type="number"
           min={1}
           max={500}
-          {...form.register("requiredLevel", { valueAsNumber: true })}
+          value={requiredLevel}
+          onChange={(event) => setRequiredLevel(Number(event.target.value))}
         />
-        {form.formState.errors.requiredLevel ? (
-          <div className="text-sm text-danger">
-            {form.formState.errors.requiredLevel.message}
-          </div>
-        ) : null}
-      </div>
-
-      <div className="flex items-center justify-between gap-3">
-        <Button type="submit" disabled={isSaving}>
-          {isSaving ? "Saving..." : props.mode === "create" ? "Create" : "Save"}
+      </Field>
+      <div className="flex gap-2">
+        <Button type="submit" disabled={busy || !dirty || !name.trim()}>
+          {editing ? (
+            <Save className="mr-2 h-4 w-4" />
+          ) : (
+            <CirclePlus className="mr-2 h-4 w-4" />
+          )}
+          {editing ? "Save" : "Create region"}
         </Button>
-
-        {props.mode === "edit" ? (
+        {editing ? (
           <Button
             type="button"
             variant="destructive"
-            disabled={isDeleting}
-            onClick={onDelete}
+            disabled={busy}
+            onClick={() => void remove()}
           >
-            {isDeleting ? "Deleting..." : "Delete"}
+            <Trash2 className="h-4 w-4" />
+            <span className="sr-only">Delete region</span>
           </Button>
         ) : null}
       </div>

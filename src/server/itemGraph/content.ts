@@ -92,13 +92,13 @@ export async function loadItemGraphContent(): Promise<ItemGraphContent> {
           enabled: true,
           availableFrom: true,
           availableUntil: true,
-          requiredProjectId: true,
+          requiredStageId: true,
           npc: {
             select: {
               id: true,
               name: true,
               enabled: true,
-              requiredProjectId: true,
+              requiredStageId: true,
               settlement: { select: { name: true, enabled: true } },
             },
           },
@@ -137,13 +137,17 @@ export async function loadItemGraphContent(): Promise<ItemGraphContent> {
         select: {
           itemId: true,
           quantity: true,
-          project: {
+          stage: {
             select: {
-              id: true,
-              name: true,
-              enabled: true,
-              settlementId: true,
-              settlement: { select: { enabled: true } },
+              project: {
+                select: {
+                  id: true,
+                  name: true,
+                  enabled: true,
+                  settlementId: true,
+                  settlement: { select: { enabled: true } },
+                },
+              },
             },
           },
         },
@@ -233,7 +237,7 @@ export async function loadItemGraphContent(): Promise<ItemGraphContent> {
       settlementName: offer.npc.settlement?.name ?? "No location",
       price: Number(offer.price),
       limited: offer.availableFrom !== null || offer.availableUntil !== null,
-      gated: offer.requiredProjectId !== null || offer.npc.requiredProjectId !== null,
+      gated: offer.requiredStageId !== null || offer.npc.requiredStageId !== null,
       // A rare find whose window has closed sells nothing any more.
       available:
         offer.enabled &&
@@ -243,13 +247,13 @@ export async function loadItemGraphContent(): Promise<ItemGraphContent> {
     })),
     questRewards: rewards.map(questLink),
     questDeliveries: deliveries.map((row) => questLink({ ...row, itemId: row.itemId! })),
-    projectNeeds: needs.map((need) => ({
+    projectNeeds: needs.map(({ stage: { project }, ...need }) => ({
       itemId: need.itemId,
-      projectId: need.project.id,
-      projectName: need.project.name,
-      settlementId: need.project.settlementId,
+      projectId: project.id,
+      projectName: project.name,
+      settlementId: project.settlementId,
       quantity: need.quantity,
-      available: need.project.enabled && need.project.settlement.enabled,
+      available: project.enabled && project.settlement.enabled,
     })),
     locations,
     skillRules,

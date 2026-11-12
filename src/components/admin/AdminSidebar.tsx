@@ -18,28 +18,61 @@ import {
   SidebarSeparator,
 } from "~/components/ui/sidebar";
 
-const adminNavItems: Array<{ href: string; label: string }> = [
-  { href: "/admin", label: "Dashboard" },
-  { href: "/admin/players", label: "Players" },
-  { href: "/admin/items", label: "Items" },
-  { href: "/admin/item-graph", label: "Item graph" },
-  { href: "/admin/gardening", label: "Gardening" },
-  { href: "/admin/gathering", label: "Gathering" },
-  { href: "/admin/hunting", label: "Hunting" },
-  { href: "/admin/dungeons", label: "Dungeons" },
-  { href: "/admin/rarity", label: "Rarity" },
-  { href: "/admin/vocations", label: "Vocation resources" },
-  { href: "/admin/locations", label: "Locations" },
-  { href: "/admin/settlements", label: "Settlements" },
-  { href: "/admin/npcs", label: "NPCs" },
-  { href: "/admin/travel", label: "Travel" },
-  { href: "/admin/skills", label: "Skills" },
-  { href: "/admin/leveling", label: "Leveling" },
-  { href: "/admin/simulations", label: "Simulations" },
-  { href: "/admin/character-stats", label: "Character stats" },
-  { href: "/admin/moderation", label: "Moderation" },
-  { href: "/admin/security", label: "Security" },
+type NavItem = { href: string; label: string; also?: string[] };
+
+// Grouped by what you are doing: building the world, balancing what players
+// do in it, the item catalogue, progression, and people.
+const adminNavGroups: Array<{ label: string; items: NavItem[] }> = [
+  { label: "Overview", items: [{ href: "/admin", label: "Dashboard" }] },
+  {
+    label: "World",
+    items: [
+      {
+        href: "/admin/world",
+        label: "Regions, settlements & NPCs",
+        also: ["/admin/settlements", "/admin/npcs"],
+      },
+    ],
+  },
+  {
+    label: "Activities (game-wide)",
+    items: [
+      { href: "/admin/dungeons", label: "Dungeons & monsters" },
+      { href: "/admin/hunting", label: "Hunting & animals" },
+      { href: "/admin/gathering", label: "Gathering" },
+      { href: "/admin/gardening", label: "Gardening" },
+      { href: "/admin/vocations", label: "Vocation resources" },
+    ],
+  },
+  {
+    label: "Items",
+    items: [
+      { href: "/admin/items", label: "Items" },
+      { href: "/admin/item-graph", label: "Item graph" },
+      { href: "/admin/rarity", label: "Rarity" },
+    ],
+  },
+  {
+    label: "Progression",
+    items: [
+      { href: "/admin/skills", label: "Skills" },
+      { href: "/admin/leveling", label: "Leveling" },
+      { href: "/admin/character-stats", label: "Character stats" },
+      { href: "/admin/simulations", label: "Simulations" },
+    ],
+  },
+  {
+    label: "People",
+    items: [
+      { href: "/admin/players", label: "Players" },
+      { href: "/admin/moderation", label: "Moderation" },
+      { href: "/admin/security", label: "Security" },
+    ],
+  },
 ];
+
+const matches = (pathname: string, href: string) =>
+  pathname === href || (href !== "/admin" && pathname.startsWith(href + "/"));
 
 export function AdminSidebar({
   openReports = 0,
@@ -68,17 +101,19 @@ export function AdminSidebar({
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Manage</SidebarGroupLabel>
-          <SidebarMenu>
-            {adminNavItems.map((item) => {
-              const isActive =
-                pathname === item.href ||
-                (item.href !== "/admin" && pathname.startsWith(item.href + "/"));
-
-              return (
+        {adminNavGroups.map((group) => (
+          <SidebarGroup key={group.label} className="py-0.5">
+            <SidebarGroupLabel className="h-6">{group.label}</SidebarGroupLabel>
+            <SidebarMenu>
+              {group.items.map((item) => (
                 <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={[item.href, ...(item.also ?? [])].some((href) =>
+                      matches(pathname, href),
+                    )}
+                    tooltip={item.label}
+                  >
                     <Link href={item.href}>
                       <span>{item.label}</span>
                       {item.href === "/admin/moderation" && openReports > 0 ? (
@@ -89,10 +124,10 @@ export function AdminSidebar({
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              );
-            })}
-          </SidebarMenu>
-        </SidebarGroup>
+              ))}
+            </SidebarMenu>
+          </SidebarGroup>
+        ))}
 
         <SidebarSeparator />
 

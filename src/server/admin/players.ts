@@ -554,8 +554,12 @@ export async function getAdminPlayer(userId: string) {
         requirement: {
           select: {
             item: { select: { name: true, sprite: true } },
-            project: {
-              select: { name: true, settlement: { select: { name: true } } },
+            stage: {
+              select: {
+                project: {
+                  select: { name: true, settlement: { select: { name: true } } },
+                },
+              },
             },
           },
         },
@@ -722,8 +726,8 @@ export async function getAdminPlayer(userId: string) {
       id: row.id,
       quantity: row.quantity,
       item: row.requirement.item,
-      project: row.requirement.project.name,
-      settlement: row.requirement.project.settlement.name,
+      project: row.requirement.stage.project.name,
+      settlement: row.requirement.stage.project.settlement.name,
     })),
     notifications: notifications.map((row) => ({
       ...row,

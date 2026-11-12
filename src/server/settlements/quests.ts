@@ -28,7 +28,9 @@ import {
   parseQuestProgress,
   questPeriod,
   questResetsAt,
+  withBonus,
 } from "./rules";
+import { getSettlementEffects } from "./projects";
 
 const ITEM_REF = {
   id: true,
@@ -138,8 +140,11 @@ export function toQuestView(
     userQuest: UserQuestState | null | undefined;
     held: ReadonlyMap<number, number>;
     now: Date;
+    /** Percent more gold and XP from community projects here. */
+    bonus?: number;
   },
 ): QuestView {
+  const bonus = context.bonus ?? 0;
   const { userQuest } = context;
   const progress = parseQuestProgress(userQuest?.progress);
   const objectives = quest.objectives.map((objective) => ({
@@ -169,8 +174,8 @@ export function toQuestView(
     resetsAt: questResetsAt(quest.repeat, context.now)?.toISOString() ?? null,
     objectives,
     rewards: {
-      gold: Number(quest.rewardGold),
-      xp: quest.rewardXp,
+      gold: withBonus(Number(quest.rewardGold), bonus),
+      xp: withBonus(quest.rewardXp, bonus, true),
       items: quest.rewardItems.map((reward) => ({
         ...reward.item,
         quantity: reward.quantity,
@@ -321,7 +326,7 @@ async function findAvailableQuest(userId: string, questId: number) {
       npc: {
         select: {
           settlement: {
-            select: { location: { select: { id: true, name: true } } },
+            select: { id: true, location: { select: { id: true, name: true } } },
           },
         },
       },
@@ -386,7 +391,11 @@ export async function completeQuest(userId: string, questId: number) {
       ? [{ itemId: objective.itemId, quantity: objective.quantity }]
       : [],
   );
-  const gold = Number(quest.rewardGold);
+  const { QUEST_REWARD_BONUS: bonus } = await getSettlementEffects(
+    quest.npc.settlement.id,
+  );
+  const gold = withBonus(Number(quest.rewardGold), bonus);
+  const rewardXp = withBonus(quest.rewardXp, bonus, true);
 
   const xp = await prisma.$transaction(async (tx) => {
     const completed = await tx.userQuest.updateMany({
@@ -420,10 +429,10 @@ export async function completeQuest(userId: string, questId: number) {
 
     // XP commits with the items and gold, so a crash cannot mark the quest
     // completed while the reward goes unpaid.
-    return quest.rewardXp > 0
+    return rewardXp > 0
       ? await awardXp(
           userId,
-          quest.rewardXp,
+          rewardXp,
           XpActionType.QUEST,
           undefined,
           `Quest completed: ${quest.name}`,

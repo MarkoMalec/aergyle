@@ -265,7 +265,7 @@ export function NpcBoard(props: {
             {location.settlements.length === 0 ? (
               <p className="text-sm text-white/40">
                 No settlements yet.{" "}
-                <Link href="/admin/settlements" className="underline hover:text-white">
+                <Link href={`/admin/world/${location.id}?tab=settlements`} className="underline hover:text-white">
                   Add one
                 </Link>{" "}
                 to place NPCs here.

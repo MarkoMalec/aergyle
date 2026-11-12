@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { Prisma } from "~/generated/prisma/client";
 import {
+  ProjectEffectType,
+  ProjectRepeat,
+  ProjectRewardSplit,
+  ProjectUnlockMode,
   QuestObjectiveType,
   QuestRepeat,
   SettlementKind,
@@ -42,7 +46,7 @@ const offerSchema = z
     price: gold,
     availableFrom: z.string().datetime().nullable(),
     availableUntil: z.string().datetime().nullable(),
-    requiredProjectId: id.nullable(),
+    requiredStageId: id.nullable(),
     enabled: z.boolean(),
     sortOrder,
   })
@@ -65,7 +69,7 @@ export const npcSchema = z.object({
   headY: fraction.nullable(),
   headSize: fraction.nullable(),
   professionId: id.nullable(),
-  requiredProjectId: id.nullable(),
+  requiredStageId: id.nullable(),
   enabled: z.boolean(),
   sortOrder,
   offers: z.array(offerSchema).max(500),
@@ -73,6 +77,8 @@ export const npcSchema = z.object({
 
 // Moves an NPC to another settlement, or to no location.
 export const npcMoveSchema = z.object({ settlementId: id.nullable() });
+
+export const npcRevealSchema = z.object({ stageId: id.nullable() });
 
 export const professionSchema = z.object({ name });
 
@@ -110,7 +116,7 @@ export const questSchema = z.object({
   requiredLevel: z.number().int().min(1).max(10_000),
   rewardGold: gold,
   rewardXp: z.number().int().min(0).max(10_000_000),
-  requiredProjectId: id.nullable(),
+  requiredStageId: id.nullable(),
   enabled: z.boolean(),
   sortOrder,
   objectives: z
@@ -133,25 +139,67 @@ export const questSchema = z.object({
     }),
 });
 
-export const projectSchema = z.object({
-  settlementId: id,
+const itemRows = (label: string) =>
+  z
+    .array(z.object({ itemId: id, quantity: z.number().int().min(1).max(100_000_000) }))
+    .max(50)
+    .refine((rows) => unique(rows, (row) => row.itemId), {
+      message: `Each ${label} item may appear only once`,
+    });
+
+const stageSchema = z.object({
+  // Set for a stage that already exists, so its progress is kept.
+  id: id.optional(),
   name,
   description,
   image: assetPath.nullable(),
-  enabled: z.boolean(),
-  sortOrder,
-  requirements: z
+  rewardGold: gold,
+  rewardXp: z.number().int().min(0).max(10_000_000),
+  requirements: itemRows("needed"),
+  rewardItems: itemRows("reward"),
+  effects: z
     .array(
       z.object({
-        itemId: id,
-        quantity: z.number().int().min(1).max(100_000_000),
+        type: z.enum(values(ProjectEffectType)),
+        value: z.number().min(0).max(1_000),
       }),
     )
-    .max(50)
-    .refine((rows) => unique(rows, (row) => row.itemId), {
-      message: "Each item may be required only once",
+    .refine((rows) => unique(rows, (row) => row.type), {
+      message: "Each effect may appear once per stage",
     }),
 });
+
+const optionalDate = z.string().datetime().nullable();
+
+export const projectSchema = z
+  .object({
+    settlementId: id,
+    name,
+    description,
+    image: assetPath.nullable(),
+    enabled: z.boolean(),
+    sortOrder,
+    repeat: z.enum(values(ProjectRepeat)),
+    repeatHours: z.number().int().min(1).max(24 * 366),
+    maxRounds: z.number().int().min(1).max(100_000).nullable(),
+    startsAt: optionalDate,
+    endsAt: optionalDate,
+    unlockMode: z.enum(values(ProjectUnlockMode)),
+    showFutureStages: z.boolean(),
+    minLevel: z.number().int().min(1).max(10_000),
+    requiredSkillId: id.nullable(),
+    requiredSkillLevel: z.number().int().min(1).max(10_000),
+    maxSharePercent: z.number().int().min(1).max(100).nullable(),
+    rewardSplit: z.enum(values(ProjectRewardSplit)),
+    rewardMinSharePercent: z.number().min(0).max(100),
+    stages: z.array(stageSchema).min(1, "A project needs at least one stage").max(20),
+  })
+  .refine(
+    (row) => !row.startsAt || !row.endsAt || new Date(row.endsAt) > new Date(row.startsAt),
+    { message: "The end must come after the start" },
+  );
+
+export type ProjectInput = z.output<typeof projectSchema>;
 
 // One storage per settlement; its slots are the stacks it holds.
 export const storageSchema = z.object({

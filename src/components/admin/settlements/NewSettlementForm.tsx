@@ -46,13 +46,18 @@ export function NewSettlementForm(props: {
       description="It starts disabled, so players won't see it until you enable it."
     >
       {props.locations.length === 0 ? (
-        <p className="text-sm text-white/45">Create a world location first.</p>
+        <p className="text-sm text-white/45">Create a region first.</p>
       ) : (
         <form
           onSubmit={(event) => void create(event)}
-          className="grid items-end gap-3 md:grid-cols-[1fr_1fr_1fr_auto]"
+          className={
+            props.locations.length > 1
+              ? "grid items-end gap-3 md:grid-cols-[1fr_1fr_1fr_auto]"
+              : "grid items-end gap-3 md:grid-cols-[1fr_1fr_auto]"
+          }
         >
-          <Field label="Location">
+          {/* A region page passes only its own region, so there is nothing to pick. */}
+          <Field label="Region" className={props.locations.length > 1 ? undefined : "hidden"}>
             <select
               className={inputClass}
               value={locationId}

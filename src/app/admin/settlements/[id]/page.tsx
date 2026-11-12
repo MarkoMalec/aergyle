@@ -1,15 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 import { Panel } from "~/components/admin/fields";
 import { MapEditor } from "~/components/admin/MapEditor";
 import { NpcSummary } from "~/components/admin/settlements/NpcSummary";
-import { ProjectsEditor } from "~/components/admin/settlements/ProjectsEditor";
+import { NewProjectForm, ProjectRows } from "~/components/admin/projects/ProjectList";
 import {
   NewNpcButton,
   SettlementForm,
 } from "~/components/admin/settlements/SettlementForm";
 import { StorageEditor } from "~/components/admin/settlements/StorageEditor";
+import { WorldCrumbs } from "~/components/admin/world/WorldNav";
 import { NpcHead } from "~/components/game/map/NpcHead";
 import { StorageFace } from "~/components/game/map/StorageFace";
 import { settlementHref } from "~/game/settlements";
@@ -17,6 +17,7 @@ import { headCrop, mapPoint } from "~/game/world/maps";
 import { prisma } from "~/lib/prisma";
 import { getStorageIcon } from "~/server/settlements";
 import { requireAdminPageAccess } from "~/server/admin/auth";
+import { listProjects } from "~/server/admin/projects";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -30,7 +31,7 @@ export default async function AdminSettlementPage({
   const id = Number(params.id);
   if (!Number.isInteger(id) || id < 1) notFound();
 
-  const [settlement, locations, items, storageIcon] = await Promise.all([
+  const [settlement, locations, projects, storageIcon] = await Promise.all([
     prisma.settlement.findUnique({
       where: { id },
       include: {
@@ -61,40 +62,8 @@ export default async function AdminSettlementPage({
             mapY: true,
             profession: { select: { name: true } },
             enabled: true,
-            requiredProject: { select: { name: true } },
+            requiredStage: { select: { name: true } },
             _count: { select: { offers: true, quests: true } },
-          },
-        },
-        projects: {
-          orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            image: true,
-            enabled: true,
-            sortOrder: true,
-            completedAt: true,
-            updatedAt: true,
-            requirements: {
-              orderBy: { id: "asc" },
-              select: {
-                itemId: true,
-                quantity: true,
-                contributed: true,
-                contributions: { select: { userId: true } },
-              },
-            },
-            unlocksNpcs: { select: { name: true } },
-            unlocksOffers: {
-              select: {
-                item: { select: { name: true } },
-                npc: { select: { name: true } },
-              },
-            },
-            unlocksQuests: {
-              select: { name: true, npc: { select: { name: true } } },
-            },
           },
         },
       },
@@ -103,10 +72,7 @@ export default async function AdminSettlementPage({
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),
-    prisma.item.findMany({
-      orderBy: { name: "asc" },
-      select: { id: true, name: true, sprite: true, rarity: true },
-    }),
+    listProjects({ settlementId: id }),
     getStorageIcon(),
   ]);
   if (!settlement) notFound();
@@ -115,16 +81,16 @@ export default async function AdminSettlementPage({
     <div className="space-y-8">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <Link
-            href="/admin/settlements"
-            className="inline-flex items-center gap-1 text-xs text-white/50 hover:text-white"
-          >
-            <ArrowLeft className="h-3 w-3" /> All settlements
-          </Link>
+          <WorldCrumbs
+            trail={[
+              {
+                label: settlement.location.name,
+                href: `/admin/world/${settlement.locationId}?tab=settlements`,
+              },
+              { label: settlement.name },
+            ]}
+          />
           <h1 className="mt-2 text-3xl font-bold">{settlement.name}</h1>
-          <p className="mt-1 text-sm text-white/60">
-            In {settlement.location.name}
-          </p>
         </div>
         <Link
           href={settlementHref(settlement.id)}
@@ -147,7 +113,7 @@ export default async function AdminSettlementPage({
         }}
         locations={locations}
         npcCount={settlement.npcs.length}
-        projectCount={settlement.projects.length}
+        projectCount={projects.length}
       />
 
       <MapEditor
@@ -204,7 +170,7 @@ export default async function AdminSettlementPage({
 
       <Panel
         title="NPCs"
-        description="Open an NPC to edit its profile, what it sells and the quests it gives. Move NPCs between settlements on the NPCs page."
+        description="Open an NPC to edit its profile, what it sells and the quests it gives. Move NPCs between settlements under World › All NPCs."
         action={<NewNpcButton settlementId={settlement.id} />}
       >
         {settlement.npcs.length === 0 ? (
@@ -225,44 +191,13 @@ export default async function AdminSettlementPage({
         )}
       </Panel>
 
-      <ProjectsEditor
-        settlementId={settlement.id}
-        items={items.map((item) => ({
-          id: item.id,
-          name: item.name,
-          image: item.sprite,
-          detail: item.rarity.toLowerCase(),
-        }))}
-        projects={settlement.projects.map((project) => ({
-          id: project.id,
-          name: project.name,
-          description: project.description,
-          image: project.image,
-          enabled: project.enabled,
-          sortOrder: project.sortOrder,
-          completedAt: project.completedAt?.toISOString() ?? null,
-          updatedAt: project.updatedAt.toISOString(),
-          requirements: project.requirements.map((requirement) => ({
-            itemId: requirement.itemId,
-            quantity: requirement.quantity,
-            contributed: requirement.contributed,
-          })),
-          contributors: new Set(
-            project.requirements.flatMap((requirement) =>
-              requirement.contributions.map((row) => row.userId),
-            ),
-          ).size,
-          unlocks: [
-            ...project.unlocksNpcs.map((npc) => `NPC ${npc.name}`),
-            ...project.unlocksOffers.map(
-              (offer) => `${offer.item.name} at ${offer.npc.name}`,
-            ),
-            ...project.unlocksQuests.map(
-              (quest) => `Quest “${quest.name}” (${quest.npc.name})`,
-            ),
-          ],
-        }))}
-      />
+      <Panel
+        title="Community projects"
+        description="Goals every player works on together by handing in items, in one or more stages. Open a project to set what it needs, when it runs, who can help, what helpers earn and what it changes."
+      >
+        <ProjectRows projects={projects} />
+        <NewProjectForm settlementId={settlement.id} />
+      </Panel>
     </div>
   );
 }

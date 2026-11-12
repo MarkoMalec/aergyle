@@ -3,12 +3,12 @@ import "server-only";
 import { prisma } from "~/lib/prisma";
 import { getTravelStatus } from "~/server/travel/service";
 
-/** Content without a project requirement, or whose project is completed. */
+/** Content without a project stage requirement, or whose stage is active. */
 export function unlockedWhere() {
   return {
     OR: [
-      { requiredProjectId: null },
-      { requiredProject: { is: { completedAt: { not: null } } } },
+      { requiredStageId: null },
+      { requiredStage: { is: { active: true } } },
     ],
   };
 }

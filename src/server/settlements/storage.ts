@@ -10,6 +10,7 @@ import {
   saveInventorySlots,
 } from "~/server/items/consumeItems";
 import { assertPresentAt, getPresence } from "./access";
+import { getSettlementEffects } from "./projects";
 import { planStackFill } from "./rules";
 
 /** One stack on either side of the storage window. */
@@ -95,13 +96,14 @@ export async function getStoragePage(
   });
   if (!storage) return null;
 
-  const [presence, icon, userStorage] = await Promise.all([
+  const [presence, icon, userStorage, effects] = await Promise.all([
     getPresence(userId),
     getStorageIcon(),
     prisma.userStorage.findUnique({
       where: { userId_storageId: { userId, storageId: storage.id } },
       select: { id: true },
     }),
+    getSettlementEffects(settlementId),
   ]);
   const present = presence.locationId === storage.settlement.location.id;
   const view = {
@@ -109,7 +111,7 @@ export async function getStoragePage(
       id: storage.id,
       name: storage.name,
       description: storage.description,
-      slots: storage.slots,
+      slots: storage.slots + effects.STORAGE_SLOTS,
       unlockCost: Number(storage.unlockCost),
       settlement: storage.settlement,
     },
@@ -209,7 +211,10 @@ async function requireStorage(userId: string, settlementId: number) {
   });
   if (!storage) throw new Error("There is no storage here");
   await assertPresentAt(userId, storage.settlement.location);
-  return storage;
+  // Project slots count while their stage is active; stacks above the limit
+  // stay stored, they just block new deposits.
+  const effects = await getSettlementEffects(settlementId);
+  return { ...storage, slots: storage.slots + effects.STORAGE_SLOTS };
 }
 
 /** Rents the settlement's storage for this player, once, for its gold cost. */

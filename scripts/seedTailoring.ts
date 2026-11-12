@@ -341,7 +341,7 @@ async function main(selectedMode: Mode) {
             sortOrder: 80,
             availableFrom: null,
             availableUntil: null,
-            requiredProjectId: null,
+            requiredStageId: null,
           };
           for (const vendor of vendors) {
             const matches = vendor.offers.filter(
@@ -356,7 +356,7 @@ async function main(selectedMode: Mode) {
                   offer.sortOrder !== expectedOffer.sortOrder ||
                   offer.availableFrom !== expectedOffer.availableFrom ||
                   offer.availableUntil !== expectedOffer.availableUntil ||
-                  offer.requiredProjectId !== expectedOffer.requiredProjectId,
+                  offer.requiredStageId !== expectedOffer.requiredStageId,
               );
             if (selectedMode === "--verify" && differs) {
               throw new Error(

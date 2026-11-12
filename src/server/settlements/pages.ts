@@ -7,12 +7,17 @@ import { countItems, loadInventoryStacks } from "~/server/items/consumeItems";
 import {
   getPresence,
   liveOfferWhere,
+  unlockedWhere,
   visibleNpcWhere,
   visibleQuestWhere,
 } from "./access";
-import { getSettlementProjects } from "./projects";
+import {
+  getSettlementEffects,
+  getSettlementProjects,
+  settleProjectRounds,
+} from "./projects";
 import { findUserQuests, QUEST_VIEW_SELECT, toQuestView } from "./quests";
-import { npcBuyPrice } from "./shop";
+import { npcBuyPrice, shopPrice } from "./shop";
 import { getStorageIcon } from "./storage";
 
 const SETTLEMENT_SELECT = {
@@ -37,6 +42,8 @@ export async function getRegionPage(userId: string) {
   }
 
   const byOrder = [{ sortOrder: "asc" as const }, { name: "asc" as const }];
+  // A round that just ended may hide a WHILE_REACHED dungeon or ground.
+  await settleProjectRounds({ enabled: true, settlement: { locationId: presence.locationId } });
   const [location, hunting] = await Promise.all([
     prisma.location.findUnique({
       where: { id: presence.locationId },
@@ -50,7 +57,7 @@ export async function getRegionPage(userId: string) {
           select: { id: true, name: true, kind: true, ...MAP_PIN_SELECT },
         },
         dungeons: {
-          where: { enabled: true },
+          where: { enabled: true, ...unlockedWhere() },
           orderBy: byOrder,
           select: {
             id: true,
@@ -61,7 +68,7 @@ export async function getRegionPage(userId: string) {
           },
         },
         huntingGrounds: {
-          where: { enabled: true },
+          where: { enabled: true, ...unlockedWhere() },
           orderBy: byOrder,
           select: {
             id: true,
@@ -141,7 +148,9 @@ export async function getSettlementPage(userId: string, settlementId: number) {
   }
 
   const now = new Date();
-  const [npcs, inventory, storageIcon] = await Promise.all([
+  // Settle first: a new round can change which NPCs and quests show.
+  await settleProjectRounds({ settlementId, enabled: true }, now);
+  const [npcs, inventory, storageIcon, effects] = await Promise.all([
     prisma.npc.findMany({
       where: { settlementId, ...visibleNpcWhere() },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
@@ -163,6 +172,7 @@ export async function getSettlementPage(userId: string, settlementId: number) {
     }),
     loadInventoryStacks(prisma, userId, { lock: false }),
     getStorageIcon(),
+    getSettlementEffects(settlementId),
   ]);
   const held = countItems(inventory.stacks);
   const [userQuests, projects] = await Promise.all([
@@ -171,7 +181,7 @@ export async function getSettlementPage(userId: string, settlementId: number) {
       npcs.flatMap((npc) => npc.quests),
       now,
     ),
-    getSettlementProjects(userId, settlementId, held),
+    getSettlementProjects(userId, settlementId, held, presence.level),
   ]);
 
   const storage = settlement.storage;
@@ -182,7 +192,7 @@ export async function getSettlementPage(userId: string, settlementId: number) {
     storage: storage?.enabled
       ? {
           name: storage.name,
-          slots: storage.slots,
+          slots: storage.slots + effects.STORAGE_SLOTS,
           unlockCost: Number(storage.unlockCost),
           used: storage.players[0]?._count.items ?? null,
           icon: storageIcon,
@@ -192,7 +202,12 @@ export async function getSettlementPage(userId: string, settlementId: number) {
       : null,
     npcs: npcs.map(({ quests, _count, ...npc }) => {
       const views = quests.map((quest) =>
-        toQuestView(quest, { userQuest: userQuests.get(quest.id), held, now }),
+        toQuestView(quest, {
+          userQuest: userQuests.get(quest.id),
+          held,
+          now,
+          bonus: effects.QUEST_REWARD_BONUS,
+        }),
       );
       return {
         ...npc,
@@ -259,10 +274,11 @@ export async function getNpcPage(
     };
   }
 
-  const [user, inventory, userQuests] = await Promise.all([
+  const [user, inventory, userQuests, effects] = await Promise.all([
     prisma.user.findUnique({ where: { id: userId }, select: { gold: true } }),
     loadInventoryStacks(prisma, userId, { lock: false }),
     findUserQuests(userId, quests, now),
+    getSettlementEffects(settlementId),
   ]);
   const held = countItems(inventory.stacks);
   const templates = new Map(
@@ -282,11 +298,16 @@ export async function getNpcPage(
     // Rare finds are listed like any other ware; their window stays hidden.
     offers: offers.map((offer) => ({
       id: offer.id,
-      price: Number(offer.price),
+      price: shopPrice(Number(offer.price), effects.SHOP_DISCOUNT),
       item: offer.item,
     })),
     quests: quests.map((quest) =>
-      toQuestView(quest, { userQuest: userQuests.get(quest.id), held, now }),
+      toQuestView(quest, {
+        userQuest: userQuests.get(quest.id),
+        held,
+        now,
+        bonus: effects.QUEST_REWARD_BONUS,
+      }),
     ),
     // Every NPC buys anything in the inventory, in slot order.
     inventory: inventory.stacks.flatMap((stack) => {
@@ -297,7 +318,7 @@ export async function getNpcPage(
               userItemId: stack.id,
               rarity: stack.rarity,
               quantity: stack.quantity,
-              price: npcBuyPrice(item.price),
+              price: npcBuyPrice(item.price, effects.SELL_BONUS),
               item: { id: item.id, name: item.name, sprite: item.sprite },
             },
           ]

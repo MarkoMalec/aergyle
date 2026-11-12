@@ -748,7 +748,20 @@ export function GatheringAdminClient(props: {
   resources: GatheringAdminResource[];
   durations: GatheringAdminDuration[];
   rarities: RarityOption[];
+  /** Set on a region page: only that region's resource pool. */
+  locationId?: number;
 }) {
+  if (props.locationId) {
+    return props.locations
+      .filter((location) => location.id === props.locationId)
+      .map((location) => (
+        <LocationCard
+          key={location.id}
+          initialLocation={location}
+          resources={props.resources}
+        />
+      ));
+  }
   return (
     <div className="space-y-6">
       <GatheringSimulator

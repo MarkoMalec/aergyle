@@ -9,6 +9,7 @@ import { prisma } from "~/lib/prisma";
 import { removeFromStack } from "~/server/items/consumeItems";
 import { grantStackableItemToInventory } from "~/server/items/grantItem";
 import { assertPresentAt, liveOfferWhere, visibleNpcWhere } from "./access";
+import { getSettlementEffects } from "./projects";
 
 const MAX_PURCHASE_QUANTITY = 10_000;
 
@@ -40,7 +41,7 @@ export async function buyNpcOffer(params: {
       npc: {
         select: {
           settlement: {
-            select: { location: { select: { id: true, name: true } } },
+            select: { id: true, location: { select: { id: true, name: true } } },
           },
         },
       },
@@ -49,7 +50,10 @@ export async function buyNpcOffer(params: {
   if (!offer?.npc.settlement) throw new Error("That item is no longer for sale");
   await assertPresentAt(userId, offer.npc.settlement.location);
 
-  const total = roundGold(Number(offer.price) * quantity);
+  const effects = await getSettlementEffects(offer.npc.settlement.id);
+  const total = roundGold(
+    shopPrice(Number(offer.price), effects.SHOP_DISCOUNT) * quantity,
+  );
   if (total > MARKET_MAX_GOLD_AMOUNT) {
     throw new Error("That purchase is too large. Choose a smaller quantity.");
   }
@@ -81,8 +85,13 @@ export async function buyNpcOffer(params: {
  * What every NPC pays for one of an item: its base price, the value shown on
  * the item card, whatever its rarity.
  */
-export function npcBuyPrice(itemPrice: number) {
-  return roundGold(Math.max(0, itemPrice));
+export function npcBuyPrice(itemPrice: number, sellBonusPercent = 0) {
+  return roundGold(Math.max(0, itemPrice) * (1 + sellBonusPercent / 100));
+}
+
+/** A shop price after the settlement's community project discount. */
+export function shopPrice(price: number, discountPercent: number) {
+  return roundGold(price * (1 - discountPercent / 100));
 }
 
 /** Sells part or all of an inventory stack to any NPC at the item's value. */
@@ -101,7 +110,7 @@ export async function sellToNpc(params: {
     where: { id: npcId, ...visibleNpcWhere() },
     select: {
       settlement: {
-        select: { location: { select: { id: true, name: true } } },
+        select: { id: true, location: { select: { id: true, name: true } } },
       },
     },
   });
@@ -113,7 +122,10 @@ export async function sellToNpc(params: {
     select: { itemTemplate: { select: { name: true, price: true } } },
   });
   if (!stack) throw new Error("That item is not in your inventory");
-  const total = roundGold(npcBuyPrice(stack.itemTemplate.price) * quantity);
+  const effects = await getSettlementEffects(npc.settlement.id);
+  const total = roundGold(
+    npcBuyPrice(stack.itemTemplate.price, effects.SELL_BONUS) * quantity,
+  );
 
   await prisma.$transaction(async (tx) => {
     await removeFromStack({ db: tx, userId, userItemId, quantity });

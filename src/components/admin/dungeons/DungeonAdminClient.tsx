@@ -18,6 +18,7 @@ import {
   type AdminDungeon,
 } from "~/components/admin/dungeons/DungeonCard";
 import { adminRequest, NumberField, Panel } from "~/components/admin/fields";
+import type { SearchOption } from "~/components/admin/SearchSelect";
 import { Button } from "~/components/ui/button";
 import type { StatType } from "~/generated/prisma/enums";
 import type { StatGrowthRule } from "~/utils/stats";
@@ -121,9 +122,12 @@ export function DungeonAdminClient(props: {
   dungeons: Array<AdminDungeon & { updatedAt: string }>;
   monsters: AdminCreature[];
   locations: LocationOption[];
+  stages: SearchOption[];
   items: AdminItemOption[];
   statGrowth: Record<StatType, StatGrowthRule>;
   combatConfig: CombatConfig;
+  /** Set on a region page: only that region's dungeons, no global rules or bestiary. */
+  locationId?: number;
 }) {
   const router = useRouter();
   const [config, setConfig] = useState(props.config);
@@ -145,7 +149,9 @@ export function DungeonAdminClient(props: {
   );
 
   const create = async () => {
-    const location = props.locations[0];
+    const location =
+      props.locations.find((row) => row.id === props.locationId) ??
+      props.locations[0];
     if (!location) return toast.error("Create a world location first");
     try {
       const result = await adminRequest("/api/admin/dungeons", "POST", {
@@ -159,6 +165,7 @@ export function DungeonAdminClient(props: {
         xpReward: 20,
         enabled: false,
         sortOrder: 100,
+        requiredStageId: null,
         monsters: [],
       });
       const dungeon = result?.dungeon as { id?: number } | undefined;
@@ -172,7 +179,9 @@ export function DungeonAdminClient(props: {
 
   return (
     <div className="space-y-8">
-      <DungeonRules initial={config} onSaved={setConfig} />
+      {props.locationId ? null : (
+        <DungeonRules initial={config} onSaved={setConfig} />
+      )}
 
       <Panel
         title="Dungeons"
@@ -204,6 +213,7 @@ export function DungeonAdminClient(props: {
               monsters={monsters}
               monstersById={monstersById}
               locations={props.locations}
+              stages={props.stages}
               character={character}
               rules={rules}
               combatConfig={props.combatConfig}
@@ -213,12 +223,14 @@ export function DungeonAdminClient(props: {
         </div>
       </Panel>
 
-      <CreatureEditor
-        kind="MONSTER"
-        initial={props.monsters}
-        items={props.items}
-        onChange={setMonsters}
-      />
+      {props.locationId ? null : (
+        <CreatureEditor
+          kind="MONSTER"
+          initial={props.monsters}
+          items={props.items}
+          onChange={setMonsters}
+        />
+      )}
     </div>
   );
 }

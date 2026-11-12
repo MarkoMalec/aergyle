@@ -67,6 +67,17 @@ const config = {
         localPatterns: [{ pathname: "/**", search: "" }],
         qualities: [75],
     },
+    // The world editor used to be four pages; old bookmarks land in /admin/world.
+    async redirects() {
+        return [
+            { source: "/admin/locations/new", destination: "/admin/world", permanent: false },
+            { source: "/admin/locations/:id(\\d+)", destination: "/admin/world/:id", permanent: false },
+            { source: "/admin/locations", destination: "/admin/world", permanent: false },
+            { source: "/admin/settlements", destination: "/admin/world", permanent: false },
+            { source: "/admin/npcs", destination: "/admin/world?tab=npcs", permanent: false },
+            { source: "/admin/travel", destination: "/admin/world?tab=travel", permanent: false },
+        ];
+    },
     async headers() {
         return [{ source: "/:path*", headers: securityHeaders }];
     },

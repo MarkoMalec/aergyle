@@ -98,7 +98,7 @@ export function SettlementForm(props: {
     try {
       await adminRequest(`/api/admin/settlements/${saved.id}`, "DELETE");
       toast.success(`${saved.name} deleted`);
-      router.push("/admin/settlements");
+      router.push(`/admin/world/${saved.locationId}?tab=settlements`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Unable to delete");
       setBusy(false);
@@ -221,7 +221,7 @@ export function NewNpcButton({ settlementId }: { settlementId: number | null }) 
         headY: null,
         headSize: null,
         professionId: null,
-        requiredProjectId: null,
+        requiredStageId: null,
         enabled: false,
         sortOrder: 0,
         offers: [],

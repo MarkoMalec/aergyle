@@ -32,7 +32,7 @@ type AdminOffer = {
   price: number;
   availableFrom: string | null;
   availableUntil: string | null;
-  requiredProjectId: number | null;
+  requiredStageId: number | null;
   enabled: boolean;
 };
 
@@ -46,7 +46,7 @@ type AdminNpc = {
   headY: number | null;
   headSize: number | null;
   professionId: number | null;
-  requiredProjectId: number | null;
+  requiredStageId: number | null;
   enabled: boolean;
   sortOrder: number;
   offers: AdminOffer[];
@@ -61,7 +61,7 @@ type OfferDraft = {
   itemId: number;
   price: number;
   rare: RareWindow | null;
-  requiredProjectId: number | null;
+  requiredStageId: number | null;
   enabled: boolean;
 };
 
@@ -128,7 +128,7 @@ function toDraft(offer: AdminOffer): OfferDraft {
     itemId: offer.itemId,
     price: offer.price,
     rare: toWindow(offer),
-    requiredProjectId: offer.requiredProjectId,
+    requiredStageId: offer.requiredStageId,
     enabled: offer.enabled,
   };
 }
@@ -144,7 +144,7 @@ function toPayload(npc: Omit<AdminNpc, "offers">, offers: OfferDraft[]) {
       price: offer.price,
       availableFrom: offer.rare?.start ?? null,
       availableUntil: offer.rare ? windowEnd(offer.rare).toISOString() : null,
-      requiredProjectId: offer.requiredProjectId,
+      requiredStageId: offer.requiredStageId,
       enabled: offer.enabled,
       sortOrder: index * 10,
     })),
@@ -193,9 +193,9 @@ function OfferRow(props: {
         <Field label="Hidden until project">
           <SearchSelect
             options={props.projects}
-            value={offer.requiredProjectId}
+            value={offer.requiredStageId}
             noneLabel="Always visible"
-            onChange={(requiredProjectId) => props.onChange({ requiredProjectId })}
+            onChange={(requiredStageId) => props.onChange({ requiredStageId })}
           />
         </Field>
         <EnabledField
@@ -346,7 +346,7 @@ export function NpcEditor(props: {
     try {
       await adminRequest(`/api/admin/npcs/${props.npc.id}`, "DELETE");
       toast.success(`${initialProfile.name} deleted`);
-      router.push("/admin/npcs");
+      router.push("/admin/world?tab=npcs");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Unable to delete");
       setBusy(false);
@@ -429,9 +429,9 @@ export function NpcEditor(props: {
             >
               <SearchSelect
                 options={props.projects}
-                value={profile.requiredProjectId}
+                value={profile.requiredStageId}
                 noneLabel="Always visible"
-                onChange={(requiredProjectId) => update({ requiredProjectId })}
+                onChange={(requiredStageId) => update({ requiredStageId })}
               />
             </Field>
             <NumberField
@@ -493,7 +493,7 @@ export function NpcEditor(props: {
                   itemId: item.id,
                   price: 10,
                   rare: null,
-                  requiredProjectId: null,
+                  requiredStageId: null,
                   enabled: true,
                 },
               ]);

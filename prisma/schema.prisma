@@ -93,6 +93,7 @@ model User {
   seenQuests              UserSeenQuest[]
   storages                UserStorage[]
   projectContributions    CommunityProjectContribution[]
+  projectRewards          CommunityProjectReward[]
   notifications           Notification[]
   conversations           ConversationParticipant[]
   messagesSent            Message[]
@@ -390,6 +391,7 @@ model Item {
   questObjectives      QuestObjective[]
   questRewards         QuestRewardItem[]
   projectRequirements  CommunityProjectRequirement[]
+  projectRewardItems   CommunityProjectRewardItem[]
   notifications        Notification[]
 
   seedYieldItem Item?  @relation("SeedYieldItem", fields: [seedYieldItemId], references: [id], onDelete: SetNull)
@@ -741,11 +743,12 @@ enum SkillCategory {
 }
 
 model skills {
-  skill_id    Int           @id @default(autoincrement())
-  skill_name  String        @unique(map: "skill_name")
-  description String?       @db.Text
-  category    SkillCategory @default(VOCATION)
-  user_skills user_skills[]
+  skill_id          Int                @id @default(autoincrement())
+  skill_name        String             @unique(map: "skill_name")
+  description       String?            @db.Text
+  category          SkillCategory      @default(VOCATION)
+  user_skills       user_skills[]
+  communityProjects CommunityProject[]
 }
 
 model user_skills {
@@ -1412,13 +1415,17 @@ model HuntingGround {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  location       Location                   @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  creatures      HuntingGroundCreature[]
-  expeditions    UserHuntingExpedition[]
-  expeditionLogs UserHuntingExpeditionLog[]
+  location        Location                   @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  // Hidden from players until this community project stage is reached.
+  requiredStageId Int?
+  requiredStage   CommunityProjectStage?     @relation("GroundUnlock", fields: [requiredStageId], references: [id], onDelete: SetNull)
+  creatures       HuntingGroundCreature[]
+  expeditions     UserHuntingExpedition[]
+  expeditionLogs  UserHuntingExpeditionLog[]
 
   @@unique([locationId, name])
   @@index([locationId, enabled, sortOrder])
+  @@index([requiredStageId])
 }
 
 model HuntingGroundCreature {
@@ -1578,7 +1585,10 @@ model Dungeon {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  location        Location            @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  location        Location               @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  // Hidden from players until this community project stage is reached.
+  requiredStageId Int?
+  requiredStage   CommunityProjectStage? @relation("DungeonUnlock", fields: [requiredStageId], references: [id], onDelete: SetNull)
   monsters        DungeonMonster[]
   runs            UserDungeonRun[]
   runLogs         UserDungeonRunLog[]
@@ -1803,61 +1813,61 @@ model NpcProfession {
 
 // NPCs are identified by name; a profession is optional.
 model Npc {
-  id                Int                  @id @default(autoincrement())
+  id               Int                  @id @default(autoincrement())
   // Unassigned (no location) while null: hidden from players.
-  settlementId      Int?
-  name              String
-  description       String?              @db.Text
-  portrait          String?
+  settlementId     Int?
+  name             String
+  description      String?              @db.Text
+  portrait         String?
   // The square of the portrait shown as the NPC's head on the settlement
   // map: its top-left corner (x of the width, y of the height) and its side
   // (of the width), as fractions. The default crop is used while unset.
-  headX             Float?
-  headY             Float?
-  headSize          Float?
+  headX            Float?
+  headY            Float?
+  headSize         Float?
   // Pin on the settlement map, in percent; unplaced when null.
-  mapX              Float?
-  mapY              Float?
-  professionId      Int?
-  legacyProfession  LegacyNpcProfession? @map("profession")
-  // Hidden from players until this community project is completed.
-  requiredProjectId Int?
-  enabled           Boolean              @default(true)
-  sortOrder         Int                  @default(0)
-  createdAt         DateTime             @default(now())
-  updatedAt         DateTime             @updatedAt
+  mapX             Float?
+  mapY             Float?
+  professionId     Int?
+  legacyProfession LegacyNpcProfession? @map("profession")
+  // Hidden from players until this community project stage is reached.
+  requiredStageId  Int?
+  enabled          Boolean              @default(true)
+  sortOrder        Int                  @default(0)
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
 
-  settlement      Settlement?       @relation(fields: [settlementId], references: [id], onDelete: SetNull)
-  requiredProject CommunityProject? @relation("NpcUnlock", fields: [requiredProjectId], references: [id], onDelete: SetNull)
-  profession      NpcProfession?    @relation(fields: [professionId], references: [id], onDelete: SetNull)
-  offers          NpcOffer[]
-  quests          Quest[]
+  settlement    Settlement?            @relation(fields: [settlementId], references: [id], onDelete: SetNull)
+  requiredStage CommunityProjectStage? @relation("NpcUnlock", fields: [requiredStageId], references: [id], onDelete: SetNull)
+  profession    NpcProfession?         @relation(fields: [professionId], references: [id], onDelete: SetNull)
+  offers        NpcOffer[]
+  quests        Quest[]
 
   @@index([settlementId, enabled, sortOrder])
-  @@index([requiredProjectId])
+  @@index([requiredStageId])
   @@index([professionId])
 }
 
 // An item an NPC sells at this NPC's own price, granted at the item's rarity.
 // A rare find has an availability window and is hidden outside it.
 model NpcOffer {
-  id                Int       @id @default(autoincrement())
-  npcId             Int
-  itemId            Int
-  price             Decimal   @db.Decimal(10, 2)
-  availableFrom     DateTime?
-  availableUntil    DateTime?
-  requiredProjectId Int?
-  enabled           Boolean   @default(true)
-  sortOrder         Int       @default(0)
+  id              Int       @id @default(autoincrement())
+  npcId           Int
+  itemId          Int
+  price           Decimal   @db.Decimal(10, 2)
+  availableFrom   DateTime?
+  availableUntil  DateTime?
+  requiredStageId Int?
+  enabled         Boolean   @default(true)
+  sortOrder       Int       @default(0)
 
-  npc             Npc               @relation(fields: [npcId], references: [id], onDelete: Cascade)
-  item            Item              @relation(fields: [itemId], references: [id], onDelete: Restrict)
-  requiredProject CommunityProject? @relation("NpcOfferUnlock", fields: [requiredProjectId], references: [id], onDelete: SetNull)
+  npc           Npc                    @relation(fields: [npcId], references: [id], onDelete: Cascade)
+  item          Item                   @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  requiredStage CommunityProjectStage? @relation("NpcOfferUnlock", fields: [requiredStageId], references: [id], onDelete: SetNull)
 
   @@index([npcId, enabled, sortOrder])
   @@index([itemId])
-  @@index([requiredProjectId])
+  @@index([requiredStageId])
 }
 
 enum QuestRepeat {
@@ -1876,30 +1886,30 @@ enum QuestObjectiveType {
 }
 
 model Quest {
-  id                Int         @id @default(autoincrement())
-  npcId             Int
-  name              String
-  description       String?     @db.Text
-  repeat            QuestRepeat @default(ONCE)
-  requiredLevel     Int         @default(1)
-  rewardGold        Decimal     @default(0) @db.Decimal(10, 2)
-  rewardXp          Int         @default(0)
-  // Hidden from players until this community project is completed.
-  requiredProjectId Int?
-  enabled           Boolean     @default(true)
-  sortOrder         Int         @default(0)
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
+  id              Int         @id @default(autoincrement())
+  npcId           Int
+  name            String
+  description     String?     @db.Text
+  repeat          QuestRepeat @default(ONCE)
+  requiredLevel   Int         @default(1)
+  rewardGold      Decimal     @default(0) @db.Decimal(10, 2)
+  rewardXp        Int         @default(0)
+  // Hidden from players until this community project stage is reached.
+  requiredStageId Int?
+  enabled         Boolean     @default(true)
+  sortOrder       Int         @default(0)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
 
-  npc             Npc               @relation(fields: [npcId], references: [id], onDelete: Cascade)
-  requiredProject CommunityProject? @relation("QuestUnlock", fields: [requiredProjectId], references: [id], onDelete: SetNull)
-  objectives      QuestObjective[]
-  rewardItems     QuestRewardItem[]
-  userQuests      UserQuest[]
-  seenBy          UserSeenQuest[]
+  npc           Npc                    @relation(fields: [npcId], references: [id], onDelete: Cascade)
+  requiredStage CommunityProjectStage? @relation("QuestUnlock", fields: [requiredStageId], references: [id], onDelete: SetNull)
+  objectives    QuestObjective[]
+  rewardItems   QuestRewardItem[]
+  userQuests    UserQuest[]
+  seenBy        UserSeenQuest[]
 
   @@index([npcId, enabled, sortOrder])
-  @@index([requiredProjectId])
+  @@index([requiredStageId])
 }
 
 // The target column matches the type: itemId (DELIVER), creatureId (HUNT) or
@@ -1975,8 +1985,46 @@ model UserSeenQuest {
   @@index([questId])
 }
 
-// A settlement-wide goal every player contributes items to. Completing it
-// reveals the NPCs, shop offers and quests that require it.
+enum ProjectRepeat {
+  // Runs once; finished is finished.
+  ONCE
+  // A fresh round every repeatHours from startsAt, finished or not.
+  SCHEDULE
+  // A fresh round repeatHours after the last one was finished.
+  AFTER_COMPLETION
+}
+
+enum ProjectUnlockMode {
+  // A reached stage keeps its unlocks and effects through later rounds.
+  PERMANENT
+  // Unlocks and effects last only while the current round has reached it.
+  WHILE_REACHED
+}
+
+enum ProjectRewardSplit {
+  // Every qualifying contributor gets the whole stage reward.
+  FLAT
+  // Each qualifying contributor gets the reward times their share.
+  BY_SHARE
+}
+
+enum ProjectEffectType {
+  // Percent off every shop price in the project's settlement.
+  SHOP_DISCOUNT
+  // Percent more gold for items sold in the project's settlement.
+  SELL_BONUS
+  // Extra slots in the project's settlement storage.
+  STORAGE_SLOTS
+  // Percent shorter journeys into the project's region.
+  TRAVEL_SPEED
+  // Percent more gold and XP from quests in the project's settlement.
+  QUEST_REWARD_BONUS
+}
+
+// A settlement-wide goal every player contributes items to, in one or more
+// stages worked through in order. Reaching a stage pays its contributors and
+// reveals or changes what it is linked to. Recurring projects reset their
+// progress each round without a job: the round is settled lazily on read.
 model CommunityProject {
   id           Int       @id @default(autoincrement())
   settlementId Int
@@ -1985,33 +2033,137 @@ model CommunityProject {
   image        String?
   enabled      Boolean   @default(true)
   sortOrder    Int       @default(0)
+  // Every stage of the current round reached.
   completedAt  DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  settlement    Settlement                    @relation(fields: [settlementId], references: [id], onDelete: Cascade)
-  requirements  CommunityProjectRequirement[]
-  unlocksNpcs   Npc[]                         @relation("NpcUnlock")
-  unlocksOffers NpcOffer[]                    @relation("NpcOfferUnlock")
-  unlocksQuests Quest[]                       @relation("QuestUnlock")
+  // Schedule. Hidden before startsAt and after endsAt (null: no limit).
+  repeat           ProjectRepeat     @default(ONCE)
+  repeatHours      Int               @default(168)
+  maxRounds        Int?
+  startsAt         DateTime?
+  endsAt           DateTime?
+  round            Int               @default(1)
+  roundStartedAt   DateTime          @default(now())
+  unlockMode       ProjectUnlockMode @default(PERMANENT)
+  // Players see upcoming stages (name and needs) before reaching them.
+  showFutureStages Boolean           @default(true)
+
+  // Who may contribute.
+  minLevel           Int  @default(1)
+  requiredSkillId    Int?
+  requiredSkillLevel Int  @default(1)
+  // One player may supply at most this percent of each item (null: no cap).
+  maxSharePercent    Int?
+
+  // How stage rewards are paid; contributors below the minimum share get none.
+  rewardSplit           ProjectRewardSplit @default(FLAT)
+  rewardMinSharePercent Float              @default(0)
+
+  settlement    Settlement               @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+  requiredSkill skills?                  @relation(fields: [requiredSkillId], references: [skill_id], onDelete: SetNull)
+  stages        CommunityProjectStage[]
+  rewards       CommunityProjectReward[]
 
   @@index([settlementId, enabled, sortOrder])
+  @@index([requiredSkillId])
+}
+
+model CommunityProjectStage {
+  id          Int       @id @default(autoincrement())
+  projectId   Int
+  position    Int
+  name        String
+  description String?   @db.Text
+  image       String?
+  // Reached in the current round.
+  completedAt DateTime?
+  // Its unlocks and effects apply now (see ProjectUnlockMode).
+  active      Boolean   @default(false)
+  rewardGold  Decimal   @default(0) @db.Decimal(10, 2)
+  rewardXp    Int       @default(0)
+
+  project         CommunityProject              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  requirements    CommunityProjectRequirement[]
+  rewardItems     CommunityProjectRewardItem[]
+  effects         CommunityProjectEffect[]
+  rewards         CommunityProjectReward[]
+  unlocksNpcs     Npc[]                         @relation("NpcUnlock")
+  unlocksOffers   NpcOffer[]                    @relation("NpcOfferUnlock")
+  unlocksQuests   Quest[]                       @relation("QuestUnlock")
+  unlocksDungeons Dungeon[]                     @relation("DungeonUnlock")
+  unlocksGrounds  HuntingGround[]               @relation("GroundUnlock")
+
+  @@unique([projectId, position])
+  @@index([active])
 }
 
 model CommunityProjectRequirement {
   id          Int @id @default(autoincrement())
-  projectId   Int
+  stageId     Int
   itemId      Int
   quantity    Int
-  // Total contributed by every player; contributions stop at quantity.
+  // Total contributed by every player this round; stops at quantity.
   contributed Int @default(0)
 
-  project       CommunityProject               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  stage         CommunityProjectStage          @relation(fields: [stageId], references: [id], onDelete: Cascade)
   item          Item                           @relation(fields: [itemId], references: [id], onDelete: Restrict)
   contributions CommunityProjectContribution[]
 
-  @@unique([projectId, itemId])
+  @@unique([stageId, itemId])
   @@index([itemId])
+}
+
+// Items each qualifying contributor gets when the stage is reached.
+model CommunityProjectRewardItem {
+  id       Int @id @default(autoincrement())
+  stageId  Int
+  itemId   Int
+  quantity Int @default(1)
+
+  stage CommunityProjectStage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  item  Item                  @relation(fields: [itemId], references: [id], onDelete: Restrict)
+
+  @@unique([stageId, itemId])
+  @@index([itemId])
+}
+
+// What a reached stage changes in the world; value is a percent or a count.
+model CommunityProjectEffect {
+  id      Int               @id @default(autoincrement())
+  stageId Int
+  type    ProjectEffectType
+  value   Float
+
+  stage CommunityProjectStage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+
+  @@unique([stageId, type])
+}
+
+// A contributor's payout for one stage in one round, claimed in the
+// settlement. Amounts are fixed when the stage is reached.
+model CommunityProjectReward {
+  id        Int       @id @default(autoincrement())
+  userId    String
+  projectId Int
+  stageId   Int
+  round     Int
+  gold      Decimal   @default(0) @db.Decimal(10, 2)
+  xp        Int       @default(0)
+  // [{ itemId, quantity }]
+  items     Json
+  createdAt DateTime  @default(now())
+  claimedAt DateTime?
+
+  user    User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project CommunityProject      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  stage   CommunityProjectStage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, stageId, round])
+  @@index([userId, claimedAt])
+  @@index([projectId])
+  @@index([stageId])
 }
 
 // One row per player and requirement, summing their contributions.

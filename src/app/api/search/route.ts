@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
       where: {
         name: { contains: query },
         enabled: true,
-        requiredProjectId: null,
+        requiredStageId: null,
         settlement: { enabled: true },
       },
       select: {

@@ -221,7 +221,7 @@ export function Inspector(props: {
             <span className="flex shrink-0 items-center gap-2">
               <span className="tabular-nums text-white/80">×{use.kind === "QUEST" ? use.delivery.quantity : use.need.quantity}</span>
               <Link
-                href={use.kind === "QUEST" ? `/admin/npcs/${use.delivery.npcId}` : `/admin/settlements/${use.need.settlementId}`}
+                href={use.kind === "QUEST" ? `/admin/npcs/${use.delivery.npcId}` : `/admin/projects/${use.need.projectId}`}
                 target="_blank"
                 className="text-white/40 hover:text-white"
                 aria-label="Open in its editor"

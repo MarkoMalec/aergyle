@@ -21,6 +21,7 @@ import {
   inputClass,
   NumberField,
 } from "~/components/admin/fields";
+import { SearchSelect, type SearchOption } from "~/components/admin/SearchSelect";
 import { Button } from "~/components/ui/button";
 import { DUNGEON_DIFFICULTY_LABELS } from "~/game/creatures";
 import { cn } from "~/lib/utils";
@@ -45,6 +46,7 @@ export type AdminDungeon = {
   xpReward: number;
   enabled: boolean;
   sortOrder: number;
+  requiredStageId: number | null;
   activeRuns: number;
   monsters: MonsterPopulation[];
 };
@@ -256,6 +258,7 @@ export function DungeonCard(props: {
   monsters: AdminCreature[];
   monstersById: Map<number, AdminCreature>;
   locations: LocationOption[];
+  stages: SearchOption[];
   character: TestCharacter;
   rules: DungeonDeathRules;
   combatConfig: CombatConfig;
@@ -397,6 +400,17 @@ export function DungeonCard(props: {
                         </option>
                       ))}
                     </select>
+                  </Field>
+                  <Field
+                    label="Hidden until project"
+                    hint="Players can't see or enter it before then."
+                  >
+                    <SearchSelect
+                      options={props.stages}
+                      value={draft.requiredStageId}
+                      noneLabel="Always visible"
+                      onChange={(requiredStageId) => set({ requiredStageId })}
+                    />
                   </Field>
                   <Field
                     label="Difficulty label"

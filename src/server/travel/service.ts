@@ -6,6 +6,7 @@ import {
   FALLBACK_TRAVEL_SECONDS,
   toTravelRoutePair,
 } from "~/game/world/travel";
+import { sumProjectEffects } from "~/server/settlements/rules";
 import { getCompleteCharacterStats } from "~/server/stats";
 import {
   getLocationRequiredLevel,
@@ -25,6 +26,36 @@ export async function getDefaultTravelSeconds(): Promise<number> {
 }
 
 /**
+ * Percent shorter journeys into each region from its reached community
+ * project stages. Queried here rather than through ~/server/settlements,
+ * which imports this module.
+ */
+async function travelSpeedups(locationIds: number[]) {
+  if (locationIds.length === 0) return new Map<number, number>();
+  const rows = await prisma.communityProjectEffect.findMany({
+    where: {
+      type: "TRAVEL_SPEED",
+      stage: {
+        active: true,
+        project: { enabled: true, settlement: { locationId: { in: locationIds } } },
+      },
+    },
+    select: {
+      value: true,
+      stage: { select: { project: { select: { settlement: { select: { locationId: true } } } } } },
+    },
+  });
+  const byRegion = new Map<number, Array<{ type: "TRAVEL_SPEED"; value: number }>>();
+  for (const row of rows) {
+    const id = row.stage.project.settlement.locationId;
+    byRegion.set(id, [...(byRegion.get(id) ?? []), { type: "TRAVEL_SPEED", value: row.value }]);
+  }
+  return new Map(
+    [...byRegion].map(([id, list]) => [id, sumProjectEffects(list).TRAVEL_SPEED]),
+  );
+}
+
+/**
  * Journey seconds from one location to each destination for this character:
  * the route's base time (or the default) scaled by current movement speed.
  * Used for the atlas preview and when a journey starts, so both agree.
@@ -35,7 +66,7 @@ export async function getJourneySeconds(
   toLocationIds: number[],
 ): Promise<Map<number, number>> {
   const destinations = toLocationIds.filter((id) => id !== fromLocationId);
-  const [stats, defaultSeconds, routes] = await Promise.all([
+  const [stats, defaultSeconds, routes, speedups] = await Promise.all([
     getCompleteCharacterStats(userId),
     getDefaultTravelSeconds(),
     fromLocationId === null || destinations.length === 0
@@ -48,6 +79,7 @@ export async function getJourneySeconds(
           },
           select: { locationAId: true, locationBId: true, seconds: true },
         }),
+    travelSpeedups(destinations),
   ]);
 
   const baseSecondsByDestination = new Map(
@@ -62,7 +94,8 @@ export async function getJourneySeconds(
     destinations.map((toLocationId) => [
       toLocationId,
       applyMovementSpeed(
-        baseSecondsByDestination.get(toLocationId) ?? defaultSeconds,
+        (baseSecondsByDestination.get(toLocationId) ?? defaultSeconds) *
+          (1 - (speedups.get(toLocationId) ?? 0) / 100),
         stats.movementSpeed,
       ),
     ]),

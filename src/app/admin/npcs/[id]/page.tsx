@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { WorldCrumbs } from "~/components/admin/world/WorldNav";
 import { NpcEditor } from "~/components/admin/settlements/NpcEditor";
 import { QuestsEditor } from "~/components/admin/settlements/QuestsEditor";
 import { npcHref } from "~/game/settlements";
 import { prisma } from "~/lib/prisma";
 import { requireAdminPageAccess } from "~/server/admin/auth";
+import { getStageOptions } from "~/server/admin/projects";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -25,7 +26,11 @@ export default async function AdminNpcPage({
         where: { id },
         include: {
           settlement: {
-            select: { id: true, name: true, location: { select: { name: true } } },
+            select: {
+              id: true,
+              name: true,
+              location: { select: { id: true, name: true } },
+            },
           },
           offers: { orderBy: [{ sortOrder: "asc" }, { id: "asc" }] },
           quests: {
@@ -44,21 +49,17 @@ export default async function AdminNpcPage({
       }),
       prisma.settlement.findMany({
         orderBy: [{ location: { name: "asc" } }, { name: "asc" }],
-        select: { id: true, name: true, location: { select: { name: true } } },
+        select: {
+              id: true,
+              name: true,
+              location: { select: { id: true, name: true } },
+            },
       }),
       prisma.npcProfession.findMany({
         orderBy: { name: "asc" },
         select: { id: true, name: true },
       }),
-      prisma.communityProject.findMany({
-        orderBy: [{ settlement: { name: "asc" } }, { name: "asc" }],
-        select: {
-          id: true,
-          name: true,
-          completedAt: true,
-          settlement: { select: { name: true } },
-        },
-      }),
+      getStageOptions(),
       prisma.item.findMany({
         orderBy: { name: "asc" },
         select: { id: true, name: true, sprite: true, rarity: true },
@@ -69,16 +70,16 @@ export default async function AdminNpcPage({
       }),
       prisma.dungeon.findMany({
         orderBy: [{ location: { name: "asc" } }, { name: "asc" }],
-        select: { id: true, name: true, location: { select: { name: true } } },
+        select: {
+              id: true,
+              name: true,
+              location: { select: { id: true, name: true } },
+            },
       }),
     ]);
   if (!npc) notFound();
 
-  const projectOptions = projects.map((project) => ({
-    id: project.id,
-    name: project.name,
-    detail: `${project.settlement.name}${project.completedAt ? " · completed" : ""}`,
-  }));
+  const projectOptions = projects;
   const itemOptions = items.map((item) => ({
     id: item.id,
     name: item.name,
@@ -90,25 +91,23 @@ export default async function AdminNpcPage({
     <div className="space-y-8">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <div className="flex flex-wrap items-center gap-x-2 text-xs text-white/50">
-            <Link
-              href="/admin/npcs"
-              className="inline-flex items-center gap-1 hover:text-white"
-            >
-              <ArrowLeft className="h-3 w-3" /> NPCs
-            </Link>
-            <span aria-hidden="true">·</span>
-            {npc.settlement ? (
-              <Link
-                href={`/admin/settlements/${npc.settlement.id}`}
-                className="hover:text-white"
-              >
-                {npc.settlement.name} ({npc.settlement.location.name})
-              </Link>
-            ) : (
-              <span>No location</span>
-            )}
-          </div>
+          <WorldCrumbs
+            trail={[
+              ...(npc.settlement
+                ? [
+                    {
+                      label: npc.settlement.location.name,
+                      href: `/admin/world/${npc.settlement.location.id}?tab=settlements`,
+                    },
+                    {
+                      label: npc.settlement.name,
+                      href: `/admin/settlements/${npc.settlement.id}`,
+                    },
+                  ]
+                : [{ label: "No location", href: "/admin/world?tab=npcs" }]),
+              { label: npc.name },
+            ]}
+          />
           <h1 className="mt-2 text-3xl font-bold">{npc.name}</h1>
         </div>
         {npc.settlement ? (
@@ -134,7 +133,7 @@ export default async function AdminNpcPage({
           headY: npc.headY,
           headSize: npc.headSize,
           professionId: npc.professionId,
-          requiredProjectId: npc.requiredProjectId,
+          requiredStageId: npc.requiredStageId,
           enabled: npc.enabled,
           sortOrder: npc.sortOrder,
           offers: npc.offers.map((offer) => ({
@@ -143,7 +142,7 @@ export default async function AdminNpcPage({
             price: Number(offer.price),
             availableFrom: offer.availableFrom?.toISOString() ?? null,
             availableUntil: offer.availableUntil?.toISOString() ?? null,
-            requiredProjectId: offer.requiredProjectId,
+            requiredStageId: offer.requiredStageId,
             enabled: offer.enabled,
           })),
         }}
@@ -167,7 +166,7 @@ export default async function AdminNpcPage({
           requiredLevel: quest.requiredLevel,
           rewardGold: Number(quest.rewardGold),
           rewardXp: quest.rewardXp,
-          requiredProjectId: quest.requiredProjectId,
+          requiredStageId: quest.requiredStageId,
           enabled: quest.enabled,
           sortOrder: quest.sortOrder,
           objectives: quest.objectives.map((objective) => ({

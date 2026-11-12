@@ -8,6 +8,7 @@ import {
   type DungeonDifficulty,
 } from "~/generated/prisma/enums";
 import { prisma } from "~/lib/prisma";
+import { unlockedWhere } from "~/server/settlements/access";
 import { assertNoOtherActivity, closeInvalidRun } from "~/server/activity";
 import { lockUser } from "~/server/userLock";
 import {
@@ -365,7 +366,7 @@ export async function getDungeonPageData(userId: string) {
               name: true,
               requiredLevel: true,
               dungeons: {
-                where: { enabled: true },
+                where: { enabled: true, ...unlockedWhere() },
                 orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
                 select: {
                   id: true,
@@ -488,6 +489,7 @@ export async function startDungeonRun(params: {
           locationId: true,
           name: true,
           enabled: true,
+          requiredStage: { select: { active: true } },
           requiredLevel: true,
           durationSeconds: true,
           packSize: true,
@@ -523,7 +525,11 @@ export async function startDungeonRun(params: {
   if (!user.currentLocationId) {
     throw new Error("Travel to a location before entering a dungeon");
   }
-  if (!dungeon?.enabled || dungeon.locationId !== user.currentLocationId) {
+  if (
+    !dungeon?.enabled ||
+    dungeon.requiredStage?.active === false ||
+    dungeon.locationId !== user.currentLocationId
+  ) {
     throw new Error("That dungeon is not available at your location");
   }
   const requiredLevel = Math.max(

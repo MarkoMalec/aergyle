@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { VocationalActionType } from "~/generated/prisma/enums";
 import { prisma } from "~/lib/prisma";
 import { requireAdminApiAccess } from "~/server/admin/auth";
 
@@ -28,9 +29,13 @@ export async function PATCH(req: NextRequest, ctx: { params: { id: string } }) {
   const selected = new Set(parsed.data.resourceIds);
 
   await prisma.$transaction(async (tx) => {
-    // Disable everything for this location first.
+    // Disable everything for this location first. Gathering pools are tuned
+    // per resource on the Gathering tab, so this list never touches them.
     await tx.locationVocationalResource.updateMany({
-      where: { locationId },
+      where: {
+        locationId,
+        resource: { actionType: { not: VocationalActionType.GATHERING } },
+      },
       data: { enabled: false },
     });
 

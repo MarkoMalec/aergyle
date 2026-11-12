@@ -1,6 +1,10 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Save } from "lucide-react";
+import toast from "react-hot-toast";
+import { adminRequest, Panel } from "~/components/admin/fields";
 import { Button } from "~/components/ui/button";
 
 type ResourceRow = {
@@ -10,112 +14,95 @@ type ResourceRow = {
   item?: { name: string } | null;
 };
 
-type AssignedRow = {
-  resourceId: number;
-  enabled: boolean;
-};
-
+/** Which vocation resources (woodcutting, mining, …) can be worked in a region. */
 export function LocationResourcesEditor(props: {
   locationId: number;
   resources: ResourceRow[];
-  assigned: AssignedRow[];
+  assigned: Array<{ resourceId: number; enabled: boolean }>;
 }) {
-  const [selected, setSelected] = useState<Set<number>>(() => {
-    const set = new Set<number>();
-    for (const a of props.assigned) {
-      if (a.enabled) set.add(a.resourceId);
-    }
-    return set;
-  });
-
-  const [isSaving, setIsSaving] = useState(false);
+  const router = useRouter();
+  const initial = useMemo(
+    () => props.assigned.filter((a) => a.enabled).map((a) => a.resourceId),
+    [props.assigned],
+  );
+  const [selected, setSelected] = useState(() => new Set(initial));
+  const [saving, setSaving] = useState(false);
+  const dirty =
+    selected.size !== initial.length || initial.some((id) => !selected.has(id));
 
   const groups = useMemo(() => {
     const map = new Map<string, ResourceRow[]>();
     for (const r of props.resources) {
-      const k = r.actionType;
-      map.set(k, [...(map.get(k) ?? []), r]);
+      map.set(r.actionType, [...(map.get(r.actionType) ?? []), r]);
     }
     return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
   }, [props.resources]);
 
-  const toggle = (id: number) => {
+  const toggle = (id: number) =>
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (!next.delete(id)) next.add(id);
       return next;
     });
-  };
 
-  const onSave = async () => {
-    setIsSaving(true);
+  const save = async () => {
+    setSaving(true);
     try {
-      const res = await fetch(`/api/admin/locations/${props.locationId}/resources`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ resourceIds: Array.from(selected) }),
+      await adminRequest(`/api/admin/locations/${props.locationId}/resources`, "PATCH", {
+        resourceIds: Array.from(selected),
       });
-
-      const json = await res.json().catch(() => null);
-      if (!res.ok) {
-        alert(json?.error ?? "Failed to save");
-        return;
-      }
-
-      window.location.reload();
+      toast.success("Resources saved");
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to save");
     } finally {
-      setIsSaving(false);
+      setSaving(false);
     }
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="text-sm font-semibold text-white">Resources available here</div>
-          <div className="text-xs text-white/60">Grouped by action type. Toggle to enable/disable.</div>
-        </div>
-        <Button type="button" onClick={onSave} disabled={isSaving}>
-          {isSaving ? "Saving..." : "Save availability"}
+    <Panel
+      title="Vocation resources"
+      description="Tick what players can work in this region. Resource stats and recipes live under Vocation resources."
+      action={
+        <Button onClick={() => void save()} disabled={saving || !dirty}>
+          <Save className="mr-2 h-4 w-4" />
+          {saving ? "Saving…" : "Save"}
         </Button>
-      </div>
-
-      <div className="space-y-6">
-        {groups.map(([actionType, rows]) => (
-          <div key={actionType} className="space-y-2">
-            <div className="text-xs font-semibold text-white/70">{actionType}</div>
-            <div className="divide-y divide-gray-800/60 overflow-hidden rounded-md border border-gray-800/60">
-              {rows.map((r) => {
-                const checked = selected.has(r.id);
-                return (
-                  <label
-                    key={r.id}
-                    className="flex cursor-pointer items-center justify-between gap-3 bg-gray-900/20 px-3 py-2 hover:bg-gray-900/35"
-                  >
-                    <div className="min-w-0">
-                      <div className="truncate text-sm text-white">
-                        {r.name}
-                        <span className="ml-2 text-xs text-white/50">#{r.id}</span>
-                      </div>
-                      <div className="truncate text-xs text-white/60">
-                        Output: {r.item?.name ?? "—"}
-                      </div>
-                    </div>
-
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 accent-white"
-                      checked={checked}
-                      onChange={() => toggle(r.id)}
-                    />
-                  </label>
-                );
-              })}
-            </div>
+      }
+    >
+      {groups.length === 0 ? (
+        <p className="text-sm text-white/45">No vocation resources exist yet.</p>
+      ) : null}
+      {groups.map(([actionType, rows]) => (
+        <div key={actionType} className="space-y-2">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-white/50">
+            {actionType.toLowerCase().replaceAll("_", " ")} ·{" "}
+            {rows.filter((r) => selected.has(r.id)).length}/{rows.length}
+          </h3>
+          <div className="grid gap-1.5 sm:grid-cols-2 xl:grid-cols-3">
+            {rows.map((r) => (
+              <label
+                key={r.id}
+                className="flex cursor-pointer items-center gap-3 rounded-lg bg-white/[0.03] px-3 py-2 hover:bg-white/[0.06]"
+              >
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 accent-amber-400"
+                  checked={selected.has(r.id)}
+                  onChange={() => toggle(r.id)}
+                />
+                <span className="min-w-0">
+                  <span className="block truncate text-sm">{r.name}</span>
+                  <span className="block truncate text-xs text-white/45">
+                    {r.item?.name ?? "No output"}
+                  </span>
+                </span>
+              </label>
+            ))}
           </div>
-        ))}
-      </div>
-    </div>
+        </div>
+      ))}
+    </Panel>
   );
 }

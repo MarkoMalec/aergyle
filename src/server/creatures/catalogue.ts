@@ -2,6 +2,7 @@ import "server-only";
 
 import { CreatureKind } from "~/generated/prisma/enums";
 import { prisma } from "~/lib/prisma";
+import { unlockedWhere } from "~/server/settlements/access";
 import { CREATURE_ATTACK_SELECT } from "~/server/creatures/attackProfile";
 
 // Player-facing bestiary. Loot is listed by item only: drop chances and
@@ -40,7 +41,7 @@ export async function getCreatureProfile(kind: CreatureKind, id: number) {
         },
       },
       huntingGrounds: {
-        where: { enabled: true, ground: { enabled: true } },
+        where: { enabled: true, ground: { enabled: true, ...unlockedWhere() } },
         select: {
           ground: {
             select: {
@@ -52,7 +53,7 @@ export async function getCreatureProfile(kind: CreatureKind, id: number) {
         },
       },
       dungeons: {
-        where: { enabled: true, dungeon: { enabled: true } },
+        where: { enabled: true, dungeon: { enabled: true, ...unlockedWhere() } },
         select: {
           dungeon: {
             select: {

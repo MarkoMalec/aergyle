@@ -182,3 +182,19 @@ export function EnabledField(props: {
     </Field>
   );
 }
+
+/** A row of big-number tiles summarising a page. */
+export function StatTiles(props: {
+  stats: Array<{ label: string; value: React.ReactNode }>;
+}) {
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+      {props.stats.map((stat) => (
+        <div className="rounded-lg bg-gray-900/35 p-3" key={stat.label}>
+          <div className="text-2xl font-semibold tabular-nums">{stat.value}</div>
+          <div className="text-xs text-white/50">{stat.label}</div>
+        </div>
+      ))}
+    </div>
+  );
+}

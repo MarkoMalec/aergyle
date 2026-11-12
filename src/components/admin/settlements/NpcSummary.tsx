@@ -7,7 +7,7 @@ export type NpcSummaryData = {
   portrait: string | null;
   profession: { name: string } | null;
   enabled: boolean;
-  requiredProject: { name: string } | null;
+  requiredStage: { name: string } | null;
   _count: { offers: number; quests: number };
 };
 
@@ -48,13 +48,13 @@ export function NpcSummary({ npc }: { npc: NpcSummaryData }) {
           <span className={npc.enabled ? "text-emerald-300" : "text-white/35"}>
             {npc.enabled ? "Enabled" : "Disabled"}
           </span>
-          {npc.requiredProject ? (
+          {npc.requiredStage ? (
             <span
               className="text-amber-300/80"
-              title={`Hidden until “${npc.requiredProject.name}” is complete`}
+              title={`Hidden until “${npc.requiredStage.name}” is complete`}
             >
               {" "}
-              · Hidden until “{npc.requiredProject.name}”
+              · Hidden until “{npc.requiredStage.name}”
             </span>
           ) : null}
         </small>

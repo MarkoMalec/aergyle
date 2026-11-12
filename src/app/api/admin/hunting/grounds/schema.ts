@@ -13,6 +13,8 @@ export const groundSchema = z
     description: z.string().trim().max(2_000).nullable(),
     requiredHuntingLevel: z.number().int().min(1).max(10_000),
     enabled: z.boolean(),
+    // Omitted: left as it is. Null: always visible.
+    requiredStageId: z.number().int().positive().nullable().optional(),
     sortOrder: z.number().int().min(-10_000).max(10_000),
     accidentChance: z.number().min(0).max(1),
     accidentDamageMin: z.number().int().min(0).max(1_000_000),

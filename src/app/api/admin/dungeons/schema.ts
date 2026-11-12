@@ -34,6 +34,8 @@ export const dungeonSchema = z
     packSize: z.number().int().min(1).max(MAX_DUNGEON_PACK_SIZE),
     xpReward: z.number().int().min(0).max(10_000_000),
     enabled: z.boolean(),
+    // Omitted: left as it is. Null: always visible.
+    requiredStageId: z.number().int().positive().nullable().optional(),
     sortOrder: z.number().int().min(-10_000).max(10_000),
     monsters: z.array(populationSchema).max(100),
   })

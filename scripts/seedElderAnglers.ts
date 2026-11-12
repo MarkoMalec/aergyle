@@ -111,7 +111,7 @@ async function main(selectedMode: Mode) {
           description: definition.description,
           portrait: definition.portrait,
           professionId: null,
-          requiredProjectId: null,
+          requiredStageId: null,
           enabled: true,
           sortOrder: 700 + index,
         };

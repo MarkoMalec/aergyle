@@ -9,6 +9,7 @@ import {
   XpActionType,
 } from "~/generated/prisma/enums";
 import { prisma } from "~/lib/prisma";
+import { unlockedWhere } from "~/server/settlements/access";
 import { assertNoOtherActivity, closeInvalidRun } from "~/server/activity";
 import { lockUser } from "~/server/userLock";
 import {
@@ -422,7 +423,7 @@ export async function getHuntingPageData(userId: string) {
               name: true,
               requiredLevel: true,
               huntingGrounds: {
-                where: { enabled: true },
+                where: { enabled: true, ...unlockedWhere() },
                 orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
                 select: {
                   id: true,
@@ -596,6 +597,7 @@ export async function startHuntingExpedition(params: {
         locationId: true,
         name: true,
         enabled: true,
+        requiredStage: { select: { active: true } },
         requiredHuntingLevel: true,
         accidentChance: true,
         accidentDamageMin: true,
@@ -642,7 +644,11 @@ export async function startHuntingExpedition(params: {
   if (!user) throw new Error("User not found");
   if (!user.currentLocationId)
     throw new Error("Travel to a location before hunting");
-  if (!ground?.enabled || ground.locationId !== user.currentLocationId) {
+  if (
+    !ground?.enabled ||
+    ground.requiredStage?.active === false ||
+    ground.locationId !== user.currentLocationId
+  ) {
     throw new Error("That hunting ground is not available at your location");
   }
   if (user.level < ground.location.requiredLevel) {
