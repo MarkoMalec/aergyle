@@ -12,6 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "~/components/ui/dialog";
+import { enchantedItemName } from "~/game/enchanting";
 import { useOptionalEquipmentContext } from "~/context/equipmentContext";
 import { useRarityColors } from "~/hooks/use-rarity-colors";
 import { cn } from "~/lib/utils";
@@ -45,6 +46,7 @@ type CompareItemData = Pick<
   | "twoHanded"
   | "requiredLevel"
   | "stats"
+  | "enchantLevel"
 >;
 
 const DAMAGE_ROWS = new Set<StatType>([
@@ -164,7 +166,7 @@ function CompareDialogContent({
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 pb-3 pr-14 pt-4">
         <DialogTitle className="pr-0 text-base">Compare</DialogTitle>
         <DialogDescription className="sr-only">
-          {item.name} next to your {SLOT_LABELS[slot].toLowerCase()}{" "}
+          {enchantedItemName(item.name, item.enchantLevel ?? 0)} next to your {SLOT_LABELS[slot].toLowerCase()}{" "}
           equipment: {better} stats better, {worse} worse.
         </DialogDescription>
         {slots.length > 1 ? (
@@ -303,6 +305,7 @@ function CompareCard({
     | "equipTo"
     | "twoHanded"
     | "requiredLevel"
+    | "enchantLevel"
   >;
   rows: StatComparisonRow[];
   side: "item" | "equipped";
@@ -312,7 +315,7 @@ function CompareCard({
 
   return (
     <section
-      aria-label={`${eyebrow}: ${item.name}`}
+      aria-label={`${eyebrow}: ${enchantedItemName(item.name, item.enchantLevel ?? 0)}`}
       data-rarity={item.rarity}
       style={rarityStyle(item.rarity, colors[item.rarity])}
       className="flex min-w-0 flex-col rounded-2xl bg-surface-inset/35 bg-[image:linear-gradient(150deg,color-mix(in_srgb,var(--rarity-color)_13%,transparent),transparent_170px)] p-4 md:row-span-4 md:grid md:grid-rows-subgrid"
@@ -459,7 +462,7 @@ function AlsoRemoved({
           className="font-semibold"
           style={{ color: "var(--rarity-text, var(--rarity-color))" }}
         >
-          {item.name}
+          {enchantedItemName(item.name, item.enchantLevel ?? 0)}
         </span>
       </span>
     </div>

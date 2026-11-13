@@ -30,6 +30,7 @@ import { useState } from "react";
 import { useVocationalActiveActionContext } from "~/components/game/actions/VocationalActiveActionProvider";
 import toast from "react-hot-toast";
 import type { ItemWithStats } from "~/types/stats";
+import { EnchantBadge } from "~/components/game/items/EnchantBadge";
 import { ItemRarityMark } from "~/utils/ui/rarity-mark";
 
 // Export for backward compatibility
@@ -718,6 +719,7 @@ export const DndProvider: React.FC<DndProviderProps> = ({
                 className="object-contain"
               />
               <ItemRarityMark rarity={draggedItem.rarity} />
+              <EnchantBadge level={draggedItem.enchantLevel} />
               {draggedItem.quantity && draggedItem.quantity > 1 && (
                 <div className="game-item-quantity">
                   {draggedItem.quantity}

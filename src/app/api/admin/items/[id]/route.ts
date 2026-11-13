@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "~/lib/prisma";
 import { requireAdminApiAccess } from "~/server/admin/auth";
+import { syncItemRarity } from "~/server/items/syncRarity";
 import { itemSchema, parseItemInput, writeItemBalance } from "../schema";
 
 export const dynamic = "force-dynamic";
@@ -36,6 +37,7 @@ export async function PATCH(req: NextRequest, ctx: { params: { id: string } }) {
   const updated = await prisma.$transaction(async (tx) => {
     const item = await tx.item.update({ where: { id }, data: input.item });
     await writeItemBalance(tx, id, input.balance, { replace: true });
+    await syncItemRarity(tx, id, item.rarity);
     return item;
   });
 

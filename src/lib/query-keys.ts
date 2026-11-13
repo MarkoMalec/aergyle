@@ -47,8 +47,7 @@ export const searchQueryKeys = {
 } as const;
 
 export const itemQueryKeys = {
-  details: (itemId: number, rarity: string) =>
-    ["item-details", itemId, rarity] as const,
+  details: (itemId: number) => ["item-details", itemId] as const,
 } as const;
 
 export const recipeQueryKeys = {
@@ -69,10 +68,10 @@ export const marketplaceQueryKeys = {
   listings: (filters?: Record<string, any>) =>
     ["marketplace", filters] as const,
   myListings: (userId?: string) => ["my-listings", userId] as const,
-  stats: (itemId: number, rarity: string) =>
-    ["marketplace", "stats", itemId, rarity] as const,
-  detail: (itemId: number, rarity: string) =>
-    ["marketplace", "detail", itemId, rarity] as const,
+  stats: (itemId: number, rarity: string, enchantLevel = 0) =>
+    ["marketplace", "stats", itemId, rarity, enchantLevel] as const,
+  detail: (itemId: number, rarity: string, enchantLevel?: number) =>
+    ["marketplace", "detail", itemId, rarity, enchantLevel ?? "all"] as const,
   history: (page: number, side: string) =>
     ["marketplace", "history", page, side] as const,
 } as const;
@@ -100,6 +99,11 @@ export const friendQueryKeys = {
   // Friends plus open requests, for the Friends window.
   list: () => ["friends", "list"] as const,
   search: (term: string) => ["friends", "search", term] as const,
+} as const;
+
+export const enchantQueryKeys = {
+  all: () => ["enchanting"] as const,
+  preview: (userItemId: number) => ["enchanting", userItemId] as const,
 } as const;
 
 export const rarityQueryKeys = {

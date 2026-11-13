@@ -73,10 +73,10 @@ without its own Attack Speed keeps the unarmed speed. The main hand sets the
 pace: a one-handed weapon in the off hand adds its damage and other stats but
 not its own Attack Speed. A shield's Attack Speed is a bonus like other gear.
 
-Rarity scales a weapon's damage but not its Attack Speed. A per-item rarity
-override still applies when an admin sets one. Attack Speed on other gear is a
-bonus and scales with rarity like any stat. The rules are
-`weaponAttackSpeedAdjustment` (`src/utils/stats.ts`) and `statScalesWithRarity`
+Enchanting scales a weapon's damage but not its Attack Speed. A per-item
+enchant override still applies when an admin sets one. Attack Speed on other
+gear is a bonus and scales with enchanting like any stat. The rules are
+`weaponAttackSpeedAdjustment` (`src/utils/stats.ts`) and `statScalesWithEnchant`
 (`src/utils/itemInstanceStats.ts`).
 
 ## Current consumers

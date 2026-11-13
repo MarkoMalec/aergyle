@@ -107,7 +107,6 @@ export async function POST(req: NextRequest) {
           db: tx,
           userId: buyerId,
           itemId: listing.itemId,
-          rarity: listing.rarity,
           quantity,
           statModifiers: listing.statModifiers,
         });
@@ -169,6 +168,7 @@ export async function POST(req: NextRequest) {
           sellerId: listing.userId,
           itemId: listing.itemId,
           rarity: listing.rarity,
+          enchantLevel: listing.enchantLevel,
           quantity,
           unitPrice,
           grossAmount: sale.gross,

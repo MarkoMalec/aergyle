@@ -51,7 +51,7 @@ async function main() {
             { name: { in: WAYFARER_ACCESSORIES.map((item) => item.name) } },
           ],
         },
-        include: { stats: true, statRarityOverrides: true },
+        include: { stats: true },
       });
       const results: Array<{
         name: string;
@@ -87,7 +87,6 @@ async function main() {
             "requiredLevel",
             "stackable",
             "maxStackSize",
-            "flipNegativeStatsWithRarity",
             "minPhysicalDamage",
             "maxPhysicalDamage",
             "minMagicDamage",
@@ -106,22 +105,6 @@ async function main() {
           ) {
             throw new Error(`${definition.name}: base stats differ`);
           }
-          const overrides = definition.statRarityOverrides ?? [];
-          if (
-            found.statRarityOverrides.length !== overrides.length ||
-            found.statRarityOverrides.some(
-              (row) =>
-                !overrides.some(
-                  (expectedRow) =>
-                    expectedRow.statType === row.statType &&
-                    expectedRow.rarity === row.rarity &&
-                    expectedRow.kind === row.kind &&
-                    expectedRow.value === row.value,
-                ),
-            )
-          ) {
-            throw new Error(`${definition.name}: rarity overrides differ`);
-          }
         }
 
         // Backpacks form a deliberate capacity ladder. Unlike the small
@@ -136,10 +119,6 @@ async function main() {
               stats: {
                 deleteMany: {},
                 create: expected.stats?.create ?? [],
-              },
-              statRarityOverrides: {
-                deleteMany: {},
-                create: expected.statRarityOverrides?.create ?? [],
               },
             },
           });

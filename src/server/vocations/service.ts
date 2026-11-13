@@ -25,8 +25,7 @@ export type VocationalStatus = {
           itemId: number;
           yieldPerUnit: number;
           xpPerUnit: number;
-          rarity: ItemRarity;
-          item: { sprite: string };
+          item: { sprite: string; rarity: ItemRarity };
         };
         location: { id: number; name: string } | null;
       })
@@ -91,8 +90,7 @@ async function fetchVocationalStatusRaw(
           itemId: true,
           yieldPerUnit: true,
           xpPerUnit: true,
-          rarity: true,
-          item: { select: { sprite: true } },
+          item: { select: { sprite: true, rarity: true } },
         },
       },
       location: {
@@ -141,7 +139,7 @@ function toDebugSnapshot(status: VocationalStatus): VocationalDebugSnapshot {
       resourceId: status.activity.resource.id,
       resourceName: status.activity.resource.name,
       yieldPerUnit: status.activity.resource.yieldPerUnit,
-      rarity: status.activity.resource.rarity,
+      rarity: status.activity.resource.item.rarity,
       itemId: status.activity.resource.itemId,
     },
     progress: {
@@ -248,7 +246,6 @@ export async function startVocationalActivity(params: {
       requiredRecipeItemId: true,
       defaultSeconds: true,
       yieldPerUnit: true,
-      rarity: true,
       name: true,
     },
   });

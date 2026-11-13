@@ -6,6 +6,11 @@ import { ItemChainPanel } from "~/components/admin/itemGraph/ItemChainPanel";
 import { StatType } from "~/generated/prisma/enums";
 import { requireAdminPageAccess } from "~/server/admin/auth";
 import { loadItemGraphContent } from "~/server/itemGraph/content";
+import { loadEnchantBonusTable } from "~/server/enchanting/config";
+import {
+  enchantOverridesCodec,
+  enchantUnlocksCodec,
+} from "~/components/admin/items/itemFormModel";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -17,7 +22,7 @@ export default async function AdminEditItemPage(props: {
   const id = Number(props.params.id);
   if (!Number.isFinite(id)) notFound();
 
-  const [item, graphContent] = await Promise.all([
+  const [item, graphContent, enchantBonuses] = await Promise.all([
     prisma.item.findUnique({
       where: { id },
       include: {
@@ -25,17 +30,17 @@ export default async function AdminEditItemPage(props: {
           orderBy: { statType: "asc" },
           select: { statType: true, value: true, maxValue: true },
         },
-        statRarityOverrides: {
-          orderBy: [{ rarity: "asc" }, { statType: "asc" }],
-          select: { statType: true, rarity: true, kind: true, value: true },
+        statEnchantOverrides: {
+          orderBy: [{ level: "asc" }, { statType: "asc" }],
+          select: { statType: true, level: true, kind: true, value: true },
         },
         toolEfficiencies: {
           orderBy: { actionType: "asc" },
           select: { actionType: true, baseEfficiency: true },
         },
-        statProgressions: {
-          orderBy: [{ unlocksAtRarity: "asc" }, { statType: "asc" }],
-          select: { statType: true, baseValue: true, unlocksAtRarity: true },
+        statEnchantUnlocks: {
+          orderBy: [{ level: "asc" }, { statType: "asc" }],
+          select: { statType: true, value: true, level: true },
         },
         foodEffectStats: {
           orderBy: { statType: "asc" },
@@ -44,6 +49,7 @@ export default async function AdminEditItemPage(props: {
       },
     }),
     loadItemGraphContent(),
+    loadEnchantBonusTable(),
   ]);
 
   if (!item) notFound();
@@ -67,20 +73,6 @@ export default async function AdminEditItemPage(props: {
           s.statType !== StatType.ARMOR,
       )
       .map((s: any) => `${s.statType},${s.value},${s.maxValue ?? ""}`),
-  ].join("\n");
-
-  const statProgressionsCsv = [
-    "statType,baseValue,unlocksAtRarity",
-    ...item.statProgressions.map(
-      (p: any) => `${p.statType},${p.baseValue},${p.unlocksAtRarity}`,
-    ),
-  ].join("\n");
-
-  const statRarityOverridesCsv = [
-    "statType,rarity,kind,value",
-    ...(item.statRarityOverrides ?? []).map(
-      (o: any) => `${o.statType},${o.rarity},${o.kind},${o.value}`,
-    ),
   ].join("\n");
 
   const foodEffectStatsCsv = [
@@ -108,7 +100,6 @@ export default async function AdminEditItemPage(props: {
       twoHanded: item.twoHanded,
       stackable: item.stackable,
       maxStackSize: item.maxStackSize,
-      flipNegativeStatsWithRarity: item.flipNegativeStatsWithRarity,
       minPhysicalDamage: item.minPhysicalDamage,
       maxPhysicalDamage: item.maxPhysicalDamage,
       minMagicDamage: item.minMagicDamage,
@@ -117,8 +108,10 @@ export default async function AdminEditItemPage(props: {
       requiredLevel: item.requiredLevel ?? 1,
       baseStatsCsv,
       toolEfficienciesCsv,
-      statProgressionsCsv,
-      statRarityOverridesCsv,
+      enchantUnlocksCsv: enchantUnlocksCodec.toCsv(item.statEnchantUnlocks),
+      enchantOverridesCsv: enchantOverridesCodec.toCsv(
+        item.statEnchantOverrides,
+      ),
       foodEffectStatsCsv,
     };
 
@@ -127,6 +120,7 @@ export default async function AdminEditItemPage(props: {
       mode="edit"
       itemId={item.id}
       initialValues={initialValues}
+      enchantBonuses={enchantBonuses}
       chain={<ItemChainPanel content={graphContent} itemId={item.id} />}
     />
   );

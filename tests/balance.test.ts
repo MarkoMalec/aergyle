@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { combatAtLevel, gearForLevel } from "../src/game/balance/combat";
+import { enchantBonusTable } from "../src/game/enchanting";
 import { DEFAULT_COMBAT_CONFIG } from "../src/server/combat/rules";
 import type { BalanceContent, BalanceItem, BalanceResource } from "../src/game/balance/content";
 import {
@@ -124,7 +125,7 @@ function content(patch: Partial<BalanceContent>): BalanceContent {
     quests: [],
     locations: [],
     items: [],
-    rarities: [],
+    enchantBonuses: enchantBonusTable([]),
     statGrowth: getDefaultStatGrowthRules(),
     combat: DEFAULT_COMBAT_CONFIG,
     vocationMaxSeconds: 8 * 3_600,
@@ -340,12 +341,11 @@ void test("auto gear takes the strongest item a level may wear", () => {
     equipTo: "weapon",
     twoHanded,
     balance: {
-      flip: false,
       stats: [
         { statType: "PHYSICAL_DAMAGE_MIN", value: damage, maxValue: null },
         { statType: "PHYSICAL_DAMAGE_MAX", value: damage, maxValue: null },
       ],
-      progressions: [],
+      unlocks: [],
       overrides: [],
     },
   });
@@ -356,10 +356,10 @@ void test("auto gear takes the strongest item a level may wear", () => {
     itemType: null,
     equipTo: "offhand",
     twoHanded: false,
-    balance: { flip: false, stats: [{ statType: "ARMOR", value: 5, maxValue: null }], progressions: [], overrides: [] },
+    balance: { stats: [{ statType: "ARMOR", value: 5, maxValue: null }], unlocks: [], overrides: [] },
   };
   const data = content({ items: [weapon(1, 1, 5), weapon(2, 10, 20), weapon(3, 20, 50, true), shield] });
-  const common = { rarity: "COMMON" as const, multiplier: 1 };
+  const common = { enchantLevel: 0 };
   const names = (level: number) => gearForLevel(data, level, common).map((piece) => piece.item.name);
   assert.deepEqual(names(5), ["Weapon 1", "Shield"]);
   assert.deepEqual(names(15), ["Weapon 2", "Shield"]);

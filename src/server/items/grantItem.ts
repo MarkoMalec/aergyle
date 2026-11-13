@@ -50,12 +50,13 @@ export async function grantStackableItemToInventory(params: {
   db: DbClient;
   userId: string;
   itemId: number;
-  rarity: ItemRarity;
   quantity: number;
   unitSize?: number;
   statModifiers?: ReadonlyArray<{ statType: StatType; value: number }>;
+  /** For non-stacking items only; the caller checks the item's ladder. */
+  enchantLevel?: number;
 }): Promise<GrantResult> {
-  const { db, userId, itemId, rarity } = params;
+  const { db, userId, itemId } = params;
   const requestedQuantity = Math.max(0, Math.floor(params.quantity));
   const unitSize = Math.max(1, Math.floor(params.unitSize ?? 1));
 
@@ -65,6 +66,12 @@ export async function grantStackableItemToInventory(params: {
   if (!itemTemplate) {
     throw new Error("Item template not found");
   }
+  // Every copy has its item's rarity, and an /admin save rewrites all copies
+  // (syncItemRarity). A locking read sees the latest committed rarity and holds
+  // the row, so a save waits for this grant and then updates its copies too.
+  const [locked] = await db.$queryRaw<Array<{ rarity: ItemRarity }>>`
+    SELECT rarity FROM Item WHERE id = ${itemId} LOCK IN SHARE MODE`;
+  const rarity = locked?.rarity ?? itemTemplate.rarity;
 
   const inventory = await lockInventory(db, userId);
   if (!inventory) {
@@ -160,6 +167,7 @@ export async function grantStackableItemToInventory(params: {
         quantity: stackSize,
         status: "IN_INVENTORY",
         isTradeable: true,
+        enchantLevel: isStackable ? 0 : (params.enchantLevel ?? 0),
         statModifiers:
           instanceModifiers.length > 0
             ? {

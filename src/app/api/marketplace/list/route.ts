@@ -222,6 +222,7 @@ export async function POST(req: NextRequest) {
             userId,
             itemId: ownedItem.itemId,
             rarity: ownedItem.rarity,
+            enchantLevel: ownedItem.enchantLevel,
             quantity: requestedQuantity,
             status: "LISTED",
             listedPrice: parsedPrice,

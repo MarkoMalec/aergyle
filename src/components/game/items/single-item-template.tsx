@@ -28,6 +28,8 @@ import {
   Utensils,
 } from "lucide-react";
 import { SplitStackDialog } from "./SplitStackDialog";
+import { EnchantBadge } from "./EnchantBadge";
+import { enchantedItemName } from "~/game/enchanting";
 import { ItemCompareButton } from "./ItemCompare";
 import type { EquipmentSlotKey } from "~/utils/itemEquipTo";
 import { ItemRarityMark } from "~/utils/ui/rarity-mark";
@@ -263,7 +265,7 @@ export default function SingleItemTemplate({
             )}
             style={itemRarityStyle}
             data-rarity={item.rarity}
-            aria-label={`${item.name}, ${item.rarity.toLowerCase()}. Item details`}
+            aria-label={`${enchantedItemName(item.name, item.enchantLevel ?? 0)}, ${item.rarity.toLowerCase()}. Item details`}
           >
             <Image
               alt={item.name}
@@ -273,11 +275,12 @@ export default function SingleItemTemplate({
               className="rounded-md"
             />
             <ItemRarityMark rarity={item.rarity} />
+            <EnchantBadge level={item.enchantLevel} />
           </button>
         </PopoverTrigger>
       )}
       <ItemDetailsPopoverContent
-        name={item.name}
+        name={enchantedItemName(item.name, item.enchantLevel ?? 0)}
         rarity={item.rarity}
         onCloseAutoFocus={(event) => {
           if (listDialogOpen || splitDialogOpen) event.preventDefault();
@@ -424,6 +427,7 @@ export default function SingleItemTemplate({
           itemName={item.name}
           sprite={sprite}
           rarity={item.rarity}
+          enchantLevel={item.enchantLevel ?? 0}
           maxQuantity={item.quantity ?? 1}
           stackable={item.stackable ?? false}
         />

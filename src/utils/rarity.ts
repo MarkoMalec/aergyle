@@ -9,7 +9,6 @@ export async function initializeRarityConfigs(): Promise<void> {
   const configs = [
     {
       rarity: ItemRarity.WORTHLESS,
-      statMultiplier: 0.5,
       minStats: 1,
       maxStats: 1,
       bonusStatChance: 0,
@@ -22,7 +21,6 @@ export async function initializeRarityConfigs(): Promise<void> {
     },
     {
       rarity: ItemRarity.BROKEN,
-      statMultiplier: 0.75,
       minStats: 1,
       maxStats: 2,
       bonusStatChance: 0,
@@ -35,7 +33,6 @@ export async function initializeRarityConfigs(): Promise<void> {
     },
     {
       rarity: ItemRarity.COMMON,
-      statMultiplier: 1.0,
       minStats: 1,
       maxStats: 2,
       bonusStatChance: 0,
@@ -48,7 +45,6 @@ export async function initializeRarityConfigs(): Promise<void> {
     },
     {
       rarity: ItemRarity.UNCOMMON,
-      statMultiplier: 1.15,
       minStats: 2,
       maxStats: 3,
       bonusStatChance: 0.1,
@@ -61,7 +57,6 @@ export async function initializeRarityConfigs(): Promise<void> {
     },
     {
       rarity: ItemRarity.RARE,
-      statMultiplier: 1.35,
       minStats: 2,
       maxStats: 4,
       bonusStatChance: 0.25,
@@ -74,7 +69,6 @@ export async function initializeRarityConfigs(): Promise<void> {
     },
     {
       rarity: ItemRarity.EXQUISITE,
-      statMultiplier: 1.5,
       minStats: 3,
       maxStats: 4,
       bonusStatChance: 0.35,
@@ -87,7 +81,6 @@ export async function initializeRarityConfigs(): Promise<void> {
     },
     {
       rarity: ItemRarity.EPIC,
-      statMultiplier: 1.7,
       minStats: 3,
       maxStats: 5,
       bonusStatChance: 0.5,
@@ -100,7 +93,6 @@ export async function initializeRarityConfigs(): Promise<void> {
     },
     {
       rarity: ItemRarity.ELITE,
-      statMultiplier: 1.9,
       minStats: 3,
       maxStats: 6,
       bonusStatChance: 0.65,
@@ -113,7 +105,6 @@ export async function initializeRarityConfigs(): Promise<void> {
     },
     {
       rarity: ItemRarity.UNIQUE,
-      statMultiplier: 2.1,
       minStats: 4,
       maxStats: 7,
       bonusStatChance: 0.75,
@@ -126,7 +117,6 @@ export async function initializeRarityConfigs(): Promise<void> {
     },
     {
       rarity: ItemRarity.LEGENDARY,
-      statMultiplier: 2.3,
       minStats: 4,
       maxStats: 8,
       bonusStatChance: 0.85,
@@ -139,7 +129,6 @@ export async function initializeRarityConfigs(): Promise<void> {
     },
     {
       rarity: ItemRarity.MYTHIC,
-      statMultiplier: 2.7,
       minStats: 5,
       maxStats: 9,
       bonusStatChance: 0.95,
@@ -152,7 +141,6 @@ export async function initializeRarityConfigs(): Promise<void> {
     },
     {
       rarity: ItemRarity.DIVINE,
-      statMultiplier: 3.0,
       minStats: 6,
       maxStats: 10,
       bonusStatChance: 1.0,

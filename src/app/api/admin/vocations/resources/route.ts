@@ -47,7 +47,6 @@ export async function POST(req: NextRequest) {
           defaultSeconds: v.defaultSeconds,
           yieldPerUnit: v.yieldPerUnit,
           xpPerUnit: v.xpPerUnit,
-          rarity: v.rarity,
           sortOrder,
         },
       });

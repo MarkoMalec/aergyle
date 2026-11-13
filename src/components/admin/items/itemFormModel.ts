@@ -2,14 +2,15 @@ import { z } from "zod";
 import {
   type ItemEquipTo,
   ItemRarity,
-  ItemStatRarityOverrideKind,
+  ItemStatOverrideKind,
   ItemType,
   StatType,
   VocationalActionType,
 } from "~/generated/prisma/enums";
+import { MAX_ENCHANT_LEVEL } from "~/game/enchanting";
 import { getVocationalEfficiencyStatType } from "~/game/vocationStats";
 import { STAT_METADATA } from "~/types/stats";
-import { statScalesWithRarity } from "~/utils/itemInstanceStats";
+import { enchantStat, type EnchantedStat } from "~/utils/itemInstanceStats";
 
 const ITEM_RARITY_VALUES = Object.values(ItemRarity) as [
   ItemRarity,
@@ -23,10 +24,11 @@ export type ToolEfficiencyRow = {
   baseEfficiency: number;
 };
 
-export type StatProgressionRow = {
+/** A stat gained from an enchant level upward. */
+export type EnchantUnlockRow = {
   statType: StatType;
-  baseValue: number;
-  unlocksAtRarity: ItemRarity;
+  value: number;
+  level: number;
 };
 
 export type BaseStatRow = {
@@ -35,10 +37,11 @@ export type BaseStatRow = {
   maxValue?: number | null;
 };
 
-export type StatRarityOverrideRow = {
+/** One stat at one enchant level: its own multiplier or an exact value. */
+export type EnchantOverrideRow = {
   statType: StatType;
-  rarity: ItemRarity;
-  kind: ItemStatRarityOverrideKind;
+  level: number;
+  kind: ItemStatOverrideKind;
   value: number;
 };
 
@@ -49,7 +52,6 @@ export type FoodEffectStatRow = {
 
 export type RarityConfigPreview = {
   rarity: ItemRarity;
-  statMultiplier: number;
   sortOrder: number;
   displayName?: string;
   color?: string;
@@ -123,7 +125,6 @@ export const itemFormSchema = z.object({
     .int("Whole numbers only")
     .min(1, "At least 1")
     .default(1),
-  flipNegativeStatsWithRarity: z.coerce.boolean().default(false),
   minPhysicalDamage: z.coerce.number().nullable().optional(),
   maxPhysicalDamage: z.coerce.number().nullable().optional(),
   minMagicDamage: z.coerce.number().nullable().optional(),
@@ -137,8 +138,8 @@ export const itemFormSchema = z.object({
   // Advanced (relationships)
   baseStatsCsv: z.string().optional(),
   toolEfficienciesCsv: z.string().optional(),
-  statProgressionsCsv: z.string().optional(),
-  statRarityOverridesCsv: z.string().optional(),
+  enchantUnlocksCsv: z.string().optional(),
+  enchantOverridesCsv: z.string().optional(),
   foodEffectStatsCsv: z.string().optional(),
 });
 
@@ -147,8 +148,8 @@ export type ItemFormValues = z.infer<typeof itemFormSchema>;
 export const CSV_FIELDS = [
   "baseStatsCsv",
   "toolEfficienciesCsv",
-  "statProgressionsCsv",
-  "statRarityOverridesCsv",
+  "enchantUnlocksCsv",
+  "enchantOverridesCsv",
   "foodEffectStatsCsv",
 ] as const;
 
@@ -248,56 +249,65 @@ export function toolEfficienciesToCsv(rows: ToolEfficiencyRow[]): string {
   ].join("\n");
 }
 
-export function safeParseStatProgressionsCsv(
+/** An enchant level written as a whole number from 1 to the top level. */
+function parseEnchantLevel(raw: string | undefined) {
+  const level = Number(raw);
+  return Number.isInteger(level) && level >= 1 && level <= MAX_ENCHANT_LEVEL
+    ? level
+    : null;
+}
+
+export function safeParseEnchantUnlocksCsv(
   csv: string,
-): ParsedRows<StatProgressionRow> {
+): ParsedRows<EnchantUnlockRow> {
   const lines = parseCsvLines(csv);
   if (lines.length === 0) return { rows: [], error: null };
 
   const startIndex = lines[0]?.toLowerCase().includes("stattype") ? 1 : 0;
-  const rows: StatProgressionRow[] = [];
+  const rows: EnchantUnlockRow[] = [];
 
   for (const [idx, line] of lines.slice(startIndex).entries()) {
-    const [statTypeRaw, baseRaw, unlocksRaw] = line
+    const [statTypeRaw, valueRaw, levelRaw] = line
       .split(",")
       .map((s) => s.trim());
-    if (!statTypeRaw || !baseRaw || !unlocksRaw) continue;
+    if (!statTypeRaw || !valueRaw || !levelRaw) continue;
     if (!(statTypeRaw in StatType)) {
       return {
         rows: [],
         error: `Invalid statType on row ${idx + 1}: ${statTypeRaw}`,
       };
     }
-    if (!(unlocksRaw in ItemRarity)) {
+    const level = parseEnchantLevel(levelRaw);
+    if (level === null) {
       return {
         rows: [],
-        error: `Invalid unlocksAtRarity on row ${idx + 1}: ${unlocksRaw}`,
+        error: `Invalid enchant level on row ${idx + 1}: ${levelRaw} (1-${MAX_ENCHANT_LEVEL})`,
       };
     }
-
-    const baseValue = Number.parseFloat(baseRaw);
-    if (!Number.isFinite(baseValue)) {
+    const value = Number.parseFloat(valueRaw);
+    if (!Number.isFinite(value)) {
       return {
         rows: [],
-        error: `Invalid baseValue on row ${idx + 1} for ${statTypeRaw}`,
+        error: `Invalid value on row ${idx + 1} for ${statTypeRaw}`,
       };
     }
-
-    rows.push({
-      statType: statTypeRaw as StatType,
-      baseValue,
-      unlocksAtRarity: unlocksRaw as ItemRarity,
-    });
+    if (rows.some((r) => r.statType === statTypeRaw)) {
+      return {
+        rows: [],
+        error: `One unlock per stat: ${statTypeRaw} is listed twice`,
+      };
+    }
+    rows.push({ statType: statTypeRaw as StatType, value, level });
   }
 
   return { rows, error: null };
 }
 
-export function statProgressionsToCsv(rows: StatProgressionRow[]): string {
+export function enchantUnlocksToCsv(rows: EnchantUnlockRow[]): string {
   if (!rows || rows.length === 0) return "";
   return [
-    "statType,baseValue,unlocksAtRarity",
-    ...rows.map((r) => `${r.statType},${r.baseValue},${r.unlocksAtRarity}`),
+    "statType,value,level",
+    ...rows.map((r) => `${r.statType},${r.value},${r.level}`),
   ].join("\n");
 }
 
@@ -354,24 +364,20 @@ export function baseStatsToCsv(rows: BaseStatRow[]): string {
   ].join("\n");
 }
 
-export function safeParseStatRarityOverridesCsv(
+export function safeParseEnchantOverridesCsv(
   csv: string,
-): ParsedRows<StatRarityOverrideRow> {
+): ParsedRows<EnchantOverrideRow> {
   const lines = parseCsvLines(csv);
   if (lines.length === 0) return { rows: [], error: null };
 
   const startIndex = lines[0]?.toLowerCase().includes("stattype") ? 1 : 0;
-  const rows: StatRarityOverrideRow[] = [];
+  const rows: EnchantOverrideRow[] = [];
 
   for (const [idx, line] of lines.slice(startIndex).entries()) {
-    const parts = line.split(",").map((s) => s.trim());
-    const [statTypeRaw, rarityRaw] = parts;
-    const hasKindColumn = parts.length >= 4;
-    const kindRaw = hasKindColumn
-      ? parts[2]
-      : ItemStatRarityOverrideKind.ABSOLUTE;
-    const valueRaw = hasKindColumn ? parts[3] : parts[2];
-    if (!statTypeRaw || !rarityRaw || !valueRaw) continue;
+    const [statTypeRaw, levelRaw, kindRaw, valueRaw] = line
+      .split(",")
+      .map((s) => s.trim());
+    if (!statTypeRaw || !levelRaw || !kindRaw || !valueRaw) continue;
 
     if (!(statTypeRaw in StatType)) {
       return {
@@ -379,31 +385,36 @@ export function safeParseStatRarityOverridesCsv(
         error: `Invalid statType on row ${idx + 1}: ${statTypeRaw}`,
       };
     }
-    if (!(rarityRaw in ItemRarity)) {
+    const level = parseEnchantLevel(levelRaw);
+    if (level === null) {
       return {
         rows: [],
-        error: `Invalid rarity on row ${idx + 1}: ${rarityRaw}`,
+        error: `Invalid enchant level on row ${idx + 1}: ${levelRaw} (1-${MAX_ENCHANT_LEVEL})`,
       };
     }
-    if (!kindRaw || !(kindRaw in ItemStatRarityOverrideKind)) {
+    if (!(kindRaw in ItemStatOverrideKind)) {
       return {
         rows: [],
-        error: `Invalid override kind on row ${idx + 1}: ${kindRaw ?? ""}`,
+        error: `Invalid override kind on row ${idx + 1}: ${kindRaw}`,
       };
     }
-
     const value = Number.parseFloat(valueRaw);
     if (!Number.isFinite(value)) {
       return {
         rows: [],
-        error: `Invalid value on row ${idx + 1} for ${statTypeRaw}/${rarityRaw}`,
+        error: `Invalid value on row ${idx + 1} for ${statTypeRaw}/${level}`,
       };
     }
-
+    if (rows.some((r) => r.statType === statTypeRaw && r.level === level)) {
+      return {
+        rows: [],
+        error: `One override per stat and level: ${statTypeRaw} at ${level} is listed twice`,
+      };
+    }
     rows.push({
       statType: statTypeRaw as StatType,
-      rarity: rarityRaw as ItemRarity,
-      kind: kindRaw as ItemStatRarityOverrideKind,
+      level,
+      kind: kindRaw as ItemStatOverrideKind,
       value,
     });
   }
@@ -411,13 +422,11 @@ export function safeParseStatRarityOverridesCsv(
   return { rows, error: null };
 }
 
-export function statRarityOverridesToCsv(
-  rows: StatRarityOverrideRow[],
-): string {
+export function enchantOverridesToCsv(rows: EnchantOverrideRow[]): string {
   if (!rows || rows.length === 0) return "";
   return [
-    "statType,rarity,kind,value",
-    ...rows.map((r) => `${r.statType},${r.rarity},${r.kind},${r.value}`),
+    "statType,level,kind,value",
+    ...rows.map((r) => `${r.statType},${r.level},${r.kind},${r.value}`),
   ].join("\n");
 }
 
@@ -436,20 +445,19 @@ export const toolEfficienciesCodec: CsvCodec<ToolEfficiencyRow> = {
   example: "actionType,baseEfficiency\nWOODCUTTING,10\nMINING,5",
 };
 
-export const statProgressionsCodec: CsvCodec<StatProgressionRow> = {
-  parse: safeParseStatProgressionsCsv,
-  toCsv: statProgressionsToCsv,
-  format: "statType,baseValue,unlocksAtRarity",
-  example:
-    "statType,baseValue,unlocksAtRarity\nCRITICAL_CHANCE,5,COMMON\nLIFESTEAL,3,DIVINE",
+export const enchantUnlocksCodec: CsvCodec<EnchantUnlockRow> = {
+  parse: safeParseEnchantUnlocksCsv,
+  toCsv: enchantUnlocksToCsv,
+  format: "statType,value,level",
+  example: "statType,value,level\nCRITICAL_CHANCE,5,10\nLIFESTEAL,3,16",
 };
 
-export const statRarityOverridesCodec: CsvCodec<StatRarityOverrideRow> = {
-  parse: safeParseStatRarityOverridesCsv,
-  toCsv: statRarityOverridesToCsv,
-  format: "statType,rarity,kind,value",
+export const enchantOverridesCodec: CsvCodec<EnchantOverrideRow> = {
+  parse: safeParseEnchantOverridesCsv,
+  toCsv: enchantOverridesToCsv,
+  format: "statType,level,kind,value",
   example:
-    "statType,rarity,kind,value\nPHYSICAL_DAMAGE_MAX,LEGENDARY,MULTIPLIER,1.15\nMOVEMENT_SPEED,EPIC,ABSOLUTE,-1",
+    "statType,level,kind,value\nPHYSICAL_DAMAGE_MAX,15,MULTIPLIER,1.3\nMOVEMENT_SPEED,20,ABSOLUTE,-1",
 };
 
 export const foodEffectStatsCodec: CsvCodec<FoodEffectStatRow> = {
@@ -485,8 +493,8 @@ export type PreviewRow = {
   statType: StatType;
   baseValue: number;
   maxValue: number | null;
-  progressions: Array<{ baseValue: number; unlocksAtRarity: ItemRarity }>;
-  overrides: StatRarityOverrideRow[];
+  unlocks: EnchantUnlockRow[];
+  overrides: EnchantOverrideRow[];
 };
 
 function parseWatchedNumber(value: unknown): number {
@@ -497,14 +505,14 @@ function parseWatchedNumber(value: unknown): number {
 
 /**
  * Every stat the item ends up with, from the base stats, the damage and armor
- * inputs, tool efficiencies, progressions and overrides, in the order the game
+ * inputs, tool efficiencies, enchant unlocks and overrides, in the order the game
  * lists stats.
  */
 export function buildPreviewRows(input: {
   baseStatsCsv: string;
   toolEfficienciesCsv: string;
-  statProgressionsCsv: string;
-  statRarityOverridesCsv: string;
+  enchantUnlocksCsv: string;
+  enchantOverridesCsv: string;
   minPhysicalDamage: unknown;
   maxPhysicalDamage: unknown;
   minMagicDamage: unknown;
@@ -513,9 +521,9 @@ export function buildPreviewRows(input: {
 }): PreviewRow[] {
   const baseParsed = safeParseBaseStatsCsv(input.baseStatsCsv);
   const toolParsed = safeParseToolEfficienciesCsv(input.toolEfficienciesCsv);
-  const progParsed = safeParseStatProgressionsCsv(input.statProgressionsCsv);
-  const overrideParsed = safeParseStatRarityOverridesCsv(
-    input.statRarityOverridesCsv,
+  const unlockParsed = safeParseEnchantUnlocksCsv(input.enchantUnlocksCsv);
+  const overrideParsed = safeParseEnchantOverridesCsv(
+    input.enchantOverridesCsv,
   );
 
   // Mirror server behavior: last duplicate wins for base stats.
@@ -561,19 +569,9 @@ export function buildPreviewRows(input: {
     });
   }
 
-  const progByStat = new Map<
-    StatType,
-    Array<{ baseValue: number; unlocksAtRarity: ItemRarity }>
-  >();
-  for (const p of progParsed.rows) {
-    const arr = progByStat.get(p.statType) ?? [];
-    arr.push({ baseValue: p.baseValue, unlocksAtRarity: p.unlocksAtRarity });
-    progByStat.set(p.statType, arr);
-  }
-
   const statTypesAll = new Set<StatType>([
     ...baseByStat.keys(),
-    ...progByStat.keys(),
+    ...unlockParsed.rows.map((u) => u.statType),
     ...overrideParsed.rows.map((o) => o.statType),
   ]);
   const ordered = Array.from(statTypesAll).sort(
@@ -587,21 +585,9 @@ export function buildPreviewRows(input: {
     statType,
     baseValue: baseByStat.get(statType)?.value ?? 0,
     maxValue: baseByStat.get(statType)?.maxValue ?? null,
-    progressions: progByStat.get(statType) ?? [],
+    unlocks: unlockParsed.rows.filter((u) => u.statType === statType),
     overrides: overrideParsed.rows.filter((o) => o.statType === statType),
   }));
-}
-
-export function scaleForPreview(
-  baseValue: number,
-  multiplier: number,
-  flipNegatives: boolean,
-) {
-  if (!Number.isFinite(baseValue) || !Number.isFinite(multiplier)) return NaN;
-  if (!flipNegatives) return baseValue * multiplier;
-  if (baseValue >= 0) return baseValue * multiplier;
-  // Example base -5, mult 2.3 => -5 + (1.3 * 5) = +1.5
-  return baseValue + (multiplier - 1) * Math.abs(baseValue);
 }
 
 export function formatPreviewValue(value: number) {
@@ -610,69 +596,26 @@ export function formatPreviewValue(value: number) {
   return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(2);
 }
 
-export type PreviewCell = {
-  /** Null when the item has none of this stat at this rarity. */
-  value: number | null;
-  /** Base value plus every progression unlocked by this rarity. */
-  baseTotal: number;
-  /** The rarity's multiplier, or 1 for a stat that doesn't scale. */
-  globalMultiplier: number;
-  /** The multiplier actually applied (an override replaces the global one). */
-  multiplier: number;
-  override: StatRarityOverrideRow | null;
-  /** The value before the cap, when the cap lowered it. */
-  uncapped: number | null;
-  scales: boolean;
-};
+export type PreviewCell = EnchantedStat;
 
-/** One stat at one rarity, the way the game computes it. */
+/** One stat at one enchant level, exactly the way the game computes it. */
 export function previewCell(
   row: PreviewRow,
-  rarity: ItemRarity,
+  level: number,
   context: {
-    rarityIndex: ReadonlyMap<ItemRarity, number>;
-    multipliers: ReadonlyMap<ItemRarity, number>;
     equipTo: ItemEquipTo | null;
-    flipNegatives: boolean;
+    /** The level's global stat bonus in percent. */
+    bonusPercent: number;
   },
 ): PreviewCell {
-  const currentIdx = context.rarityIndex.get(rarity) ?? 0;
-  const unlockedSum = row.progressions
-    .filter((p) => {
-      const unlockIdx = context.rarityIndex.get(p.unlocksAtRarity);
-      return unlockIdx !== undefined && unlockIdx <= currentIdx;
-    })
-    .reduce((acc, p) => acc + p.baseValue, 0);
-
-  const hasAny = row.baseValue !== 0 || unlockedSum !== 0;
-  const scales = statScalesWithRarity(row.statType, context.equipTo);
-  const globalMultiplier = scales ? context.multipliers.get(rarity) ?? 1 : 1;
-  const baseTotal = row.baseValue + unlockedSum;
-  const found = row.overrides.find((o) => o.rarity === rarity);
-  const override =
-    found && typeof found.value === "number" && Number.isFinite(found.value)
-      ? found
-      : null;
-  const multiplier =
-    override?.kind === ItemStatRarityOverrideKind.MULTIPLIER
-      ? override.value
-      : globalMultiplier;
-  const total =
-    override?.kind === ItemStatRarityOverrideKind.ABSOLUTE
-      ? override.value
-      : scaleForPreview(baseTotal, multiplier, context.flipNegatives);
-  const capped =
-    typeof row.maxValue === "number" && Number.isFinite(row.maxValue)
-      ? Math.min(total, row.maxValue)
-      : total;
-
-  return {
-    value: override !== null || hasAny ? capped : null,
-    baseTotal,
-    globalMultiplier,
-    multiplier,
-    override,
-    uncapped: capped < total ? total : null,
-    scales,
-  };
+  return enchantStat({
+    statType: row.statType,
+    equipTo: context.equipTo,
+    base: row.baseValue,
+    maxValue: row.maxValue,
+    unlocks: row.unlocks,
+    overrides: row.overrides,
+    level,
+    bonusPercent: context.bonusPercent,
+  });
 }

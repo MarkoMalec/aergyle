@@ -55,7 +55,6 @@ export async function DELETE(req: NextRequest) {
           db: tx,
           userId: session.user.id,
           itemId: listing.itemId,
-          rarity: listing.rarity,
           quantity: listing.quantity,
           statModifiers: listing.statModifiers,
         });

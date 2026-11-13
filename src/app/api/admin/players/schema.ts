@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
+import { MAX_ENCHANT_LEVEL } from "~/game/enchanting";
 import { z } from "zod";
 import { Prisma } from "~/generated/prisma/client";
 import {
-  ItemRarity,
   ProgressionTrackType,
   StatType,
   VocationalActionType,
@@ -51,7 +51,7 @@ export const playerSchema = z.object({
 
 export const grantSchema = z.object({
   itemId: id,
-  rarity: z.enum(values(ItemRarity)),
+  enchantLevel: z.number().int().min(0).max(MAX_ENCHANT_LEVEL).default(0),
   quantity: z.number().int().min(1).max(1_000_000),
 });
 
@@ -66,7 +66,6 @@ function uniqueStats(rows: Array<{ statType: StatType }>) {
 
 export const itemSchema = z.object({
   quantity: z.number().int().min(1).max(1_000_000).optional(),
-  rarity: z.enum(values(ItemRarity)).optional(),
   isTradeable: z.boolean().optional(),
   modifiers: z
     .array(modifierSchema)
@@ -166,7 +165,10 @@ export function parseItemId(value: string) {
 
 function errorResponse(error: unknown) {
   if (error instanceof PlayerEditError) {
-    return NextResponse.json({ error: error.message }, { status: error.status });
+    return NextResponse.json(
+      { error: error.message },
+      { status: error.status },
+    );
   }
   const code =
     error instanceof Prisma.PrismaClientKnownRequestError ? error.code : null;

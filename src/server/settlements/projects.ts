@@ -645,7 +645,6 @@ export async function claimProjectReward(userId: string, rewardId: number) {
         db: tx,
         userId,
         itemId: row.itemId,
-        rarity: template.rarity,
         quantity: row.quantity,
       });
       if (grant.remainingQuantity > 0) {

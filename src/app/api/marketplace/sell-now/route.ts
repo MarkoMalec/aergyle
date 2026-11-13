@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
       if (ownedItem.status !== "IN_INVENTORY" || !ownedItem.isTradeable) {
         fail(400, "This item is not available to sell");
       }
-      if (!ownedItem.itemTemplate.stackable) {
+      if (!ownedItem.itemTemplate.stackable || ownedItem.enchantLevel !== 0) {
         fail(400, "Sell now is available for stackable commodities only");
       }
       if (requestedQuantity > ownedItem.quantity) {
@@ -126,7 +126,6 @@ export async function POST(req: NextRequest) {
             db: tx,
             userId: order.userId,
             itemId: ownedItem.itemId,
-            rarity: ownedItem.rarity,
             quantity: desiredFill,
             statModifiers: ownedItem.statModifiers,
           });
@@ -160,6 +159,7 @@ export async function POST(req: NextRequest) {
             sellerId,
             itemId: ownedItem.itemId,
             rarity: ownedItem.rarity,
+            enchantLevel: ownedItem.enchantLevel,
             quantity: actualFill,
             unitPrice,
             grossAmount: sale.gross,

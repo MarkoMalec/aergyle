@@ -1,43 +1,37 @@
 import type {
   ItemEquipTo,
-  ItemRarity,
   StatType,
   VocationalActionType,
 } from "~/generated/prisma/enums";
 import type { PrismaClient } from "~/generated/prisma/client";
 import { prisma } from "~/lib/prisma";
-import { resolveEffectiveItemStats } from "~/utils/itemInstanceStats";
+import {
+  type EnchantOverrideTemplate,
+  type EnchantUnlockTemplate,
+  resolveEffectiveItemStats,
+} from "~/utils/itemInstanceStats";
+import { loadEnchantBonuses } from "~/server/enchanting/config";
 
 export const ITEM_BALANCE_RELATIONS = {
   stats: true,
-  statProgressions: true,
-  statRarityOverrides: true,
+  statEnchantUnlocks: true,
+  statEnchantOverrides: true,
   toolEfficiencies: true,
 } as const;
 
-type BalanceDb = Pick<PrismaClient, "rarityConfig">;
+type BalanceDb = Pick<PrismaClient, "enchantLevelConfig">;
 
 type ResolvableUserItem = {
-  rarity: ItemRarity;
+  enchantLevel?: number;
   itemTemplate: {
     equipTo: ItemEquipTo | null;
-    flipNegativeStatsWithRarity: boolean;
     stats: ReadonlyArray<{
       statType: StatType;
       value: number;
       maxValue?: number | null;
     }>;
-    statProgressions: ReadonlyArray<{
-      statType: StatType;
-      baseValue: number;
-      unlocksAtRarity: ItemRarity;
-    }>;
-    statRarityOverrides: ReadonlyArray<{
-      statType: StatType;
-      rarity: ItemRarity;
-      kind: "MULTIPLIER" | "ABSOLUTE";
-      value: number;
-    }>;
+    statEnchantUnlocks: ReadonlyArray<EnchantUnlockTemplate>;
+    statEnchantOverrides: ReadonlyArray<EnchantOverrideTemplate>;
     toolEfficiencies: ReadonlyArray<{
       actionType: VocationalActionType;
       baseEfficiency: number;
@@ -62,28 +56,19 @@ export async function hydrateEffectiveItemStats<T extends ResolvableUserItem>(
 ): Promise<Array<Omit<T, "statModifiers"> & { stats: EffectiveStat[] }>> {
   if (items.length === 0) return [];
 
-  const rarities = [...new Set(items.map((item) => item.rarity))];
-  const configs = await db.rarityConfig.findMany({
-    where: { rarity: { in: rarities } },
-    select: { rarity: true, statMultiplier: true },
-  });
-  const multiplierByRarity = new Map(
-    configs.map((config) => [config.rarity, config.statMultiplier]),
-  );
+  const enchantBonus = await loadEnchantBonuses(items, db);
 
   return items.map((item) => {
     const { statModifiers, ...rest } = item;
     const stats = resolveEffectiveItemStats({
-      rarity: item.rarity,
-      rarityMultiplier: multiplierByRarity.get(item.rarity) ?? 1,
-      flipNegativeStatsWithRarity:
-        item.itemTemplate.flipNegativeStatsWithRarity,
       equipTo: item.itemTemplate.equipTo,
       stats: item.itemTemplate.stats,
-      statProgressions: item.itemTemplate.statProgressions,
-      statRarityOverrides: item.itemTemplate.statRarityOverrides,
+      enchantUnlocks: item.itemTemplate.statEnchantUnlocks,
+      enchantOverrides: item.itemTemplate.statEnchantOverrides,
       toolEfficiencies: item.itemTemplate.toolEfficiencies,
       instanceModifiers: statModifiers,
+      enchantLevel: item.enchantLevel ?? 0,
+      enchantBonusPercent: enchantBonus(item),
     });
 
     return { ...rest, stats } as Omit<T, "statModifiers"> & {

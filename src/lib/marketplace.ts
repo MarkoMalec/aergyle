@@ -131,10 +131,14 @@ export function percentageChange(
   return roundGold(((current - previous) / previous) * 100);
 }
 
-/** Price history and order book summary for one item at one rarity. */
-export async function fetchMarketStats(itemId: number, rarity: ItemRarity) {
+/** Price history and order book summary for one item at one rarity and enchant level. */
+export async function fetchMarketStats(
+  itemId: number,
+  rarity: ItemRarity,
+  enchantLevel = 0,
+) {
   const response = await fetch(
-    `/api/marketplace/stats?itemId=${itemId}&rarity=${rarity}`,
+    `/api/marketplace/stats?itemId=${itemId}&rarity=${rarity}&enchantLevel=${enchantLevel}`,
   );
   if (!response.ok) throw new Error("Failed to fetch market metrics");
   return response.json() as Promise<MarketStatsData>;

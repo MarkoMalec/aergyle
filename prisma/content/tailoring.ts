@@ -5,6 +5,7 @@ import type {
   StatType,
 } from "../../src/generated/prisma/enums";
 import type { Prisma } from "../../src/generated/prisma/client";
+import { bakeLegacyRarity } from "./legacyRarity";
 
 export interface TailoringMaterialDefinition {
   name: string;
@@ -274,7 +275,7 @@ export const TAILORING_BLUEPRINTS = [
   },
 ] as const satisfies readonly TailoringBlueprintDefinition[];
 
-export const TAILORING_GEAR = [
+export const TAILORING_GEAR = bakeLegacyRarity([
   {
     slug: "fieldweave-gloves",
     name: "Fieldweave Gloves",
@@ -360,7 +361,7 @@ export const TAILORING_GEAR = [
     ],
     stats: { ARMOR: 7, GATHERING_EFFICIENCY: 3, LUCK: 2 },
   },
-] as const satisfies readonly TailoringGearDefinition[];
+] as const satisfies readonly TailoringGearDefinition[]);
 
 export const TAILORING_GATHERING_POOLS = [
   {
@@ -431,7 +432,6 @@ export function tailoringItemCreateData(
     stackable: !gear,
     maxStackSize: gear ? 1 : 9999,
     requiredLevel: gear?.requiredLevel ?? 1,
-    flipNegativeStatsWithRarity: false,
     armor: gear?.stats.ARMOR ?? 0,
     minPhysicalDamage: 0,
     maxPhysicalDamage: 0,

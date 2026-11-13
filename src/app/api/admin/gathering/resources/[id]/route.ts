@@ -1,16 +1,14 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { ItemRarity, VocationalActionType } from "~/generated/prisma/enums";
+import { VocationalActionType } from "~/generated/prisma/enums";
 import { prisma } from "~/lib/prisma";
 import { requireAdminApiAccess } from "~/server/admin/auth";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-const RARITIES = Object.values(ItemRarity) as [ItemRarity, ...ItemRarity[]];
 const patchSchema = z.object({
   requiredSkillLevel: z.number().int().min(1).max(10_000),
-  rarity: z.enum(RARITIES),
 });
 
 export async function PATCH(
@@ -49,7 +47,7 @@ export async function PATCH(
   const updated = await prisma.vocationalResource.update({
     where: { id },
     data: parsed.data,
-    select: { id: true, requiredSkillLevel: true, rarity: true },
+    select: { id: true, requiredSkillLevel: true },
   });
   return NextResponse.json({ ok: true, resource: updated });
 }

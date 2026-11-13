@@ -56,7 +56,6 @@ async function main() {
       name: "Oak",
       defaultSeconds: 10,
       yieldPerUnit: 1,
-      rarity: ItemRarity.COMMON,
     },
     create: {
       actionType: VocationalActionType.WOODCUTTING,
@@ -64,7 +63,6 @@ async function main() {
       itemId: oakLog.id,
       defaultSeconds: 10,
       yieldPerUnit: 1,
-      rarity: ItemRarity.COMMON,
     },
   });
 

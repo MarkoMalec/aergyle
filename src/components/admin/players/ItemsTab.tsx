@@ -17,7 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog";
-import { ItemRarity, StatType } from "~/generated/prisma/enums";
+import { StatType } from "~/generated/prisma/enums";
 import { cn } from "~/lib/utils";
 import type { AdminPlayer } from "~/server/admin/players";
 import { STAT_METADATA } from "~/types/stats";
@@ -34,7 +34,6 @@ import {
 
 type PlayerItem = AdminPlayer["items"][number];
 
-const RARITIES = Object.values(ItemRarity);
 const STAT_TYPES = Object.values(StatType);
 
 const PLACES = [
@@ -81,7 +80,6 @@ function EditItemDialog(props: {
   const { run, busy } = usePlayerEdit();
   const { item } = props;
   const [quantity, setQuantity] = useState<number | null>(item.quantity);
-  const [rarity, setRarity] = useState(item.rarity);
   const [isTradeable, setTradeable] = useState(item.isTradeable);
   const [modifiers, setModifiers] = useState(item.modifiers);
   const maxStack = item.stackable ? Math.max(1, item.maxStackSize) : 1;
@@ -91,7 +89,7 @@ function EditItemDialog(props: {
       `edit-${item.id}`,
       `/items/${item.id}`,
       "PATCH",
-      { quantity: quantity ?? item.quantity, rarity, isTradeable, modifiers },
+      { quantity: quantity ?? item.quantity, isTradeable, modifiers },
       `${item.name} saved`,
     );
     if (result) props.onClose();
@@ -106,7 +104,7 @@ function EditItemDialog(props: {
       <DialogContent className="admin-theme dark max-w-xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
-            <ItemArt sprite={item.sprite} rarity={rarity} />
+            <ItemArt sprite={item.sprite} rarity={item.rarity} />
             {item.name}
             <span className="text-xs font-normal text-white/40">
               #{item.id}
@@ -114,7 +112,7 @@ function EditItemDialog(props: {
           </DialogTitle>
         </DialogHeader>
 
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2">
           <Field
             label="Quantity"
             hint={item.stackable ? `Stacks to ${maxStack}` : "Doesn't stack"}
@@ -127,19 +125,6 @@ function EditItemDialog(props: {
               value={quantity}
               onValueChange={setQuantity}
             />
-          </Field>
-          <Field label="Rarity">
-            <select
-              className={inputClass}
-              value={rarity}
-              onChange={(event) => setRarity(event.target.value as ItemRarity)}
-            >
-              {RARITIES.map((value) => (
-                <option key={value} value={value}>
-                  {humanize(value)}
-                </option>
-              ))}
-            </select>
           </Field>
           <Field label="Trading">
             <select
@@ -157,7 +142,7 @@ function EditItemDialog(props: {
           <div className="text-xs font-medium text-white/70">
             Extra stats on this item
             <span className="block text-[11px] font-normal text-white/40">
-              Added on top of what the item and its rarity give.
+              Added on top of what the item and its enchant level give.
             </span>
           </div>
           {modifiers.map((row, index) => (

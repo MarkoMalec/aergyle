@@ -21,11 +21,11 @@ import {
 // Item templates only change through the admin panel, so a loaded card stays good.
 const ITEM_DETAILS_STALE_MS = 10 * 60_000;
 
-function itemDetailsQuery(itemId: number, rarity: ItemRarity) {
+function itemDetailsQuery(itemId: number) {
   return queryOptions({
-    queryKey: itemQueryKeys.details(itemId, rarity),
+    queryKey: itemQueryKeys.details(itemId),
     queryFn: async (): Promise<ItemDetailsData> => {
-      const response = await fetch(`/api/items/${itemId}?rarity=${rarity}`);
+      const response = await fetch(`/api/items/${itemId}`);
       if (!response.ok) throw new Error("Could not load item details");
       return (await response.json()) as ItemDetailsData;
     },
@@ -38,11 +38,8 @@ function itemDetailsQuery(itemId: number, rarity: ItemRarity) {
  * few places that build their own trigger, such as a draggable inventory
  * slot, and want the same card behind it.
  */
-export function LoadedItemDetails(props: {
-  itemId: number;
-  rarity: ItemRarity;
-}) {
-  const query = useQuery(itemDetailsQuery(props.itemId, props.rarity));
+export function LoadedItemDetails(props: { itemId: number }) {
+  const query = useQuery(itemDetailsQuery(props.itemId));
 
   if (query.data) {
     return (
@@ -77,7 +74,7 @@ export function LoadedItemDetails(props: {
 /**
  * Makes an item image open its details card on click (the same card as the
  * inventory, without actions), leaving the image's look unchanged. Details load
- * when first opened, are prefetched on hover, and are cached per item and rarity.
+ * when first opened, are prefetched on hover, and are cached per item.
  */
 export function ItemInfoPopover({
   itemId,
@@ -98,7 +95,7 @@ export function ItemInfoPopover({
 }) {
   const queryClient = useQueryClient();
   const prefetch = () =>
-    void queryClient.prefetchQuery(itemDetailsQuery(itemId, rarity));
+    void queryClient.prefetchQuery(itemDetailsQuery(itemId));
 
   const trigger = (
     <PopoverTrigger asChild>
@@ -125,7 +122,7 @@ export function ItemInfoPopover({
         trigger
       )}
       <ItemDetailsPopoverContent name={name} rarity={rarity}>
-        <LoadedItemDetails itemId={itemId} rarity={rarity} />
+        <LoadedItemDetails itemId={itemId} />
       </ItemDetailsPopoverContent>
     </Popover>
   );

@@ -12,11 +12,16 @@ import {
   tailoringRequirementsForGear,
 } from "../prisma/content/tailoring";
 import {
+  ItemEquipTo,
   ItemRarity,
   ItemType,
   StatType,
   VocationalActionType,
 } from "../src/generated/prisma/enums";
+import {
+  bakeLegacyRarity,
+  legacyRarityStat,
+} from "../prisma/content/legacyRarity";
 import { getCraftingCategory, getCraftingRule } from "../src/game/crafting";
 import {
   SHIPPED_SKILL_ITEM_RULES,
@@ -193,28 +198,24 @@ void test("crafting rules make profession ownership explicit", () => {
   );
 });
 
-void test("crafted equipment instance stats preserve rarity scaling", () => {
-  const tunic = TAILORING_GEAR.find(
-    (item) => item.name === "Fieldweave Tunic",
-  )!;
-  const stats = resolveEffectiveItemStats({
-    rarity: ItemRarity.RARE,
-    rarityMultiplier: 1.35,
-    stats: Object.entries(tunic.stats).map(([statType, value]) => ({
-      statType: statType as StatType,
-      value,
-    })),
-  });
+void test("content stats are baked by their old rarity multiplier exactly once", () => {
+  const item = { rarity: ItemRarity.RARE, equipTo: ItemEquipTo.weapon };
+  assert.equal(legacyRarityStat(StatType.LUCK, 2, item), 2.3);
+  // A weapon's attack speed never scaled with rarity, and caps still hold.
+  assert.equal(legacyRarityStat(StatType.ATTACK_SPEED, 1.1, item), 1.1);
+  assert.equal(legacyRarityStat(StatType.CRITICAL_CHANCE, 4, item, 4.5), 4.5);
 
-  // Rare scales each authored Common value by 1.35, exactly once.
-  for (const statType of [StatType.GATHERING_EFFICIENCY, StatType.LUCK]) {
-    const authored = tunic.stats[statType as keyof typeof tunic.stats];
-    assert.ok(authored !== undefined && authored > 0);
-    assert.equal(
-      stats.find((stat) => stat.statType === statType)?.value,
-      Math.round(authored * 1.35 * 1_000_000) / 1_000_000,
-    );
-  }
+  const [baked] = bakeLegacyRarity([
+    { rarity: ItemRarity.EPIC, equipTo: ItemEquipTo.chest, stats: { ARMOR: 10 } },
+  ]);
+  assert.deepEqual(baked?.stats, { ARMOR: 12.5 });
+  // The game then uses them as they are: rarity no longer scales anything.
+  assert.deepEqual(
+    resolveEffectiveItemStats({
+      stats: [{ statType: StatType.ARMOR, value: 12.5 }],
+    }),
+    [{ statType: StatType.ARMOR, value: 12.5 }],
+  );
 });
 
 void test("the production grant path does not snapshot shared balance stats", async () => {
@@ -254,7 +255,6 @@ void test("the production grant path does not snapshot shared balance stats", as
     db: db as never,
     userId: "tailor-test",
     itemId: 42,
-    rarity: ItemRarity.RARE,
     quantity: 1,
   });
 

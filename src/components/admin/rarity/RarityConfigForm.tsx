@@ -9,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~
 type RarityConfigRow = {
   id: number;
   rarity: ItemRarity;
-  statMultiplier: number;
   minStats: number;
   maxStats: number;
   bonusStatChance: number;
@@ -81,7 +80,6 @@ export function RarityConfigForm(props: { initialConfigs: RarityConfigRow[] }) {
               {/* <th className="px-2 py-2 text-left">Rarity</th> */}
               <th className="px-2 py-2 text-left">Name</th>
               <th className="px-2 py-2 text-left">Color</th>
-              <th className="px-2 py-2 text-right">Mult</th>
               <th className="px-2 py-2 text-right">Min</th>
               <th className="px-2 py-2 text-right">Max</th>
               <th className="px-2 py-2 text-right">Bonus%</th>
@@ -115,16 +113,6 @@ export function RarityConfigForm(props: { initialConfigs: RarityConfigRow[] }) {
                       className={inputClassName}
                     />
                   </div>
-                </td>
-                <td className="px-2 py-1.5 text-right min-w-[60px]">
-                  <Input
-                    type="number"
-                    value={r.statMultiplier}
-                    onChange={(e) =>
-                      updateRow(r.rarity, "statMultiplier", Number.parseFloat(e.target.value || "0"))
-                    }
-                    className={inputClassName + " text-right"}
-                  />
                 </td>
                 <td className="px-2 py-1.5 text-right min-w-[50px]">
                   <Input

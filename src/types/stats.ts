@@ -24,6 +24,8 @@ export interface ItemWithStats {
   requiredLevel: number | null;
   stackable?: boolean;
   maxStackSize?: number;
+  /** 0 or missing = not enchanted. */
+  enchantLevel?: number;
   isTradeable?: boolean;
   quantity?: number; // For stackable items
   stats: ItemStat[];

@@ -134,8 +134,8 @@ async function main(selectedMode: Mode) {
         include: {
           stats: { select: { id: true } },
           foodEffectStats: { select: { id: true } },
-          statProgressions: { select: { id: true } },
-          statRarityOverrides: { select: { id: true } },
+          statEnchantUnlocks: { select: { id: true } },
+          statEnchantOverrides: { select: { id: true } },
         },
       });
 
@@ -183,8 +183,8 @@ async function main(selectedMode: Mode) {
             found &&
               (found.stats.length > 0 ||
                 found.foodEffectStats.length > 0 ||
-                found.statProgressions.length > 0 ||
-                found.statRarityOverrides.length > 0),
+                found.statEnchantUnlocks.length > 0 ||
+                found.statEnchantOverrides.length > 0),
           );
 
         if (
@@ -212,8 +212,8 @@ async function main(selectedMode: Mode) {
             await Promise.all([
               tx.itemStat.deleteMany({ where: { itemId } }),
               tx.foodEffectStat.deleteMany({ where: { itemId } }),
-              tx.itemStatProgression.deleteMany({ where: { itemId } }),
-              tx.itemStatRarityOverride.deleteMany({ where: { itemId } }),
+              tx.itemStatEnchantUnlock.deleteMany({ where: { itemId } }),
+              tx.itemStatEnchantOverride.deleteMany({ where: { itemId } }),
             ]);
           }
         }

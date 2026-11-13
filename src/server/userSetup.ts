@@ -1,4 +1,3 @@
-import { ItemRarity } from "~/generated/prisma/enums";
 import { prisma } from "~/lib/prisma";
 import { createUserItem } from "~/utils/userItems";
 import {
@@ -104,9 +103,9 @@ export async function provisionNewUser(userId: string) {
   }
 
   const starterUserItemIds = await Promise.all([
-    createUserItem(userId, starterTemplates.woodenSwordId, ItemRarity.COMMON, "IN_INVENTORY"),
-    createUserItem(userId, starterTemplates.goldRingId, ItemRarity.BROKEN, "IN_INVENTORY"),
-    createUserItem(userId, starterTemplates.goldGlovesId, ItemRarity.COMMON, "IN_INVENTORY"),
+    createUserItem(userId, starterTemplates.woodenSwordId),
+    createUserItem(userId, starterTemplates.goldRingId),
+    createUserItem(userId, starterTemplates.goldGlovesId),
   ]);
 
   // Put starter items into first slots.

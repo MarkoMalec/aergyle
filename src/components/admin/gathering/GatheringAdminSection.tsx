@@ -23,8 +23,7 @@ export async function GatheringAdminSection({
           name: true,
           itemId: true,
           requiredSkillLevel: true,
-          rarity: true,
-          item: { select: { name: true, sprite: true } },
+          item: { select: { name: true, sprite: true, rarity: true } },
         },
       }),
       prisma.locationVocationalResource.findMany({
@@ -113,7 +112,10 @@ export async function GatheringAdminSection({
       )}
       <GatheringAdminClient
         locations={locationRows}
-        resources={resources}
+        resources={resources.map((resource) => ({
+          ...resource,
+          rarity: resource.item.rarity,
+        }))}
         durations={durations.map((duration) => ({
           id: duration.id,
           label: duration.label,

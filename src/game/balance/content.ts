@@ -1,11 +1,15 @@
 import type {
   ItemEquipTo,
-  ItemRarity,
   ItemType,
   QuestRepeat,
   StatType,
   VocationalActionType,
 } from "~/generated/prisma/enums";
+import type { EnchantBonusTable } from "~/game/enchanting";
+import type {
+  EnchantOverrideTemplate,
+  EnchantUnlockTemplate,
+} from "~/utils/itemInstanceStats";
 import type { CombatConfig } from "~/server/combat/rules";
 import type { DungeonMonsterPoolEntry } from "~/server/dungeons/resolver";
 import type { StatGrowthRule } from "~/utils/stats";
@@ -94,19 +98,9 @@ export type BalanceLocation = {
 };
 
 export type BalanceItemStats = {
-  flip: boolean;
   stats: Array<{ statType: StatType; value: number; maxValue: number | null }>;
-  progressions: Array<{
-    statType: StatType;
-    baseValue: number;
-    unlocksAtRarity: ItemRarity;
-  }>;
-  overrides: Array<{
-    statType: StatType;
-    rarity: ItemRarity;
-    kind: "MULTIPLIER" | "ABSOLUTE";
-    value: number;
-  }>;
+  unlocks: EnchantUnlockTemplate[];
+  overrides: EnchantOverrideTemplate[];
 };
 
 export type BalanceItem = {
@@ -120,12 +114,6 @@ export type BalanceItem = {
   balance: BalanceItemStats | null;
 };
 
-export type BalanceRarity = {
-  rarity: ItemRarity;
-  label: string;
-  multiplier: number;
-};
-
 export type BalanceContent = {
   resources: BalanceResource[];
   expeditionTiers: BalanceExpeditionTier[];
@@ -136,7 +124,8 @@ export type BalanceContent = {
   quests: BalanceQuest[];
   locations: BalanceLocation[];
   items: BalanceItem[];
-  rarities: BalanceRarity[];
+  /** Global stat bonus per enchant level, from /admin/enchanting. */
+  enchantBonuses: EnchantBonusTable;
   statGrowth: Record<StatType, StatGrowthRule>;
   /** Armor constants, so simulated runs mitigate like live ones. */
   combat: CombatConfig;

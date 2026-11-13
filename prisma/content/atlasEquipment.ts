@@ -5,6 +5,7 @@ import type {
   StatType,
 } from "../../src/generated/prisma/enums";
 import type { Prisma } from "../../src/generated/prisma/client";
+import { bakeLegacyRarity } from "./legacyRarity";
 
 export type AtlasSet = "trailwarden" | "duskwarden";
 
@@ -64,7 +65,7 @@ function armor(
 }
 
 /** Seven weapons and two complete, eight-slot armor sets. No implicit set bonuses. */
-export const ATLAS_EQUIPMENT: readonly AtlasItemDefinition[] = [
+export const ATLAS_EQUIPMENT: readonly AtlasItemDefinition[] = bakeLegacyRarity([
   {
     slug: "wayfarer-shortblade",
     set: null,
@@ -360,7 +361,7 @@ export const ATLAS_EQUIPMENT: readonly AtlasItemDefinition[] = [
     "Broad articulated steel boots lined with indigo cloth. A Duskwarden learns to cross broken ground with deliberate, quiet steps.",
     { ARMOR: 53, HEALTH: 65, MOVEMENT_SPEED: 2.2, EVASION_MELEE: 2.2 },
   ),
-];
+]);
 
 export function atlasSpritePath(item: AtlasItemDefinition): string {
   const folder = item.set
@@ -384,7 +385,6 @@ export function atlasItemCreateData(
     requiredLevel: item.requiredLevel,
     stackable: false,
     maxStackSize: 1,
-    flipNegativeStatsWithRarity: false,
     minPhysicalDamage: item.stats.PHYSICAL_DAMAGE_MIN ?? 0,
     maxPhysicalDamage: item.stats.PHYSICAL_DAMAGE_MAX ?? 0,
     minMagicDamage: item.stats.MAGIC_DAMAGE_MIN ?? 0,

@@ -1,8 +1,8 @@
 import {
   ItemEquipTo,
-  ItemRarity,
+  ItemStatOverrideKind,
   StatType,
-  VocationalActionType,
+  type VocationalActionType,
 } from "~/generated/prisma/enums";
 import { getVocationalEfficiencyStatType } from "~/game/vocationStats";
 
@@ -12,16 +12,18 @@ type StatTemplate = {
   maxValue?: number | null;
 };
 
-type StatProgressionTemplate = {
+/** A stat gained from an enchant level upward. */
+export type EnchantUnlockTemplate = {
   statType: StatType;
-  baseValue: number;
-  unlocksAtRarity: ItemRarity;
+  value: number;
+  level: number;
 };
 
-type StatOverrideTemplate = {
+/** One stat at one enchant level: its own multiplier or an exact value. */
+export type EnchantOverrideTemplate = {
   statType: StatType;
-  rarity: ItemRarity;
-  kind?: "MULTIPLIER" | "ABSOLUTE";
+  level: number;
+  kind: ItemStatOverrideKind;
   value: number;
 };
 
@@ -35,44 +37,11 @@ type InstanceStatModifier = {
   value: number;
 };
 
-const RARITY_ORDER: readonly ItemRarity[] = [
-  ItemRarity.WORTHLESS,
-  ItemRarity.BROKEN,
-  ItemRarity.COMMON,
-  ItemRarity.UNCOMMON,
-  ItemRarity.RARE,
-  ItemRarity.EXQUISITE,
-  ItemRarity.EPIC,
-  ItemRarity.ELITE,
-  ItemRarity.UNIQUE,
-  ItemRarity.LEGENDARY,
-  ItemRarity.MYTHIC,
-  ItemRarity.DIVINE,
-];
-
-export function scaleItemStat(
-  baseValue: number,
-  multiplier: number,
-  flipNegativeStatsWithRarity: boolean,
-  maxValueCap?: number | null,
-) {
-  let scaled: number;
-  if (!flipNegativeStatsWithRarity || baseValue >= 0) {
-    scaled = baseValue * multiplier;
-  } else {
-    scaled = baseValue + (multiplier - 1) * Math.abs(baseValue);
-  }
-
-  return typeof maxValueCap === "number" && Number.isFinite(maxValueCap)
-    ? Math.min(scaled, maxValueCap)
-    : scaled;
-}
-
 /**
- * A weapon's Attack Speed is how fast that weapon strikes, so rarity improves
- * its other stats but not its speed. A per-item rarity override still applies.
+ * A weapon's Attack Speed is how fast that weapon strikes, so enchanting
+ * improves its other stats but not its speed. A per-item override still applies.
  */
-export function statScalesWithRarity(
+export function statScalesWithEnchant(
   statType: StatType,
   equipTo: ItemEquipTo | null | undefined,
 ) {
@@ -81,96 +50,146 @@ export function statScalesWithRarity(
   );
 }
 
+export type EnchantedStat = {
+  /** Null when the item has none of this stat at this level. */
+  value: number | null;
+  /** Base value plus every unlock reached at this level. */
+  baseTotal: number;
+  /** The level's global multiplier, or 1 when the stat doesn't scale. */
+  globalMultiplier: number;
+  /** The multiplier actually applied (an override replaces the global one). */
+  multiplier: number;
+  override: EnchantOverrideTemplate | null;
+  /** The value before the cap, when the cap lowered it. */
+  uncapped: number | null;
+  scales: boolean;
+};
+
 /**
- * Resolves current effective stats for one item template + rarity.
+ * One stat at one enchant level. The game and the /admin item grid both use
+ * this, so the admin preview is exactly what players get.
+ */
+export function enchantStat(params: {
+  statType: StatType;
+  equipTo: ItemEquipTo | null | undefined;
+  base: number;
+  maxValue: number | null | undefined;
+  unlocks: readonly EnchantUnlockTemplate[];
+  overrides: readonly EnchantOverrideTemplate[];
+  level: number;
+  /** The level's global stat bonus in percent. */
+  bonusPercent: number;
+}): EnchantedStat {
+  const unlocked = params.unlocks
+    .filter((u) => u.statType === params.statType && u.level <= params.level)
+    .reduce((sum, u) => sum + u.value, 0);
+  const reached = params.unlocks.some(
+    (u) => u.statType === params.statType && u.level <= params.level,
+  );
+  const baseTotal = params.base + unlocked;
+  const found =
+    params.level > 0
+      ? params.overrides.find(
+          (o) => o.statType === params.statType && o.level === params.level,
+        )
+      : undefined;
+  const override = found && Number.isFinite(found.value) ? found : null;
+  const scales = statScalesWithEnchant(params.statType, params.equipTo);
+  // Enchanting lifts positive stats only, never a penalty.
+  const globalMultiplier =
+    scales && params.level > 0 && baseTotal > 0
+      ? 1 + Math.max(0, params.bonusPercent) / 100
+      : 1;
+  const multiplier =
+    override?.kind === ItemStatOverrideKind.MULTIPLIER
+      ? override.value
+      : globalMultiplier;
+  const total =
+    override?.kind === ItemStatOverrideKind.ABSOLUTE
+      ? override.value
+      : baseTotal * multiplier;
+  const cap =
+    typeof params.maxValue === "number" && Number.isFinite(params.maxValue)
+      ? params.maxValue
+      : Infinity;
+  const capped = Math.min(total, cap);
+  const present = params.base !== 0 || reached || override !== null;
+  return {
+    value: present ? capped : null,
+    baseTotal,
+    globalMultiplier,
+    multiplier,
+    override,
+    uncapped: capped < total ? total : null,
+    scales,
+  };
+}
+
+/**
+ * Resolves current effective stats for one item template at one enchant level.
+ * Rarity is a label only and never changes stats.
  *
  * Template-derived values remain live balance data. `instanceModifiers` are
- * additive, player-item-specific adjustments reserved for systems such as
- * enchantments; they are deliberately applied after template scaling/caps.
+ * additive, player-item-specific adjustments; they are applied after scaling
+ * and caps.
  */
 export function resolveEffectiveItemStats(params: {
-  rarity: ItemRarity;
-  rarityMultiplier: number;
-  flipNegativeStatsWithRarity?: boolean;
   equipTo?: ItemEquipTo | null;
   stats: readonly StatTemplate[];
-  statProgressions?: readonly StatProgressionTemplate[];
-  statRarityOverrides?: readonly StatOverrideTemplate[];
+  enchantUnlocks?: readonly EnchantUnlockTemplate[];
+  enchantOverrides?: readonly EnchantOverrideTemplate[];
   toolEfficiencies?: readonly ToolEfficiencyTemplate[];
   instanceModifiers?: readonly InstanceStatModifier[];
+  enchantLevel?: number;
+  /** The enchant level's global stat bonus in percent (docs/ENCHANTING_SYSTEM.md). */
+  enchantBonusPercent?: number;
 }): Array<{ statType: StatType; value: number }> {
-  const flip = Boolean(params.flipNegativeStatsWithRarity);
-  const rarityIndex = RARITY_ORDER.indexOf(params.rarity);
-  const baseValues = new Map<StatType, number>();
-  const maxCaps = new Map<StatType, number>();
-  const overrides = new Map<
-    StatType,
-    { kind: "MULTIPLIER" | "ABSOLUTE"; value: number }
-  >();
-  const modifiers = new Map<StatType, number>();
-
-  for (const stat of params.stats) {
-    baseValues.set(stat.statType, stat.value);
-    if (typeof stat.maxValue === "number" && Number.isFinite(stat.maxValue)) {
-      maxCaps.set(stat.statType, stat.maxValue);
-    }
-  }
-
-  for (const progression of params.statProgressions ?? []) {
-    if (RARITY_ORDER.indexOf(progression.unlocksAtRarity) > rarityIndex) {
-      continue;
-    }
-    baseValues.set(
-      progression.statType,
-      (baseValues.get(progression.statType) ?? 0) + progression.baseValue,
-    );
-  }
-
-  for (const override of params.statRarityOverrides ?? []) {
-    if (override.rarity === params.rarity && Number.isFinite(override.value)) {
-      const kind = override.kind ?? "ABSOLUTE";
-      overrides.set(override.statType, { kind, value: override.value });
-      if (kind === "ABSOLUTE" && !baseValues.has(override.statType)) {
-        baseValues.set(override.statType, 0);
-      }
-    }
-  }
-
+  const level = Math.max(0, params.enchantLevel ?? 0);
+  const unlocks = params.enchantUnlocks ?? [];
+  const overrides = params.enchantOverrides ?? [];
+  const base = new Map<StatType, { value: number; maxValue?: number | null }>();
+  for (const stat of params.stats) base.set(stat.statType, stat);
   for (const efficiency of params.toolEfficiencies ?? []) {
     const statType = getVocationalEfficiencyStatType(efficiency.actionType);
-    if (statType) baseValues.set(statType, efficiency.baseEfficiency);
+    if (statType) base.set(statType, { value: efficiency.baseEfficiency });
   }
-
+  const modifiers = new Map<StatType, number>();
   for (const modifier of params.instanceModifiers ?? []) {
     if (!Number.isFinite(modifier.value)) continue;
     modifiers.set(
       modifier.statType,
       (modifiers.get(modifier.statType) ?? 0) + modifier.value,
     );
-    if (!baseValues.has(modifier.statType))
-      baseValues.set(modifier.statType, 0);
   }
 
-  return Array.from(baseValues.entries()).map(([statType, baseValue]) => {
-    const override = overrides.get(statType);
-    const scaledBase =
-      override?.kind === "ABSOLUTE"
-        ? Math.min(override.value, maxCaps.get(statType) ?? Infinity)
-        : scaleItemStat(
-            baseValue,
-            override?.kind === "MULTIPLIER"
-              ? override.value
-              : statScalesWithRarity(statType, params.equipTo)
-                ? params.rarityMultiplier
-                : 1,
-            flip,
-            maxCaps.get(statType),
-          );
-    return {
+  const statTypes = new Set<StatType>([
+    ...base.keys(),
+    ...unlocks.map((u) => u.statType),
+    ...overrides.map((o) => o.statType),
+    ...modifiers.keys(),
+  ]);
+  const result: Array<{ statType: StatType; value: number }> = [];
+  for (const statType of statTypes) {
+    const template = base.get(statType);
+    const stat = enchantStat({
+      statType,
+      equipTo: params.equipTo,
+      base: template?.value ?? 0,
+      maxValue: template?.maxValue,
+      unlocks,
+      overrides,
+      level,
+      bonusPercent: params.enchantBonusPercent ?? 0,
+    });
+    const modifier = modifiers.get(statType);
+    // Listed stats always show, as before; unreached unlocks/overrides don't.
+    if (stat.value === null && !template && modifier === undefined) continue;
+    result.push({
       statType,
       value:
-        Math.round((scaledBase + (modifiers.get(statType) ?? 0)) * 1_000_000) /
+        Math.round(((stat.value ?? 0) + (modifier ?? 0)) * 1_000_000) /
         1_000_000,
-    };
-  });
+    });
+  }
+  return result;
 }

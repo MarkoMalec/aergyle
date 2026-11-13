@@ -14,6 +14,7 @@ import {
   DialogDescription,
   DialogTitle,
 } from "~/components/ui/dialog";
+import { enchantedItemName } from "~/game/enchanting";
 import { useRarityColors } from "~/hooks/use-rarity-colors";
 import { useUserGold } from "~/hooks/use-user-gold";
 import { formatGold } from "~/lib/marketplace";
@@ -124,6 +125,8 @@ export function BuyConfirmDialog({
   const { data: gold } = useUserGold();
   const isOrder = listing === null;
   const total = unitPrice * quantity;
+  const enchantLevel = listing?.enchantLevel ?? 0;
+  const itemName = enchantedItemName(market.itemName, enchantLevel);
   const shortfall = gold === undefined ? 0 : total - gold;
 
   return (
@@ -143,6 +146,7 @@ export function BuyConfirmDialog({
             name={market.itemName}
             rarity={market.rarity}
             size={64}
+            enchantLevel={enchantLevel}
             quantity={quantity > 1 ? `×${quantity}` : undefined}
           />
           <div className="min-w-0 space-y-1">
@@ -150,7 +154,7 @@ export function BuyConfirmDialog({
               {isOrder ? "Confirm buy order" : "Confirm purchase"}
             </p>
             <DialogTitle className="truncate pr-0 text-lg">
-              {market.itemName}
+              {itemName}
             </DialogTitle>
             <RarityBadge
               rarity={market.rarity}
@@ -160,8 +164,8 @@ export function BuyConfirmDialog({
         </div>
         <DialogDescription className="sr-only">
           {isOrder
-            ? `Reserve ${formatGold(total)} gold for a buy order of ${quantity} ${market.itemName}.`
-            : `Buy ${quantity} ${market.itemName} for ${formatGold(total)} gold.`}
+            ? `Reserve ${formatGold(total)} gold for a buy order of ${quantity} ${itemName}.`
+            : `Buy ${quantity} ${itemName} for ${formatGold(total)} gold.`}
         </DialogDescription>
 
         <div className="space-y-4 bg-background/40 px-5 py-4 text-sm">

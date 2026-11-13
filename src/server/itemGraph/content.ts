@@ -44,7 +44,7 @@ export async function loadItemGraphContent(): Promise<ItemGraphContent> {
           defaultSeconds: true,
           yieldPerUnit: true,
           xpPerUnit: true,
-          rarity: true,
+          item: { select: { rarity: true } },
           requirements: {
             orderBy: { id: "asc" },
             select: { itemId: true, quantityPerUnit: true },
@@ -195,7 +195,7 @@ export async function loadItemGraphContent(): Promise<ItemGraphContent> {
       defaultSeconds: resource.defaultSeconds,
       yieldPerUnit: Math.max(1, resource.yieldPerUnit),
       xpPerUnit: resource.xpPerUnit,
-      rarity: resource.rarity,
+      rarity: resource.item.rarity,
       unlockItemId: resource.requiredRecipeItemId,
       inputs: resource.requirements.map((input) => ({
         itemId: input.itemId,

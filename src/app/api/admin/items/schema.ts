@@ -2,12 +2,16 @@ import { z } from "zod";
 import type { Prisma } from "~/generated/prisma/client";
 import {
   ItemRarity,
-  ItemStatRarityOverrideKind,
   ItemType,
   StatType,
   VocationalActionType,
 } from "~/generated/prisma/enums";
 import { normalizeItemEquipTo } from "~/utils/itemEquipTo";
+import {
+  type CsvCodec,
+  enchantOverridesCodec,
+  enchantUnlocksCodec,
+} from "~/components/admin/items/itemFormModel";
 
 export const itemSchema = z.object({
   name: z.string().min(1),
@@ -28,7 +32,6 @@ export const itemSchema = z.object({
   twoHanded: z.boolean().optional(),
   stackable: z.boolean(),
   maxStackSize: z.number().int().min(1),
-  flipNegativeStatsWithRarity: z.boolean().optional(),
   minPhysicalDamage: z.number().nullable().optional(),
   maxPhysicalDamage: z.number().nullable().optional(),
   minMagicDamage: z.number().nullable().optional(),
@@ -37,8 +40,8 @@ export const itemSchema = z.object({
   requiredLevel: z.number().int().min(1),
   baseStatsCsv: z.string().optional(),
   toolEfficienciesCsv: z.string().optional(),
-  statProgressionsCsv: z.string().optional(),
-  statRarityOverridesCsv: z.string().optional(),
+  enchantUnlocksCsv: z.string().optional(),
+  enchantOverridesCsv: z.string().optional(),
   foodEffectStatsCsv: z.string().optional(),
 });
 
@@ -123,47 +126,11 @@ function parseToolEfficienciesCsv(csv: string): Array<{
   return out;
 }
 
-function parseStatProgressionsCsv(csv: string): Array<{
-  statType: StatType;
-  baseValue: number;
-  unlocksAtRarity: ItemRarity;
-}> {
-  const lines = parseCsvLines(csv);
-  if (lines.length === 0) return [];
-
-  const startIndex = lines[0]?.toLowerCase().includes("stattype") ? 1 : 0;
-  const out: Array<{
-    statType: StatType;
-    baseValue: number;
-    unlocksAtRarity: ItemRarity;
-  }> = [];
-
-  for (const line of lines.slice(startIndex)) {
-    const [statTypeRaw, baseRaw, unlocksRaw] = line
-      .split(",")
-      .map((s) => s.trim());
-    if (!statTypeRaw || !baseRaw || !unlocksRaw) continue;
-
-    if (!(statTypeRaw in StatType)) {
-      throw new Error(`Invalid statType: ${statTypeRaw}`);
-    }
-    if (!(unlocksRaw in ItemRarity)) {
-      throw new Error(`Invalid unlocksAtRarity: ${unlocksRaw}`);
-    }
-
-    const baseValue = Number.parseFloat(baseRaw);
-    if (!Number.isFinite(baseValue)) {
-      throw new Error(`Invalid baseValue for ${statTypeRaw}`);
-    }
-
-    out.push({
-      statType: statTypeRaw as StatType,
-      baseValue,
-      unlocksAtRarity: unlocksRaw as ItemRarity,
-    });
-  }
-
-  return out;
+/** The same parser the item form uses; a malformed row is an admin error. */
+function parseWith<Row>(codec: CsvCodec<Row>, csv: string): Row[] {
+  const { rows, error } = codec.parse(csv);
+  if (error) throw new Error(error);
+  return rows;
 }
 
 function parseBaseStatsCsv(
@@ -212,66 +179,13 @@ function parseBaseStatsCsv(
   }));
 }
 
-function parseStatRarityOverridesCsv(csv: string): Array<{
-  statType: StatType;
-  rarity: ItemRarity;
-  kind: ItemStatRarityOverrideKind;
-  value: number;
-}> {
-  const lines = parseCsvLines(csv);
-  if (lines.length === 0) return [];
-
-  const startIndex = lines[0]?.toLowerCase().includes("stattype") ? 1 : 0;
-  const out: Array<{
-    statType: StatType;
-    rarity: ItemRarity;
-    kind: ItemStatRarityOverrideKind;
-    value: number;
-  }> = [];
-
-  for (const line of lines.slice(startIndex)) {
-    const parts = line.split(",").map((s) => s.trim());
-    const [statTypeRaw, rarityRaw] = parts;
-    const hasKindColumn = parts.length >= 4;
-    const kindRaw = hasKindColumn
-      ? parts[2]
-      : ItemStatRarityOverrideKind.ABSOLUTE;
-    const valueRaw = hasKindColumn ? parts[3] : parts[2];
-    if (!statTypeRaw || !rarityRaw || !valueRaw) continue;
-
-    if (!(statTypeRaw in StatType)) {
-      throw new Error(`Invalid statType: ${statTypeRaw}`);
-    }
-    if (!(rarityRaw in ItemRarity)) {
-      throw new Error(`Invalid rarity: ${rarityRaw}`);
-    }
-    if (!kindRaw || !(kindRaw in ItemStatRarityOverrideKind)) {
-      throw new Error(`Invalid override kind: ${kindRaw ?? ""}`);
-    }
-
-    const value = Number.parseFloat(valueRaw);
-    if (!Number.isFinite(value)) {
-      throw new Error(`Invalid value for ${statTypeRaw}/${rarityRaw}`);
-    }
-
-    out.push({
-      statType: statTypeRaw as StatType,
-      rarity: rarityRaw as ItemRarity,
-      kind: kindRaw as ItemStatRarityOverrideKind,
-      value,
-    });
-  }
-
-  return out;
-}
-
 type BalanceDb = Pick<
   Prisma.TransactionClient,
   | "foodEffectStat"
   | "toolEfficiency"
   | "itemStat"
-  | "itemStatProgression"
-  | "itemStatRarityOverride"
+  | "itemStatEnchantUnlock"
+  | "itemStatEnchantOverride"
 >;
 
 /**
@@ -314,7 +228,6 @@ export function parseItemInput(v: z.infer<typeof itemSchema>) {
     twoHanded: equipTo === "weapon" && (v.twoHanded ?? false),
     stackable: v.stackable,
     maxStackSize: v.stackable ? v.maxStackSize : 1,
-    flipNegativeStatsWithRarity: v.flipNegativeStatsWithRarity ?? false,
     minPhysicalDamage: v.minPhysicalDamage ?? 0,
     maxPhysicalDamage: v.maxPhysicalDamage ?? 0,
     minMagicDamage: v.minMagicDamage ?? 0,
@@ -371,13 +284,13 @@ export function parseItemInput(v: z.infer<typeof itemSchema>) {
           ? parseToolEfficienciesCsv(v.toolEfficienciesCsv)
           : undefined,
       itemStats,
-      statProgressions:
-        typeof v.statProgressionsCsv === "string"
-          ? parseStatProgressionsCsv(v.statProgressionsCsv)
+      enchantUnlocks:
+        typeof v.enchantUnlocksCsv === "string"
+          ? parseWith(enchantUnlocksCodec, v.enchantUnlocksCsv)
           : undefined,
-      statRarityOverrides:
-        typeof v.statRarityOverridesCsv === "string"
-          ? parseStatRarityOverridesCsv(v.statRarityOverridesCsv)
+      enchantOverrides:
+        typeof v.enchantOverridesCsv === "string"
+          ? parseWith(enchantOverridesCodec, v.enchantOverridesCsv)
           : undefined,
     },
   };
@@ -421,19 +334,19 @@ export async function writeItemBalance(
       await tx.itemStat.createMany({ data: rows(balance.itemStats) });
     }
   }
-  if (balance.statProgressions) {
-    if (options.replace) await tx.itemStatProgression.deleteMany(where);
-    if (balance.statProgressions.length > 0) {
-      await tx.itemStatProgression.createMany({
-        data: rows(balance.statProgressions),
+  if (balance.enchantUnlocks) {
+    if (options.replace) await tx.itemStatEnchantUnlock.deleteMany(where);
+    if (balance.enchantUnlocks.length > 0) {
+      await tx.itemStatEnchantUnlock.createMany({
+        data: rows(balance.enchantUnlocks),
       });
     }
   }
-  if (balance.statRarityOverrides) {
-    if (options.replace) await tx.itemStatRarityOverride.deleteMany(where);
-    if (balance.statRarityOverrides.length > 0) {
-      await tx.itemStatRarityOverride.createMany({
-        data: rows(balance.statRarityOverrides),
+  if (balance.enchantOverrides) {
+    if (options.replace) await tx.itemStatEnchantOverride.deleteMany(where);
+    if (balance.enchantOverrides.length > 0) {
+      await tx.itemStatEnchantOverride.createMany({
+        data: rows(balance.enchantOverrides),
       });
     }
   }

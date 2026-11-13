@@ -10,6 +10,10 @@ import { CoinsIcon } from "~/components/game/ui/coins-icon";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Skeleton } from "~/components/ui/skeleton";
+import {
+  enchantLabel,
+  enchantedItemName,
+} from "~/game/enchanting";
 import { useRarityColors } from "~/hooks/use-rarity-colors";
 import {
   inventoryQueryKeys,
@@ -19,6 +23,7 @@ import {
 import { cn } from "~/lib/utils";
 import type {
   MarketStatsData,
+  MarketplaceEnchantLevel,
   MarketplaceGroupedItem,
   MarketplaceListing,
 } from "~/types/marketplace";
@@ -38,16 +43,27 @@ function errorMessage(value: unknown): string {
   return "The market could not complete that action";
 }
 
-async function fetchListings(market: MarketplaceGroupedItem) {
+async function fetchListings(
+  market: MarketplaceGroupedItem,
+  enchantLevel: number | undefined,
+) {
   const params = new URLSearchParams({
     limit: "50",
     rarity: market.rarity,
   });
+  if (enchantLevel !== undefined) {
+    params.set("enchantLevel", String(enchantLevel));
+  }
   const response = await fetch(
     `/api/marketplace/listings/${market.itemTemplateId}?${params.toString()}`,
   );
   if (!response.ok) throw new Error("Could not load active listings");
-  return response.json() as Promise<{ listings: MarketplaceListing[] }>;
+  return response.json() as Promise<{
+    listings: MarketplaceListing[];
+    /** The level the listings are for; null while the level still has to be chosen. */
+    enchantLevel: number | null;
+    enchantLevels?: MarketplaceEnchantLevel[];
+  }>;
 }
 
 function Metric({ label, value }: { label: string; value: ReactNode }) {
@@ -75,18 +91,35 @@ export function MarketDetailPanel({
   const [selectedListingId, setSelectedListingId] = useState<number | null>(
     null,
   );
+  // null until the player picks a level (stackables are always level 0).
+  const [pickedLevel, setPickedLevel] = useState<number | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [orderPrice, setOrderPrice] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
 
+  const levelParam = pickedLevel ?? (market.stackable ? 0 : undefined);
   const listingsQuery = useQuery({
-    queryKey: marketplaceQueryKeys.detail(market.itemTemplateId, market.rarity),
-    queryFn: () => fetchListings(market),
+    queryKey: marketplaceQueryKeys.detail(
+      market.itemTemplateId,
+      market.rarity,
+      levelParam,
+    ),
+    queryFn: () => fetchListings(market, levelParam),
     staleTime: 10_000,
   });
+  // The server resolves a lone level on its own; otherwise the player picks one.
+  const enchantLevel = listingsQuery.data?.enchantLevel ?? null;
+  const enchantLevels = listingsQuery.data?.enchantLevels ?? [];
+  const choosingLevel = !listingsQuery.isLoading && enchantLevel === null;
   const statsQuery = useQuery<MarketStatsData>({
-    queryKey: marketplaceQueryKeys.stats(market.itemTemplateId, market.rarity),
-    queryFn: () => fetchMarketStats(market.itemTemplateId, market.rarity),
+    queryKey: marketplaceQueryKeys.stats(
+      market.itemTemplateId,
+      market.rarity,
+      enchantLevel ?? 0,
+    ),
+    queryFn: () =>
+      fetchMarketStats(market.itemTemplateId, market.rarity, enchantLevel ?? 0),
+    enabled: enchantLevel !== null,
     staleTime: 30_000,
   });
 
@@ -107,10 +140,16 @@ export function MarketDetailPanel({
     setActionMode("BUY_NOW");
     setViewMode("SIMPLE");
     setSelectedListingId(null);
+    setPickedLevel(null);
     setQuantity(1);
     setOrderPrice("");
     setConfirmOpen(false);
   }, [market.itemTemplateId, market.rarity]);
+
+  useEffect(() => {
+    setSelectedListingId(null);
+    setOrderPrice("");
+  }, [pickedLevel]);
 
   useEffect(() => {
     if (selectedListing && selectedListing.id !== selectedListingId) {
@@ -221,11 +260,14 @@ export function MarketDetailPanel({
           rarity={market.rarity}
           size={62}
           itemId={market.itemTemplateId}
+          enchantLevel={enchantLevel ?? 0}
         />
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <h2 className="game-section-title truncate">{market.itemName}</h2>
+              <h2 className="game-section-title truncate">
+                {enchantedItemName(market.itemName, enchantLevel ?? 0)}
+              </h2>
               <div className="mt-1 flex flex-wrap items-center gap-2">
                 <RarityBadge
                   rarity={market.rarity}
@@ -257,7 +299,7 @@ export function MarketDetailPanel({
       </header>
 
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
-        {statsQuery.isLoading ? (
+        {enchantLevel === null ? null : statsQuery.isLoading ? (
           <div className="grid grid-cols-2 gap-2">
             <Skeleton className="h-16" />
             <Skeleton className="h-16" />
@@ -354,7 +396,9 @@ export function MarketDetailPanel({
           <Button
             variant={actionMode === "BUY_ORDER" ? "default" : "ghost"}
             disabled={!market.stackable}
-            className={cn(actionMode !== "BUY_ORDER" && "text-muted-foreground")}
+            className={cn(
+              actionMode !== "BUY_ORDER" && "text-muted-foreground",
+            )}
             onClick={() => {
               setActionMode("BUY_ORDER");
               setQuantity(1);
@@ -364,13 +408,52 @@ export function MarketDetailPanel({
           </Button>
         </div>
 
-        {actionMode === "BUY_NOW" ? (
+        {actionMode === "BUY_NOW" && choosingLevel ? (
+          <div className="space-y-2">
+            <h3 className="text-xs font-semibold uppercase tracking-wide">
+              Enchantment levels on offer
+            </h3>
+            {enchantLevels.length > 0 ? (
+              <div className="space-y-1">
+                {enchantLevels.map((level) => (
+                  <button
+                    key={level.enchantLevel}
+                    onClick={() => setPickedLevel(level.enchantLevel)}
+                    className="flex w-full items-center justify-between gap-3 rounded-[10px] bg-surface-inset px-3 py-2 text-left text-sm transition-colors hover:bg-secondary/60"
+                  >
+                    <span className="font-semibold">
+                      {enchantLabel(level.enchantLevel) || "Not enchanted"}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {level.listings} offer{level.listings === 1 ? "" : "s"} ·
+                      from <CoinsIcon size={12} />{" "}
+                      {level.minPrice.toLocaleString()}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="rounded-[10px] bg-surface-inset p-3 text-sm text-muted-foreground">
+                No active offers remain. Check back when another wayfarer lists
+                one.
+              </p>
+            )}
+          </div>
+        ) : actionMode === "BUY_NOW" ? (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-semibold uppercase tracking-wide">
                 Exact offers
               </h3>
               <span className="text-xs text-muted-foreground">
+                {enchantLevels.length > 1 && (
+                  <button
+                    onClick={() => setPickedLevel(null)}
+                    className="mr-2 underline-offset-2 hover:underline"
+                  >
+                    All levels
+                  </button>
+                )}
                 {listings.length} listing{listings.length === 1 ? "" : "s"}
               </span>
             </div>
@@ -469,7 +552,8 @@ export function MarketDetailPanel({
           </div>
         )}
 
-        {actionMode === "BUY_NOW" && !selectedListing ? (
+        {actionMode === "BUY_NOW" && choosingLevel ? null : actionMode ===
+            "BUY_NOW" && !selectedListing ? (
           <p className="rounded-[10px] bg-surface-inset p-3 text-sm text-muted-foreground">
             {purchasableListings.length === 0 && listings.length > 0
               ? "Only your own offer is available, so there is nothing here you can buy."

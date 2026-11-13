@@ -107,7 +107,6 @@ void test("grants only whole units that fit and reports every changed stack", as
     db: db as never,
     userId: "u1",
     itemId: 7,
-    rarity: ItemRarity.COMMON,
     quantity: 15,
     unitSize: 5,
   });
@@ -128,7 +127,6 @@ void test("a unit that doesn't fit is not granted at all", async () => {
     db: db as never,
     userId: "u1",
     itemId: 7,
-    rarity: ItemRarity.COMMON,
     quantity: 13,
     unitSize: 13,
   });
@@ -146,7 +144,6 @@ void test("topping up an existing stack doesn't rewrite the slots", async () => 
     db: db as never,
     userId: "u1",
     itemId: 7,
-    rarity: ItemRarity.COMMON,
     quantity: 2,
   });
 

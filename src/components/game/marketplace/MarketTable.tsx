@@ -4,10 +4,13 @@ import type { ReactNode } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { ItemRarity } from "~/generated/prisma/enums";
 import { ItemArtwork } from "~/components/game/items/ItemArtwork";
+import { enchantedItemName } from "~/game/enchanting";
 import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
 import { cn } from "~/lib/utils";
 import { RarityBadge } from "~/utils/ui/rarity-badge";
+import { useRarityColors } from "~/hooks/use-rarity-colors";
+import { resolveRarityTextColor } from "~/utils/rarity-colors";
 
 // The Browse results layout, shared by every marketplace table: a flat panel
 // with a titled header, a quiet column row and borderless tinted rows.
@@ -95,10 +98,18 @@ export function MarketItemCell({
   name,
   children,
 }: {
-  item: { id: number; name: string; sprite: string; rarity: ItemRarity };
+  item: {
+    id: number;
+    name: string;
+    sprite: string;
+    rarity: ItemRarity;
+    /** 0 or left out = not enchanted. */
+    enchantLevel?: number;
+  };
   name?: ReactNode;
   children?: ReactNode;
 }) {
+  const { colors } = useRarityColors();
   return (
     <div className="flex min-w-0 items-center gap-3">
       <ItemArtwork
@@ -107,11 +118,22 @@ export function MarketItemCell({
         rarity={item.rarity}
         size={48}
         itemId={item.id}
+        enchantLevel={item.enchantLevel ?? 0}
       />
       <div className="min-w-0">
-        {name ?? (
-          <span className="block truncate font-semibold">{item.name}</span>
-        )}
+        {/* The name takes its rarity's colour, like the badge below it. */}
+        <div
+          className="min-w-0"
+          style={{
+            color: resolveRarityTextColor(item.rarity, colors[item.rarity]),
+          }}
+        >
+          {name ?? (
+            <span className="block truncate font-semibold">
+              {enchantedItemName(item.name, item.enchantLevel ?? 0)}
+            </span>
+          )}
+        </div>
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
           <RarityBadge
             rarity={item.rarity}

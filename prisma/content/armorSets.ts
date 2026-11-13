@@ -6,6 +6,7 @@ import type {
   StatType,
   VocationalActionType,
 } from "../../src/generated/prisma/enums";
+import { bakeLegacyRarity } from "./legacyRarity";
 
 type ArmorCraftAction =
   | "ALCHEMY"
@@ -348,7 +349,7 @@ function blueprintNameForArmor(gearName: string) {
   return "Blueprint: " + gearName;
 }
 
-export const ARMOR_SET_GEAR = [
+export const ARMOR_SET_GEAR = bakeLegacyRarity([
   {
     slug: "mossweave-hood",
     name: "Mossweave Hood",
@@ -1117,7 +1118,7 @@ export const ARMOR_SET_GEAR = [
       CARRYING_CAPACITY: 4,
     },
   },
-] as const satisfies readonly ArmorSetGearDefinition[];
+] as const satisfies readonly ArmorSetGearDefinition[]);
 
 export const ARMOR_SET_BLUEPRINTS = ARMOR_SET_GEAR.map(
   (gear): ArmorSetBlueprintDefinition => ({
@@ -1175,7 +1176,6 @@ export function armorSetItemCreateData(
     stackable: !gear,
     maxStackSize: gear ? 1 : 9_999,
     requiredLevel: gear?.requiredLevel ?? 1,
-    flipNegativeStatsWithRarity: false,
     armor: gear?.stats.ARMOR ?? 0,
     minPhysicalDamage: 0,
     maxPhysicalDamage: 0,

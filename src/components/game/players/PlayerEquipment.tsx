@@ -9,6 +9,8 @@ import {
   ItemDetails,
   ItemDetailsPopoverContent,
 } from "~/components/game/items/ItemDetails";
+import { EnchantBadge } from "~/components/game/items/EnchantBadge";
+import { enchantedItemName } from "~/game/enchanting";
 import { ItemCompareButton } from "~/components/game/items/ItemCompare";
 import { useRarityColors } from "~/hooks/use-rarity-colors";
 import type { EquipmentSlotsWithItems } from "~/types/inventory";
@@ -56,7 +58,7 @@ function WornSlot({
             <button
               type="button"
               className="game-item-trigger"
-              aria-label={`${label}: ${item.name}, ${item.rarity.toLowerCase()}. Item details`}
+              aria-label={`${label}: ${enchantedItemName(item.name, item.enchantLevel ?? 0)}, ${item.rarity.toLowerCase()}. Item details`}
             >
               <Image
                 alt={item.name}
@@ -66,9 +68,12 @@ function WornSlot({
                 className="object-contain"
               />
               <ItemRarityMark rarity={item.rarity} />
+              <EnchantBadge level={item.enchantLevel} />
             </button>
           </PopoverTrigger>
-          <ItemDetailsPopoverContent name={item.name} rarity={item.rarity}>
+          <ItemDetailsPopoverContent
+            name={enchantedItemName(item.name, item.enchantLevel ?? 0)}
+            rarity={item.rarity}>
             <ItemDetails item={item} />
             <ItemCompareButton
               item={item}
@@ -87,6 +92,7 @@ function WornSlot({
             className="object-contain"
           />
           <ItemRarityMark rarity={ghost.rarity} />
+          <EnchantBadge level={ghost.enchantLevel} />
         </span>
       ) : (
         emptyIcon

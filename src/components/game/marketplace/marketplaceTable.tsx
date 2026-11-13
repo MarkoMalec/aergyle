@@ -12,7 +12,6 @@ import {
   SheetTitle,
 } from "~/components/ui/sheet";
 import { MARKET_DEFAULT_MAX_PRICE } from "~/lib/marketplace";
-import { cn } from "~/lib/utils";
 import type {
   MarketplaceGroupedItem,
   MarketplaceGroupedResponse,
@@ -143,10 +142,7 @@ export function MarketplaceDataTable({
                           type="button"
                           onClick={() => choose(row)}
                           aria-pressed={active}
-                          className={cn(
-                            "game-stretched-action block w-full truncate font-semibold",
-                            active && "text-primary",
-                          )}
+                          className="game-stretched-action block w-full truncate font-semibold"
                         >
                           {row.itemName}
                         </button>

@@ -277,9 +277,15 @@ export async function getGatheringPageData(userId: string) {
                   select: {
                     id: true,
                     name: true,
-                    rarity: true,
                     requiredSkillLevel: true,
-                    item: { select: { id: true, name: true, sprite: true } },
+                    item: {
+                      select: {
+                        id: true,
+                        name: true,
+                        sprite: true,
+                        rarity: true,
+                      },
+                    },
                   },
                 },
               },
@@ -364,7 +370,7 @@ export async function getGatheringPageData(userId: string) {
                 itemId: resource.item.id,
                 name: resource.item.name || resource.name,
                 sprite: resource.item.sprite,
-                rarity: resource.rarity,
+                rarity: resource.item.rarity,
                 requiredGatheringLevel: resource.requiredSkillLevel,
                 // Chance per search with the character's current bonuses.
                 findChance: calculateExpeditionEffectiveFindChance(
@@ -439,9 +445,8 @@ export async function startGatheringExpedition(params: {
                     id: true,
                     itemId: true,
                     name: true,
-                    rarity: true,
                     requiredSkillLevel: true,
-                    item: { select: { name: true, sprite: true } },
+                    item: { select: { name: true, sprite: true, rarity: true } },
                   },
                 },
               },
@@ -501,7 +506,7 @@ export async function startGatheringExpedition(params: {
       itemId: row.resource.itemId,
       name: row.resource.item.name || row.resource.name,
       sprite: row.resource.item.sprite,
-      rarity: row.resource.rarity,
+      rarity: row.resource.item.rarity,
       baseChance: Math.min(1, Math.max(0, row.gatheringBaseChance)),
       minQuantity: Math.max(1, row.gatheringMinQuantity),
       maxQuantity: Math.max(
@@ -638,7 +643,6 @@ export async function claimGatheringExpedition(userId: string) {
         db: tx,
         userId,
         itemId: reward.itemId,
-        rarity: reward.rarity,
         quantity: reward.quantity,
       });
       if (grant.remainingQuantity > 0) {

@@ -158,13 +158,13 @@ void test("a weapon's attack speed replaces the unarmed speed", () => {
   assert.equal(attackSpeed({ weapon: mace, offhand: shield }), 0.65);
 });
 
-void test("rarity scales a weapon's damage but not its attack speed", () => {
+void test("enchanting scales a weapon's damage but not its attack speed", () => {
   const resolve = (equipTo: ItemEquipTo) =>
     Object.fromEntries(
       resolveEffectiveItemStats({
-        rarity: ItemRarity.DIVINE,
-        rarityMultiplier: 3,
         equipTo,
+        enchantLevel: 20,
+        enchantBonusPercent: 200,
         stats: [
           { statType: StatType.ATTACK_SPEED, value: 0.95 },
           { statType: StatType.PHYSICAL_DAMAGE_MAX, value: 9 },
@@ -178,16 +178,16 @@ void test("rarity scales a weapon's damage but not its attack speed", () => {
   // Attack speed on other gear is a bonus and scales like any stat.
   assert.equal(resolve(ItemEquipTo.gloves)[StatType.ATTACK_SPEED], 2.85);
 
-  // A per-item rarity override is an explicit choice and still applies.
+  // A per-item enchant override is an explicit choice and still applies.
   const overridden = resolveEffectiveItemStats({
-    rarity: ItemRarity.DIVINE,
-    rarityMultiplier: 3,
     equipTo: ItemEquipTo.weapon,
     stats: [{ statType: StatType.ATTACK_SPEED, value: 1 }],
-    statRarityOverrides: [
+    enchantLevel: 20,
+    enchantBonusPercent: 200,
+    enchantOverrides: [
       {
         statType: StatType.ATTACK_SPEED,
-        rarity: ItemRarity.DIVINE,
+        level: 20,
         kind: "MULTIPLIER",
         value: 1.2,
       },

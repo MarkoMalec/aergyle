@@ -1,4 +1,5 @@
-import { ItemEquipTo, StatType, type ItemRarity } from "~/generated/prisma/enums";
+import { ItemEquipTo, StatType } from "~/generated/prisma/enums";
+import { enchantKindOf, enchantLevelsFor } from "~/game/enchanting";
 import type { CombatConfig } from "~/server/combat/rules";
 import {
   combatSnapshotFromStats,
@@ -80,27 +81,33 @@ export function itemPower(
   return null;
 }
 
-/** An item's stats and power at one rarity. */
+/**
+ * An item's stats and power at one enchant level. An item whose ladder
+ * doesn't reach that level (an accessory at +7) counts as unenchanted.
+ */
 export function resolveGearPiece(
+  content: Pick<BalanceContent, "enchantBonuses">,
   item: BalanceItem,
-  rarity: ItemRarity,
-  multiplier: number,
+  enchantLevel: number,
   slot = item.equipTo ?? "",
 ): GearPiece | null {
   if (!item.balance || !item.equipTo) return null;
+  const kind = enchantKindOf({ equipTo: item.equipTo, stackable: false });
+  const level =
+    kind && enchantLevelsFor(kind).includes(enchantLevel) ? enchantLevel : 0;
   const stats = resolveEffectiveItemStats({
-    rarity,
-    rarityMultiplier: multiplier,
-    flipNegativeStatsWithRarity: item.balance.flip,
     equipTo: item.equipTo,
     stats: item.balance.stats,
-    statProgressions: item.balance.progressions,
-    statRarityOverrides: item.balance.overrides,
+    enchantUnlocks: item.balance.unlocks,
+    enchantOverrides: item.balance.overrides,
+    enchantLevel: level,
+    enchantBonusPercent: kind && level > 0 ? content.enchantBonuses[kind][level] ?? 0 : 0,
   });
   return { slot, item, stats, power: itemPower(item.equipTo, stats) };
 }
 
-export type GearChoice = { rarity: ItemRarity; multiplier: number } | null;
+/** The enchant level every simulated item has, or null for no gear. */
+export type GearChoice = { enchantLevel: number } | null;
 
 /**
  * The gear a player of this level would wear: in each slot the strongest
@@ -121,7 +128,7 @@ export function gearForLevel(
     let best: GearPiece | null = null;
     for (const item of content.items) {
       if (item.equipTo !== equipTo || item.requiredLevel > level) continue;
-      const piece = resolveGearPiece(item, choice.rarity, choice.multiplier, slot);
+      const piece = resolveGearPiece(content, item, choice.enchantLevel, slot);
       if (!piece) continue;
       const better =
         !best ||

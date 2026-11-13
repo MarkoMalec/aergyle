@@ -10,6 +10,7 @@ import { ItemType, type ItemRarity } from "~/generated/prisma/enums";
 import { useRarityColors } from "~/hooks/use-rarity-colors";
 import { cn } from "~/lib/utils";
 import type { ItemWithStats } from "~/types/stats";
+import { enchantedItemName } from "~/game/enchanting";
 import { meetsItemLevelRequirement } from "~/utils/inventoryClient";
 import { rarityStyle } from "~/utils/rarity-colors";
 import { formatItemStatsForDisplay } from "~/utils/stats";
@@ -30,6 +31,7 @@ export type ItemDetailsData = Pick<
   | "healingAmount"
   | "foodEffectSeconds"
   | "foodEffectStats"
+  | "enchantLevel"
 > & {
   stats: Array<Pick<ItemWithStats["stats"][number], "statType" | "value">>;
 };
@@ -60,7 +62,10 @@ function formatItemType(itemType: ItemDetailsData["itemType"]) {
 export function ItemDetailsHeader({
   item,
 }: {
-  item: Pick<ItemDetailsData, "name" | "sprite" | "rarity" | "price" | "itemType">;
+  item: Pick<
+    ItemDetailsData,
+    "name" | "sprite" | "rarity" | "price" | "itemType" | "enchantLevel"
+  >;
 }) {
   return (
     <div className="game-item-detail-header">
@@ -89,7 +94,7 @@ export function ItemDetailsHeader({
           </span>
         </div>
         <h3 className="game-item-name mt-2 text-lg font-semibold leading-tight">
-          {item.name}
+          {enchantedItemName(item.name, item.enchantLevel ?? 0)}
         </h3>
         <p className="mt-1 text-xs capitalize text-muted-foreground">
           {formatItemType(item.itemType)}

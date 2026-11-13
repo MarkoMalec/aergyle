@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog";
+import { enchantedItemName } from "~/game/enchanting";
 import { SellItemForm } from "./SellItemForm";
 
 interface ListItemDialogProps {
@@ -19,6 +20,8 @@ interface ListItemDialogProps {
   itemName: string;
   sprite: string;
   rarity: ItemRarity;
+  /** 0 or left out = not enchanted. */
+  enchantLevel?: number;
   maxQuantity: number;
   stackable: boolean;
 }
@@ -32,6 +35,7 @@ export function ListItemDialog({
   itemName,
   sprite,
   rarity,
+  enchantLevel = 0,
   maxQuantity,
   stackable,
 }: ListItemDialogProps) {
@@ -58,9 +62,10 @@ export function ListItemDialog({
           item={{
             userItemId,
             itemId,
-            itemName,
+            itemName: enchantedItemName(itemName, enchantLevel),
             sprite,
             rarity,
+            enchantLevel,
             maxQuantity,
             stackable,
           }}

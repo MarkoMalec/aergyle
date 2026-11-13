@@ -1,27 +1,38 @@
 # Live Item Balance
 
 Item balance is shared definition data. It is not copied into every player-owned
-item. A `UserItem` stores ownership, rarity, quantity, state and additive
-instance modifiers; inventory, equipment and marketplace reads resolve its
+item. A `UserItem` stores ownership, rarity, enchant level, quantity, state and
+additive instance modifiers; inventory, equipment and marketplace reads resolve its
 effective stats from the current `Item` definition.
 
 ## Resolution order
 
-For each stat:
+Rarity is a label only (how rare an item is). It never changes stats; since
+2026-11-13 the enchant level does. For each stat, at the copy's enchant level:
 
 1. Start with `ItemStat.value`.
-2. Add unlocked `ItemStatProgression.baseValue` entries.
-3. Use the global `RarityConfig.statMultiplier`, unless this item/stat/rarity
-   has a `MULTIPLIER` override. A weapon's own Attack Speed never takes the
-   global multiplier.
-4. A per-item `ABSOLUTE` override can instead set the final template value.
+2. Add every `ItemStatEnchantUnlock` whose level the copy has reached.
+3. Multiply positive values by the level's global stat bonus from
+   `/admin/enchanting` (`EnchantLevelConfig.statBonusPercent`), unless this
+   item/stat/level has a `MULTIPLIER` override in `ItemStatEnchantOverride`.
+   A weapon's own Attack Speed and negative stats never take the global bonus.
+4. A per-item `ABSOLUTE` override can instead set the final value.
 5. Apply the stat cap, if configured.
 6. Add `UserItemStatModifier` values belonging to this particular instance.
 
-Example: a sword has base damage 100. Its UNIQUE rule is 1.00 and its
-LEGENDARY rule is 1.15. Every UNIQUE copy resolves to 100 and every LEGENDARY
-copy resolves to 115, regardless of whether it is equipped, in inventory or on
-the marketplace.
+One function does steps 1-5 (`enchantStat` in `src/utils/itemInstanceStats.ts`),
+and the "Enchant scaling" grid on `/admin/items/[id]` calls the same function,
+so the grid shows exactly what players get.
+
+Example: a sword has base damage 100 and +15 is +22.5% globally. Its own +15
+override is a 1.30 multiplier. Every +14 copy resolves to 121 (at +21%) and
+every +15 copy to 130, wherever it is.
+
+The old rarity multipliers were baked into each item's base stats at its own
+rarity (`scripts/bakeRarityIntoStats.ts`, backup in
+`prisma/rebalance/backup-before-enchant-scaling.json`). Seed content is still
+authored as Common values and baked the same way on seed
+(`prisma/content/legacyRarity.ts`).
 
 ## Scale
 
@@ -33,7 +44,7 @@ Reads resolve only the small page/equipment set currently requested.
 now mean additive instance-only effects. The live-balance migration clears old
 materialized template snapshots before this new meaning takes effect. Future
 enchantments should write only their instance delta here, never a copy of the
-item's base or rarity-derived stats.
+item's base or enchant-derived stats.
 
 ## Publishing rules
 

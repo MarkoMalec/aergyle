@@ -105,7 +105,7 @@ function StorageItem(props: {
         </button>
       </PopoverTrigger>
       <ItemDetailsPopoverContent name={stack.item.name} rarity={stack.rarity}>
-        <LoadedItemDetails itemId={stack.item.id} rarity={stack.rarity} />
+        <LoadedItemDetails itemId={stack.item.id} />
       </ItemDetailsPopoverContent>
     </Popover>
   );

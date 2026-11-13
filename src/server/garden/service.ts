@@ -497,7 +497,6 @@ export async function settleGardenHarvest(
           db: tx,
           userId,
           itemId: row.yieldItemId,
-          rarity: row.yieldItem.rarity,
           quantity,
           unitSize: quantity,
         });

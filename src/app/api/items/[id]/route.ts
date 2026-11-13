@@ -1,5 +1,4 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { ItemRarity } from "~/generated/prisma/enums";
 import { prisma } from "~/lib/prisma";
 import { getServerAuthSession } from "~/server/auth";
 import {
@@ -7,14 +6,9 @@ import {
   ITEM_BALANCE_RELATIONS,
 } from "~/server/items/effectiveStats";
 
-function isRarity(value: string | null): value is ItemRarity {
-  return Object.values(ItemRarity).includes(value as ItemRarity);
-}
-
 /**
- * An item template's details as players see them, at `?rarity=` (default: the
- * template's own rarity). Stats go through the same resolver as inventory items,
- * so every item card shows the same numbers.
+ * An item template's details as players see them. Stats go through the same
+ * resolver as inventory items, so every item card shows the same numbers.
  */
 export async function GET(
   request: NextRequest,
@@ -29,11 +23,6 @@ export async function GET(
   const itemId = Number(id);
   if (!Number.isFinite(itemId) || itemId <= 0) {
     return NextResponse.json({ error: "Invalid item id" }, { status: 400 });
-  }
-
-  const requestedRarity = request.nextUrl.searchParams.get("rarity");
-  if (requestedRarity !== null && !isRarity(requestedRarity)) {
-    return NextResponse.json({ error: "Invalid rarity" }, { status: 400 });
   }
 
   const item = await prisma.item.findUnique({
@@ -55,7 +44,6 @@ export async function GET(
         select: { statType: true, value: true },
         orderBy: [{ statType: "asc" }],
       },
-      flipNegativeStatsWithRarity: true,
       ...ITEM_BALANCE_RELATIONS,
       seedGrowSeconds: true,
       seedHarvestSeconds: true,
@@ -72,9 +60,8 @@ export async function GET(
     return NextResponse.json({ error: "Item not found" }, { status: 404 });
   }
 
-  const rarity = requestedRarity ?? item.rarity;
   const [effective] = await hydrateEffectiveItemStats([
-    { rarity, itemTemplate: item, statModifiers: [] },
+    { itemTemplate: item, statModifiers: [] },
   ]);
 
   return NextResponse.json({
@@ -87,7 +74,7 @@ export async function GET(
     equipTo: item.equipTo,
     twoHanded: item.twoHanded,
     requiredLevel: item.requiredLevel,
-    rarity,
+    rarity: item.rarity,
     stats: effective?.stats ?? [],
     healingAmount: item.healingAmount,
     foodEffectSeconds: item.foodEffectSeconds,

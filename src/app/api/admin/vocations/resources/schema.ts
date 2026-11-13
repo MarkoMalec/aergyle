@@ -2,7 +2,6 @@ import { z } from "zod";
 import type { Prisma } from "~/generated/prisma/client";
 import { prisma } from "~/lib/prisma";
 import {
-  ItemRarity,
   ItemType,
   VocationalActionType,
 } from "~/generated/prisma/enums";
@@ -19,11 +18,6 @@ const VOCATIONAL_ACTION_TYPE_VALUES = Object.values(VocationalActionType) as [
   ...VocationalActionType[],
 ];
 
-const ITEM_RARITY_VALUES = Object.values(ItemRarity) as [
-  ItemRarity,
-  ...ItemRarity[],
-];
-
 export const resourceSchema = z
   .object({
     actionType: z.enum(VOCATIONAL_ACTION_TYPE_VALUES),
@@ -34,7 +28,6 @@ export const resourceSchema = z
     defaultSeconds: z.number().int().min(1),
     yieldPerUnit: z.number().int().min(1),
     xpPerUnit: z.number().int().min(0),
-    rarity: z.enum(ITEM_RARITY_VALUES),
     requirements: z.array(requirementSchema).default([]),
   })
   .superRefine((v, ctx) => {

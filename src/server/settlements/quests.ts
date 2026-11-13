@@ -413,7 +413,6 @@ export async function completeQuest(userId: string, questId: number) {
         db: tx,
         userId,
         itemId: reward.item.id,
-        rarity: reward.item.rarity,
         quantity: reward.quantity,
       });
       if (grant.remainingQuantity > 0) {

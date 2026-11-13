@@ -5,18 +5,21 @@ import type { Prisma } from "~/generated/prisma/client";
 import {
   ItemType,
   VocationalActionType,
-  type ItemRarity,
   type ProgressionTrackType,
   type StatType,
   type XpActionType,
 } from "~/generated/prisma/enums";
 import { PASSWORD_BCRYPT_ROUNDS } from "~/lib/auth-rules";
+import { enchantKindOf, enchantLevelsFor } from "~/game/enchanting";
 import { prisma } from "~/lib/prisma";
 import { saveSummaries } from "~/server/activitySummaries";
 import { writeCharacterHealth } from "~/server/combat/health";
 import { grantStackableItemToInventory } from "~/server/items/grantItem";
 import { fitSlots } from "~/server/items/inventoryLayout";
-import { lockInventory, type LockedInventory } from "~/server/items/inventoryLock";
+import {
+  lockInventory,
+  type LockedInventory,
+} from "~/server/items/inventoryLock";
 import { getCharacterStatSnapshot } from "~/server/stats";
 import { isNameTaken } from "~/server/players/names";
 import { getTravelStatus } from "~/server/travel/service";
@@ -107,7 +110,8 @@ export async function updatePlayer(
     data.password = await hash(patch.password, PASSWORD_BCRYPT_ROUNDS);
   }
   if (patch.gold !== undefined) data.gold = patch.gold;
-  if (patch.banned !== undefined) data.bannedAt = patch.banned ? new Date() : null;
+  if (patch.banned !== undefined)
+    data.bannedAt = patch.banned ? new Date() : null;
   if (patch.level !== undefined || patch.experience !== undefined) {
     const resolved = resolveLevelEdit(
       await getLevelCurve(),
@@ -179,9 +183,19 @@ export async function deletePlayer(userId: string) {
  */
 export async function grantItem(
   userId: string,
-  grant: { itemId: number; rarity: ItemRarity; quantity: number },
+  grant: { itemId: number; quantity: number; enchantLevel: number },
 ) {
   await requirePlayer(userId);
+  if (grant.enchantLevel > 0) {
+    const template = await prisma.item.findUnique({
+      where: { id: grant.itemId },
+      select: { equipTo: true, stackable: true },
+    });
+    const kind = template ? enchantKindOf(template) : null;
+    if (!kind || !enchantLevelsFor(kind).includes(grant.enchantLevel)) {
+      fail(400, "This item can't have that enchant level");
+    }
+  }
   const capacity = await calculateInventoryCapacity(userId);
   return prisma.$transaction(
     async (tx) => {
@@ -199,8 +213,8 @@ export async function grantItem(
         db: tx,
         userId,
         itemId: grant.itemId,
-        rarity: grant.rarity,
         quantity: grant.quantity,
+        enchantLevel: grant.enchantLevel,
       });
       if (result.addedQuantity === 0) fail(409, "Their bag is full");
       return {
@@ -234,7 +248,6 @@ export async function updateItem(
   userItemId: number,
   patch: {
     quantity?: number;
-    rarity?: ItemRarity;
     isTradeable?: boolean;
     modifiers?: Array<{ statType: StatType; value: number }>;
   },
@@ -258,7 +271,6 @@ export async function updateItem(
       where: { id: item.id },
       data: {
         quantity: patch.quantity,
-        rarity: patch.rarity,
         isTradeable: patch.isTradeable,
       },
     });
@@ -489,7 +501,9 @@ export async function resetTrack(
       (type) => type === track.trackKey,
     );
     if (actionType) {
-      await prisma.userSkillMetric.deleteMany({ where: { userId, actionType } });
+      await prisma.userSkillMetric.deleteMany({
+        where: { userId, actionType },
+      });
     }
   }
 }
@@ -501,17 +515,35 @@ async function activityWindow(userId: string, kind: AdminActivityKind) {
   const claimed = { ...select, claimedAt: true } as const;
   switch (kind) {
     case "travel":
-      return prisma.userTravelActivity.findUnique({ where: { userId }, select });
+      return prisma.userTravelActivity.findUnique({
+        where: { userId },
+        select,
+      });
     case "vocation":
-      return prisma.userVocationalActivity.findUnique({ where: { userId }, select });
+      return prisma.userVocationalActivity.findUnique({
+        where: { userId },
+        select,
+      });
     case "garden":
-      return prisma.userGardenHarvestActivity.findUnique({ where: { userId }, select });
+      return prisma.userGardenHarvestActivity.findUnique({
+        where: { userId },
+        select,
+      });
     case "gathering":
-      return prisma.userGatheringExpedition.findUnique({ where: { userId }, select: claimed });
+      return prisma.userGatheringExpedition.findUnique({
+        where: { userId },
+        select: claimed,
+      });
     case "hunting":
-      return prisma.userHuntingExpedition.findUnique({ where: { userId }, select: claimed });
+      return prisma.userHuntingExpedition.findUnique({
+        where: { userId },
+        select: claimed,
+      });
     case "dungeon":
-      return prisma.userDungeonRun.findUnique({ where: { userId }, select: claimed });
+      return prisma.userDungeonRun.findUnique({
+        where: { userId },
+        select: claimed,
+      });
   }
 }
 
@@ -520,7 +552,10 @@ async function activityWindow(userId: string, kind: AdminActivityKind) {
  * game pays it out as it would have (travel arrives, vocation units and
  * garden tiles settle, expeditions and dungeon runs are ready to claim).
  */
-export async function completeActivity(userId: string, kind: AdminActivityKind) {
+export async function completeActivity(
+  userId: string,
+  kind: AdminActivityKind,
+) {
   const row = await activityWindow(userId, kind);
   if (!row) fail(404, "That activity already ended");
   if ("claimedAt" in row && row.claimedAt) {
@@ -603,18 +638,20 @@ export async function queueDemoSummary(userId: string) {
         actionType: true,
         name: true,
         itemId: true,
-        rarity: true,
         yieldPerUnit: true,
         xpPerUnit: true,
         defaultSeconds: true,
-        item: { select: { name: true, sprite: true } },
+        item: { select: { name: true, sprite: true, rarity: true } },
       },
     }),
     prisma.item.findMany({
       where: { seedYieldedBy: { some: { itemType: ItemType.SEED } } },
       select: { id: true, name: true, sprite: true, rarity: true },
     }),
-    prisma.dungeon.findFirst({ select: { name: true }, orderBy: { id: "asc" } }),
+    prisma.dungeon.findFirst({
+      select: { name: true },
+      orderBy: { id: "asc" },
+    }),
   ]);
   if (!player) fail(404, "Player not found");
 
@@ -632,7 +669,9 @@ export async function queueDemoSummary(userId: string) {
 
   const resource = pickOne(resources);
   if (resource) {
-    const units = Math.floor((8 * 3_600) / Math.max(1, resource.defaultSeconds));
+    const units = Math.floor(
+      (8 * 3_600) / Math.max(1, resource.defaultSeconds),
+    );
     const xp = units * resource.xpPerUnit;
     summaries.push({
       kind: "VOCATION",
@@ -645,7 +684,7 @@ export async function queueDemoSummary(userId: string) {
           itemId: resource.itemId,
           name: resource.item.name,
           sprite: resource.item.sprite,
-          rarity: resource.rarity,
+          rarity: resource.item.rarity,
           quantity: units * resource.yieldPerUnit,
         },
       ],
@@ -721,7 +760,8 @@ export async function learnRecipe(userId: string, recipeItemId: number) {
     where: { id: recipeItemId },
     select: { itemType: true },
   });
-  if (item?.itemType !== ItemType.RECIPE) fail(400, "That item is not a recipe");
+  if (item?.itemType !== ItemType.RECIPE)
+    fail(400, "That item is not a recipe");
   await prisma.userLearnedRecipe.upsert({
     where: { userId_recipeItemId: { userId, recipeItemId } },
     create: { userId, recipeItemId },
@@ -730,7 +770,9 @@ export async function learnRecipe(userId: string, recipeItemId: number) {
 }
 
 export async function forgetRecipe(userId: string, recipeItemId: number) {
-  await prisma.userLearnedRecipe.deleteMany({ where: { userId, recipeItemId } });
+  await prisma.userLearnedRecipe.deleteMany({
+    where: { userId, recipeItemId },
+  });
 }
 
 /** Rents a settlement storage for the player, free of charge. */
@@ -800,7 +842,10 @@ async function requireThread(userId: string, conversationId: number) {
  * Deletes the whole thread, for both players. A report keeps its own copy
  * of the transcript.
  */
-export async function deleteConversation(userId: string, conversationId: number) {
+export async function deleteConversation(
+  userId: string,
+  conversationId: number,
+) {
   await requireThread(userId, conversationId);
   await prisma.conversation.delete({ where: { id: conversationId } });
 }

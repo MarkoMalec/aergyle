@@ -26,6 +26,7 @@ import {
   SheetTitle,
 } from "~/components/ui/sheet";
 import { useUserContext } from "~/context/userContext";
+import { enchantedItemName } from "~/game/enchanting";
 import { inventoryQueryKeys } from "~/lib/query-keys";
 import { cn } from "~/lib/utils";
 import type { SellableItem } from "~/types/marketplace";
@@ -37,7 +38,8 @@ function toFormItem(item: SellableItem): MarketSellItem {
   return {
     userItemId: item.id,
     itemId: item.itemTemplate.id,
-    itemName: item.itemTemplate.name,
+    itemName: enchantedItemName(item.itemTemplate.name, item.enchantLevel),
+    enchantLevel: item.enchantLevel,
     sprite: item.itemTemplate.sprite,
     rarity: item.rarity,
     maxQuantity: item.quantity,
@@ -147,18 +149,22 @@ export default function MarketplaceSellPage() {
                       className={cn(columns, "game-stretched-row")}
                     >
                       <MarketItemCell
-                        item={{ ...item.itemTemplate, rarity: item.rarity }}
+                        item={{
+                          ...item.itemTemplate,
+                          rarity: item.rarity,
+                          enchantLevel: item.enchantLevel,
+                        }}
                         name={
                           <button
                             type="button"
                             onClick={() => choose(item)}
                             aria-pressed={active}
-                            className={cn(
-                              "game-stretched-action block w-full truncate font-semibold",
-                              active && "text-primary",
-                            )}
+                            className="game-stretched-action block w-full truncate font-semibold"
                           >
-                            {item.itemTemplate.name}
+                            {enchantedItemName(
+                              item.itemTemplate.name,
+                              item.enchantLevel,
+                            )}
                           </button>
                         }
                       />
@@ -209,7 +215,13 @@ export default function MarketplaceSellPage() {
         >
           <SheetHeader className="sr-only">
             <SheetTitle>
-              Sell {selected?.itemTemplate.name ?? "item"}
+              Sell{" "}
+              {selected
+                ? enchantedItemName(
+                    selected.itemTemplate.name,
+                    selected.enchantLevel,
+                  )
+                : "item"}
             </SheetTitle>
             <SheetDescription>
               Choose an immediate sale or create a listing.

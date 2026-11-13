@@ -726,7 +726,6 @@ export async function claimDungeonRun(userId: string) {
         db: tx,
         userId,
         itemId: reward.itemId,
-        rarity: reward.rarity,
         quantity: reward.quantity,
       });
       if (grant.remainingQuantity > 0) {

@@ -57,7 +57,6 @@ export async function PATCH(req: NextRequest, ctx: { params: { id: string } }) {
           defaultSeconds: v.defaultSeconds,
           yieldPerUnit: v.yieldPerUnit,
           xpPerUnit: v.xpPerUnit,
-          rarity: v.rarity,
         },
       });
 

@@ -204,6 +204,7 @@ export default function MyListingsPage() {
                           item={{
                             ...listing.itemTemplate,
                             rarity: listing.rarity,
+                            enchantLevel: listing.enchantLevel,
                           }}
                         >
                           <span className="text-[11px] tabular-nums text-muted-foreground sm:hidden">

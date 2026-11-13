@@ -16,6 +16,7 @@ import {
 import type { CurveTable } from "~/game/balance/curve";
 import type { BalanceContent, BalanceDungeon } from "~/game/balance/content";
 import { dayReached, type JourneyResult } from "~/game/balance/journey";
+import { enchantLabel, MAX_ENCHANT_LEVEL } from "~/game/enchanting";
 import { cn } from "~/lib/utils";
 import { formatDays, formatDecimal, formatPercent, formatXp } from "./format";
 import { Segmented } from "./ui";
@@ -27,6 +28,7 @@ type Check = {
 };
 
 const TARGETS = [0.5, 0.75, 0.9, 0.99] as const;
+const GEAR_LEVELS = Array.from({ length: MAX_ENCHANT_LEVEL + 1 }, (_, level) => level);
 const RUNS = 200;
 
 function Verdict(props: { check: Check }) {
@@ -42,7 +44,7 @@ function Verdict(props: { check: Check }) {
 function slotLadder(content: BalanceContent, choice: NonNullable<GearChoice>) {
   const slots = new Map<string, Array<GearPiece & { weakerThan: GearPiece | null }>>();
   const pieces = content.items
-    .map((item) => resolveGearPiece(item, choice.rarity, choice.multiplier))
+    .map((item) => resolveGearPiece(content, item, choice.enchantLevel))
     .filter((piece): piece is GearPiece => (piece?.power ?? null) !== null)
     .sort((a, b) => a.item.requiredLevel - b.item.requiredLevel);
   for (const piece of pieces) {
@@ -61,17 +63,15 @@ export function CombatTab(props: {
   curves: { character: CurveTable; skill: CurveTable };
 }) {
   const { content } = props;
-  const rarities = content.rarities;
-  const defaultRarity = rarities.find((entry) => entry.rarity === "COMMON")?.rarity ?? rarities[0]?.rarity ?? null;
-  const [rarity, setRarity] = useState<string>(defaultRarity ?? "NONE");
+  const [gearLevel, setGearLevel] = useState<string>("0");
   const [target, setTarget] = useState<(typeof TARGETS)[number]>(0.9);
   const [checks, setChecks] = useState<Check[]>([]);
   const [progress, setProgress] = useState(0);
 
-  const choice: GearChoice = useMemo(() => {
-    const entry = rarities.find((candidate) => candidate.rarity === rarity);
-    return entry ? { rarity: entry.rarity, multiplier: entry.multiplier } : null;
-  }, [rarities, rarity]);
+  const choice: GearChoice = useMemo(
+    () => (gearLevel === "NONE" ? null : { enchantLevel: Number(gearLevel) }),
+    [gearLevel],
+  );
   const maxLevel = props.curves.character.maxLevel;
 
   useEffect(() => {
@@ -124,11 +124,11 @@ export function CombatTab(props: {
       <div className="flex flex-wrap items-end gap-4">
         <label className="space-y-1 text-xs text-white/55">
           <span className="block">Character gear</span>
-          <select className={cn(inputClass, "w-auto py-1.5")} value={rarity} onChange={(event) => setRarity(event.target.value)}>
+          <select className={cn(inputClass, "w-auto py-1.5")} value={gearLevel} onChange={(event) => setGearLevel(event.target.value)}>
             <option value="NONE">No gear (base stats only)</option>
-            {rarities.map((entry) => (
-              <option key={entry.rarity} value={entry.rarity}>
-                Best items for their level, {entry.label} (×{entry.multiplier})
+            {GEAR_LEVELS.map((level) => (
+              <option key={level} value={String(level)}>
+                Best items for their level, {level === 0 ? "unenchanted" : enchantLabel(level)}
               </option>
             ))}
           </select>
@@ -209,7 +209,7 @@ export function CombatTab(props: {
             <h2 className="font-semibold">Gear by level</h2>
             <p className="text-xs text-white/45">
               Power is average damage × attack speed for weapons and armor + magic resist for armour, at{" "}
-              {rarities.find((entry) => entry.rarity === choice.rarity)?.label} rarity.{" "}
+              {choice.enchantLevel === 0 ? "no enchant" : enchantLabel(choice.enchantLevel)} (accessories count from Kindled up).{" "}
               {flagged > 0
                 ? `${flagged} item${flagged === 1 ? " is" : "s are"} weaker than an item of a lower level in the same slot.`
                 : "Every item beats the lower-level items of its slot."}

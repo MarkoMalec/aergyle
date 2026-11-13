@@ -5,6 +5,7 @@ import { DroppableSlot } from "../../../dnd/DroppableSlot";
 import { useDndContext } from "~/components/dnd/DnDContext";
 import { ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import { Button } from "~/components/ui/button";
+import { EnchantPanel } from "~/components/game/items/EnchantPanel";
 
 const Inventory = () => {
   const { inventory, deleteSlot } = useDndContext();
@@ -31,9 +32,12 @@ const Inventory = () => {
         <h2 id="inventory-heading" className="game-section-title">
           Inventory
         </h2>
-        <span className="text-xs tabular-nums text-muted-foreground">
-          {occupiedCount} / {inventory.length} slots
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-xs tabular-nums text-muted-foreground">
+            {occupiedCount} / {inventory.length} slots
+          </span>
+          <EnchantPanel />
+        </div>
       </div>
       <div className="game-panel-body">
         <div id="inventory-slots" className="game-inventory-grid">

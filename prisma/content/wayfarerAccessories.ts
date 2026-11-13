@@ -2,10 +2,10 @@ import type { Prisma } from "../../src/generated/prisma/client";
 import type {
   ItemEquipTo,
   ItemRarity,
-  ItemStatRarityOverrideKind,
   ItemType,
   StatType,
 } from "../../src/generated/prisma/enums";
+import { bakeLegacyRarity } from "./legacyRarity";
 
 export type WayfarerAccessoryFamily =
   | "rings"
@@ -23,55 +23,13 @@ export interface WayfarerAccessoryDefinition {
   rarity: ItemRarity;
   requiredLevel: number;
   price: number;
-  /** COMMON-equivalent values. Instance creation applies rarity exactly once. */
+  /** The item's real stats (rarity never changes them). */
   stats: Partial<Record<StatType, number>>;
-  statRarityOverrides?: readonly {
-    statType: StatType;
-    rarity: ItemRarity;
-    kind: ItemStatRarityOverrideKind;
-    value: number;
-  }[];
-}
-
-const ALL_RARITIES = [
-  "WORTHLESS",
-  "BROKEN",
-  "COMMON",
-  "UNCOMMON",
-  "RARE",
-  "EXQUISITE",
-  "EPIC",
-  "ELITE",
-  "UNIQUE",
-  "LEGENDARY",
-  "MYTHIC",
-  "DIVINE",
-] as const satisfies readonly ItemRarity[];
-
-function fixedBackpackStats(carryingCapacity: number, movementSpeed: number) {
-  return ALL_RARITIES.flatMap((rarity) => [
-    {
-      statType: "CARRYING_CAPACITY" as const,
-      rarity,
-      kind: "ABSOLUTE" as const,
-      value: carryingCapacity,
-    },
-    ...(movementSpeed === 0
-      ? []
-      : [
-          {
-            statType: "MOVEMENT_SPEED" as const,
-            rarity,
-            kind: "ABSOLUTE" as const,
-            value: movementSpeed,
-          },
-        ]),
-  ]);
 }
 
 type BackpackDefinition = Omit<
   WayfarerAccessoryDefinition,
-  "family" | "itemType" | "equipTo" | "stats" | "statRarityOverrides"
+  "family" | "itemType" | "equipTo" | "stats"
 > & {
   /** Additional inventory slots while equipped. */
   slots: number;
@@ -93,13 +51,13 @@ function backpack({
       CARRYING_CAPACITY: slots,
       ...(movementSpeed === 0 ? {} : { MOVEMENT_SPEED: movementSpeed }),
     },
-    // Capacity and load trade-offs are tier identities, never random rolls.
-    statRarityOverrides: fixedBackpackStats(slots, movementSpeed),
   };
 }
 
 /** Grounded early-game accessories plus the full fifteen-tier backpack ladder. */
 export const WAYFARER_ACCESSORIES: readonly WayfarerAccessoryDefinition[] = [
+  // Backpacks always had exact per-rarity stats, so only the rest is baked.
+  ...bakeLegacyRarity<WayfarerAccessoryDefinition[]>([
   {
     slug: "ironroot-band",
     family: "rings",
@@ -165,6 +123,7 @@ export const WAYFARER_ACCESSORIES: readonly WayfarerAccessoryDefinition[] = [
     price: 65,
     stats: { MAGIC_RESIST: 2.4, HEALTH_REGEN: 0.18 },
   },
+  ]),
   backpack({
     slug: "novices-satchel",
     name: "Novice's Satchel",
@@ -355,7 +314,6 @@ export function wayfarerAccessoryCreateData(
     requiredLevel: item.requiredLevel,
     stackable: false,
     maxStackSize: 1,
-    flipNegativeStatsWithRarity: false,
     minPhysicalDamage: 0,
     maxPhysicalDamage: 0,
     minMagicDamage: 0,
@@ -367,8 +325,5 @@ export function wayfarerAccessoryCreateData(
         value,
       })),
     },
-    statRarityOverrides: item.statRarityOverrides
-      ? { create: [...item.statRarityOverrides] }
-      : undefined,
   };
 }

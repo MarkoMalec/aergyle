@@ -202,7 +202,6 @@ export function carpentryPlankItemCreateData(
     stackable: true,
     maxStackSize: 9999,
     requiredLevel: 1,
-    flipNegativeStatsWithRarity: false,
     armor: 0,
     minPhysicalDamage: 0,
     maxPhysicalDamage: 0,

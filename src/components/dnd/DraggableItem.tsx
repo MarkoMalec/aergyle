@@ -13,6 +13,8 @@ import { getQuickEquipSlot } from "~/utils/inventoryClient";
 import type { ItemWithStats } from "~/types/stats";
 import toast from "react-hot-toast";
 import { ItemRarityMark } from "~/utils/ui/rarity-mark";
+import { EnchantBadge } from "~/components/game/items/EnchantBadge";
+import { enchantedItemName } from "~/game/enchanting";
 import SingleItemTemplate from "~/components/game/items/single-item-template";
 
 export const DraggableItem = ({
@@ -115,7 +117,7 @@ export const DraggableItem = ({
             {...attributes}
             {...listeners}
             className="game-item-trigger"
-            aria-label={`${slotLabel ? `${slotLabel}: ` : ""}${item.name}, ${item.rarity.toLowerCase()}${item.quantity && item.quantity > 1 ? `, quantity ${item.quantity}` : ""}. Item details`}
+            aria-label={`${slotLabel ? `${slotLabel}: ` : ""}${enchantedItemName(item.name, item.enchantLevel ?? 0)}, ${item.rarity.toLowerCase()}${item.quantity && item.quantity > 1 ? `, quantity ${item.quantity}` : ""}. Item details`}
           >
             <Image
               alt={item.name}
@@ -125,6 +127,7 @@ export const DraggableItem = ({
               className="object-contain"
             />
             <ItemRarityMark rarity={item.rarity} />
+            <EnchantBadge level={item.enchantLevel} />
             {item.quantity && item.quantity > 1 && (
               <div className="game-item-quantity">{item.quantity}</div>
             )}

@@ -75,8 +75,8 @@ import {
   itemFormSnapshot,
   type ItemFormValues,
   type RarityConfigPreview,
-  statProgressionsCodec,
-  statRarityOverridesCodec,
+  enchantOverridesCodec,
+  enchantUnlocksCodec,
   toolEfficienciesCodec,
 } from "./itemFormModel";
 import {
@@ -91,7 +91,13 @@ import {
   statLabel,
   statOptions,
 } from "./itemFormOptions";
-import { type OverrideChange, RarityScalingGrid } from "./RarityScalingGrid";
+import { type OverrideChange, EnchantScalingGrid } from "./EnchantScalingGrid";
+import {
+  type EnchantBonusTable,
+  enchantKindOf,
+  enchantLabel,
+  enchantLevelsFor,
+} from "~/game/enchanting";
 
 const ITEM_RARITY_VALUES = Object.values(ItemRarity) as ItemRarity[];
 const ALL_STAT_TYPES = Object.values(StatType) as StatType[];
@@ -124,7 +130,6 @@ const DEFAULT_VALUES: ItemFormValues = {
   stackable: false,
   maxStackSize: 1,
   minPhysicalDamage: null,
-  flipNegativeStatsWithRarity: false,
   maxPhysicalDamage: null,
   minMagicDamage: null,
   maxMagicDamage: null,
@@ -132,8 +137,8 @@ const DEFAULT_VALUES: ItemFormValues = {
   requiredLevel: 1,
   baseStatsCsv: "",
   toolEfficienciesCsv: "",
-  statProgressionsCsv: "",
-  statRarityOverridesCsv: "",
+  enchantUnlocksCsv: "",
+  enchantOverridesCsv: "",
   foodEffectStatsCsv: "",
 };
 
@@ -292,6 +297,8 @@ type ItemFormProps = {
   mode: "create" | "edit";
   itemId?: number;
   initialValues?: Partial<ItemFormValues>;
+  /** Global stat bonus per enchant level, from /admin/enchanting. */
+  enchantBonuses: EnchantBonusTable;
   /** The item's place in the crafting chains, shown after the form. */
   chain?: React.ReactNode;
 };
@@ -351,9 +358,6 @@ function ItemEditor(
   const [rarityConfigs, setRarityConfigs] = useState<
     RarityConfigPreview[] | null
   >(null);
-  const [rarityConfigsError, setRarityConfigsError] = useState<string | null>(
-    null,
-  );
 
   const [defaults] = useState<ItemFormValues>(() => ({
     ...DEFAULT_VALUES,
@@ -379,17 +383,17 @@ function ItemEditor(
     toolEfficienciesCodec,
     defaults.toolEfficienciesCsv,
   );
-  const progressions = useCsvList(
+  const unlocks = useCsvList(
     form,
-    "statProgressionsCsv",
-    statProgressionsCodec,
-    defaults.statProgressionsCsv,
+    "enchantUnlocksCsv",
+    enchantUnlocksCodec,
+    defaults.enchantUnlocksCsv,
   );
   const overrides = useCsvList(
     form,
-    "statRarityOverridesCsv",
-    statRarityOverridesCodec,
-    defaults.statRarityOverridesCsv,
+    "enchantOverridesCsv",
+    enchantOverridesCodec,
+    defaults.enchantOverridesCsv,
   );
   const bonuses = useCsvList(
     form,
@@ -471,7 +475,6 @@ function ItemEditor(
     let active = true;
     void (async () => {
       try {
-        setRarityConfigsError(null);
         const res = await fetch("/api/admin/rarity/config", { method: "GET" });
         const json: unknown = await res.json().catch(() => null);
         if (!res.ok)
@@ -482,14 +485,12 @@ function ItemEditor(
           .map((r) => {
             const obj = r as {
               rarity?: unknown;
-              statMultiplier?: unknown;
               sortOrder?: unknown;
               displayName?: unknown;
               color?: unknown;
             };
             return {
               rarity: obj.rarity as ItemRarity,
-              statMultiplier: Number(obj.statMultiplier ?? 1),
               sortOrder: Number(obj.sortOrder ?? 0),
               displayName:
                 typeof obj.displayName === "string"
@@ -502,13 +503,8 @@ function ItemEditor(
 
         if (!active) return;
         setRarityConfigs(parsed);
-      } catch (error) {
+      } catch {
         if (!active) return;
-        setRarityConfigsError(
-          error instanceof Error
-            ? error.message
-            : "Failed to load rarity config",
-        );
         setRarityConfigs([]);
       }
     })();
@@ -528,23 +524,16 @@ function ItemEditor(
     return [...inOrder, ...remaining];
   }, [rarityConfigs]);
 
-  const rarityIndex = useMemo(() => {
-    const map = new Map<ItemRarity, number>();
-    previewRarities.forEach((r, idx) => map.set(r, idx));
-    return map;
-  }, [previewRarities]);
-
-  const previewMultipliers = useMemo(() => {
-    const map = new Map<ItemRarity, number>();
-    for (const r of previewRarities) map.set(r, 1);
-    for (const c of rarityConfigs ?? []) {
-      map.set(
-        c.rarity,
-        Number.isFinite(c.statMultiplier) ? c.statMultiplier : 1,
-      );
-    }
-    return map;
-  }, [rarityConfigs, previewRarities]);
+  // Which enchant ladder the item climbs decides the grid's columns.
+  const enchantKind = enchantKindOf({
+    equipTo: slot,
+    stackable: Boolean(values.stackable),
+  });
+  const enchantLevels = enchantKind ? enchantLevelsFor(enchantKind) : [];
+  const levelChoices = enchantLevels.map((level) => ({
+    value: String(level),
+    label: enchantLabel(level),
+  }));
 
   const rarityChoices = useMemo(
     () => rarityOptions(previewRarities, rarityConfigs),
@@ -556,8 +545,8 @@ function ItemEditor(
       buildPreviewRows({
         baseStatsCsv: values.baseStatsCsv ?? "",
         toolEfficienciesCsv: values.toolEfficienciesCsv ?? "",
-        statProgressionsCsv: values.statProgressionsCsv ?? "",
-        statRarityOverridesCsv: values.statRarityOverridesCsv ?? "",
+        enchantUnlocksCsv: values.enchantUnlocksCsv ?? "",
+        enchantOverridesCsv: values.enchantOverridesCsv ?? "",
         minPhysicalDamage: values.minPhysicalDamage,
         maxPhysicalDamage: values.maxPhysicalDamage,
         minMagicDamage: values.minMagicDamage,
@@ -567,8 +556,8 @@ function ItemEditor(
     [
       values.baseStatsCsv,
       values.toolEfficienciesCsv,
-      values.statProgressionsCsv,
-      values.statRarityOverridesCsv,
+      values.enchantUnlocksCsv,
+      values.enchantOverridesCsv,
       values.minPhysicalDamage,
       values.maxPhysicalDamage,
       values.minMagicDamage,
@@ -579,18 +568,18 @@ function ItemEditor(
 
   const setOverride = (
     statType: StatType,
-    rarity: ItemRarity,
+    level: number,
     next: OverrideChange,
   ) => {
-    const matches = (row: { statType: StatType; rarity: ItemRarity }) =>
-      row.statType === statType && row.rarity === rarity;
+    const matches = (row: { statType: StatType; level: number }) =>
+      row.statType === statType && row.level === level;
     if (next === null) {
       overrides.setRows(overrides.rows.filter((row) => !matches(row)));
       return;
     }
-    const row = { statType, rarity, kind: next.kind, value: next.value };
+    const row = { statType, level, kind: next.kind, value: next.value };
     const index = overrides.rows.findIndex(matches);
-    // One override per stat and rarity: replace it in place, drop repeats.
+    // One override per stat and level: replace it in place, drop repeats.
     overrides.setRows(
       index === -1
         ? [...overrides.rows, row]
@@ -675,11 +664,11 @@ function ItemEditor(
       (name) => FIELD_PLACES[name]?.section ?? "general",
     ),
   );
-  if ([baseStats, tools, progressions].some((list) => list.error !== null)) {
+  if ([baseStats, tools, unlocks].some((list) => list.error !== null)) {
     errorSections.add("stats");
   }
   if (bonuses.error) errorSections.add("consumable");
-  if (overrides.error) errorSections.add("rarity");
+  if (overrides.error) errorSections.add("enchant");
 
   const sections = [
     { id: "general", label: "General" },
@@ -687,7 +676,7 @@ function ItemEditor(
     ...(isSeedItem ? [{ id: "seed", label: "Seed" }] : []),
     { id: "equipment", label: "Equipment" },
     { id: "stats", label: "Stats" },
-    { id: "rarity", label: "Rarity" },
+    { id: "enchant", label: "Enchanting" },
     ...(props.chain ? [{ id: "chain", label: "Crafting chain" }] : []),
   ];
   const activeSection = useActiveSection(sections.map((section) => section.id));
@@ -923,8 +912,8 @@ function ItemEditor(
       <form id={FORM_ID} onSubmit={submit} noValidate className="space-y-5">
         <input type="hidden" {...form.register("baseStatsCsv")} />
         <input type="hidden" {...form.register("toolEfficienciesCsv")} />
-        <input type="hidden" {...form.register("statProgressionsCsv")} />
-        <input type="hidden" {...form.register("statRarityOverridesCsv")} />
+        <input type="hidden" {...form.register("enchantUnlocksCsv")} />
+        <input type="hidden" {...form.register("enchantOverridesCsv")} />
         <input type="hidden" {...form.register("foodEffectStatsCsv")} />
 
         <FormSection id="general" icon={Tag} title="General">
@@ -1484,12 +1473,12 @@ function ItemEditor(
           id="stats"
           icon={BarChart3}
           title="Stats"
-          description="Values are for Common; the rarity grid below shows what every rarity gets."
+          description="Values are for the unenchanted item; the enchant grid below shows what every enchant level gets."
         >
           <div className="grid gap-7 xl:grid-cols-2 xl:gap-x-10">
             <ListEditor
               title="Base stats"
-              description="Always on, then scaled by rarity. Damage and armor are set under Equipment."
+              description="Always on, then scaled by enchanting. Damage and armor are set under Equipment."
               columns={BASE_COLUMNS}
               headers={["Stat", "Value", "Cap", ""]}
               count={baseStats.rows.length}
@@ -1551,77 +1540,75 @@ function ItemEditor(
               ))}
             </ListEditor>
             <div className="space-y-7">
-              <ListEditor
-                title="Unlocks by rarity"
-                description="Stats gained from a rarity upward, added to any base value."
-                columns={UNLOCK_COLUMNS}
-                headers={["Stat", "Value", "From", ""]}
-                count={progressions.rows.length}
-                addLabel="Add unlock"
-                onAdd={() =>
-                  progressions.add({
-                    statType: ALL_STAT_OPTIONS[0]!.value,
-                    baseValue: 0,
-                    unlocksAtRarity: ItemRarity.COMMON,
-                  })
-                }
-                empty="No rarity unlocks. Add one"
-                raw={progressions.raw}
-                onToggleRaw={progressions.toggleRaw}
-                error={progressions.error}
-                rawEditor={
-                  <CsvEditor
-                    format={statProgressionsCodec.format}
-                    example={statProgressionsCodec.example}
-                    textarea={form.register("statProgressionsCsv")}
-                    onApply={progressions.toggleRaw}
-                  />
-                }
-              >
-                {progressions.rows.map((row, index) => (
-                  <ListRow
-                    key={index}
-                    columns={UNLOCK_COLUMNS}
-                    removeLabel={`Remove ${statLabel(row.statType)}`}
-                    onRemove={() => progressions.remove(index)}
-                  >
-                    <ChoicePicker
-                      compact
-                      ariaLabel="Stat"
-                      value={row.statType}
-                      options={ALL_STAT_OPTIONS}
-                      onChange={(value) => {
-                        if (value)
-                          progressions.update(index, { statType: value });
-                      }}
+              {enchantKind !== null || unlocks.rows.length > 0 ? (
+                <ListEditor
+                  title="Unlocks by enchant level"
+                  description="Stats gained from an enchant level upward, added to any base value before that level's scaling."
+                  columns={UNLOCK_COLUMNS}
+                  headers={["Stat", "Value", "From", ""]}
+                  count={unlocks.rows.length}
+                  addLabel="Add unlock"
+                  onAdd={() =>
+                    unlocks.add({
+                      statType: ALL_STAT_OPTIONS[0]!.value,
+                      value: 0,
+                      level: enchantLevels[0] ?? 1,
+                    })
+                  }
+                  empty="No enchant unlocks. Add one"
+                  raw={unlocks.raw}
+                  onToggleRaw={unlocks.toggleRaw}
+                  error={unlocks.error}
+                  rawEditor={
+                    <CsvEditor
+                      format={enchantUnlocksCodec.format}
+                      example={enchantUnlocksCodec.example}
+                      textarea={form.register("enchantUnlocksCsv")}
+                      onApply={unlocks.toggleRaw}
                     />
-                    <StatValueInput
-                      percent={isPercentStat(row.statType)}
-                      label="Value"
-                      value={row.baseValue}
-                      onChange={(value) =>
-                        progressions.update(index, { baseValue: value })
-                      }
-                    />
-                    <ChoicePicker
-                      compact
-                      ariaLabel="Unlocks at rarity"
-                      value={row.unlocksAtRarity}
-                      options={rarityChoices}
-                      onChange={(value) => {
-                        if (value)
-                          progressions.update(index, {
-                            unlocksAtRarity: value,
-                          });
-                      }}
-                    />
-                  </ListRow>
-                ))}
-              </ListEditor>
+                  }
+                >
+                  {unlocks.rows.map((row, index) => (
+                    <ListRow
+                      key={index}
+                      columns={UNLOCK_COLUMNS}
+                      removeLabel={`Remove ${statLabel(row.statType)}`}
+                      onRemove={() => unlocks.remove(index)}
+                    >
+                      <ChoicePicker
+                        compact
+                        ariaLabel="Stat"
+                        value={row.statType}
+                        options={ALL_STAT_OPTIONS}
+                        onChange={(value) => {
+                          if (value) unlocks.update(index, { statType: value });
+                        }}
+                      />
+                      <StatValueInput
+                        percent={isPercentStat(row.statType)}
+                        label="Value"
+                        value={row.value}
+                        onChange={(value) => unlocks.update(index, { value })}
+                      />
+                      <ChoicePicker
+                        compact
+                        ariaLabel="Unlocks at enchant level"
+                        value={String(row.level)}
+                        options={levelChoices}
+                        invalid={!enchantLevels.includes(row.level)}
+                        onChange={(value) => {
+                          if (value)
+                            unlocks.update(index, { level: Number(value) });
+                        }}
+                      />
+                    </ListRow>
+                  ))}
+                </ListEditor>
+              ) : null}
 
               <ListEditor
                 title="Tool efficiency"
-                description="Faster skilling while equipped, in percent. Scales with rarity."
+                description="Faster skilling while equipped, in percent. Scales with enchanting."
                 columns={TOOL_COLUMNS}
                 headers={["Skill", "Bonus", ""]}
                 count={tools.rows.length}
@@ -1684,59 +1671,50 @@ function ItemEditor(
         </FormSection>
 
         <FormSection
-          id="rarity"
+          id="enchant"
           icon={Gem}
-          title="Rarity scaling"
+          title="Enchant scaling"
           description={
-            rarityConfigs === null
-              ? "Loading the rarity multipliers…"
-              : "What each rarity gets. Click a value to set it for this item only."
+            enchantKind
+              ? "What each enchant level gets. Click a value to set it for this item only."
+              : "Only equipment that doesn't stack can be enchanted, so this item's stats never change."
           }
           actions={
-            <CsvToggle
-              raw={overrides.raw}
-              onToggle={overrides.toggleRaw}
-              title={
-                overrides.raw ? "Back to the grid" : "Edit the overrides as CSV"
-              }
-            />
+            enchantKind ? (
+              <CsvToggle
+                raw={overrides.raw}
+                onToggle={overrides.toggleRaw}
+                title={
+                  overrides.raw
+                    ? "Back to the grid"
+                    : "Edit the overrides as CSV"
+                }
+              />
+            ) : null
           }
         >
-          <div className="space-y-4">
-            {rarityConfigsError ? (
-              <ErrorNote>{rarityConfigsError}</ErrorNote>
-            ) : null}
-            {overrides.error ? <ErrorNote>{overrides.error}</ErrorNote> : null}
-            <RarityScalingGrid
-              rows={previewRows}
-              rarities={previewRarities}
-              configs={rarityConfigs}
-              multipliers={previewMultipliers}
-              rarityIndex={rarityIndex}
-              equipTo={slot}
-              flipNegatives={Boolean(values.flipNegativeStatsWithRarity)}
-              itemRarity={values.rarity}
-              onOverride={overrides.raw ? null : setOverride}
-            />
-            {overrides.raw ? (
-              <CsvEditor
-                format={statRarityOverridesCodec.format}
-                example={statRarityOverridesCodec.example}
-                textarea={form.register("statRarityOverridesCsv")}
-                onApply={overrides.toggleRaw}
+          {enchantKind ? (
+            <div className="space-y-4">
+              {overrides.error ? (
+                <ErrorNote>{overrides.error}</ErrorNote>
+              ) : null}
+              <EnchantScalingGrid
+                rows={previewRows}
+                levels={enchantLevels}
+                bonuses={props.enchantBonuses[enchantKind]}
+                equipTo={slot}
+                onOverride={overrides.raw ? null : setOverride}
               />
-            ) : null}
-            <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
-              <Switch
-                checked={Boolean(values.flipNegativeStatsWithRarity)}
-                onChange={(checked) =>
-                  form.setValue("flipNegativeStatsWithRarity", checked, DIRTY)
-                }
-                label="Negative stats improve with rarity"
-                description="A −5 Movement speed at Common can turn positive at high rarities."
-              />
+              {overrides.raw ? (
+                <CsvEditor
+                  format={enchantOverridesCodec.format}
+                  example={enchantOverridesCodec.example}
+                  textarea={form.register("enchantOverridesCsv")}
+                  onApply={overrides.toggleRaw}
+                />
+              ) : null}
               {previewRows.length > 0 ? (
-                <ul className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-white/40">
+                <ul className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1.5 text-[11px] text-white/40">
                   <li className="flex items-center gap-1.5">
                     <span className="rounded bg-amber-400/[0.14] px-1 font-semibold text-amber-300/80">
                       =
@@ -1749,25 +1727,18 @@ function ItemEditor(
                     </span>
                     Own multiplier
                   </li>
-                  <li className="flex items-center gap-1.5">
-                    <span
-                      aria-hidden
-                      className="h-3 w-3 rounded-sm bg-white/[0.08]"
-                    />
-                    This item&apos;s rarity
-                  </li>
                   <li>
                     <Link
-                      href="/admin/rarity"
+                      href="/admin/enchanting"
                       className="text-white/55 underline-offset-2 transition-colors hover:text-white hover:underline"
                     >
-                      Global multipliers
+                      Global bonuses
                     </Link>
                   </li>
                 </ul>
               ) : null}
             </div>
-          </div>
+          ) : null}
         </FormSection>
       </form>
     </>

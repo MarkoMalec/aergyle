@@ -6,6 +6,7 @@ import type {
   StatType,
   VocationalActionType,
 } from "../../src/generated/prisma/enums";
+import { bakeLegacyRarity } from "./legacyRarity";
 
 /**
  * Crafted weapons pack: the beginner weapons in public/assets/items/weapons/
@@ -98,7 +99,7 @@ export const CRAFTED_WEAPON_SKILL_OUTPUTS = {
   CARPENTRY: ["STAFF", "WAND"],
 } as const satisfies Partial<Record<WeaponCraftSkill, readonly ItemType[]>>;
 
-export const CRAFTED_WEAPONS = [
+export const CRAFTED_WEAPONS = bakeLegacyRarity([
   {
     name: "Copper Longsword",
     description:
@@ -1607,7 +1608,7 @@ export const CRAFTED_WEAPONS = [
       ],
     },
   },
-] as const satisfies readonly CraftedWeaponDefinition[];
+] as const satisfies readonly CraftedWeaponDefinition[]);
 
 /** Weapons that were already in the catalog and only gain a recipe. */
 export const EXISTING_WEAPON_CRAFTS = [
@@ -1661,7 +1662,6 @@ export function craftedWeaponCreateData(
     requiredLevel: item.requiredLevel,
     stackable: false,
     maxStackSize: 1,
-    flipNegativeStatsWithRarity: false,
     minPhysicalDamage: stat("PHYSICAL_DAMAGE_MIN"),
     maxPhysicalDamage: stat("PHYSICAL_DAMAGE_MAX"),
     minMagicDamage: stat("MAGIC_DAMAGE_MIN"),

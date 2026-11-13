@@ -6,7 +6,6 @@ import { useFieldArray, useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
-  ItemRarity,
   ItemType,
   VocationalActionType,
 } from "~/generated/prisma/enums";
@@ -45,10 +44,6 @@ const VOCATIONAL_ACTION_TYPE_VALUES = Object.values(VocationalActionType) as [
   ...VocationalActionType[],
 ];
 
-const ITEM_RARITY_VALUES = Object.values(ItemRarity) as [
-  ItemRarity,
-  ...ItemRarity[],
-];
 
 const requirementSchema = z.object({
   itemId: z.coerce.number().int().positive(),
@@ -70,7 +65,6 @@ const schema = z
     defaultSeconds: z.coerce.number().int().min(1),
     yieldPerUnit: z.coerce.number().int().min(1),
     xpPerUnit: z.coerce.number().int().min(0),
-    rarity: z.enum(ITEM_RARITY_VALUES).default(ItemRarity.COMMON),
     requirements: z.array(requirementSchema).default([]),
   })
   .superRefine((v, ctx) => {
@@ -130,7 +124,6 @@ export function VocationalResourceForm(props: {
     defaultSeconds: 10,
     yieldPerUnit: 1,
     xpPerUnit: 0,
-    rarity: ItemRarity.COMMON,
     requirements: [],
     ...props.initialValues,
   };
@@ -146,7 +139,6 @@ export function VocationalResourceForm(props: {
   });
 
   const actionTypes = useMemo(() => Object.values(VocationalActionType), []);
-  const rarities = useMemo(() => Object.values(ItemRarity), []);
   const actionType = form.watch("actionType");
   const craftingRule = getCraftingRule(actionType);
   const itemRule = props.itemRules[actionType];
@@ -407,24 +399,6 @@ export function VocationalResourceForm(props: {
         <div className="space-y-2">
           <div className="text-sm text-white/80">XP / Unit</div>
           <Input type="number" {...form.register("xpPerUnit")} />
-        </div>
-        <div className="space-y-2">
-          <div className="text-sm text-white/80">Rarity</div>
-          <Select
-            value={form.watch("rarity")}
-            onValueChange={(v) => form.setValue("rarity", v as ItemRarity)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select rarity" />
-            </SelectTrigger>
-            <SelectContent>
-              {rarities.map((r) => (
-                <SelectItem key={r} value={r}>
-                  {r}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
       </div>
 

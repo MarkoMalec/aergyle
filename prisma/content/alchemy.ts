@@ -191,7 +191,6 @@ export function alchemyItemCreateData(
     maxStackSize: 9999,
     foodEffectSeconds: null,
     healingAmount: definition.healingAmount ?? null,
-    flipNegativeStatsWithRarity: false,
     armor: 0,
     minPhysicalDamage: 0,
     maxPhysicalDamage: 0,

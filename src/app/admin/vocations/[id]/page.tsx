@@ -33,7 +33,6 @@ export default async function AdminEditVocationResourcePage(props: { params: { i
         defaultSeconds: true,
         yieldPerUnit: true,
         xpPerUnit: true,
-        rarity: true,
         requirements: {
           select: { itemId: true, quantityPerUnit: true },
           orderBy: [{ id: "asc" }],
@@ -83,7 +82,6 @@ export default async function AdminEditVocationResourcePage(props: { params: { i
               defaultSeconds: resource.defaultSeconds,
               yieldPerUnit: resource.yieldPerUnit,
               xpPerUnit: resource.xpPerUnit,
-              rarity: resource.rarity,
               requirements: resource.requirements,
             }}
           />

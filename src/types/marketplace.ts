@@ -30,6 +30,8 @@ export interface MarketplaceListing {
   userId?: string;
   itemId?: number;
   rarity: ItemRarity;
+  /** 0 = not enchanted. */
+  enchantLevel: number;
   quantity: number;
   listedPrice: number | null;
   listedAt: string | Date | null;
@@ -80,9 +82,17 @@ export interface MarketplaceFilterOptions {
   rarities: ItemRarity[];
 }
 
+/** One enchant level currently on offer for an item + rarity. */
+export interface MarketplaceEnchantLevel {
+  enchantLevel: number;
+  listings: number;
+  minPrice: number;
+}
+
 export interface MarketStatsData {
   itemId: number;
   rarity: ItemRarity;
+  enchantLevel: number;
   activeMarket: {
     lowestAsk: number | null;
     highestBid: number | null;

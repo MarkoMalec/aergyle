@@ -109,30 +109,16 @@ void test("backpack capacity rises cleanly through the level ladder", () => {
   }
 });
 
-void test("backpack capacity and load trade-offs stay exact at every rarity", () => {
+void test("backpack capacity and load trade-offs are their exact stats", () => {
   for (const backpack of WAYFARER_ACCESSORIES.filter(
     (item) => item.itemType === "BACKPACK",
   )) {
     const expectedStats = Object.entries(backpack.stats).map(
       ([statType, value]) => ({ statType: statType as StatType, value }),
     );
-    assert.equal(
-      backpack.statRarityOverrides?.length,
-      expectedStats.length * 12,
+    assert.deepEqual(
+      resolveEffectiveItemStats({ stats: expectedStats }),
+      expectedStats,
     );
-
-    for (const [rarity, rarityMultiplier] of [
-      ["WORTHLESS", 0.5],
-      ["COMMON", 1],
-      ["DIVINE", 3],
-    ] as const) {
-      const stats = resolveEffectiveItemStats({
-        rarity,
-        rarityMultiplier,
-        stats: expectedStats,
-        statRarityOverrides: backpack.statRarityOverrides,
-      });
-      assert.deepEqual(stats, expectedStats);
-    }
   }
 });

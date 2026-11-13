@@ -10,6 +10,7 @@ import {
   huntingItemData,
 } from "../prisma/content/hunting";
 import { changedFields } from "./seedHelpers";
+import { legacyRarityStat } from "../prisma/content/legacyRarity";
 
 type Mode = "--check" | "--apply" | "--verify";
 const mode = (process.argv[2] ?? "--check") as Mode;
@@ -391,9 +392,10 @@ async function main(selectedMode: Mode) {
 
         const bow = await tx.item.findFirst({
           where: { name: "Reedwind Bow" },
-          select: { id: true },
+          select: { id: true, rarity: true, equipTo: true },
         });
         if (bow) {
+          const baseEfficiency = legacyRarityStat("HUNTING_EFFICIENCY", 12, bow);
           await tx.toolEfficiency.upsert({
             where: {
               itemId_actionType: { itemId: bow.id, actionType: "HUNTING" },
@@ -401,9 +403,9 @@ async function main(selectedMode: Mode) {
             create: {
               itemId: bow.id,
               actionType: "HUNTING",
-              baseEfficiency: 12,
+              baseEfficiency,
             },
-            update: { baseEfficiency: 12 },
+            update: { baseEfficiency },
           });
         }
       }

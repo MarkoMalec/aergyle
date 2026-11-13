@@ -70,7 +70,6 @@ export async function buyNpcOffer(params: {
       db: tx,
       userId,
       itemId: offer.itemId,
-      rarity: offer.item.rarity,
       quantity,
     });
     if (grant.remainingQuantity > 0) {

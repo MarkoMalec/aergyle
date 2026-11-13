@@ -187,7 +187,6 @@ export function baitItemCreateData(
     maxStackSize: 9_999,
     rarity: item.rarity,
     requiredLevel: item.requiredLevel,
-    flipNegativeStatsWithRarity: false,
     minPhysicalDamage: 0,
     maxPhysicalDamage: 0,
     minMagicDamage: 0,

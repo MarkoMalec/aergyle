@@ -10,7 +10,6 @@ export const revalidate = 0;
 const configSchema = z.object({
   id: z.number().int(),
   rarity: z.nativeEnum(ItemRarity),
-  statMultiplier: z.number(),
   minStats: z.number().int(),
   maxStats: z.number().int(),
   bonusStatChance: z.number(),
@@ -56,7 +55,6 @@ export async function PATCH(req: NextRequest) {
         where: { rarity: c.rarity },
         create: {
           rarity: c.rarity,
-          statMultiplier: c.statMultiplier,
           minStats: c.minStats,
           maxStats: c.maxStats,
           bonusStatChance: c.bonusStatChance,
@@ -68,7 +66,6 @@ export async function PATCH(req: NextRequest) {
           upgradeCost: c.upgradeCost,
         },
         update: {
-          statMultiplier: c.statMultiplier,
           minStats: c.minStats,
           maxStats: c.maxStats,
           bonusStatChance: c.bonusStatChance,

@@ -25,7 +25,7 @@ Function names are stable; file paths are given for searching.
 | Stat total | `base + equipment + active food or potion`, all flat | Linear | `getCharacterStatSnapshot` in `src/server/stats.ts` |
 | Final caps and floors | crit ≤ 100; evasion, block ≤ 75; Magic Resist and elemental resistances −100…75; attack speed ≥ 0.1; lifesteal ≤ 100; health ≥ 1 | Capped | `calculateFinalStatsFromTotals` in `src/utils/stats.ts` |
 | Item stat at a rarity | `min(max value, base × rarity) + instance modifiers` | Linear | `scaleItemStat`, `resolveEffectiveItemStats` in `src/utils/itemInstanceStats.ts` |
-| Weapon attack speed | main-hand speed replaces the unarmed 1.0; level growth, other gear and food add on top | Linear | `weaponAttackSpeedAdjustment` in `src/utils/stats.ts`; `statScalesWithRarity` in `src/utils/itemInstanceStats.ts` |
+| Weapon attack speed | main-hand speed replaces the unarmed 1.0; level growth, other gear and food add on top | Linear | `weaponAttackSpeedAdjustment` in `src/utils/stats.ts`; `statScalesWithEnchant` in `src/utils/itemInstanceStats.ts` |
 | Carrying capacity | `25 + floor(carrying capacity)` slots | Linear | `calculateInventoryCapacity` in `src/utils/inventoryCapacity.ts` |
 
 Default level growth (used when /admin has no saved rule): health 100 + 5 per
@@ -38,11 +38,9 @@ stats don't grow. The live rules differ: health grows 10 per level, health
 regen is 0.001 + 0.001 per level, and the content pass set attack speed
 growth to 0 and Magic Resist to + 0.1 (up to +10).
 
-Rarity multipliers (`RarityConfig`, defaults in `src/utils/rarity.ts`):
-Worthless 0.5, Broken 0.75, Common 1.0, Uncommon 1.15, Rare 1.35,
-Exquisite 1.5, Epic 1.7, Elite 1.9, Unique 2.1, Legendary 2.3, Mythic 2.7,
-Divine 3.0. They apply to every stat, percentages included, unless a per-item
-override or `maxValue` says otherwise.
+Rarity no longer changes stats (2026-11-13). Enchant levels do: each level's
+global stat bonus is on `/admin/enchanting`, per-item overrides and unlocks on
+`/admin/items/[id]`. See docs/ITEM_BALANCE_SYSTEM.md.
 
 ## Combat
 

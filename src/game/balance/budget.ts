@@ -7,8 +7,9 @@ import { getLevelStatBonus, type StatGrowthRule } from "~/utils/stats";
  * content stays consistent however far levels rise. Pure and client-safe.
  * The reasoning is in docs/COMBAT_BALANCE_DESIGN.md ("Budgets").
  *
- * Item values are Common-equivalent, the way ItemStat stores them; an item's
- * rarity multiplies them. The anchors:
+ * Item values are Common-equivalent. Rarity no longer changes stats in the
+ * game; the content seeds bake each item's old rarity multiplier into them
+ * (prisma/content/legacyRarity.ts). The anchors:
  * - A full on-level armor set at the reference rarity (Rare), plus the
  *   level's base armor, equals armor K: it halves damage from on-level foes.
  * - A normal on-level monster falls in about four of the reference

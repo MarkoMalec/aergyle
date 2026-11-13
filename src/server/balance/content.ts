@@ -13,6 +13,7 @@ import { isFightableMonster } from "~/server/dungeons/resolver";
 import { getStatGrowthRules } from "~/server/stats";
 import { getCombatConfig } from "~/server/combat/config";
 import { getMaxVocationDurationSeconds } from "~/server/vocations/config";
+import { loadEnchantBonusTable } from "~/server/enchanting/config";
 
 /** Every balance input the admin simulators read, in one round of queries. */
 export async function loadBalanceContent(): Promise<BalanceContent> {
@@ -26,7 +27,7 @@ export async function loadBalanceContent(): Promise<BalanceContent> {
     dungeons,
     quests,
     items,
-    rarities,
+    enchantBonuses,
     statGrowth,
     combat,
     vocationMaxSeconds,
@@ -134,20 +135,16 @@ export async function loadBalanceContent(): Promise<BalanceContent> {
         itemType: true,
         equipTo: true,
         twoHanded: true,
-        flipNegativeStatsWithRarity: true,
         stats: { select: { statType: true, value: true, maxValue: true } },
-        statProgressions: {
-          select: { statType: true, baseValue: true, unlocksAtRarity: true },
+        statEnchantUnlocks: {
+          select: { statType: true, value: true, level: true },
         },
-        statRarityOverrides: {
-          select: { statType: true, rarity: true, kind: true, value: true },
+        statEnchantOverrides: {
+          select: { statType: true, level: true, kind: true, value: true },
         },
       },
     }),
-    prisma.rarityConfig.findMany({
-      orderBy: { sortOrder: "asc" },
-      select: { rarity: true, displayName: true, statMultiplier: true },
-    }),
+    loadEnchantBonusTable(),
     getStatGrowthRules(),
     getCombatConfig(),
     getMaxVocationDurationSeconds(),
@@ -249,18 +246,13 @@ export async function loadBalanceContent(): Promise<BalanceContent> {
       twoHanded: item.twoHanded,
       balance: item.equipTo
         ? {
-            flip: item.flipNegativeStatsWithRarity,
             stats: item.stats,
-            progressions: item.statProgressions,
-            overrides: item.statRarityOverrides,
+            unlocks: item.statEnchantUnlocks,
+            overrides: item.statEnchantOverrides,
           }
         : null,
     })),
-    rarities: rarities.map((rarity) => ({
-      rarity: rarity.rarity,
-      label: rarity.displayName,
-      multiplier: rarity.statMultiplier,
-    })),
+    enchantBonuses,
     statGrowth,
     combat,
     vocationMaxSeconds,

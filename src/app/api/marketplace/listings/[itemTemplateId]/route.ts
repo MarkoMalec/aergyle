@@ -51,6 +51,9 @@ function encodeCursor(cursor: ListingsCursor): string {
  * - cursor: opaque cursor from previous response (optional)
  * - limit: items per page (default: 12)
  * - rarity: filter by rarity (optional)
+ * - enchantLevel: only listings at this enchant level (0 = not enchanted).
+ *   Left out, the response lists the levels on offer (`enchantLevels`) and
+ *   returns listings only when there is exactly one level.
  */
 export async function GET(
   req: NextRequest,
@@ -76,6 +79,51 @@ export async function GET(
     const cursor = decodeCursor(searchParams.get("cursor"));
     const rarityParam = searchParams.get("rarity");
     const rarity = isItemRarity(rarityParam) ? rarityParam : null;
+    const levelRaw = searchParams.get("enchantLevel");
+    const levelParam = levelRaw == null ? null : Number(levelRaw);
+    if (
+      levelParam != null &&
+      !(Number.isInteger(levelParam) && levelParam >= 0 && levelParam <= 20)
+    ) {
+      return NextResponse.json(
+        { error: "Invalid enchant level" },
+        { status: 400 },
+      );
+    }
+
+    // The levels on offer (not paged: at most 21 groups) for this item + rarity.
+    const levelGroups = cursor
+      ? []
+      : await prisma.userItem.groupBy({
+          by: ["enchantLevel"],
+          where: {
+            status: "LISTED",
+            isTradeable: true,
+            itemId: itemTemplateId,
+            listedPrice: { not: null },
+            ...(rarity ? { rarity } : {}),
+          },
+          _min: { listedPrice: true },
+          _count: { _all: true },
+          orderBy: { enchantLevel: "asc" },
+        });
+    const enchantLevels = levelGroups.map((group) => ({
+      enchantLevel: group.enchantLevel,
+      listings: group._count._all,
+      minPrice: group._min.listedPrice ?? 0,
+    }));
+    const enchantLevel =
+      levelParam ??
+      (enchantLevels.length === 1 ? enchantLevels[0]!.enchantLevel : null);
+    if (enchantLevel == null && !cursor) {
+      return NextResponse.json({
+        listings: [],
+        hasMore: false,
+        nextCursor: null,
+        enchantLevel: null,
+        enchantLevels,
+      });
+    }
 
     // Build where clause for this specific item template
     const where: Prisma.UserItemWhereInput = {
@@ -84,6 +132,7 @@ export async function GET(
       itemId: itemTemplateId,
       listedPrice: { not: null },
       listedAt: { not: null },
+      ...(enchantLevel != null ? { enchantLevel } : {}),
     };
 
     // Add rarity filter if provided
@@ -117,6 +166,7 @@ export async function GET(
         id: true,
         quantity: true,
         rarity: true,
+        enchantLevel: true,
         listedPrice: true,
         listedAt: true,
         itemTemplate: {
@@ -137,24 +187,14 @@ export async function GET(
             maxMagicDamage: true,
             armor: true,
             requiredLevel: true,
-            flipNegativeStatsWithRarity: true,
             stats: {
               select: { statType: true, value: true, maxValue: true },
             },
-            statProgressions: {
-              select: {
-                statType: true,
-                baseValue: true,
-                unlocksAtRarity: true,
-              },
+            statEnchantUnlocks: {
+              select: { statType: true, value: true, level: true },
             },
-            statRarityOverrides: {
-              select: {
-                statType: true,
-                rarity: true,
-                kind: true,
-                value: true,
-              },
+            statEnchantOverrides: {
+              select: { statType: true, level: true, kind: true, value: true },
             },
             toolEfficiencies: {
               select: { actionType: true, baseEfficiency: true },
@@ -218,6 +258,8 @@ export async function GET(
       listings: effectiveListings,
       hasMore,
       nextCursor,
+      enchantLevel,
+      enchantLevels: cursor ? undefined : enchantLevels,
       availableRarities: !cursor ? availableRarities : undefined,
     });
   } catch (error) {

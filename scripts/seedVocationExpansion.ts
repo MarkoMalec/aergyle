@@ -274,7 +274,6 @@ async function main(selectedMode: Mode) {
                 defaultSeconds: baseline.defaultSeconds,
                 yieldPerUnit: baseline.yieldPerUnit,
                 xpPerUnit: baseline.xpPerUnit,
-                rarity: baseline.rarity,
               },
             });
           }
@@ -323,7 +322,6 @@ async function main(selectedMode: Mode) {
             defaultSeconds: definition.defaultSeconds,
             yieldPerUnit: definition.yieldPerUnit,
             xpPerUnit: definition.xpPerUnit,
-            rarity: definition.rarity,
           };
           let resource = await tx.vocationalResource.findUnique({
             where: { itemId: item.id },

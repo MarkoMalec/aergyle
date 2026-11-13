@@ -5,12 +5,10 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import {
   Check,
-  CheckCircle2,
   LoaderCircle,
   Minus,
   PackagePlus,
   Plus,
-  RotateCcw,
   SearchX,
 } from "lucide-react";
 import toast from "react-hot-toast";
@@ -34,6 +32,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
+import {
+  enchantKindOf,
+  enchantLabel,
+  enchantLevelsFor,
+  enchantedItemName,
+} from "~/game/enchanting";
+import type { ItemEquipTo } from "~/generated/prisma/enums";
 import { cn } from "~/lib/utils";
 import { rarityStyle } from "~/utils/rarity-colors";
 import { RarityMark } from "~/utils/ui/rarity-mark";
@@ -56,21 +61,6 @@ type ResultMessage = {
   text: string;
 };
 
-const RARITIES: ItemRarity[] = [
-  "WORTHLESS",
-  "BROKEN",
-  "COMMON",
-  "UNCOMMON",
-  "RARE",
-  "EXQUISITE",
-  "EPIC",
-  "ELITE",
-  "UNIQUE",
-  "LEGENDARY",
-  "MYTHIC",
-  "DIVINE",
-];
-
 const QUANTITY_PRESETS = [1, 5, 10, 25];
 
 function humanize(value: string) {
@@ -85,8 +75,8 @@ export function GiveItems() {
   const { player, options } = usePlayerEdit();
   const items: CatalogItem[] = options.items;
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
-  const [selectedRarity, setSelectedRarity] = useState<ItemRarity>("COMMON");
   const [quantity, setQuantity] = useState(1);
+  const [enchantLevel, setEnchantLevel] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<ResultMessage | null>(null);
 
@@ -94,16 +84,22 @@ export function GiveItems() {
     () => items.find((item) => item.id === selectedItemId) ?? null,
     [items, selectedItemId],
   );
-  const usesTemplateRarity = selectedItem?.rarity === selectedRarity;
 
   const updateQuantity = (nextQuantity: number) => {
     if (!Number.isFinite(nextQuantity)) return;
     setQuantity(Math.max(1, Math.floor(nextQuantity)));
   };
 
+  const enchantKind = selectedItem
+    ? enchantKindOf({
+        equipTo: selectedItem.equipTo as ItemEquipTo | null,
+        stackable: selectedItem.stackable,
+      })
+    : null;
+
   const selectItem = (item: CatalogItem) => {
     setSelectedItemId(item.id);
-    setSelectedRarity(item.rarity);
+    setEnchantLevel(0);
     setResult(null);
   };
 
@@ -120,8 +116,8 @@ export function GiveItems() {
         "POST",
         {
           itemId: selectedItem.id,
-          rarity: selectedRarity,
           quantity,
+          enchantLevel: enchantKind ? enchantLevel : 0,
         },
       );
 
@@ -129,8 +125,11 @@ export function GiveItems() {
         typeof payload?.added === "number" ? payload.added : 0;
       const remainingQuantity =
         typeof payload?.notAdded === "number" ? payload.notAdded : 0;
-      const itemName = selectedItem.name;
-      const rarity = humanize(selectedRarity);
+      const itemName = enchantedItemName(
+        selectedItem.name,
+        enchantKind ? enchantLevel : 0,
+      );
+      const rarity = humanize(selectedItem.rarity);
 
       let nextResult: ResultMessage;
       if (addedQuantity === 0) {
@@ -299,8 +298,8 @@ export function GiveItems() {
             <div className="flex items-center gap-4 border-b border-border pb-5">
               <div
                 className="rarity-frame relative grid h-[72px] w-[72px] shrink-0 place-items-center rounded-xl p-1.5"
-                data-rarity={selectedRarity}
-                style={rarityStyle(selectedRarity)}
+                data-rarity={selectedItem.rarity}
+                style={rarityStyle(selectedItem.rarity)}
               >
                 <Image
                   src={selectedItem.sprite}
@@ -335,65 +334,33 @@ export function GiveItems() {
             </div>
 
             <div className="space-y-5 py-5">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between gap-3">
-                  <Label htmlFor="item-grant-rarity">Instance rarity</Label>
-                  {usesTemplateRarity ? (
-                    <span className="flex items-center gap-1 text-[11px] text-success">
-                      <CheckCircle2 className="h-3.5 w-3.5" />
-                      Item default
-                    </span>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedRarity(selectedItem.rarity)}
-                      className="flex items-center gap-1 rounded text-[11px] text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      <RotateCcw className="h-3 w-3" />
-                      Reset to {humanize(selectedItem.rarity)}
-                    </button>
-                  )}
-                </div>
-                <Select
-                  value={selectedRarity}
-                  onValueChange={(value) =>
-                    setSelectedRarity(value as ItemRarity)
-                  }
-                >
-                  <SelectTrigger
-                    id="item-grant-rarity"
-                    className="h-10 bg-surface-inset"
+              {enchantKind ? (
+                <div className="space-y-2">
+                  <Label htmlFor="item-grant-enchant">Enchant level</Label>
+                  <Select
+                    value={String(enchantLevel)}
+                    onValueChange={(value) => setEnchantLevel(Number(value))}
                   >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {RARITIES.map((rarity) => (
-                      <SelectItem key={rarity} value={rarity}>
-                        <span
-                          className="flex items-center gap-2"
-                          style={{
-                            color: `var(--rarity-text, var(--rarity-color))`,
-                            ...rarityStyle(rarity),
-                          }}
-                        >
-                          <RarityMark rarity={rarity} className="h-3.5 w-3.5" />
-                          {humanize(rarity)}
-                          {rarity === selectedItem.rarity ? (
-                            <span className="text-[10px] text-muted-foreground">
-                              default
-                            </span>
-                          ) : null}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs leading-relaxed text-muted-foreground">
-                  Starts at this item&apos;s {humanize(selectedItem.rarity)}{" "}
-                  rarity. Change it here to grant another tier.
-                </p>
-              </div>
-
+                    <SelectTrigger
+                      id="item-grant-enchant"
+                      className="h-10 bg-surface-inset"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[0, ...enchantLevelsFor(enchantKind)].map((level) => (
+                        <SelectItem key={level} value={String(level)}>
+                          {level === 0 ? "Not enchanted" : enchantLabel(level)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs leading-relaxed text-muted-foreground">
+                    Rarity is always the item&apos;s own (
+                    {humanize(selectedItem.rarity)}).
+                  </p>
+                </div>
+              ) : null}
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-3">
                   <Label htmlFor="item-grant-quantity">Quantity</Label>

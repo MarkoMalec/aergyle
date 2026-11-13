@@ -1,5 +1,4 @@
 import { prisma } from "~/lib/prisma";
-import type { ItemRarity } from "~/generated/prisma/enums";
 import {
   normalizeInventorySlots,
   slotsToInputJson,
@@ -7,14 +6,12 @@ import {
 import { lockInventory } from "~/server/items/inventoryLock";
 
 /**
- * Create a UserItem instance from an Item template.
- * Template/rarity stats are resolved live; only future instance-specific
- * modifiers (for example enchantments) are stored on the UserItem.
+ * Create a UserItem instance from an Item template, at the template's rarity.
+ * Stats are resolved live; only instance-specific modifiers are stored on it.
  */
 export async function createUserItem(
   userId: string,
   itemId: number,
-  rarity: ItemRarity | undefined = undefined,
   status: "IN_INVENTORY" | "EQUIPPED" = "IN_INVENTORY",
 ): Promise<number> {
   const itemTemplate = await prisma.item.findUnique({
@@ -25,13 +22,11 @@ export async function createUserItem(
     throw new Error(`Item template ${itemId} not found`);
   }
 
-  rarity ??= itemTemplate.rarity;
-
   const userItem = await prisma.userItem.create({
     data: {
       userId,
       itemId,
-      rarity,
+      rarity: itemTemplate.rarity,
       status,
       isTradeable: true,
     },

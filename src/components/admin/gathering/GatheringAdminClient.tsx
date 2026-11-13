@@ -89,7 +89,6 @@ function ResourceCatalogue(props: {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             requiredSkillLevel: resource.requiredSkillLevel,
-            rarity: resource.rarity,
           }),
         },
       );
@@ -113,7 +112,7 @@ function ResourceCatalogue(props: {
             Gathering resource catalogue
           </h2>
           <p className="mt-1 text-sm text-white/60">
-            Reward rarity controls field-guide ordering and granted stacks.
+            Reward rarity comes from the item and controls field-guide ordering.
             Resource level applies in every location that contains it.
           </p>
         </div>
@@ -172,21 +171,12 @@ function ResourceCatalogue(props: {
                       </div>
                     </td>
                     <td className="p-3">
-                      <select
-                        aria-label={`${resource.name} rarity`}
-                        className={inputClass}
-                        value={resource.rarity}
+                      <span
+                        className="text-sm"
                         style={{ color: rarity?.color }}
-                        onChange={(event) =>
-                          update(resource.id, { rarity: event.target.value })
-                        }
                       >
-                        {props.rarities.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
+                        {rarity?.label ?? resource.rarity}
+                      </span>
                     </td>
                     <td className="p-3">
                       <input

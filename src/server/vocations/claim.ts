@@ -69,11 +69,10 @@ export async function claimVocationalRewards(params: {
           select: {
             itemId: true,
             yieldPerUnit: true,
-            rarity: true,
             xpPerUnit: true,
             name: true,
             item: {
-              select: { stackable: true, maxStackSize: true },
+              select: { stackable: true, maxStackSize: true, rarity: true },
             },
           },
         },
@@ -218,7 +217,7 @@ export async function claimVocationalRewards(params: {
         .filter(
           (ui) =>
             ui.itemId === activity.resource.itemId &&
-            ui.rarity === activity.resource.rarity,
+            ui.rarity === activity.resource.item.rarity,
         )
         .map((ui) => ui.quantity),
       emptySlots: normalizeInventorySlots(
@@ -280,7 +279,6 @@ export async function claimVocationalRewards(params: {
       db: tx,
       userId,
       itemId: activity.resource.itemId,
-      rarity: activity.resource.rarity,
       quantity: unitsToClaim * yieldPerUnit,
       unitSize: yieldPerUnit,
     });
@@ -347,7 +345,7 @@ export async function claimVocationalRewards(params: {
       items: [
         {
           itemId: activity.resource.itemId,
-          rarity: activity.resource.rarity,
+          rarity: activity.resource.item.rarity,
           quantity: grantedQuantity,
         },
       ],

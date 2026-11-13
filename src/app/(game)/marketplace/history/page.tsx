@@ -27,6 +27,7 @@ interface HistoryTransaction {
   id: number;
   side: "PURCHASE" | "SALE";
   rarity: ItemRarity;
+  enchantLevel: number;
   quantity: number;
   unitPrice: number;
   grossAmount: number;
@@ -125,7 +126,11 @@ export default function MarketplaceHistoryPage() {
               return (
                 <MarketTableRow key={transaction.id} className={columns}>
                   <MarketItemCell
-                    item={{ ...transaction.item, rarity: transaction.rarity }}
+                    item={{
+                      ...transaction.item,
+                      rarity: transaction.rarity,
+                      enchantLevel: transaction.enchantLevel,
+                    }}
                   >
                     <span
                       className={`inline-flex items-center gap-1 text-[11px] ${bought ? "text-currency" : "text-success"}`}

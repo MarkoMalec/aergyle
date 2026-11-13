@@ -9,6 +9,7 @@ import { useState } from "react";
 import { useRarityColors } from "~/hooks/use-rarity-colors";
 import { rarityStyle } from "~/utils/rarity-colors";
 import { canEquipToSlot } from "~/utils/inventoryClient";
+import { EnchantBadge } from "~/components/game/items/EnchantBadge";
 import { ItemRarityMark } from "~/utils/ui/rarity-mark";
 import type { ItemWithStats } from "~/types/stats";
 import { Plus } from "lucide-react";
@@ -118,6 +119,7 @@ export const DroppableSlot = ({
               className="object-contain"
             />
             <ItemRarityMark rarity={ghost.rarity} />
+            <EnchantBadge level={ghost.enchantLevel} />
           </span>
         ) : container === "equipment" ? (
           emptyIcon ?? (

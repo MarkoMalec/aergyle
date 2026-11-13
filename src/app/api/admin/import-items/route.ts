@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "~/lib/prisma";
 import { ItemRarity, StatType, ItemType } from "~/generated/prisma/enums";
+import { MAX_ENCHANT_LEVEL } from "~/game/enchanting";
+import { syncItemRarity } from "~/server/items/syncRarity";
 import { normalizeItemEquipTo } from "~/utils/itemEquipTo";
 import { requireAdminApiAccess } from "~/server/admin/auth";
 
@@ -8,7 +10,7 @@ import { requireAdminApiAccess } from "~/server/admin/auth";
  * Import items from CSV data with stat progressions
  * 
  * Expected CSV format (one row per stat progression):
- * name,price,sprite,equipTo,twoHanded,rarity,itemType,stackable,maxStackSize,minPhysicalDamage,maxPhysicalDamage,minMagicDamage,maxMagicDamage,armor,requiredLevel,healingAmount,statType,baseValue,unlocksAtRarity
+ * name,price,sprite,equipTo,twoHanded,rarity,itemType,stackable,maxStackSize,minPhysicalDamage,maxPhysicalDamage,minMagicDamage,maxMagicDamage,armor,requiredLevel,healingAmount,statType,baseValue,unlocksAtLevel
  * 
  * Example:
  * Iron Sword,100,/assets/items/weapons/iron-sword.jpg,weapon,false,COMMON,SWORD,false,1,5,10,0,0,0,5,STRENGTH,5,BASE
@@ -117,7 +119,7 @@ export async function POST(req: NextRequest) {
         // Check if item already exists
         const existingItem = await prisma.item.findFirst({
           where: { name: itemName },
-          include: { statProgressions: true }
+          select: { id: true },
         });
 
         if (existingItem && mode === "add-new") {
@@ -182,12 +184,13 @@ export async function POST(req: NextRequest) {
             data: itemData,
           });
           itemId = existingItem.id;
+          await syncItemRarity(prisma, itemId, itemData.rarity);
 
           // Delete old stats and stat progressions (we'll recreate them)
           await prisma.itemStat.deleteMany({
             where: { itemId: existingItem.id }
           });
-          await prisma.itemStatProgression.deleteMany({
+          await prisma.itemStatEnchantUnlock.deleteMany({
             where: { itemId: existingItem.id }
           });
 
@@ -211,7 +214,7 @@ export async function POST(req: NextRequest) {
         for (const row of rows) {
           if (row.statType && row.baseValue) {
             try {
-              if (row.unlocksAtRarity === "BASE") {
+              if (row.unlocksAtLevel === "BASE") {
                 // Base stat (ItemStat) - always active
                 await prisma.itemStat.create({
                   data: {
@@ -221,14 +224,18 @@ export async function POST(req: NextRequest) {
                   },
                 });
                 baseStatCount++;
-              } else if (row.unlocksAtRarity) {
-                // Progressive stat (ItemStatProgression) - unlocks at specific rarity
-                await prisma.itemStatProgression.create({
+              } else if (row.unlocksAtLevel) {
+                // Gained from an enchant level upward (ItemStatEnchantUnlock)
+                const level = Number(row.unlocksAtLevel);
+                if (!Number.isInteger(level) || level < 1 || level > MAX_ENCHANT_LEVEL) {
+                  throw new Error(`unlocksAtLevel must be BASE or 1-${MAX_ENCHANT_LEVEL}`);
+                }
+                await prisma.itemStatEnchantUnlock.create({
                   data: {
                     itemId,
                     statType: row.statType as StatType,
-                    baseValue: parseFloat(row.baseValue),
-                    unlocksAtRarity: row.unlocksAtRarity as ItemRarity,
+                    value: parseFloat(row.baseValue),
+                    level,
                   },
                 });
                 progressionStatCount++;

@@ -15,7 +15,6 @@ export default async function AdminRarityPage() {
   const initialConfigs = configs.map((c) => ({
     id: c.id,
     rarity: c.rarity,
-    statMultiplier: Number(c.statMultiplier),
     minStats: c.minStats,
     maxStats: c.maxStats,
     bonusStatChance: Number(c.bonusStatChance),
@@ -31,7 +30,7 @@ export default async function AdminRarityPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Rarity</h1>
-        <p className="text-sm text-white/70">Manage global rarity multipliers and display settings.</p>
+        <p className="text-sm text-white/70">Rarity is a label: how rare an item is. It never changes stats; enchanting does.</p>
       </div>
 
       <RarityConfigForm initialConfigs={initialConfigs} />

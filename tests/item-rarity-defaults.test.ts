@@ -23,32 +23,42 @@ function stub(
   });
 }
 
-void test("an item/stat/rarity multiplier override is live and item-scoped", () => {
+void test("an item/stat/enchant-level multiplier override applies at its level only", () => {
   const base = [{ statType: StatType.PHYSICAL_DAMAGE_MAX, value: 100 }];
-  const unique = resolveEffectiveItemStats({
-    rarity: ItemRarity.UNIQUE,
-    rarityMultiplier: 1,
-    stats: base,
-  });
-  const legendary = resolveEffectiveItemStats({
-    rarity: ItemRarity.LEGENDARY,
-    rarityMultiplier: 1.25,
-    stats: base,
-    statRarityOverrides: [
-      {
-        statType: StatType.PHYSICAL_DAMAGE_MAX,
-        rarity: ItemRarity.LEGENDARY,
-        kind: "MULTIPLIER",
-        value: 1.15,
-      },
-    ],
-  });
+  const enchantOverrides = [
+    {
+      statType: StatType.PHYSICAL_DAMAGE_MAX,
+      level: 10,
+      kind: "MULTIPLIER" as const,
+      value: 1.15,
+    },
+  ];
+  const at = (enchantLevel: number) =>
+    resolveEffectiveItemStats({
+      stats: base,
+      enchantOverrides,
+      enchantLevel,
+      enchantBonusPercent: 25,
+    })[0]?.value;
 
-  assert.equal(unique[0]?.value, 100);
-  assert.equal(legendary[0]?.value, 115);
+  assert.equal(at(0), 100);
+  assert.equal(at(9), 125);
+  assert.equal(at(10), 115);
 });
 
-void test("instance creation stores rarity without materializing shared balance stats", async (context) => {
+void test("an enchant unlock adds its stat from its level upward, then scales", () => {
+  const at = (enchantLevel: number) =>
+    resolveEffectiveItemStats({
+      stats: [],
+      enchantUnlocks: [{ statType: StatType.LIFESTEAL, value: 4, level: 16 }],
+      enchantLevel,
+      enchantBonusPercent: 50,
+    });
+  assert.deepEqual(at(15), []);
+  assert.deepEqual(at(16), [{ statType: StatType.LIFESTEAL, value: 6 }]);
+});
+
+void test("instance creation always takes the template's rarity, without materializing stats", async (context) => {
   let definition = ATLAS_EQUIPMENT.find(
     (item) => item.slug === "trailwarden-jerkin",
   )!;
@@ -68,14 +78,12 @@ void test("instance creation stores rarity without materializing shared balance 
     },
   );
 
-  for (const [slug, explicit, expected] of [
-    ["trailwarden-jerkin", undefined, "RARE"],
-    ["duskwarden-cuirass", undefined, "EPIC"],
-    ["duskwarden-cuirass", "COMMON", "COMMON"],
-    ["trailwarden-jerkin", "EPIC", "EPIC"],
+  for (const [slug, expected] of [
+    ["trailwarden-jerkin", "RARE"],
+    ["duskwarden-cuirass", "EPIC"],
   ] as const) {
     definition = ATLAS_EQUIPMENT.find((item) => item.slug === slug)!;
-    await createUserItem("test-only", 777, explicit);
+    await createUserItem("test-only", 777);
     assert.equal(created.at(-1)?.rarity, expected);
   }
   await prisma.$disconnect();

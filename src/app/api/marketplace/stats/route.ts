@@ -41,6 +41,12 @@ export async function GET(request: Request) {
       );
     }
     const rarity = rarityParam;
+    // Price history is per enchant level; 0 (not enchanted) when omitted.
+    const levelParam = Number(searchParams.get("enchantLevel") ?? 0);
+    const enchantLevel =
+      Number.isInteger(levelParam) && levelParam >= 0 && levelParam <= 20
+        ? levelParam
+        : 0;
     const session = await getServerAuthSession();
 
     const now = new Date();
@@ -54,6 +60,7 @@ export async function GET(request: Request) {
         where: {
           itemId,
           rarity,
+          enchantLevel,
           status: "LISTED",
           isTradeable: true,
           listedPrice: { not: null },
@@ -81,7 +88,12 @@ export async function GET(request: Request) {
         ],
       }),
       prisma.marketTransaction.findMany({
-        where: { itemId, rarity, executedAt: { gte: thirtyDaysAgo } },
+        where: {
+          itemId,
+          rarity,
+          enchantLevel,
+          executedAt: { gte: thirtyDaysAgo },
+        },
         select: {
           unitPrice: true,
           quantity: true,
@@ -179,6 +191,7 @@ export async function GET(request: Request) {
     return NextResponse.json({
       itemId,
       rarity,
+      enchantLevel,
       activeMarket: {
         lowestAsk,
         highestBid,

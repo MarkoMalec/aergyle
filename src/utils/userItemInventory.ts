@@ -82,5 +82,6 @@ export async function fetchUserItemsByIds(
       value: stat.value,
     })),
     quantity: userItem.quantity,
+    enchantLevel: userItem.enchantLevel,
   }));
 }

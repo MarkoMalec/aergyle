@@ -50,6 +50,7 @@ const adminNavGroups: Array<{ label: string; items: NavItem[] }> = [
       { href: "/admin/items", label: "Items" },
       { href: "/admin/item-graph", label: "Item graph" },
       { href: "/admin/rarity", label: "Rarity" },
+      { href: "/admin/enchanting", label: "Enchanting" },
     ],
   },
   {

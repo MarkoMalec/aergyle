@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     const items = await prisma.item.findMany({
       include: {
         stats: true, // Base stats (ItemStat)
-        statProgressions: true, // Progressive stats (ItemStatProgression)
+        statEnchantUnlocks: true, // Stats gained from an enchant level
       },
       orderBy: {
         id: 'asc',
@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
       "healingAmount",
       "statType",
       "baseValue",
-      "unlocksAtRarity",
+      "unlocksAtLevel",
     ].join(",");
 
     // CSV rows - one row per stat (base or progression)
@@ -87,13 +87,13 @@ export async function GET(req: NextRequest) {
         hasStats = true;
       }
 
-      // Add rows for progressive stats (from ItemStatProgression)
-      for (const statProg of item.statProgressions) {
+      // Add rows for stats gained from an enchant level (ItemStatEnchantUnlock)
+      for (const unlock of item.statEnchantUnlocks) {
         const row = [
           ...baseData,
-          statProg.statType,
-          statProg.baseValue,
-          statProg.unlocksAtRarity,
+          unlock.statType,
+          unlock.value,
+          unlock.level,
         ].join(",");
         rows.push(row);
         hasStats = true;
@@ -105,7 +105,7 @@ export async function GET(req: NextRequest) {
           ...baseData,
           "", // statType
           "", // baseValue
-          "", // unlocksAtRarity
+          "", // unlocksAtLevel
         ].join(",");
         rows.push(row);
       }

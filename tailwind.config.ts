@@ -186,6 +186,79 @@ const config = {
           "45%": { transform: "scale(1.08)" },
           "100%": { transform: "scale(1)" },
         },
+        // Enchanting (EnchantPanel).
+        // The bright head running at the front of a filling line. --head is
+        // its dash length plus a hair, so it starts and ends off the path.
+        "enchant-head": {
+          from: { strokeDashoffset: "var(--head)" },
+          to: { strokeDashoffset: "-1.005" },
+        },
+        // A failed charge running back out the way it came.
+        "enchant-drain": {
+          from: { strokeDashoffset: "0" },
+          to: { strokeDashoffset: "1" },
+        },
+        // The full circuit holding its breath before the result: a heartbeat
+        // that quickens.
+        "enchant-throb": {
+          "0%, 30%, 58%, 80%, 94%, 100%": { opacity: "1" },
+          "15%": { opacity: "0.5" },
+          "45%": { opacity: "0.55" },
+          "70%": { opacity: "0.6" },
+          "88%": { opacity: "0.65" },
+        },
+        // The item straining under the charge.
+        "enchant-tremble": {
+          "0%, 100%": { transform: "translate(0, 0)" },
+          "25%": { transform: "translate(-1px, 1px)" },
+          "50%": { transform: "translate(1px, -1px)" },
+          "75%": { transform: "translate(-1px, -1px)" },
+        },
+        // A failed enchant: one hard knock that dies out.
+        "enchant-shake": {
+          "0%, 100%": { transform: "translateX(0)" },
+          "15%": { transform: "translateX(-7px)" },
+          "30%": { transform: "translateX(6px)" },
+          "45%": { transform: "translateX(-4px)" },
+          "60%": { transform: "translateX(3px)" },
+          "80%": { transform: "translateX(-1px)" },
+        },
+        // The rings and the flash a success throws off.
+        "enchant-burst": {
+          from: { opacity: "0.9", transform: "scale(0.7)" },
+          to: { opacity: "0", transform: "scale(2.4)" },
+        },
+        // A spark thrown from the item; --dx / --dy say where it lands.
+        "enchant-spark": {
+          "0%": { opacity: "1", transform: "translate(0, 0) scale(1)" },
+          "55%": { opacity: "1" },
+          "100%": {
+            opacity: "0",
+            transform: "translate(var(--dx), var(--dy)) scale(0.3)",
+          },
+        },
+        // The charge holding in the lines after a success, then fading.
+        "enchant-afterglow": {
+          "0%, 45%": { opacity: "1" },
+          "100%": { opacity: "0" },
+        },
+        // A failed charge: it flickers, holds while it runs back out, and is gone.
+        "enchant-fizzle": {
+          "0%, 10%, 22%, 92%": { opacity: "1" },
+          "5%": { opacity: "0.35" },
+          "15%": { opacity: "0.45" },
+          "100%": { opacity: "0" },
+        },
+        // An accessory breaking apart.
+        "enchant-shatter": {
+          "0%": { opacity: "1", transform: "scale(1)", filter: "none" },
+          "30%": { opacity: "1", filter: "brightness(2.2) saturate(0)" },
+          "100%": {
+            opacity: "0",
+            transform: "scale(1.35) rotate(8deg)",
+            filter: "brightness(0.4) saturate(0) blur(3px)",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -202,6 +275,17 @@ const config = {
         spark: "spark 2.8s linear infinite",
         "row-flash": "row-flash 0.9s ease-out",
         "drop-pop": "drop-pop 0.45s cubic-bezier(0.2, 0.7, 0.2, 1)",
+        // Durations and delays of the charge are set inline, per attempt.
+        "enchant-head": "enchant-head 1s linear both",
+        "enchant-drain": "enchant-drain 1s linear both",
+        "enchant-throb": "enchant-throb 1s linear",
+        "enchant-tremble": "enchant-tremble 90ms linear infinite",
+        "enchant-shake": "enchant-shake 0.5s ease-out",
+        "enchant-burst": "enchant-burst 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both",
+        "enchant-spark": "enchant-spark 1.2s cubic-bezier(0.2, 0.7, 0.2, 1) both",
+        "enchant-afterglow": "enchant-afterglow 3.2s ease-out forwards",
+        "enchant-fizzle": "enchant-fizzle 1.6s linear forwards",
+        "enchant-shatter": "enchant-shatter 0.9s ease-in forwards",
       },
     },
   },

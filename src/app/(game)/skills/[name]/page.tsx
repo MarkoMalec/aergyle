@@ -174,8 +174,9 @@ const SkillPage = async ({
           defaultSeconds: true,
           yieldPerUnit: true,
           xpPerUnit: true,
-          rarity: true,
-          item: { select: { id: true, sprite: true, itemType: true } },
+          item: {
+            select: { id: true, sprite: true, itemType: true, rarity: true },
+          },
           requirements: {
             select: {
               quantityPerUnit: true,
@@ -210,6 +211,7 @@ const SkillPage = async ({
 
     return {
       ...resource,
+      rarity: resource.item.rarity,
       effectiveSeconds: unitSeconds,
       appliedEfficiency,
     };

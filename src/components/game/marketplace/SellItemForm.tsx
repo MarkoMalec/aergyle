@@ -30,6 +30,8 @@ export interface MarketSellItem {
   itemName: string;
   sprite: string;
   rarity: ItemRarity;
+  /** 0 = not enchanted. */
+  enchantLevel: number;
   maxQuantity: number;
   stackable: boolean;
 }
@@ -66,8 +68,13 @@ export function SellItemForm({
   const [quantity, setQuantity] = useState(1);
   const [price, setPrice] = useState("");
   const statsQuery = useQuery<MarketStatsData>({
-    queryKey: marketplaceQueryKeys.stats(item.itemId, item.rarity),
-    queryFn: () => fetchMarketStats(item.itemId, item.rarity),
+    queryKey: marketplaceQueryKeys.stats(
+      item.itemId,
+      item.rarity,
+      item.enchantLevel,
+    ),
+    queryFn: () =>
+      fetchMarketStats(item.itemId, item.rarity, item.enchantLevel),
     staleTime: 30_000,
   });
 
@@ -181,6 +188,7 @@ export function SellItemForm({
             rarity={item.rarity}
             size={56}
             itemId={item.itemId}
+            enchantLevel={item.enchantLevel}
           />
           <div className="min-w-0">
             <h2 className="truncate font-semibold">{item.itemName}</h2>

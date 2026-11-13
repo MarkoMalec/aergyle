@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { test } from "node:test";
 import { ATLAS_EQUIPMENT } from "../prisma/content/atlasEquipment";
+import { legacyRarityStat } from "../prisma/content/legacyRarity";
 import {
   CRAFTED_WEAPON_DEPENDENCY_TYPES,
   CRAFTED_WEAPON_SKILL_OUTPUTS,
@@ -148,7 +149,12 @@ void test("stats are the on-level gear budget for the weapon's type", () => {
       stats
         .filter((entry) => entry.statType !== "HEALTH")
         .map((entry) => ({ maxValue: null, ...entry }));
-    assert.deepEqual(comparable(item.stats), comparable(expected), item.name);
+    // Content is authored Common-equivalent and baked by its old rarity.
+    const baked = expected.map((entry) => ({
+      ...entry,
+      value: legacyRarityStat(entry.statType, entry.value, item, entry.maxValue),
+    }));
+    assert.deepEqual(comparable(item.stats), comparable(baked), item.name);
     assert.equal(
       stat(item, "HEALTH") > 0,
       expected.some((entry) => entry.statType === "HEALTH"),
@@ -177,7 +183,8 @@ void test("crafted weapons stay below on-level Rare drops and the Ogre Cleaver",
     assert.equal(item.rarity, item.requiredLevel >= 40 ? "UNCOMMON" : "COMMON");
     if (item.equipTo !== "weapon") continue;
 
-    const crafted = damagePerRound(item) * RARITY_MULTIPLIER[item.rarity]!;
+    // The stats are already baked by rarity.
+    const crafted = damagePerRound(item);
     const hands = item.twoHanded ? TWO_HANDED_FACTOR : 1;
     const rareDrop =
       weaponBudget(item.requiredLevel) * hands * REFERENCE_RARITY_MULTIPLIER;

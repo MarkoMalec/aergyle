@@ -107,6 +107,7 @@ model User {
   friendOf                Friendship[]                   @relation("FriendshipFriend")
   friendRequestsSent      FriendRequest[]                @relation("FriendRequestSender")
   friendRequestsReceived  FriendRequest[]                @relation("FriendRequestReceiver")
+  enchantPity             UserEnchantPity[]
 
   currentLocation Location? @relation("UserCurrentLocation", fields: [currentLocationId], references: [id], onDelete: SetNull)
 
@@ -357,10 +358,6 @@ model Item {
   // consumables continue to use foodEffectSeconds and FoodEffectStat instead.
   healingAmount Int?
 
-  // If enabled, negative stats (e.g. MOVEMENT_SPEED -5) will become less negative
-  // and eventually positive as rarity multipliers increase.
-  flipNegativeStatsWithRarity Boolean @default(false)
-
   vocationalRequirements VocationalRequirement[]
 
   rarity ItemRarity @default(COMMON)
@@ -374,25 +371,27 @@ model Item {
   requiredLevel     Int?   @default(1)
 
   // Relationships
-  stats                ItemStat[]
-  statProgressions     ItemStatProgression[] // Defines stats at each rarity tier
-  statRarityOverrides  ItemStatRarityOverride[] // Optional item/stat-specific multiplier or final-value overrides
-  toolEfficiencies     ToolEfficiency[] // Base efficiencies per vocation tool
-  creatureDrops        CreatureDrop[]
-  userItems            UserItem[] // Item instances owned by players
-  marketBuyOrders      MarketBuyOrder[]
-  marketTransactions   MarketTransaction[]
-  vocationalResource   VocationalResource?           @relation("VocationalOutputItem")
-  requiredByRecipes    VocationalResource[]          @relation("RequiredRecipeItem")
-  learnedRecipeRecords UserLearnedRecipe[]
-  foodEffectStats      FoodEffectStat[]
-  activeFoodEffects    UserActiveFoodEffect[]
-  npcOffers            NpcOffer[]
-  questObjectives      QuestObjective[]
-  questRewards         QuestRewardItem[]
-  projectRequirements  CommunityProjectRequirement[]
-  projectRewardItems   CommunityProjectRewardItem[]
-  notifications        Notification[]
+  stats                  ItemStat[]
+  statEnchantUnlocks     ItemStatEnchantUnlock[] // Stats gained from an enchant level upward
+  statEnchantOverrides   ItemStatEnchantOverride[] // Per stat and enchant level: own multiplier or exact value
+  enchantChanceOverrides ItemEnchantChanceOverride[]
+  enchantMaterialUses    EnchantLevelMaterial[]
+  toolEfficiencies       ToolEfficiency[] // Base efficiencies per vocation tool
+  creatureDrops          CreatureDrop[]
+  userItems              UserItem[] // Item instances owned by players
+  marketBuyOrders        MarketBuyOrder[]
+  marketTransactions     MarketTransaction[]
+  vocationalResource     VocationalResource?           @relation("VocationalOutputItem")
+  requiredByRecipes      VocationalResource[]          @relation("RequiredRecipeItem")
+  learnedRecipeRecords   UserLearnedRecipe[]
+  foodEffectStats        FoodEffectStat[]
+  activeFoodEffects      UserActiveFoodEffect[]
+  npcOffers              NpcOffer[]
+  questObjectives        QuestObjective[]
+  questRewards           QuestRewardItem[]
+  projectRequirements    CommunityProjectRequirement[]
+  projectRewardItems     CommunityProjectRewardItem[]
+  notifications          Notification[]
 
   seedYieldItem Item?  @relation("SeedYieldItem", fields: [seedYieldItemId], references: [id], onDelete: SetNull)
   seedYieldedBy Item[] @relation("SeedYieldItem")
@@ -467,25 +466,24 @@ model UserGardenHarvestActivity {
   @@index([userId, endsAt])
 }
 
-enum ItemStatRarityOverrideKind {
+enum ItemStatOverrideKind {
   MULTIPLIER
   ABSOLUTE
 }
 
-// Optional item/stat-specific balance control for one rarity.
-// MULTIPLIER replaces the global rarity multiplier; ABSOLUTE sets the final base value.
-model ItemStatRarityOverride {
-  id       Int                        @id @default(autoincrement())
+// Optional item/stat-specific balance control for one enchant level.
+// MULTIPLIER replaces the level's global stat bonus; ABSOLUTE sets the final value.
+model ItemStatEnchantOverride {
+  id       Int                  @id @default(autoincrement())
   itemId   Int
   statType StatType
-  rarity   ItemRarity
-  kind     ItemStatRarityOverrideKind @default(ABSOLUTE)
+  level    Int // enchant level, 1-20
+  kind     ItemStatOverrideKind @default(ABSOLUTE)
   value    Float
 
   item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
-  @@unique([itemId, statType, rarity])
-  @@index([itemId, rarity])
+  @@unique([itemId, statType, level])
 }
 
 model ItemStat {
@@ -503,19 +501,18 @@ model ItemStat {
   @@index([statType, value])
 }
 
-// Stat progression - defines which stats unlock at which rarity
-// This ensures all items of the same type and rarity have identical stats
-model ItemStatProgression {
-  id              Int        @id @default(autoincrement())
-  itemId          Int
-  statType        StatType
-  baseValue       Float // Base value at COMMON rarity
-  unlocksAtRarity ItemRarity // When this stat becomes available
+// A stat the item gains from an enchant level upward, added to its base value
+// before that level's scaling.
+model ItemStatEnchantUnlock {
+  id       Int      @id @default(autoincrement())
+  itemId   Int
+  statType StatType
+  value    Float
+  level    Int // enchant level, 1-20
 
   item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
   @@unique([itemId, statType])
-  @@index([itemId, unlocksAtRarity])
 }
 
 // ============================================
@@ -583,6 +580,9 @@ model UserItem {
   acquiredAt  DateTime @default(now())
   isTradeable Boolean  @default(true)
 
+  // 0 = not enchanted, 1-15 = +1..+15, 16-20 = I Kindled..V Ascendant (docs/ENCHANTING_SYSTEM.md).
+  enchantLevel Int @default(0)
+
   // Relationships
   user          User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   itemTemplate  Item                   @relation(fields: [itemId], references: [id], onDelete: Cascade)
@@ -627,18 +627,19 @@ model MarketBuyOrder {
 
 // Immutable executions are the source of truth for price history and player history.
 model MarketTransaction {
-  id          Int                     @id @default(autoincrement())
-  buyerId     String?
-  sellerId    String?
-  itemId      Int
-  rarity      ItemRarity
-  quantity    Int
-  unitPrice   Decimal                 @db.Decimal(10, 2)
-  grossAmount Decimal                 @db.Decimal(10, 2)
-  taxAmount   Decimal                 @db.Decimal(10, 2)
-  netAmount   Decimal                 @db.Decimal(10, 2)
-  source      MarketTransactionSource
-  executedAt  DateTime                @default(now())
+  id           Int                     @id @default(autoincrement())
+  buyerId      String?
+  sellerId     String?
+  itemId       Int
+  rarity       ItemRarity
+  enchantLevel Int                     @default(0)
+  quantity     Int
+  unitPrice    Decimal                 @db.Decimal(10, 2)
+  grossAmount  Decimal                 @db.Decimal(10, 2)
+  taxAmount    Decimal                 @db.Decimal(10, 2)
+  netAmount    Decimal                 @db.Decimal(10, 2)
+  source       MarketTransactionSource
+  executedAt   DateTime                @default(now())
 
   buyer  User? @relation("MarketTransactionBuyer", fields: [buyerId], references: [id], onDelete: SetNull)
   seller User? @relation("MarketTransactionSeller", fields: [sellerId], references: [id], onDelete: SetNull)
@@ -916,13 +917,10 @@ enum ProgressionTrackType {
 // ITEM RARITY SYSTEM
 // ============================================
 
-// Rarity multipliers configuration
+// Rarity display configuration. Rarity is a label only; it never changes stats.
 model RarityConfig {
   id     Int        @id @default(autoincrement())
   rarity ItemRarity @unique
-
-  // Stat multiplier (e.g., 1.0 = 100%, 2.0 = 200%)
-  statMultiplier Float @default(1.0)
 
   // Max number of stats this rarity can have
   minStats Int @default(1)
@@ -1162,10 +1160,9 @@ model VocationalResource {
   requiredSkillLevel Int @default(1)
 
   // Balance knobs (DB-driven)
-  defaultSeconds Int        @default(10) // seconds per 1 unit, before tool/buff modifiers
-  yieldPerUnit   Int        @default(1)
-  xpPerUnit      Int        @default(0) // XP granted per completed unit (1 action tick)
-  rarity         ItemRarity @default(COMMON)
+  defaultSeconds Int @default(10) // seconds per 1 unit, before tool/buff modifiers
+  yieldPerUnit   Int @default(1)
+  xpPerUnit      Int @default(0) // XP granted per completed unit (1 action tick)
 
   // Display order within the action type, lowest first. Admin-managed on /admin/vocations.
   sortOrder Int @default(0)
@@ -2512,4 +2509,78 @@ model FriendRequest {
   @@index([receiverId, declinedAt])
   @@index([senderId, declinedAt])
   @@index([declinedAt])
+}
+
+// ============================================
+// ENCHANTING (docs/ENCHANTING_SYSTEM.md)
+// ============================================
+
+enum EnchantKind {
+  GEAR // weapons and armor: +1..+15, then I..V
+  ACCESSORY // rings, necklaces, amulets: I..V only, need a copy, break on failure
+}
+
+// One row per kind and target level, edited on /admin/enchanting. Until a row
+// is saved the code defaults in src/game/enchanting.ts apply.
+model EnchantLevelConfig {
+  id               Int         @id @default(autoincrement())
+  kind             EnchantKind
+  level            Int // target level, 1-20
+  successChance    Float // 0-1
+  goldCost         Int // before the item-level factor
+  statBonusPercent Float // total bonus on the item's stats at this level
+  dropOnFail       Boolean // gear only: a failure lowers the item one level
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  materials EnchantLevelMaterial[]
+
+  @@unique([kind, level])
+}
+
+model EnchantLevelMaterial {
+  id       Int @id @default(autoincrement())
+  configId Int
+  itemId   Int
+  quantity Int
+
+  config EnchantLevelConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
+  item   Item               @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@unique([configId, itemId])
+  @@index([itemId])
+}
+
+// Replaces the level's success chance for one item.
+model ItemEnchantChanceOverride {
+  id            Int   @id @default(autoincrement())
+  itemId        Int
+  level         Int
+  successChance Float
+
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@unique([itemId, level])
+}
+
+// Failures since the last success at a target level, per player and kind.
+model UserEnchantPity {
+  userId   String
+  kind     EnchantKind
+  level    Int
+  failures Int         @default(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, kind, level])
+}
+
+// Singleton. Without a row the code defaults apply.
+model EnchantConfig {
+  id               Int      @id @default(1)
+  pityPerFailure   Float    @default(0.0025)
+  pityCap          Float    @default(0.025)
+  // Gold cost x (1 + requiredLevel / levelCostDivisor).
+  levelCostDivisor Int      @default(50)
+  updatedAt        DateTime @updatedAt
 }
