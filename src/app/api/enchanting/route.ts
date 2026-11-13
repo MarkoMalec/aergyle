@@ -45,13 +45,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Choose an item" }, { status: 400 });
   }
   try {
-    return NextResponse.json(
-      await attemptEnchant({
-        userId: session.user.id,
-        userItemId,
-        copyUserItemId: (copy) ?? null,
-      }),
-    );
+    const result = await attemptEnchant({
+      userId: session.user.id,
+      userItemId,
+      copyUserItemId: copy ?? null,
+    });
+    // The next attempt rides along, saving the bench a second round trip; the
+    // roll is already settled, so a failed preview only means the client asks.
+    const preview =
+      result.outcome === "broken"
+        ? null
+        : await getEnchantPreview(session.user.id, userItemId).catch(() => null);
+    return NextResponse.json({ ...result, preview });
   } catch (error) {
     return NextResponse.json(
       { error: playerErrorMessage(error, "Enchanting failed") },

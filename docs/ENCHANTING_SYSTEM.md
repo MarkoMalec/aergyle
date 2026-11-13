@@ -26,12 +26,12 @@ burns them, and failures make it a gamble you can't spam cheaply.
 
 | Kind | Levels |
 |---|---|
-| Weapons and armor (incl. offhand and belt) | +1 … +15, then I · Kindled, II · Forged, III · Hallowed, IV · Exalted, V · Ascendant |
+| Weapons, armor (incl. offhand and belt) and tools (felling axe, pickaxe, fishing rod, hoe) | +1 … +15, then I · Kindled, II · Forged, III · Hallowed, IV · Exalted, V · Ascendant |
 | Accessories (ring, necklace, amulet) | I · Kindled … V · Ascendant only; the first success goes straight to I |
 
 - An item at nothing shows no prefix. `+7 Iron Greataxe`, `Hallowed (III) Silver Ring`.
-- Not enchantable: `backpack`, tools (`fellingAxe`, `pickaxe`, `fishingRod`,
-  `hoe`) and anything stackable.
+- Not enchantable: `backpack` and anything stackable. Tool efficiency scales
+  with the enchant bonus like any other stat.
 
 ## An attempt
 
@@ -68,13 +68,16 @@ the accessory and the copy are destroyed.
   level, which replaces the table value.
 - Later: luck items add to it.
 
-### Pity (encouragement, not a carry)
+### Fail stack (per player, any item)
 
-A small bonus per failure, reset on success, kept per player per target
-level. It must help a little, never decide the outcome.
+Every failed attempt on any item adds one to the player's fail stack
+(`User.enchantFailStack`); any success resets it to 0. Each stack adds a
+capped bonus, so a player can fail cheap attempts on purpose to build a
+stack for an important one (intended). It nudges the chance, never decides
+it.
 
-- Default: +0.25 percentage points per failure, capped at +2.5 points.
-- At a 4% step that turns 25 expected attempts into about 17.
+- Default: +0.25 percentage points per stack, capped at +10 points.
+- Shown on the bench as "Fail stack +N", never as a percentage.
 - Both values tunable in admin.
 
 ## Cost
@@ -117,7 +120,7 @@ level. It must help a little, never decide the outcome.
   success chance, gold cost, stat bonus %, drop-on-failure and break flags.
 - `EnchantLevelMaterial`: level + kind → item + quantity.
 - `ItemEnchantChanceOverride`: item + level → success chance.
-- `UserEnchantPity`: player + kind + target level → failures.
+- `User.enchantFailStack`: consecutive failed enchants, any item.
 - Stats: `resolveEffectiveItemStats` (`src/utils/itemInstanceStats.ts`) gets
   the enchant bonus; everything that reads item stats goes through it.
 - Admin: an enchant table page, plus the per-item overrides in the item

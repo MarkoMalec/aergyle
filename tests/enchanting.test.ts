@@ -17,7 +17,7 @@ import { resolveEffectiveItemStats } from "../src/utils/itemInstanceStats";
 test("kinds: accessories, gear, and what can't be enchanted", () => {
   assert.equal(enchantKindOf({ equipTo: ItemEquipTo.ring, stackable: false }), EnchantKind.ACCESSORY);
   assert.equal(enchantKindOf({ equipTo: ItemEquipTo.belt, stackable: false }), EnchantKind.GEAR);
-  assert.equal(enchantKindOf({ equipTo: ItemEquipTo.pickaxe, stackable: false }), null);
+  assert.equal(enchantKindOf({ equipTo: ItemEquipTo.pickaxe, stackable: false }), EnchantKind.GEAR);
   assert.equal(enchantKindOf({ equipTo: ItemEquipTo.backpack, stackable: false }), null);
   assert.equal(enchantKindOf({ equipTo: ItemEquipTo.weapon, stackable: true }), null);
 });
@@ -43,11 +43,12 @@ test("failure: gear keeps its level until Kindled, then drops one", () => {
   assert.equal(levelAfterFailure(9, false), 9);
 });
 
-test("pity is small and capped; gold scales with item level", () => {
-  const g = { pityPerFailure: 0.0025, pityCap: 0.025 };
+test("fail stack is capped; gold scales with item level", () => {
+  const g = { failStackPerFailure: 0.0025, failStackCap: 0.1 };
   assert.equal(enchantChance(0.04, 0, g), 0.04);
-  assert.ok(Math.abs(enchantChance(0.04, 100, g) - 0.065) < 1e-9);
-  assert.equal(enchantChance(0.99, 100, g), 1);
+  assert.ok(Math.abs(enchantChance(0.04, 10, g) - 0.065) < 1e-9);
+  assert.ok(Math.abs(enchantChance(0.04, 1000, g) - 0.14) < 1e-9);
+  assert.equal(enchantChance(0.95, 1000, g), 1);
   assert.equal(enchantGoldCost(1000, 50, 50), 2000);
   assert.equal(enchantGoldCost(1000, null, 50), 1020);
 });

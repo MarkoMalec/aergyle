@@ -107,7 +107,8 @@ model User {
   friendOf                Friendship[]                   @relation("FriendshipFriend")
   friendRequestsSent      FriendRequest[]                @relation("FriendRequestSender")
   friendRequestsReceived  FriendRequest[]                @relation("FriendRequestReceiver")
-  enchantPity             UserEnchantPity[]
+  // Consecutive failed enchants on any item; reset by any success.
+  enchantFailStack        Int                            @default(0)
 
   currentLocation Location? @relation("UserCurrentLocation", fields: [currentLocationId], references: [id], onDelete: SetNull)
 
@@ -2563,24 +2564,13 @@ model ItemEnchantChanceOverride {
   @@unique([itemId, level])
 }
 
-// Failures since the last success at a target level, per player and kind.
-model UserEnchantPity {
-  userId   String
-  kind     EnchantKind
-  level    Int
-  failures Int         @default(0)
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@id([userId, kind, level])
-}
-
 // Singleton. Without a row the code defaults apply.
 model EnchantConfig {
-  id               Int      @id @default(1)
-  pityPerFailure   Float    @default(0.0025)
-  pityCap          Float    @default(0.025)
+  id                  Int      @id @default(1)
+  // Per player, across every item and level (see User.enchantFailStack).
+  failStackPerFailure Float    @default(0.0025)
+  failStackCap        Float    @default(0.1)
   // Gold cost x (1 + requiredLevel / levelCostDivisor).
-  levelCostDivisor Int      @default(50)
-  updatedAt        DateTime @updatedAt
+  levelCostDivisor    Int      @default(50)
+  updatedAt           DateTime @updatedAt
 }

@@ -226,24 +226,30 @@ export function EnchantingForm(props: {
       >
         <div className="grid gap-5 md:grid-cols-3">
           <NumberField
-            label="Pity per failure"
-            hint="Success chance added after each failed try at a level, in percentage points."
+            label="Fail stack per failure"
+            hint="Chance added per consecutive failure on any item, per player. Any success resets it."
             suffix="pp"
             min={0}
             max={100}
             step={0.05}
-            value={round(globals.pityPerFailure * 100)}
-            onChange={(v) => setGlobals({ ...globals, pityPerFailure: round(v / 100, 6) })}
+            value={round(globals.failStackPerFailure * 100)}
+            onChange={(v) =>
+              setGlobals({ ...globals, failStackPerFailure: round(v / 100, 6) })
+            }
           />
           <NumberField
-            label="Pity cap"
-            hint="The most pity can add in total, in percentage points."
+            label="Fail stack cap"
+            hint={
+              globals.failStackPerFailure > 0
+                ? `The most the fail stack can add. Reached at +${Math.ceil(round(globals.failStackCap / globals.failStackPerFailure, 6))} stacks; +10 adds ${round(Math.min(globals.failStackCap, 10 * globals.failStackPerFailure) * 100)} pp.`
+                : "Fail stack is off (0 per failure)."
+            }
             suffix="pp"
             min={0}
             max={100}
             step={0.5}
-            value={round(globals.pityCap * 100)}
-            onChange={(v) => setGlobals({ ...globals, pityCap: round(v / 100, 6) })}
+            value={round(globals.failStackCap * 100)}
+            onChange={(v) => setGlobals({ ...globals, failStackCap: round(v / 100, 6) })}
           />
           <NumberField
             label="Level cost divisor"

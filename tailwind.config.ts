@@ -186,7 +186,8 @@ const config = {
           "45%": { transform: "scale(1.08)" },
           "100%": { transform: "scale(1)" },
         },
-        // Enchanting (EnchantPanel).
+        // Enchanting (EnchantPanel). enchant-sound.ts plays to the moments in
+        // throb, tremble, shake, afterglow and fizzle: change them together.
         // The bright head running at the front of a filling line. --head is
         // its dash length plus a hair, so it starts and ends off the path.
         "enchant-head": {

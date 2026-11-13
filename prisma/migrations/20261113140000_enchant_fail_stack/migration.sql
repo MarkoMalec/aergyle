@@ -1,0 +1,6 @@
+-- AlterTable
+ALTER TABLE `User` ADD COLUMN `enchantFailStack` INTEGER NOT NULL DEFAULT 0;
+
+-- AlterTable
+ALTER TABLE `EnchantConfig` ADD COLUMN `failStackPerFailure` DOUBLE NOT NULL DEFAULT 0.0025,
+    ADD COLUMN `failStackCap` DOUBLE NOT NULL DEFAULT 0.1;

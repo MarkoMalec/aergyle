@@ -23,8 +23,8 @@ const levelSchema = z.object({
 
 const schema = z.object({
   globals: z.object({
-    pityPerFailure: z.number().min(0).max(1),
-    pityCap: z.number().min(0).max(1),
+    failStackPerFailure: z.number().min(0).max(1),
+    failStackCap: z.number().min(0).max(1),
     levelCostDivisor: z.number().int().min(1),
   }),
   levels: z.array(levelSchema).max(40),

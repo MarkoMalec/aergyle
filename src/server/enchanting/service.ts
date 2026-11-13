@@ -55,7 +55,7 @@ async function loadAttempt(db: Db, userId: string, userItemId: number) {
   if (!kind) throw new Error("This item can't be enchanted");
   const target = nextEnchantLevel(kind, item.enchantLevel);
 
-  const [globals, settings, override, pity, user] = await Promise.all([
+  const [globals, settings, override, user] = await Promise.all([
     loadEnchantGlobals(db),
     target ? loadEnchantLevel(kind, target, db) : null,
     target
@@ -64,24 +64,18 @@ async function loadAttempt(db: Db, userId: string, userItemId: number) {
           select: { successChance: true },
         })
       : null,
-    target
-      ? db.userEnchantPity.findUnique({
-          where: { userId_kind_level: { userId, kind, level: target } },
-          select: { failures: true },
-        })
-      : null,
-    db.user.findUnique({ where: { id: userId }, select: { gold: true } }),
+    db.user.findUnique({ where: { id: userId }, select: { gold: true, enchantFailStack: true } }),
   ]);
 
-  const failures = pity?.failures ?? 0;
+  const failStack = user?.enchantFailStack ?? 0;
   const baseChance = override?.successChance ?? settings?.successChance ?? 0;
   return {
     item,
     kind,
     target,
     settings,
-    failures,
-    chance: enchantChance(baseChance, failures, globals),
+    failStack,
+    chance: enchantChance(baseChance, failStack, globals),
     goldCost: settings
       ? enchantGoldCost(
           settings.goldCost,
@@ -146,7 +140,7 @@ export async function getEnchantPreview(userId: string, userItemId: number) {
     target: a.target,
     targetLabel: a.target ? enchantLabel(a.target) : null,
     chance: a.chance,
-    pityFailures: a.failures,
+    failStack: a.failStack,
     goldCost: a.goldCost,
     gold: a.gold,
     failure:
@@ -239,19 +233,17 @@ export async function attemptEnchant(params: {
 
     // randomInt is uniform over [0, 1e6): chance 1 always succeeds, 0 never.
     const success = randomInt(1_000_000) < Math.round(a.chance * 1_000_000);
-    const pityKey = { userId_kind_level: { userId, kind, level: target } };
 
     let outcome: EnchantOutcome;
     let level = item.enchantLevel;
     if (success) {
       outcome = "success";
       level = target;
-      await tx.userEnchantPity.deleteMany({ where: { userId, kind, level: target } });
+      await tx.user.update({ where: { id: userId }, data: { enchantFailStack: 0 } });
     } else {
-      await tx.userEnchantPity.upsert({
-        where: pityKey,
-        create: { userId, kind, level: target, failures: 1 },
-        update: { failures: { increment: 1 } },
+      await tx.user.update({
+        where: { id: userId },
+        data: { enchantFailStack: { increment: 1 } },
       });
       if (isAccessory) {
         outcome = "broken";
@@ -276,6 +268,7 @@ export async function attemptEnchant(params: {
       label: enchantLabel(level),
       name: item.itemTemplate.name,
       goldSpent: a.goldCost,
+      gold: a.gold - a.goldCost,
     };
   });
 }

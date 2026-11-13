@@ -20,6 +20,7 @@
     "db:seed:carpentry": "node --import tsx scripts/seedCarpentry.ts",
     "db:seed:components": "node --import tsx scripts/seedComponentExpansion.ts",
     "db:seed:alchemy": "node --import tsx scripts/seedAlchemy.ts",
+    "db:seed:enchanting-materials": "node --import tsx scripts/seedEnchantingMaterials.ts",
     "db:seed:armor-sets": "node --import tsx scripts/seedArmorSets.ts",
     "db:seed:accessories": "node --import tsx scripts/seedWayfarerAccessories.ts",
     "db:seed:weapons": "node --import tsx scripts/seedCraftedWeapons.ts",

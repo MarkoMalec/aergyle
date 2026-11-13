@@ -48,6 +48,24 @@ import type { ItemWithStats } from "~/types/stats";
 import { rarityStyle } from "~/utils/rarity-colors";
 import { ItemRarityMark } from "~/utils/ui/rarity-mark";
 import { EnchantBadge } from "./EnchantBadge";
+import { GrindSparks } from "./enchant-grind";
+import {
+  playEnchantCharge,
+  playEnchantResult,
+  preloadEnchantSounds,
+  stopEnchantSound,
+} from "./enchant-sound";
+import {
+  BURST_RINGS_MS,
+  DRAIN_HOLD_MS,
+  DRAIN_MS,
+  FILL_END,
+  FLOW,
+  RAY_ANGLES,
+  rayLitAt,
+  SPARK_COUNT,
+  sparkDelayMs,
+} from "./enchant-timing";
 
 type Preview = {
   userItemId: number;
@@ -57,7 +75,7 @@ type Preview = {
   target: number | null;
   targetLabel: string | null;
   chance: number;
-  pityFailures: number;
+  failStack: number;
   goldCost: number;
   gold: number;
   failure: "keep" | "drop" | "break";
@@ -76,7 +94,14 @@ type Outcome = {
   outcome: "success" | "failed" | "dropped" | "broken";
   level: number;
   label: string;
+  /** Gold left after the attempt. */
+  gold: number;
+  /** The next attempt, so the bench needs no second round trip (null once broken). */
+  preview: Preview | null;
 };
+
+/** A hung request must never leave the bench locked. */
+const ATTEMPT_TIMEOUT_MS = 20_000;
 
 export type EnchantPhase = "idle" | "charging" | Outcome["outcome"];
 
@@ -91,6 +116,7 @@ type Requirement = {
 };
 
 const SKIP_KEY = "aergyle:enchant-skip-animation";
+const SOUND_KEY = "aergyle:enchant-sound";
 
 const FAILURE_TEXT = {
   keep: "On failure you keep the item at its current level.",
@@ -104,9 +130,9 @@ export function enchantChargeMs(chance: number) {
 }
 
 function resultText(result: Outcome) {
-  if (result.outcome === "success") return `Success! Now ${result.label}.`;
+  if (result.outcome === "success") return "Enchantment success!";
   if (result.outcome === "failed") {
-    return `The enchant failed. ${result.label ? `Still ${result.label}.` : "The item is unchanged."}`;
+    return "The enchant failed.";
   }
   if (result.outcome === "dropped") {
     return `The enchant failed and the item dropped to ${result.label || "unenchanted"}.`;
@@ -153,7 +179,7 @@ export function EnchantPanel() {
       </SheetTrigger>
       <SheetContent
         side="bottom"
-        className="mx-auto flex max-h-dvh max-w-3xl flex-col gap-3 overflow-y-auto border-0 bg-transparent p-0 shadow-none"
+        className="mx-auto flex max-h-dvh max-w-3xl flex-col gap-3 overflow-y-auto overflow-x-hidden border-0 bg-transparent p-0 shadow-none"
       >
         {/* Mounted per opening, so the bench always starts empty. */}
         <EnchantBench
@@ -201,16 +227,24 @@ export function EnchantBench({
   const [pending, setPending] = useState(false);
   const [result, setResult] = useState<Outcome | null>(null);
   const [skip, setSkip] = useState(false);
+  const [sound, setSound] = useState(true);
   const mounted = useRef(true);
+  // Blocks a second POST before React has re-rendered the disabled button.
+  const busy = useRef(false);
 
   useEffect(() => {
+    mounted.current = true;
     try {
       setSkip(window.localStorage.getItem(SKIP_KEY) === "1");
+      setSound(window.localStorage.getItem(SOUND_KEY) !== "0");
     } catch {
       // A blocked store only costs the player their preference.
     }
+    // So the first blow lands on time; a failed load retries on the attempt.
+    preloadEnchantSounds().catch(() => undefined);
     return () => {
       mounted.current = false;
+      stopEnchantSound();
     };
   }, []);
 
@@ -339,7 +373,8 @@ export function EnchantBench({
   };
 
   const attempt = async () => {
-    if (!target || !data || !canAttempt) return;
+    if (!target || !data || !canAttempt || busy.current) return;
+    busy.current = true;
     const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     // "Skip animation" skips the charge filling the lines, not the result.
     const ms = skip || calm ? 0 : enchantChargeMs(data.chance);
@@ -352,6 +387,7 @@ export function EnchantBench({
     setFx(!calm);
     setAttemptNo((n) => n + 1);
     setPhase(ms > 0 ? "charging" : "idle");
+    if (sound) playEnchantCharge(ms);
     try {
       // The roll is settled long before the charge ends; the bag and the
       // preview refresh only at the reveal, so nothing gives it away.
@@ -364,6 +400,7 @@ export function EnchantBench({
               userItemId: target.id,
               ...(isAccessory && copyId ? { copyUserItemId: copyId } : {}),
             }),
+            signal: AbortSignal.timeout(ATTEMPT_TIMEOUT_MS),
           });
           if (!response.ok) {
             throw new Error(await readError(response, "Enchanting failed"));
@@ -375,26 +412,40 @@ export function EnchantBench({
 
       setResult(outcome);
       setPhase(outcome.outcome);
+      if (sound && mounted.current) playEnchantResult(outcome.outcome);
       // Closed mid-charge: the roll still happened, so say how it went.
       if (!mounted.current) {
         const say = outcome.outcome === "success" ? toast.success : toast.error;
         say(`${target.name}: ${resultText(outcome)}`);
       }
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: inventoryQueryKeys.all() }),
-        queryClient.invalidateQueries({ queryKey: equipmentQueryKeys.all() }),
-        queryClient.invalidateQueries({ queryKey: userQueryKeys.gold() }),
-        outcome.outcome === "broken"
-          ? Promise.resolve()
-          : queryClient.invalidateQueries({ queryKey: previewKey }),
-      ]);
+      // The answer carries the next preview and the gold: the bench is ready
+      // at once, and the bag catches up in the background.
+      queryClient.setQueryData(userQueryKeys.gold(), outcome.gold);
+      if (outcome.preview) queryClient.setQueryData(previewKey, outcome.preview);
+      else if (outcome.outcome !== "broken") {
+        void queryClient.invalidateQueries({ queryKey: previewKey });
+      }
+      void queryClient.invalidateQueries({ queryKey: inventoryQueryKeys.all() });
+      void queryClient.invalidateQueries({ queryKey: equipmentQueryKeys.all() });
       router.refresh();
     } catch (error) {
       setPhase("idle");
-      // Gold or materials may have moved since the preview.
+      stopEnchantSound();
+      // Gold or materials may have moved, or a timed-out attempt may still have landed.
       void queryClient.invalidateQueries({ queryKey: previewKey });
-      toast.error(error instanceof Error ? error.message : "Enchanting failed");
+      void queryClient.invalidateQueries({ queryKey: inventoryQueryKeys.all() });
+      void queryClient.invalidateQueries({ queryKey: equipmentQueryKeys.all() });
+      void queryClient.invalidateQueries({ queryKey: userQueryKeys.gold() });
+      const timedOut = error instanceof DOMException && error.name === "TimeoutError";
+      toast.error(
+        timedOut
+          ? "The server took too long. Check your item before trying again."
+          : error instanceof Error
+            ? error.message
+            : "Enchanting failed",
+      );
     } finally {
+      busy.current = false;
       setPending(false);
     }
   };
@@ -503,7 +554,7 @@ export function EnchantBench({
       </BagDrop>
 
       <section
-        className="rounded-t-xl bg-popover bg-[image:radial-gradient(ellipse_at_50%_125%,hsl(var(--primary)/0.2),transparent_65%)] px-3 pb-4 pt-3 shadow-[var(--shadow-overlay)] sm:px-5"
+        className="overflow-hidden rounded-t-xl bg-popover bg-[image:radial-gradient(ellipse_at_50%_125%,hsl(var(--primary)/0.2),transparent_65%)] px-3 pb-4 pt-3 shadow-[var(--shadow-overlay)] sm:px-5"
         style={target ? rarityStyle(target.rarity, colors[target.rarity]) : undefined}
       >
         <SheetTitle className="game-eyebrow">Enchanting</SheetTitle>
@@ -557,6 +608,25 @@ export function EnchantBench({
                   }}
                 />
               </div>
+            </div>
+          )}
+          {/* Fail stack, under the chance diamond: a count, never a percentage. */}
+          {target && data && data.failStack > 0 && (
+            <div
+              className="absolute flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 whitespace-nowrap"
+              style={{
+                left: `${(CORE_X / VIEW.w) * 100}%`,
+                top: `${((MID + CORE_R + 34 - VIEW.y) / VIEW.h) * 100}%`,
+              }}
+              title="Fail stack: consecutive failed enchants on any item. Raises your chance; any success resets it."
+            >
+              <span className="text-xs text-muted-foreground">Fail stack</span>
+              <span className="relative grid size-9 place-items-center">
+                <span className="absolute inset-[5px] rotate-45 rounded-[3px] bg-[image:var(--button-primary-bg)] shadow-[shadow:var(--button-primary-shadow)]" />
+                <span className="relative text-xs font-bold tabular-nums text-[color:var(--button-primary-fg)] [text-shadow:var(--button-primary-text-shadow)]">
+                  +{data.failStack}
+                </span>
+              </span>
             </div>
           )}
           <EnchantBenchArt
@@ -620,7 +690,7 @@ export function EnchantBench({
           {revealed && (
             <p
               className={cn(
-                "animate-rise-in font-semibold [animation-duration:0.4s]",
+                "animate-rise-in text-lg font-semibold [animation-duration:0.4s]",
                 phase === "success" ? "text-success" : "text-danger",
               )}
             >
@@ -650,11 +720,6 @@ export function EnchantBench({
               >
                 {FAILURE_TEXT[data.failure]}
               </p>
-              {data.pityFailures > 0 && !revealed && (
-                <p className="text-xs text-muted-foreground">
-                  Earlier failed attempts have slightly raised your chance.
-                </p>
-              )}
             </>
           ) : null}
         </div>
@@ -701,26 +766,22 @@ export function EnchantBench({
               </>
             )}
           </div>
-          <div className="ml-auto flex items-center gap-4">
-            <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
-              <input
-                type="checkbox"
-                className="h-4 w-4 accent-primary"
-                checked={skip}
-                onChange={(event) => {
-                  setSkip(event.target.checked);
-                  try {
-                    window.localStorage.setItem(
-                      SKIP_KEY,
-                      event.target.checked ? "1" : "0",
-                    );
-                  } catch {
-                    // A blocked store only costs the player their preference.
-                  }
-                }}
-              />
-              Skip animation
-            </label>
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-x-4 gap-y-2">
+            <BenchPref
+              label="Sound"
+              storageKey={SOUND_KEY}
+              checked={sound}
+              onChange={(on) => {
+                setSound(on);
+                if (!on) stopEnchantSound();
+              }}
+            />
+            <BenchPref
+              label="Skip animation"
+              storageKey={SKIP_KEY}
+              checked={skip}
+              onChange={setSkip}
+            />
             <Button
               type="button"
               className="h-9 min-w-28 border-0"
@@ -742,6 +803,41 @@ export function EnchantBench({
         ) : null}
       </DragOverlay>
     </DndContext>
+  );
+}
+
+/** A checkbox for how the bench behaves, remembered in this browser. */
+function BenchPref({
+  label,
+  storageKey,
+  checked,
+  onChange,
+}: {
+  label: string;
+  storageKey: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+      <input
+        type="checkbox"
+        className="h-4 w-4 accent-primary"
+        checked={checked}
+        onChange={(event) => {
+          onChange(event.target.checked);
+          try {
+            window.localStorage.setItem(
+              storageKey,
+              event.target.checked ? "1" : "0",
+            );
+          } catch {
+            // A blocked store only costs the player their preference.
+          }
+        }}
+      />
+      {label}
+    </label>
   );
 }
 
@@ -959,21 +1055,7 @@ const RINGS = [92, 78, 64];
 const ITEM = 84;
 const TARGET_BOX: Box = { x: TARGET_X - ITEM / 2, y: MID - ITEM / 2, size: ITEM };
 const GOAL = { x: 582, y: 64, r: 26 };
-/** The charge fills the lines over this share of its time, then holds. */
-const FILL_END = 0.8;
-// The charge runs the main line at one steady speed: each stretch gets time in
-// proportion to its length (conduit 108, junction to chance 62, round the
-// chance diamond 164, link 50, round the item 260).
-const FLOW = {
-  conduit: [0.04, 0.167],
-  main: [0.167, 0.24],
-  core: [0.24, 0.434],
-  link: [0.434, 0.493],
-  rings: [0.493, FILL_END],
-} as const;
-/** A failure holds the lit lines for a beat, then runs them back out. */
-const DRAIN_HOLD_MS = 350;
-const DRAIN_MS = 1100;
+// When the charge reaches each part is in enchant-timing, shared with the sound.
 
 /**
  * Where the cost slots go: one column of up to three, then two or three
@@ -982,9 +1064,10 @@ const DRAIN_MS = 1100;
 export function enchantSlotBoxes(count: number) {
   const n = Math.max(1, count);
   const cols = Math.min(3, Math.ceil(n / 3));
-  const size = cols === 1 ? 64 : cols === 2 ? 48 : 32;
+  const size = cols === 1 ? 54 : cols === 2 ? 44 : 30;
   const rows = Math.ceil(n / cols);
-  const right = 4 + cols * size + (cols - 1) * 6;
+  // The labyrinth round the slots takes the strip on the left.
+  const right = SLOTS_LEFT + cols * size + (cols - 1) * 6;
   const rowY = (row: number) => MID + (row - (rows - 1) / 2) * (size + 10);
   return {
     right,
@@ -1007,25 +1090,74 @@ const arc = (cx: number, cy: number, r: number, side: 1 | -1) =>
   `M${cx - r},${cy} L${cx},${cy + side * r} L${cx + r},${cy}`;
 const roundRect = ({ x, y, size }: Box, r: number) =>
   `M${x + r},${y} h${size - 2 * r} a${r},${r} 0 0 1 ${r},${r} v${size - 2 * r} a${r},${r} 0 0 1 ${-r},${r} h${2 * r - size} a${r},${r} 0 0 1 ${-r},${-r} v${2 * r - size} a${r},${r} 0 0 1 ${r},${-r}`;
+/** Half a slot frame, from its left middle round the top (-1) or bottom (1) to its right middle. */
+const halfFrame = ({ x, y, size }: Box, r: number, side: 1 | -1) => {
+  const edge = side < 0 ? y : y + size;
+  const sweep = side < 0 ? 1 : 0;
+  return `M${x},${y + size / 2} V${edge - side * r} A${r},${r} 0 0 ${sweep} ${x + r},${edge} H${x + size - r} A${r},${r} 0 0 ${sweep} ${x + size},${edge - side * r} V${y + size / 2}`;
+};
+/** A run of straight strokes, and its length. */
+const polyline = (points: [number, number][]) => ({
+  d: points.map(([x, y], i) => `${i ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`).join(" "),
+  length: points.reduce(
+    (sum, [x, y], i) => (i ? sum + Math.hypot(x - points[i - 1]![0], y - points[i - 1]![1]) : 0),
+    0,
+  ),
+});
+type SlotBlock = { x0: number; y0: number; y1: number; right: number };
+/** Grid step of the meander, and the gap between it and the slots. */
+const KEY = 3;
+const KEY_GAP = 6;
+/** One hook of the meander in (along, across) grid steps, from (0, 0): in, round and back out. */
+const KEY_HOOK: [number, number][] = [[0, 4], [3, 4], [3, 1], [2, 1], [2, 3], [1, 3], [1, 0], [4, 0]];
+/**
+ * One half of the labyrinth by the slots, running up (-1) or down (1) from
+ * the middle: a meander along their left side, then a wall along their top
+ * or bottom to an end node. `reach(y)` is how far the charge has run when it
+ * passes row y.
+ */
+const mazeHalf = (b: SlotBlock, side: 1 | -1) => {
+  const inner = b.x0 - KEY_GAP;
+  const edge = side < 0 ? b.y0 - KEY_GAP : b.y1 + KEY_GAP;
+  const hooks = Math.floor((Math.abs(edge - MID) - 10) / (4 * KEY));
+  const points: [number, number][] = [[inner, MID]];
+  for (let k = 0; k < hooks; k++) {
+    for (const [along, across] of KEY_HOOK) {
+      points.push([inner - across * KEY, MID + side * (along + 4 * k) * KEY]);
+    }
+  }
+  points.push([inner, edge - side * 6], [inner + 6, edge], [b.right + 8, edge]);
+  const run = points.map((_, i) => polyline(points.slice(0, i + 1)).length);
+  return {
+    ...polyline(points),
+    end: points[points.length - 1]!,
+    reach: (y: number) =>
+      run[points.findIndex(([, py]) => Math.abs(py - MID) >= Math.abs(y - MID))] ?? 0,
+  };
+};
+const SLOTS_LEFT = 24;
+const SLOT_R = 13;
+const slotFrame = (box: Box): Box => ({ x: box.x - 2, y: box.y - 2, size: box.size + 4 });
 const polar = (cx: number, cy: number, r: number, degrees: number) => {
   const a = (degrees * Math.PI) / 180;
   return `${(cx + Math.cos(a) * r).toFixed(1)},${(cy + Math.sin(a) * r).toFixed(1)}`;
 };
-/** The fan over the chance diamond. */
-const RAYS = Array.from({ length: 11 }, (_, i) => {
-  const angle = -150 + i * 12;
-  return `M${polar(CORE_X, MID, 84, angle)} L${polar(CORE_X, MID, i % 2 === 0 ? 112 : 100, angle)}`;
+/** The sun over the chance diamond: each ray rises from its outline, long and short in turn. */
+const RAYS = RAY_ANGLES.map((angle, i) => {
+  const a = (angle * Math.PI) / 180;
+  const foot = CORE_R / (Math.abs(Math.cos(a)) + Math.abs(Math.sin(a)));
+  return { angle, d: `M${polar(CORE_X, MID, foot, angle)} L${polar(CORE_X, MID, foot + (i % 2 ? 20 : 30), angle)}` };
 });
 /** Where the sparks start and how far they fly. */
-const SPARKS = Array.from({ length: 18 }, (_, i) => {
-  const a = ((i * 360) / 18 + (i % 2) * 9) * (Math.PI / 180);
+const SPARKS = Array.from({ length: SPARK_COUNT }, (_, i) => {
+  const a = ((i * 360) / SPARK_COUNT + (i % 2) * 9) * (Math.PI / 180);
   const reach = 70 + ((i * 37) % 70);
   return {
     x: TARGET_X + Math.cos(a) * 46,
     y: MID + Math.sin(a) * 46,
     dx: Math.cos(a) * reach,
     dy: Math.sin(a) * reach,
-    delay: (i * 53) % 220,
+    delay: sparkDelayMs(i),
   };
 });
 
@@ -1081,6 +1213,9 @@ function Lit({
             }
           />
         )}
+        {head && (
+          <GrindSparks d={d} delay={at[0] * ms} duration={(at[1] - at[0]) * ms} />
+        )}
       </>
     );
   }
@@ -1135,6 +1270,30 @@ export function EnchantBenchArt({
   const lit = { phase, ms: chargeMs };
 
   const { boxes, rowYs, right } = enchantSlotBoxes(slotCount);
+  // The charge runs the labyrinth, turns into each row as the inner wall
+  // passes it, then round the slots of that row, left to right, to its conduit.
+  const frames = boxes.map(slotFrame);
+  const block: SlotBlock = {
+    x0: Math.min(...frames.map((f) => f.x)),
+    y0: Math.min(...frames.map((f) => f.y)),
+    y1: Math.max(...frames.map((f) => f.y + f.size)),
+    right,
+  };
+  const maze = ([-1, 1] as const).map((side) => mazeHalf(block, side));
+  const innerX = block.x0 - KEY_GAP;
+  const frameHalf = 2 * (frames[0]!.size - 2 * SLOT_R) + Math.PI * SLOT_R;
+  const mazeRows = rowYs.map((y) => {
+    const row = frames.filter((f) => f.y + f.size / 2 === y).sort((a, b) => a.x - b.x);
+    return { y, row, stub: row[0]!.x - innerX, tap: maze[y > MID ? 1 : 0]!.reach(y) };
+  });
+  const perUnit =
+    (FLOW.slots[1] - FLOW.slots[0]) /
+    Math.max(
+      ...maze.map((half) => half.length),
+      ...mazeRows.map((r) => r.tap + r.stub + r.row.length * frameHalf),
+    );
+  const when = (from: number, length: number) =>
+    [FLOW.slots[0] + from * perUnit, FLOW.slots[0] + (from + length) * perUnit] as const;
   const reach = Math.max(...rowYs.map((y) => Math.abs(MID - y)));
   const turnX = Math.max(right + 8, JUNCTION_X - 6 - reach);
   const conduit = (y: number) =>
@@ -1160,7 +1319,8 @@ export function EnchantBenchArt({
       viewBox={`0 ${VIEW.y} ${VIEW.w} ${VIEW.h}`}
       role="img"
       aria-label={label}
-      className="block h-auto w-full select-none overflow-visible"
+      // Pure drawing: the bursts outgrow it, and must never catch a click.
+      className="pointer-events-none block h-auto w-full select-none overflow-visible"
     >
       <defs>
         <radialGradient id={glowId}>
@@ -1174,6 +1334,12 @@ export function EnchantBenchArt({
         {rowYs.map((y) => (
           <path key={y} d={conduit(y)} />
         ))}
+        {maze.map(({ d }) => (
+          <path key={d} d={d} className="stroke-primary/25" />
+        ))}
+        {mazeRows.map(({ y, stub }) => (
+          <path key={y} d={`M${innerX},${y} h${stub}`} />
+        ))}
         <path d={`M${JUNCTION_X},${MID} H${coreLeft}`} />
         <path d={`M${bar},${MID - 24} V${MID + 24}`} />
         <path d={`M${bar},${MID - 18} A18,18 0 0 1 ${bar},${MID + 18}`} />
@@ -1181,8 +1347,8 @@ export function EnchantBenchArt({
         <path d={diamond(CORE_X, MID, CORE_R - 9)} className="stroke-primary/20" />
         <path d={`M${coreLeft + 14.8},${MID - 28.8} L${coreLeft - 14},${MID} L${coreLeft + 14.8},${MID + 28.8}`} />
         <path d={`M${coreRight - 14.8},${MID - 28.8} L${coreRight + 14},${MID} L${coreRight - 14.8},${MID + 28.8}`} />
-        {RAYS.map((d) => (
-          <path key={d} d={d} className="stroke-primary/25" />
+        {RAYS.map(({ d }) => (
+          <path key={d} d={d} />
         ))}
         <path d={`M${coreRight},${MID} H${ringLeft}`} />
         {RINGS.map((r) => (
@@ -1191,6 +1357,10 @@ export function EnchantBenchArt({
         <path d="M542,104 L569,77" />
       </g>
       <g className="fill-popover stroke-primary/60" strokeWidth={1.25}>
+        <path d={diamond(innerX - 2 * KEY, MID, 4)} />
+        {maze.map(({ end: [x, y] }) => (
+          <path key={y} d={diamond(x, y, 3)} />
+        ))}
         {nodes.map((node) => (
           <path key={node.y} d={diamond(node.x, node.y, 4)} />
         ))}
@@ -1238,13 +1408,27 @@ export function EnchantBenchArt({
                 : undefined
             }
           />
-          {boxes.map((box) => (
-            <Lit
-              key={`${box.x}-${box.y}`}
-              d={roundRect({ x: box.x - 2, y: box.y - 2, size: box.size + 4 }, 13)}
-              at={[0, 0.05]}
-              {...lit}
-            />
+          <Lit d={diamond(innerX - 2 * KEY, MID, 4)} at={when(0, 4)} {...lit} />
+          {maze.map(({ d, length, end: [x, y] }) => (
+            <g key={d}>
+              <Lit d={d} at={when(0, length)} head={length} {...lit} />
+              <Lit d={diamond(x, y, 3)} at={when(length, 6)} {...lit} />
+            </g>
+          ))}
+          {mazeRows.map(({ y, row, stub, tap }) => (
+            <g key={y}>
+              <Lit d={`M${innerX},${y} h${stub}`} at={when(tap, stub)} {...lit} />
+              {row.flatMap((frame, k) =>
+                ([-1, 1] as const).map((side) => (
+                  <Lit
+                    key={`${frame.x}${side}`}
+                    d={halfFrame(frame, SLOT_R, side)}
+                    at={when(tap + stub + k * frameHalf, frameHalf)}
+                    {...lit}
+                  />
+                )),
+              )}
+            </g>
           ))}
           {rowYs.map((y) => (
             <Lit
@@ -1257,24 +1441,24 @@ export function EnchantBenchArt({
             />
           ))}
           {nodes.map((node) => (
-            <Lit key={node.y} d={diamond(node.x, node.y, 4)} at={[0.06, 0.09]} {...lit} />
+            <Lit key={node.y} d={diamond(node.x, node.y, 4)} at={[0.138, 0.165]} {...lit} />
           ))}
           <Lit d={`M${JUNCTION_X},${MID} H${coreLeft}`} at={FLOW.main} head={coreLeft - JUNCTION_X} {...lit} />
           {/* Side strokes light as the head passes them. */}
-          <Lit d={`M${bar},${MID} V${MID - 24}`} at={[0.18, 0.21]} {...lit} />
-          <Lit d={`M${bar},${MID} V${MID + 24}`} at={[0.18, 0.21]} {...lit} />
+          <Lit d={`M${bar},${MID} V${MID - 24}`} at={[0.245, 0.272]} {...lit} />
+          <Lit d={`M${bar},${MID} V${MID + 24}`} at={[0.245, 0.272]} {...lit} />
           <Lit
             d={`M${bar},${MID - 18} A18,18 0 0 1 ${bar},${MID + 18}`}
-            at={[0.18, 0.23]}
+            at={[0.245, 0.29]}
             {...lit}
           />
-          <Lit d={diamond(JUNCTION_X + 38, MID, 4)} at={[0.21, 0.235]} {...lit} />
-          <Lit d={diamond(JUNCTION_X + 50, MID, 4)} at={[0.225, 0.25]} {...lit} />
+          <Lit d={diamond(JUNCTION_X + 38, MID, 4)} at={[0.272, 0.294]} {...lit} />
+          <Lit d={diamond(JUNCTION_X + 50, MID, 4)} at={[0.286, 0.308]} {...lit} />
           {([-1, 1] as const).map((side) => (
             <g key={side}>
               <Lit
                 d={`M${coreLeft - 14},${MID} L${coreLeft + 14.8},${MID + side * 28.8}`}
-                at={[0.224, 0.27]}
+                at={[0.285, 0.326]}
                 {...lit}
               />
               <Lit
@@ -1286,13 +1470,13 @@ export function EnchantBenchArt({
               <Lit d={arc(CORE_X, MID, CORE_R - 9, side)} at={FLOW.core} {...lit} />
               <Lit
                 d={`M${coreRight - 14.8},${MID + side * 28.8} L${coreRight + 14},${MID}`}
-                at={[0.4, 0.434]}
+                at={[0.442, 0.473]}
                 {...lit}
               />
             </g>
           ))}
-          {RAYS.map((d, i) => (
-            <Lit key={d} d={d} at={[0.25 + i * 0.016, 0.29 + i * 0.016]} {...lit} />
+          {RAYS.map(({ angle, d }) => (
+            <Lit key={d} d={d} at={[rayLitAt(angle), rayLitAt(angle) + 0.03]} {...lit} />
           ))}
           <Lit d={`M${coreRight},${MID} H${ringLeft}`} at={FLOW.link} head={ringLeft - coreRight} {...lit} />
           {/* All three rings close on the far corner together. */}
@@ -1307,12 +1491,12 @@ export function EnchantBenchArt({
               />
             )),
           )}
-          <Lit d="M542,104 L569,77" at={[0.723, 0.745]} {...lit} />
-          <Lit d={arc(GOAL.x, GOAL.y, GOAL.r, -1)} at={[0.745, FILL_END]} {...lit} />
-          <Lit d={arc(GOAL.x, GOAL.y, GOAL.r, 1)} at={[0.745, FILL_END]} {...lit} />
+          <Lit d="M542,104 L569,77" at={[0.731, 0.751]} {...lit} />
+          <Lit d={arc(GOAL.x, GOAL.y, GOAL.r, -1)} at={[0.751, FILL_END]} {...lit} />
+          <Lit d={arc(GOAL.x, GOAL.y, GOAL.r, 1)} at={[0.751, FILL_END]} {...lit} />
           <Lit
             d={roundRect({ x: TARGET_BOX.x - 2, y: TARGET_BOX.y - 2, size: ITEM + 4 }, 13)}
-            at={[0.76, FILL_END]}
+            at={[0.764, FILL_END]}
             {...lit}
           />
         </g>
@@ -1330,7 +1514,7 @@ export function EnchantBenchArt({
             className={cn(centered, "animate-enchant-burst text-white")}
           />
           <g className="fill-none stroke-primary" strokeWidth={2.5}>
-            {[0, 130, 260].map((delay) => (
+            {BURST_RINGS_MS.map((delay) => (
               <path
                 key={delay}
                 d={diamond(TARGET_X, MID, RINGS[2]!)}

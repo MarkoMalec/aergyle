@@ -1677,7 +1677,7 @@ function ItemEditor(
           description={
             enchantKind
               ? "What each enchant level gets. Click a value to set it for this item only."
-              : "Only equipment that doesn't stack can be enchanted, so this item's stats never change."
+              : "Only gear, tools and accessories that don't stack can be enchanted, so this item's stats never change."
           }
           actions={
             enchantKind ? (

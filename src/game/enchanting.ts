@@ -33,6 +33,10 @@ const GEAR_SLOTS = new Set<ItemEquipTo>([
   ItemEquipTo.belt,
   ItemEquipTo.weapon,
   ItemEquipTo.offhand,
+  ItemEquipTo.fellingAxe,
+  ItemEquipTo.pickaxe,
+  ItemEquipTo.fishingRod,
+  ItemEquipTo.hoe,
 ]);
 
 /** Which ladder an item climbs, or null when it can't be enchanted. */
@@ -93,14 +97,14 @@ export type EnchantLevelSettings = {
 };
 
 export type EnchantGlobalSettings = {
-  pityPerFailure: number;
-  pityCap: number;
+  failStackPerFailure: number;
+  failStackCap: number;
   levelCostDivisor: number;
 };
 
 export const DEFAULT_ENCHANT_GLOBALS: EnchantGlobalSettings = {
-  pityPerFailure: 0.0025,
-  pityCap: 0.025,
+  failStackPerFailure: 0.0025,
+  failStackCap: 0.1,
   levelCostDivisor: 50,
 };
 
@@ -152,17 +156,17 @@ export function enchantGoldCost(
   return Math.round(Math.max(0, baseCost) * factor);
 }
 
-/** Success chance after pity: a small, capped bonus per earlier failure. */
+/** Success chance plus the player's fail stack (consecutive failures on any item), capped. */
 export function enchantChance(
   baseChance: number,
-  failures: number,
-  globals: Pick<EnchantGlobalSettings, "pityPerFailure" | "pityCap">,
+  failStack: number,
+  globals: Pick<EnchantGlobalSettings, "failStackPerFailure" | "failStackCap">,
 ) {
-  const pity = Math.min(
-    globals.pityCap,
-    Math.max(0, failures) * globals.pityPerFailure,
+  const stack = Math.min(
+    globals.failStackCap,
+    Math.max(0, failStack) * globals.failStackPerFailure,
   );
-  return Math.min(1, Math.max(0, baseChance + pity));
+  return Math.min(1, Math.max(0, baseChance + stack));
 }
 
 /** The level a failed attempt leaves the item at (accessories break instead). */
