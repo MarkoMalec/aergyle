@@ -6,14 +6,16 @@ import { prisma } from "~/lib/prisma";
 /** Gathering editor for the whole game, or only one region's pool when locationId is set. */
 export async function GatheringAdminSection({
   locationId,
+  tab,
 }: {
   locationId?: number;
+  tab?: string;
 }) {
   const [locations, resources, assignments, durations, rarityConfigs] =
     await Promise.all([
       prisma.location.findMany({
         where: { id: locationId },
-        orderBy: { name: "asc" },
+        orderBy: [{ gatheringRequiredLevel: "asc" }, { name: "asc" }],
       }),
       prisma.vocationalResource.findMany({
         where: { actionType: VocationalActionType.GATHERING },
@@ -129,6 +131,7 @@ export async function GatheringAdminSection({
         }))}
         rarities={rarities}
         locationId={locationId}
+        initialTab={tab}
       />
     </>
   );

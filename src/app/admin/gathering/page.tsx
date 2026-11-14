@@ -5,10 +5,12 @@ import { requireAdminPageAccess } from "~/server/admin/auth";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export default async function AdminGatheringPage() {
+export default async function AdminGatheringPage(props: {
+  searchParams: { tab?: string };
+}) {
   await requireAdminPageAccess();
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">Gathering Admin</h1>
@@ -23,13 +25,13 @@ export default async function AdminGatheringPage() {
         </div>
         <Link
           href="/skills/Gathering"
-          className="rounded-md border border-white/10 bg-gray-900/50 px-3 py-2 text-sm text-white/80 hover:bg-gray-800"
+          className="rounded-[8px] bg-white/[0.06] px-3 py-2 text-sm text-white/80 hover:bg-white/[0.1]"
         >
           Open player page
         </Link>
       </header>
 
-      <GatheringAdminSection />
+      <GatheringAdminSection tab={props.searchParams.tab} />
     </div>
   );
 }
