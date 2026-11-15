@@ -73,7 +73,7 @@ export function SearchSelect(props: {
           role="combobox"
           aria-expanded={open}
           className={cn(
-            "h-9 w-full justify-between border-white/10 bg-black/25 px-2.5 font-normal",
+            "h-9 w-full justify-between border-transparent bg-white/[0.06] px-2.5 font-normal hover:bg-white/[0.1]",
             props.className,
           )}
         >

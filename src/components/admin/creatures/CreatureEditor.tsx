@@ -1,10 +1,7 @@
 "use client";
 
-import Image from "next/image";
-import { useRouter } from "next/navigation";
-import React, { useEffect, useState } from "react";
-import { CirclePlus, Plus, Save, Trash2 } from "lucide-react";
-import toast from "react-hot-toast";
+import React from "react";
+import { Trash2, X } from "lucide-react";
 import type {
   CreatureAttackStyle,
   CreatureDamageType,
@@ -12,13 +9,29 @@ import type {
   ItemRarity,
 } from "~/generated/prisma/enums";
 import { Button } from "~/components/ui/button";
+import { adminRequest } from "~/components/admin/fields";
+import { SearchSelect } from "~/components/admin/SearchSelect";
 import {
-  adminRequest,
-  EnabledField,
-  inputClass,
-  labelClass,
-  NumberField,
-} from "~/components/admin/fields";
+  Art,
+  Card,
+  cardClass,
+  DetailHeader,
+  type Draft,
+  editorInput,
+  Labeled,
+  ListAction,
+  masterDetailClass,
+  Num,
+  patchRow,
+  Percent,
+  PickList,
+  RangeInputs,
+  rowClass,
+  theadClass,
+  Toggle,
+  useServerAction,
+} from "~/components/admin/editor";
+import { cn } from "~/lib/utils";
 
 export type AdminItemOption = {
   id: number;
@@ -67,18 +80,12 @@ export type AdminCreature = {
 const COPY = {
   ANIMAL: {
     noun: "animal",
-    title: "Animal catalogue and drop tables",
-    description:
-      "When an animal retaliates (retaliation chance per encounter), it uses its full attack: physical, magic and elemental damage plus critical hits. Defence stats only matter in dungeons and can stay at 0.",
-    levelLabel: "Hunting level",
+    levelLabel: "Hunting lv",
     newAsset: "/assets/creatures/animals/meadow-hare-hunting-v1.png",
   },
   MONSTER: {
     noun: "monster",
-    title: "Monster catalogue and drop tables",
-    description:
-      "Monsters fight until one side falls. Every defeated monster rolls its own drop table; drop chances are capped at 95% and never shown to players.",
-    levelLabel: "Character level",
+    levelLabel: "Character lv",
     newAsset: "/assets/creatures/monsters/low-level/goblin.png",
   },
 } as const;
@@ -89,6 +96,17 @@ const DAMAGE_TYPES: Array<{ value: CreatureDamageType; label: string }> = [
   { value: "LIGHTNING", label: "Lightning" },
   { value: "POISON", label: "Poison" },
 ];
+
+/** Damage pairs that must stay min ≤ max, by field name. */
+const DAMAGE_RANGES = [
+  { label: "Physical damage", min: "damageMin", max: "damageMax" },
+  { label: "Magic damage", min: "magicDamageMin", max: "magicDamageMax" },
+  {
+    label: "Elemental damage",
+    min: "elementalDamageMin",
+    max: "elementalDamageMax",
+  },
+] as const;
 
 function newCreaturePayload(kind: CreatureKind, index: number) {
   const monster = kind === "MONSTER";
@@ -125,7 +143,27 @@ function toPayload({ id: _id, drops, ...creature }: AdminCreature) {
   };
 }
 
-function CreatureSummary({ creature }: { creature: AdminCreature }) {
+export const saveCreature = patchRow<AdminCreature>(
+  "/api/admin/creatures",
+  toPayload,
+);
+
+/** Blocking problems the API would reject, worded for the Save bar. */
+export function creatureProblems(creatures: AdminCreature[]) {
+  return creatures.flatMap((creature) => [
+    ...(creature.name.trim() ? [] : ["A creature needs a name"]),
+    ...DAMAGE_RANGES.filter(
+      (range) => creature[range.max] < creature[range.min],
+    ).map(
+      (range) => `${creature.name}: ${range.label.toLowerCase()} max below min`,
+    ),
+    ...creature.drops
+      .filter((drop) => drop.maxQuantity < drop.minQuantity)
+      .map((drop) => `${creature.name}: ${drop.item.name} max below min`),
+  ]);
+}
+
+function summary(creature: AdminCreature) {
   const parts = [
     creature.kind === "MONSTER"
       ? `${creature.health} HP`
@@ -140,552 +178,466 @@ function CreatureSummary({ creature }: { creature: AdminCreature }) {
       `+${creature.elementalDamageMin}–${creature.elementalDamageMax} ${creature.damageType.toLowerCase()}`,
     );
   }
-  parts.push(`${creature.drops.length} drops`);
-  return <small className="text-white/45">{parts.join(" · ")}</small>;
+  return parts.join(" · ");
 }
 
 export function CreatureArt({ src, size }: { src: string; size: number }) {
-  // next/image rejects relative or malformed paths while an admin is typing.
-  if (!src.startsWith("/")) {
-    return (
-      <span
-        className="shrink-0 rounded-lg bg-black/30"
-        style={{ width: size, height: size }}
-      />
-    );
-  }
-  return (
-    <Image
-      src={src}
-      alt=""
-      width={size}
-      height={size}
-      className="shrink-0 rounded-lg bg-black/30 object-contain"
-      style={{ width: size, height: size }}
-    />
-  );
+  return <Art src={src} size={size} />;
 }
 
-export function CreatureEditor(props: {
-  kind: CreatureKind;
-  initial: AdminCreature[];
+function CreatureForm(props: {
+  creature: AdminCreature;
   items: AdminItemOption[];
-  onChange: (creatures: AdminCreature[]) => void;
+  update: (patch: Partial<AdminCreature>) => void;
+  onDelete: () => void;
+  usage?: React.ReactNode;
 }) {
-  const router = useRouter();
-  const copy = COPY[props.kind];
-  const [rows, setRows] = useState(props.initial);
-  const [busyId, setBusyId] = useState<number | null>(null);
-  useEffect(() => setRows(props.initial), [props.initial]);
-
-  const update = (id: number, patch: Partial<AdminCreature>) =>
-    setRows((current) =>
-      current.map((row) => (row.id === id ? { ...row, ...patch } : row)),
-    );
-  const updateDrop = (
-    creature: AdminCreature,
-    index: number,
-    patch: Partial<AdminCreatureDrop>,
-  ) =>
-    update(creature.id, {
-      drops: creature.drops.map((drop, dropIndex) =>
-        dropIndex === index ? { ...drop, ...patch } : drop,
+  const { creature, update } = props;
+  const copy = COPY[creature.kind];
+  const animal = creature.kind === "ANIMAL";
+  const used = new Set(creature.drops.map((drop) => drop.itemId));
+  const updateDrop = (itemId: number, patch: Partial<AdminCreatureDrop>) =>
+    update({
+      drops: creature.drops.map((drop) =>
+        drop.itemId === itemId ? { ...drop, ...patch } : drop,
       ),
     });
-  const addDrop = (creature: AdminCreature) => {
-    const used = new Set(creature.drops.map((drop) => drop.itemId));
-    const item = props.items.find((option) => !used.has(option.id));
-    if (!item) return toast.error("Every item is already in this drop table");
-    update(creature.id, {
-      drops: [
-        ...creature.drops,
-        {
-          itemId: item.id,
-          item,
-          enabled: true,
-          baseChance: 0.5,
-          minQuantity: 1,
-          maxQuantity: 1,
-          requiredLevel: 1,
-        },
-      ],
-    });
-  };
+  const range = (field: (typeof DAMAGE_RANGES)[number], disabled?: boolean) => (
+    <Labeled label={field.label}>
+      <RangeInputs
+        label={field.label}
+        min={creature[field.min]}
+        max={creature[field.max]}
+        disabled={disabled}
+        onChange={({ min, max }) =>
+          update({
+            [field.min]: min ?? creature[field.min],
+            [field.max]: max ?? creature[field.max],
+          })
+        }
+      />
+    </Labeled>
+  );
 
-  const save = async (creature: AdminCreature) => {
-    setBusyId(creature.id);
-    try {
-      await adminRequest(
-        `/api/admin/creatures/${creature.id}`,
-        "PATCH",
-        toPayload(creature),
-      );
-      props.onChange(rows);
-      toast.success(`${creature.name} saved`);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to save");
-    } finally {
-      setBusyId(null);
-    }
-  };
-  const remove = async (creature: AdminCreature) => {
-    if (
-      !window.confirm(
-        `Delete ${creature.name}? Its drop table and every placement are removed. Characters already out keep their snapshot.`,
-      )
-    ) {
-      return;
-    }
-    setBusyId(creature.id);
-    try {
-      await adminRequest(`/api/admin/creatures/${creature.id}`, "DELETE");
-      toast.success(`${creature.name} deleted`);
-      router.refresh();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to delete");
-    } finally {
-      setBusyId(null);
-    }
-  };
-  const create = async () => {
-    try {
-      await adminRequest(
-        "/api/admin/creatures",
-        "POST",
-        newCreaturePayload(props.kind, rows.length + 1),
-      );
-      toast.success(`New ${copy.noun} created; configure its asset and drops`);
-      router.refresh();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to create");
-    }
-  };
+  const defence = (
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <Labeled label="Health">
+        <Num
+          label="Health"
+          value={creature.health}
+          min={0}
+          integer
+          onChange={(health) => update({ health })}
+        />
+      </Labeled>
+      <Labeled
+        label="Armor"
+        hint="Equal to the attacker's K halves its damage."
+      >
+        <Num
+          label="Armor"
+          value={creature.armor}
+          min={0}
+          onChange={(armor) => update({ armor })}
+        />
+      </Labeled>
+      <Labeled label="Magic resist" hint="Negative is a weakness.">
+        <Num
+          label="Magic resist"
+          value={creature.magicResist}
+          min={-100}
+          max={75}
+          suffix="%"
+          onChange={(magicResist) => update({ magicResist })}
+        />
+      </Labeled>
+      <Labeled label="Evasion">
+        <Num
+          label="Evasion"
+          value={creature.evasion}
+          min={0}
+          max={75}
+          step={0.5}
+          suffix="%"
+          onChange={(evasion) => update({ evasion })}
+        />
+      </Labeled>
+      <Labeled label="Block">
+        <Num
+          label="Block"
+          value={creature.blockChance}
+          min={0}
+          max={75}
+          step={0.5}
+          suffix="%"
+          onChange={(blockChance) => update({ blockChance })}
+        />
+      </Labeled>
+    </div>
+  );
 
   return (
-    <section className="rounded-xl border border-white/10 bg-gray-950/45 p-5">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h2 className="font-semibold">{copy.title}</h2>
-          <p className="mt-1 max-w-3xl text-sm text-white/55">
-            {copy.description}
-          </p>
-        </div>
-        <Button variant="secondary" onClick={() => void create()}>
-          <CirclePlus className="mr-2 h-4 w-4" />
-          New {copy.noun}
+    <div className="min-w-0 space-y-4">
+      <DetailHeader
+        image={creature.asset}
+        title={creature.name || "Unnamed"}
+        subtitle={props.usage ?? summary(creature)}
+      >
+        <label className="flex items-center gap-2 text-sm text-white/70">
+          <Toggle
+            label={`${creature.name} enabled`}
+            checked={creature.enabled}
+            onChange={(enabled) => update({ enabled })}
+          />
+          {creature.enabled ? "Enabled" : "Disabled"}
+        </label>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          onClick={props.onDelete}
+          aria-label={`Delete ${creature.name}`}
+        >
+          <Trash2 className="h-4 w-4 text-red-300" />
         </Button>
-      </div>
-      <div className="mt-5 space-y-3">
-        {rows.length === 0 ? (
-          <p className="text-sm text-white/45">No {copy.noun}s yet.</p>
-        ) : null}
-        {rows.map((creature) => (
-          <details
-            className="rounded-xl border border-white/10 bg-black/15"
-            key={creature.id}
-          >
-            <summary className="flex cursor-pointer list-none items-center gap-3 p-3 [&::-webkit-details-marker]:hidden">
-              <CreatureArt src={creature.asset} size={48} />
-              <span className="min-w-0 flex-1">
-                <strong className="block truncate">{creature.name}</strong>
-                <CreatureSummary creature={creature} />
-              </span>
-              <span
-                className={
-                  creature.enabled
-                    ? "text-xs text-emerald-300"
-                    : "text-xs text-white/35"
-                }
+      </DetailHeader>
+
+      <Card title="Identity">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Labeled label="Name">
+            <input
+              className={editorInput}
+              value={creature.name}
+              onChange={(event) => update({ name: event.target.value })}
+            />
+          </Labeled>
+          <Labeled label="Art path">
+            <input
+              className={editorInput}
+              value={creature.asset}
+              onChange={(event) => update({ asset: event.target.value })}
+            />
+          </Labeled>
+          <Labeled label="Description" className="sm:col-span-2">
+            <textarea
+              className={cn(editorInput, "h-auto py-1.5")}
+              rows={2}
+              value={creature.description ?? ""}
+              onChange={(event) =>
+                update({ description: event.target.value || null })
+              }
+            />
+          </Labeled>
+        </div>
+      </Card>
+
+      <Card
+        title="Attack"
+        description={
+          animal
+            ? "An animal strikes back with this chance per encounter. Style decides which evasion avoids it; armor, magic resist and the matching resistance reduce each damage part."
+            : "Style decides which evasion avoids the strike; armor, magic resist and the matching resistance reduce each damage part."
+        }
+      >
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Labeled label="Attack style">
+            <select
+              className={editorInput}
+              value={creature.attackStyle}
+              onChange={(event) =>
+                update({
+                  attackStyle: event.target.value as CreatureAttackStyle,
+                })
+              }
+            >
+              <option value="MELEE">Melee</option>
+              <option value="RANGED">Ranged</option>
+              <option value="MAGIC">Magic</option>
+            </select>
+          </Labeled>
+          {animal ? (
+            <Labeled label="Retaliation chance">
+              <Percent
+                label="Retaliation chance"
+                value={creature.attackChance}
+                step={1}
+                onChange={(attackChance) => update({ attackChance })}
+              />
+            </Labeled>
+          ) : null}
+          <Labeled label="Crit chance">
+            <Num
+              label="Crit chance"
+              value={creature.critChance}
+              min={0}
+              max={100}
+              step={0.5}
+              suffix="%"
+              onChange={(critChance) => update({ critChance })}
+            />
+          </Labeled>
+          <Labeled label="Crit damage" hint="150% = ×1.5">
+            <Num
+              label="Crit damage"
+              value={creature.critDamage}
+              min={0}
+              step={5}
+              suffix="%"
+              onChange={(critDamage) => update({ critDamage })}
+            />
+          </Labeled>
+          {range(DAMAGE_RANGES[0])}
+          {range(DAMAGE_RANGES[1])}
+          <Labeled label="Element">
+            <select
+              className={editorInput}
+              value={creature.damageType ?? ""}
+              onChange={(event) =>
+                update({
+                  damageType:
+                    (event.target.value as CreatureDamageType) || null,
+                })
+              }
+            >
+              <option value="">None</option>
+              {DAMAGE_TYPES.map((type) => (
+                <option key={type.value} value={type.value}>
+                  {type.label}
+                </option>
+              ))}
+            </select>
+          </Labeled>
+          {range(DAMAGE_RANGES[2], !creature.damageType)}
+        </div>
+      </Card>
+
+      {animal ? (
+        <details className={cn(cardClass, "group")}>
+          <summary className="cursor-pointer list-none text-sm font-semibold [&::-webkit-details-marker]:hidden">
+            Defence{" "}
+            <span className="font-normal text-white/45">
+              · dungeons only, hunting ignores it
+            </span>
+          </summary>
+          <div className="mt-3">{defence}</div>
+        </details>
+      ) : (
+        <Card title="Defence">{defence}</Card>
+      )}
+
+      <Card
+        title={`Drops (${creature.drops.length})`}
+        description={
+          animal
+            ? "Rolled on every successful hunt encounter."
+            : "Every defeated monster rolls its own table; chances are capped at 95% and never shown to players."
+        }
+        className="overflow-x-auto"
+      >
+        <table className="w-full min-w-[600px] text-sm">
+          <thead className={theadClass}>
+            <tr>
+              <th>Item</th>
+              <th className="w-28">Chance</th>
+              <th className="w-44">Amount</th>
+              <th className="w-24">{copy.levelLabel}</th>
+              <th className="w-12">On</th>
+              <th className="w-10" />
+            </tr>
+          </thead>
+          <tbody>
+            {creature.drops.map((drop) => (
+              <tr
+                key={drop.itemId}
+                className={cn(rowClass, !drop.enabled && "text-white/40")}
               >
-                {creature.enabled ? "Enabled" : "Disabled"}
-              </span>
-            </summary>
-            <div className="space-y-5 border-t border-white/10 p-4">
-              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-                <label className={labelClass}>
-                  <span>Name</span>
-                  <input
-                    className={inputClass}
-                    value={creature.name}
-                    onChange={(event) =>
-                      update(creature.id, { name: event.target.value })
+                <td>
+                  <div className="flex items-center gap-2">
+                    <Art src={drop.item.sprite} size={28} />
+                    <span className="truncate font-medium">
+                      {drop.item.name}
+                    </span>
+                  </div>
+                </td>
+                <td>
+                  <Percent
+                    label={`${drop.item.name} chance`}
+                    value={drop.baseChance}
+                    onChange={(baseChance) =>
+                      updateDrop(drop.itemId, { baseChance })
                     }
                   />
-                </label>
-                <label className={`${labelClass} lg:col-span-2`}>
-                  <span>Asset path</span>
-                  <input
-                    className={inputClass}
-                    value={creature.asset}
-                    onChange={(event) =>
-                      update(creature.id, { asset: event.target.value })
-                    }
-                  />
-                </label>
-                <EnabledField
-                  value={creature.enabled}
-                  onChange={(enabled) => update(creature.id, { enabled })}
-                />
-                <label className={`${labelClass} md:col-span-2 lg:col-span-4`}>
-                  <span>Description</span>
-                  <textarea
-                    className={inputClass}
-                    rows={2}
-                    value={creature.description ?? ""}
-                    onChange={(event) =>
-                      update(creature.id, {
-                        description: event.target.value || null,
+                </td>
+                <td>
+                  <RangeInputs
+                    label={`${drop.item.name} amount`}
+                    floor={1}
+                    min={drop.minQuantity}
+                    max={drop.maxQuantity}
+                    onChange={({ min, max }) =>
+                      updateDrop(drop.itemId, {
+                        minQuantity: min ?? drop.minQuantity,
+                        maxQuantity: max ?? drop.maxQuantity,
                       })
                     }
                   />
-                </label>
-              </div>
-
-              <div>
-                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-white/45">
-                  Attack
-                </p>
-                <p className="mb-2 text-xs text-white/40">
-                  Attack style decides which evasion can avoid the strike.
-                  Physical damage is reduced by armor, magic damage by magic
-                  resist, and elemental damage by the matching resistance.
-                </p>
-                <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6">
-                  <label className={labelClass}>
-                    <span>Attack style</span>
-                    <select
-                      className={inputClass}
-                      value={creature.attackStyle}
-                      onChange={(event) =>
-                        update(creature.id, {
-                          attackStyle: event.target
-                            .value as CreatureAttackStyle,
-                        })
-                      }
-                    >
-                      <option value="MELEE">Melee</option>
-                      <option value="RANGED">Ranged</option>
-                      <option value="MAGIC">Magic</option>
-                    </select>
-                  </label>
-                  {creature.kind === "ANIMAL" ? (
-                    <NumberField
-                      label="Retaliation chance (0–1)"
-                      value={creature.attackChance}
-                      min={0}
-                      max={1}
-                      step={0.01}
-                      onChange={(value) =>
-                        update(creature.id, { attackChance: value })
-                      }
-                    />
-                  ) : null}
-                  <NumberField
-                    label="Physical damage min"
-                    value={creature.damageMin}
-                    min={0}
-                    onChange={(value) =>
-                      update(creature.id, { damageMin: value })
+                </td>
+                <td>
+                  <Num
+                    label={`${drop.item.name} required level`}
+                    value={drop.requiredLevel}
+                    min={1}
+                    integer
+                    onChange={(requiredLevel) =>
+                      updateDrop(drop.itemId, { requiredLevel })
                     }
                   />
-                  <NumberField
-                    label="Physical damage max"
-                    value={creature.damageMax}
-                    min={0}
-                    onChange={(value) =>
-                      update(creature.id, { damageMax: value })
-                    }
+                </td>
+                <td>
+                  <Toggle
+                    label={`${drop.item.name} enabled`}
+                    checked={drop.enabled}
+                    onChange={(enabled) => updateDrop(drop.itemId, { enabled })}
                   />
-                  <NumberField
-                    label="Magic damage min"
-                    value={creature.magicDamageMin}
-                    min={0}
-                    onChange={(value) =>
-                      update(creature.id, { magicDamageMin: value })
-                    }
-                  />
-                  <NumberField
-                    label="Magic damage max"
-                    value={creature.magicDamageMax}
-                    min={0}
-                    onChange={(value) =>
-                      update(creature.id, { magicDamageMax: value })
-                    }
-                  />
-                  <label className={labelClass}>
-                    <span>Damage type</span>
-                    <select
-                      className={inputClass}
-                      value={creature.damageType ?? ""}
-                      onChange={(event) =>
-                        update(creature.id, {
-                          damageType:
-                            (event.target.value as CreatureDamageType) || null,
-                        })
-                      }
-                    >
-                      <option value="">None</option>
-                      {DAMAGE_TYPES.map((type) => (
-                        <option key={type.value} value={type.value}>
-                          {type.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <NumberField
-                    label="Elemental damage min"
-                    value={creature.elementalDamageMin}
-                    min={0}
-                    disabled={!creature.damageType}
-                    onChange={(value) =>
-                      update(creature.id, { elementalDamageMin: value })
-                    }
-                  />
-                  <NumberField
-                    label="Elemental damage max"
-                    value={creature.elementalDamageMax}
-                    min={0}
-                    disabled={!creature.damageType}
-                    onChange={(value) =>
-                      update(creature.id, { elementalDamageMax: value })
-                    }
-                  />
-                  <NumberField
-                    label="Crit chance %"
-                    value={creature.critChance}
-                    min={0}
-                    max={100}
-                    step={0.5}
-                    onChange={(value) =>
-                      update(creature.id, { critChance: value })
-                    }
-                  />
-                  <NumberField
-                    label="Crit damage % (150 = ×1.5)"
-                    value={creature.critDamage}
-                    min={0}
-                    step={5}
-                    onChange={(value) =>
-                      update(creature.id, { critDamage: value })
-                    }
-                  />
-                </div>
-              </div>
-
-              <div>
-                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-white/45">
-                  Defence
-                </p>
-                <p className="mb-2 text-xs text-white/40">
-                  Used in dungeons only. Hunting ignores these because every
-                  hunt is a guaranteed kill; leave them at 0 for animals.
-                </p>
-                <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-5">
-                  <NumberField
-                    label="Health"
-                    value={creature.health}
-                    min={0}
-                    onChange={(value) => update(creature.id, { health: value })}
-                  />
-                  <NumberField
-                    label="Armor"
-                    hint="Equal to the attacker's K halves its damage (K = 200 at level 50)."
-                    value={creature.armor}
-                    min={0}
-                    onChange={(value) => update(creature.id, { armor: value })}
-                  />
-                  <NumberField
-                    label="Magic resist % (max 75)"
-                    hint="On top of armor. Negative is a weakness to magic."
-                    value={creature.magicResist}
-                    min={-100}
-                    max={75}
-                    onChange={(value) =>
-                      update(creature.id, { magicResist: value })
-                    }
-                  />
-                  <NumberField
-                    label="Evasion % (max 75)"
-                    value={creature.evasion}
-                    min={0}
-                    max={75}
-                    step={0.5}
-                    onChange={(value) =>
-                      update(creature.id, { evasion: value })
-                    }
-                  />
-                  <NumberField
-                    label="Block % (max 75)"
-                    value={creature.blockChance}
-                    min={0}
-                    max={75}
-                    step={0.5}
-                    onChange={(value) =>
-                      update(creature.id, { blockChance: value })
-                    }
-                  />
-                </div>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[900px] text-sm">
-                  <thead className="text-left text-xs uppercase tracking-wide text-white/45">
-                    <tr>
-                      <th className="p-2">Drop item</th>
-                      <th className="p-2">Chance (0–1)</th>
-                      <th className="p-2">Min</th>
-                      <th className="p-2">Max</th>
-                      <th className="p-2">{copy.levelLabel}</th>
-                      <th className="p-2">Status</th>
-                      <th />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {creature.drops.map((drop, index) => (
-                      <tr
-                        className="border-t border-white/10"
-                        key={`${creature.id}-${drop.itemId}-${index}`}
-                      >
-                        <td className="p-2">
-                          <select
-                            className={inputClass}
-                            value={drop.itemId}
-                            onChange={(event) => {
-                              const item = props.items.find(
-                                (option) =>
-                                  option.id === Number(event.target.value),
-                              );
-                              if (item) {
-                                updateDrop(creature, index, {
-                                  itemId: item.id,
-                                  item,
-                                });
-                              }
-                            }}
-                          >
-                            {props.items.map((item) => (
-                              <option value={item.id} key={item.id}>
-                                {item.name}
-                              </option>
-                            ))}
-                          </select>
-                        </td>
-                        <td className="p-2">
-                          <input
-                            className={inputClass}
-                            type="number"
-                            min={0}
-                            max={1}
-                            step={0.01}
-                            value={drop.baseChance}
-                            onChange={(event) =>
-                              updateDrop(creature, index, {
-                                baseChance: Number(event.target.value),
-                              })
-                            }
-                          />
-                        </td>
-                        <td className="p-2">
-                          <input
-                            className={inputClass}
-                            type="number"
-                            min={1}
-                            value={drop.minQuantity}
-                            onChange={(event) =>
-                              updateDrop(creature, index, {
-                                minQuantity: Number(event.target.value),
-                              })
-                            }
-                          />
-                        </td>
-                        <td className="p-2">
-                          <input
-                            className={inputClass}
-                            type="number"
-                            min={1}
-                            value={drop.maxQuantity}
-                            onChange={(event) =>
-                              updateDrop(creature, index, {
-                                maxQuantity: Number(event.target.value),
-                              })
-                            }
-                          />
-                        </td>
-                        <td className="p-2">
-                          <input
-                            className={inputClass}
-                            type="number"
-                            min={1}
-                            value={drop.requiredLevel}
-                            onChange={(event) =>
-                              updateDrop(creature, index, {
-                                requiredLevel: Number(event.target.value),
-                              })
-                            }
-                          />
-                        </td>
-                        <td className="p-2">
-                          <select
-                            className={inputClass}
-                            value={drop.enabled ? "yes" : "no"}
-                            onChange={(event) =>
-                              updateDrop(creature, index, {
-                                enabled: event.target.value === "yes",
-                              })
-                            }
-                          >
-                            <option value="yes">Enabled</option>
-                            <option value="no">Disabled</option>
-                          </select>
-                        </td>
-                        <td className="p-2">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            aria-label="Remove drop"
-                            onClick={() =>
-                              update(creature.id, {
-                                drops: creature.drops.filter(
-                                  (_, dropIndex) => dropIndex !== index,
-                                ),
-                              })
-                            }
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="flex flex-wrap justify-between gap-3">
-                <Button variant="secondary" onClick={() => addDrop(creature)}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add drop
-                </Button>
-                <div className="flex flex-wrap gap-3">
+                </td>
+                <td>
                   <Button
-                    variant="destructive"
-                    onClick={() => void remove(creature)}
-                    disabled={busyId === creature.id}
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 w-8 p-0"
+                    aria-label={`Remove ${drop.item.name}`}
+                    onClick={() =>
+                      update({
+                        drops: creature.drops.filter(
+                          (entry) => entry.itemId !== drop.itemId,
+                        ),
+                      })
+                    }
                   >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Delete {copy.noun}
+                    <X className="h-4 w-4 text-red-300" />
                   </Button>
-                  <Button
-                    onClick={() => void save(creature)}
-                    disabled={busyId === creature.id}
-                  >
-                    <Save className="mr-2 h-4 w-4" />
-                    {busyId === creature.id ? "Saving…" : `Save ${copy.noun}`}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </details>
-        ))}
-      </div>
-    </section>
+                </td>
+              </tr>
+            ))}
+            {creature.drops.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={6}
+                  className="px-3 py-6 text-center text-sm text-white/45"
+                >
+                  No drops yet. Add an item below.
+                </td>
+              </tr>
+            ) : null}
+          </tbody>
+        </table>
+        <SearchSelect
+          className="max-w-xs"
+          placeholder="+ Add a drop…"
+          options={props.items
+            .filter((item) => !used.has(item.id))
+            .map((item) => ({
+              id: item.id,
+              name: item.name,
+              image: item.sprite,
+            }))}
+          value={null}
+          onChange={(id) => {
+            const item = props.items.find((option) => option.id === id);
+            if (!item) return;
+            update({
+              drops: [
+                ...creature.drops,
+                {
+                  itemId: item.id,
+                  item,
+                  enabled: true,
+                  baseChance: 0.5,
+                  minQuantity: 1,
+                  maxQuantity: 1,
+                  requiredLevel: 1,
+                },
+              ],
+            });
+          }}
+        />
+      </Card>
+    </div>
+  );
+}
+
+/** Searchable creature list beside the selected creature's form. */
+export function CreatureEditor(props: {
+  kind: CreatureKind;
+  draft: Draft<AdminCreature>;
+  items: AdminItemOption[];
+  selectedId: number | null;
+  onSelect: (id: number) => void;
+  /** Subtitle under the creature's name, e.g. where an animal lives. */
+  usage?: (creature: AdminCreature) => React.ReactNode;
+}) {
+  const run = useServerAction();
+  const copy = COPY[props.kind];
+  const creature = props.draft.rows.find((row) => row.id === props.selectedId);
+
+  const create = async () => {
+    const result = await run(
+      () =>
+        adminRequest(
+          "/api/admin/creatures",
+          "POST",
+          newCreaturePayload(props.kind, props.draft.rows.length + 1),
+        ),
+      `New ${copy.noun} created (disabled)`,
+    );
+    const created = result?.creature as { id?: number } | undefined;
+    if (created?.id) props.onSelect(created.id);
+  };
+  const remove = (target: AdminCreature) => {
+    if (
+      !window.confirm(
+        `Delete ${target.name}? Its drop table and every placement are removed. Characters already out keep their snapshot.`,
+      )
+    )
+      return;
+    void run(
+      () => adminRequest(`/api/admin/creatures/${target.id}`, "DELETE"),
+      `${target.name} deleted`,
+    );
+  };
+
+  return (
+    <div className={masterDetailClass}>
+      <PickList
+        placeholder={`Find ${copy.noun === "animal" ? "an animal" : "a monster"}…`}
+        selectedId={props.selectedId}
+        onSelect={props.onSelect}
+        items={props.draft.rows.map((row) => ({
+          id: row.id,
+          name: row.name,
+          image: row.asset,
+          detail: `${row.kind === "MONSTER" ? `${row.health} HP` : `${Math.round(row.attackChance * 100)}%`} · ${row.drops.length} drops`,
+          muted: !row.enabled,
+        }))}
+        footer={
+          <ListAction onClick={() => void create()}>New {copy.noun}</ListAction>
+        }
+      />
+      {creature ? (
+        <CreatureForm
+          key={creature.id}
+          creature={creature}
+          items={props.items}
+          update={(patch) => props.draft.update(creature.id, patch)}
+          onDelete={() => remove(creature)}
+          usage={props.usage?.(creature)}
+        />
+      ) : (
+        <p className="text-sm text-white/55">
+          No {copy.noun}s yet. Create one to get started.
+        </p>
+      )}
+    </div>
   );
 }

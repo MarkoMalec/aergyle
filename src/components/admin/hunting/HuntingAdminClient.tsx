@@ -1,33 +1,48 @@
 "use client";
 
-import Image from "next/image";
-import { useRouter } from "next/navigation";
-import React, { useEffect, useMemo, useState } from "react";
-import {
-  Activity,
-  CirclePlus,
-  FlaskConical,
-  Plus,
-  Save,
-  ShieldAlert,
-} from "lucide-react";
-import toast from "react-hot-toast";
+import React, { useState } from "react";
+import { Activity, X } from "lucide-react";
 import { toCreatureAttackProfile } from "~/server/creatures/attackProfile";
 import { runHuntingSimulation } from "~/server/hunting/simulator";
 import { strikeRulesFor, type CombatConfig } from "~/server/combat/rules";
-import { SearchSelect, type SearchOption } from "~/components/admin/SearchSelect";
+import {
+  SearchSelect,
+  type SearchOption,
+} from "~/components/admin/SearchSelect";
 import { Button } from "~/components/ui/button";
 import {
   CreatureEditor,
+  creatureProblems,
+  saveCreature,
   type AdminCreature,
   type AdminItemOption,
 } from "~/components/admin/creatures/CreatureEditor";
 import {
-  inputClass,
-  labelClass,
-  NumberField,
-  responseJson,
-} from "~/components/admin/fields";
+  Art,
+  Card,
+  DetailHeader,
+  DurationTable,
+  editorInput,
+  EditorTabs,
+  Labeled,
+  ListAction,
+  masterDetailClass,
+  Num,
+  patchRow,
+  Percent,
+  PickList,
+  RangeInputs,
+  rowClass,
+  SaveBar,
+  theadClass,
+  Toggle,
+  useDraft,
+  useSelection,
+  useServerAction,
+  useUrlTab,
+} from "~/components/admin/editor";
+import { adminRequest, StatTiles } from "~/components/admin/fields";
+import { cn } from "~/lib/utils";
 
 type Config = {
   damageEnabled: boolean;
@@ -74,635 +89,432 @@ type Ground = {
 
 type LocationOption = { id: number; name: string; requiredLevel: number };
 
-function SafetySettings(props: {
-  initial: Config;
-  onChange: (config: Config) => void;
-}) {
-  const [config, setConfig] = useState(props.initial);
-  const [saving, setSaving] = useState(false);
-  useEffect(() => setConfig(props.initial), [props.initial]);
-  const save = async () => {
-    setSaving(true);
-    try {
-      const response = await fetch("/api/admin/hunting/config", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(config),
-      });
-      const body = await responseJson(response);
-      if (!response.ok)
-        throw new Error(body?.error ?? "Unable to save safety settings");
-      props.onChange(config);
-      toast.success("Hunting safety controls saved");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to save");
-    } finally {
-      setSaving(false);
-    }
-  };
+const TABS = [
+  "grounds",
+  "animals",
+  "durations",
+  "safety",
+  "simulator",
+] as const;
 
-  return (
-    <section className="rounded-xl border border-white/10 bg-gray-950/45 p-5">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h2 className="flex items-center gap-2 font-semibold">
-            <ShieldAlert className="h-4 w-4 text-amber-300" /> Global danger
-            guardrails
-          </h2>
-          <p className="mt-1 max-w-3xl text-sm text-white/55">
-            These are hard safety controls above every animal, ground, and
-            duration. Reductions protect active hunts immediately; increases
-            apply only to new departures.
-          </p>
-        </div>
-        <Button onClick={() => void save()} disabled={saving}>
-          <Save className="mr-2 h-4 w-4" />
-          {saving ? "Saving…" : "Save guardrails"}
-        </Button>
-      </div>
-      <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <label className={labelClass}>
-          <span>Damage enabled</span>
-          <select
-            className={inputClass}
-            value={config.damageEnabled ? "yes" : "no"}
-            onChange={(event) =>
-              setConfig((row) => ({
-                ...row,
-                damageEnabled: event.target.value === "yes",
-              }))
-            }
-          >
-            <option value="yes">Enabled</option>
-            <option value="no">Disabled</option>
-          </select>
-        </label>
-        <NumberField
-          label="Global danger ×"
-          value={config.globalDangerMultiplier}
-          min={0}
-          step={0.05}
-          onChange={(value) =>
-            setConfig((row) => ({ ...row, globalDangerMultiplier: value }))
-          }
-        />
-        <NumberField
-          label="Max health loss %"
-          value={config.maxHealthLossPercent}
-          min={0}
-          max={100}
-          onChange={(value) =>
-            setConfig((row) => ({ ...row, maxHealthLossPercent: value }))
-          }
-        />
-        <NumberField
-          label="Health floor %"
-          value={config.minimumRemainingHealthPercent}
-          min={0}
-          max={100}
-          onChange={(value) =>
-            setConfig((row) => ({
-              ...row,
-              minimumRemainingHealthPercent: value,
-            }))
-          }
-        />
-        <NumberField
-          label="Minimum to start %"
-          value={config.minimumHealthToStartPercent}
-          min={0}
-          max={100}
-          onChange={(value) =>
-            setConfig((row) => ({ ...row, minimumHealthToStartPercent: value }))
-          }
-        />
-      </div>
-    </section>
+const saveGround = patchRow<Ground>(
+  "/api/admin/hunting/grounds",
+  ({ id: _id, locationName: _name, ...ground }) => ground,
+);
+const saveDuration = patchRow<Duration>("/api/admin/hunting/durations");
+const saveConfig = ({ id: _id, ...config }: Config & { id: number }) =>
+  adminRequest("/api/admin/hunting/config", "PATCH", config);
+
+/** Share of encounters each enabled animal gets on a ground. */
+function encounterShares(ground: Ground, animals: Map<number, AdminCreature>) {
+  const live = ground.creatures.filter(
+    (row) => row.enabled && animals.get(row.creatureId)?.enabled,
+  );
+  const total = live.reduce((sum, row) => sum + row.encounterWeight, 0);
+  return new Map(
+    live.map((row) => [
+      row.creatureId,
+      total ? row.encounterWeight / total : 0,
+    ]),
   );
 }
 
-function DurationEditor(props: {
-  initial: Duration[];
-  onChange: (durations: Duration[]) => void;
-}) {
-  const router = useRouter();
-  const [rows, setRows] = useState(props.initial);
-  const [savingId, setSavingId] = useState<number | null>(null);
-  useEffect(() => setRows(props.initial), [props.initial]);
-  const update = (id: number, patch: Partial<Duration>) => {
-    setRows((current) =>
-      current.map((row) => (row.id === id ? { ...row, ...patch } : row)),
-    );
-  };
-  const save = async (row: Duration) => {
-    setSavingId(row.id);
-    try {
-      const response = await fetch(`/api/admin/hunting/durations/${row.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(row),
-      });
-      const body = await responseJson(response);
-      if (!response.ok)
-        throw new Error(body?.error ?? "Unable to save duration");
-      props.onChange(rows);
-      toast.success(`${row.label} saved`);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to save");
-    } finally {
-      setSavingId(null);
-    }
-  };
-  const add = async () => {
-    const last = rows.at(-1);
-    const draft = {
-      label: `New hunt ${rows.length + 1}`,
-      durationSeconds: (last?.durationSeconds ?? 0) + 3_600,
-      encounterRolls: (last?.encounterRolls ?? 0) + 2,
-      quantityMultiplier: last?.quantityMultiplier ?? 1,
-      dangerMultiplier: last?.dangerMultiplier ?? 1,
-      xpReward: last?.xpReward ?? 20,
-      requiredHuntingLevel: last?.requiredHuntingLevel ?? 1,
-      enabled: false,
-      sortOrder: (last?.sortOrder ?? 0) + 10,
-    };
-    const response = await fetch("/api/admin/hunting/durations", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(draft),
-    });
-    const body = await responseJson(response);
-    if (!response.ok)
-      return toast.error(body?.error ?? "Unable to add duration");
-    toast.success("Duration created");
-    router.refresh();
-  };
-
-  return (
-    <section className="rounded-xl border border-white/10 bg-gray-950/45 p-5">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h2 className="font-semibold">Expedition durations</h2>
-          <p className="mt-1 text-sm text-white/55">
-            Encounter rolls scale both material opportunity and exposure to
-            danger.
-          </p>
-        </div>
-        <Button variant="secondary" onClick={() => void add()}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add duration
-        </Button>
-      </div>
-      <div className="mt-5 space-y-3">
-        {rows.map((row) => (
-          <div
-            className="grid gap-3 rounded-lg border border-white/10 p-3 md:grid-cols-4 xl:grid-cols-10"
-            key={row.id}
-          >
-            <label className={labelClass}>
-              <span>Label</span>
-              <input
-                className={inputClass}
-                value={row.label}
-                onChange={(event) =>
-                  update(row.id, { label: event.target.value })
-                }
-              />
-            </label>
-            <NumberField
-              label="Seconds"
-              value={row.durationSeconds}
-              min={60}
-              onChange={(value) => update(row.id, { durationSeconds: value })}
-            />
-            <NumberField
-              label="Encounters"
-              value={row.encounterRolls}
-              min={1}
-              onChange={(value) => update(row.id, { encounterRolls: value })}
-            />
-            <NumberField
-              label="Quantity ×"
-              value={row.quantityMultiplier}
-              min={0.1}
-              step={0.05}
-              onChange={(value) =>
-                update(row.id, { quantityMultiplier: value })
-              }
-            />
-            <NumberField
-              label="Danger ×"
-              value={row.dangerMultiplier}
-              min={0}
-              step={0.05}
-              onChange={(value) => update(row.id, { dangerMultiplier: value })}
-            />
-            <NumberField
-              label="XP"
-              value={row.xpReward}
-              min={0}
-              onChange={(value) => update(row.id, { xpReward: value })}
-            />
-            <NumberField
-              label="Hunting level"
-              value={row.requiredHuntingLevel}
-              min={1}
-              onChange={(value) =>
-                update(row.id, { requiredHuntingLevel: value })
-              }
-            />
-            <NumberField
-              label="Sort order"
-              value={row.sortOrder}
-              onChange={(value) => update(row.id, { sortOrder: value })}
-            />
-            <label className={labelClass}>
-              <span>Status</span>
-              <select
-                className={inputClass}
-                value={row.enabled ? "yes" : "no"}
-                onChange={(event) =>
-                  update(row.id, { enabled: event.target.value === "yes" })
-                }
-              >
-                <option value="yes">Enabled</option>
-                <option value="no">Disabled</option>
-              </select>
-            </label>
-            <div className="flex items-end">
-              <Button
-                className="w-full"
-                onClick={() => void save(row)}
-                disabled={savingId === row.id}
-              >
-                <Save className="mr-2 h-4 w-4" />
-                Save
-              </Button>
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function GroundEditor(props: {
-  initial: Ground[];
-  creatures: AdminCreature[];
+function GroundView(props: {
+  ground: Ground;
+  animals: AdminCreature[];
   locations: LocationOption[];
   stages: SearchOption[];
-  locationId?: number;
-  onChange: (grounds: Ground[]) => void;
+  update: (patch: Partial<Ground>) => void;
+  onOpenAnimal?: (id: number) => void;
 }) {
-  const router = useRouter();
-  const [rows, setRows] = useState(props.initial);
-  const [savingId, setSavingId] = useState<number | null>(null);
-  useEffect(() => setRows(props.initial), [props.initial]);
-  const update = (id: number, patch: Partial<Ground>) =>
-    setRows((current) =>
-      current.map((row) => (row.id === id ? { ...row, ...patch } : row)),
-    );
-  const assignment = (ground: Ground, creatureId: number) =>
-    ground.creatures.find((row) => row.creatureId === creatureId);
-  const toggle = (ground: Ground, creatureId: number, enabled: boolean) => {
-    update(ground.id, {
-      creatures: enabled
-        ? [
-            ...ground.creatures.filter((row) => row.creatureId !== creatureId),
-            { creatureId, enabled: true, encounterWeight: 1 },
-          ]
-        : ground.creatures.filter((row) => row.creatureId !== creatureId),
-    });
-  };
-  const weight = (ground: Ground, creatureId: number, value: number) =>
-    update(ground.id, {
+  const { ground, update } = props;
+  const animalById = new Map(
+    props.animals.map((animal) => [animal.id, animal]),
+  );
+  const shares = encounterShares(ground, animalById);
+  const assigned = new Set(ground.creatures.map((row) => row.creatureId));
+  const updateAssignment = (creatureId: number, patch: Partial<Assignment>) =>
+    update({
       creatures: ground.creatures.map((row) =>
-        row.creatureId === creatureId
-          ? { ...row, encounterWeight: value }
-          : row,
+        row.creatureId === creatureId ? { ...row, ...patch } : row,
       ),
     });
-  const save = async (ground: Ground) => {
-    setSavingId(ground.id);
-    const payload = {
-      locationId: ground.locationId,
-      name: ground.name,
-      description: ground.description,
-      requiredHuntingLevel: ground.requiredHuntingLevel,
-      enabled: ground.enabled,
-      sortOrder: ground.sortOrder,
-      requiredStageId: ground.requiredStageId,
-      accidentChance: ground.accidentChance,
-      accidentDamageMin: ground.accidentDamageMin,
-      accidentDamageMax: ground.accidentDamageMax,
-      creatures: ground.creatures,
-    };
-    try {
-      const response = await fetch(`/api/admin/hunting/grounds/${ground.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const body = await responseJson(response);
-      if (!response.ok) throw new Error(body?.error ?? "Unable to save ground");
-      props.onChange(rows);
-      toast.success(`${ground.name} saved`);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to save");
-    } finally {
-      setSavingId(null);
-    }
-  };
-  const create = async () => {
-    const location =
-      props.locations.find((row) => row.id === props.locationId) ??
-      props.locations[0];
-    if (!location) return toast.error("Create a world location first");
-    const response = await fetch("/api/admin/hunting/grounds", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        locationId: location.id,
-        name: `New Hunting Ground ${rows.length + 1}`,
-        description: null,
-        requiredHuntingLevel: 1,
-        enabled: false,
-        sortOrder: 100,
-        accidentChance: 0.03,
-        accidentDamageMin: 1,
-        accidentDamageMax: 3,
-        creatures: [],
-      }),
-    });
-    const body = await responseJson(response);
-    if (!response.ok)
-      return toast.error(body?.error ?? "Unable to create ground");
-    toast.success("Hunting ground created");
-    router.refresh();
-  };
 
   return (
-    <section className="rounded-xl border border-white/10 bg-gray-950/45 p-5">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h2 className="font-semibold">Location hunting grounds</h2>
-          <p className="mt-1 text-sm text-white/55">
-            Players choose one sub-location. Encounter weights are relative, not
-            percentages.
-          </p>
+    <div className="min-w-0 space-y-4">
+      <DetailHeader
+        title={ground.name || "Unnamed ground"}
+        subtitle={`${ground.locationName} · ${shares.size} animals active · ${(ground.accidentChance * 100).toFixed(1)}% accident chance`}
+      >
+        <label className="flex items-center gap-2 text-sm text-white/70">
+          <Toggle
+            label={`${ground.name} enabled`}
+            checked={ground.enabled}
+            onChange={(enabled) => update({ enabled })}
+          />
+          {ground.enabled ? "Open to players" : "Hidden"}
+        </label>
+      </DetailHeader>
+
+      <Card title="Setup">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <Labeled label="Name">
+            <input
+              className={editorInput}
+              value={ground.name}
+              onChange={(event) => update({ name: event.target.value })}
+            />
+          </Labeled>
+          <Labeled label="Region">
+            <select
+              className={editorInput}
+              value={ground.locationId}
+              onChange={(event) => {
+                const location = props.locations.find(
+                  (row) => row.id === Number(event.target.value),
+                );
+                if (location)
+                  update({
+                    locationId: location.id,
+                    locationName: location.name,
+                  });
+              }}
+            >
+              {props.locations.map((location) => (
+                <option key={location.id} value={location.id}>
+                  {location.name}
+                </option>
+              ))}
+            </select>
+          </Labeled>
+          <Labeled label="Required Hunting level">
+            <Num
+              label="Required Hunting level"
+              value={ground.requiredHuntingLevel}
+              min={1}
+              integer
+              onChange={(requiredHuntingLevel) =>
+                update({ requiredHuntingLevel })
+              }
+            />
+          </Labeled>
+          <Labeled label="Hidden until project stage">
+            <SearchSelect
+              className="h-8"
+              options={props.stages}
+              value={ground.requiredStageId}
+              noneLabel="Always visible"
+              onChange={(requiredStageId) => update({ requiredStageId })}
+            />
+          </Labeled>
+          <Labeled label="List order" hint="Lower comes first in the region.">
+            <Num
+              label="List order"
+              value={ground.sortOrder}
+              integer
+              onChange={(sortOrder) => update({ sortOrder })}
+            />
+          </Labeled>
+          <Labeled label="Description" className="sm:col-span-2 lg:col-span-3">
+            <input
+              className={editorInput}
+              value={ground.description ?? ""}
+              placeholder="Shown to players when they pick a ground"
+              onChange={(event) =>
+                update({ description: event.target.value || null })
+              }
+            />
+          </Labeled>
         </div>
-        <Button variant="secondary" onClick={() => void create()}>
-          <CirclePlus className="mr-2 h-4 w-4" />
-          New ground
-        </Button>
-      </div>
-      <div className="mt-5 space-y-3">
-        {rows.map((ground) => (
-          <details
-            className="rounded-xl border border-white/10 bg-black/15"
-            key={ground.id}
-          >
-            <summary className="flex cursor-pointer list-none items-center gap-3 p-4 [&::-webkit-details-marker]:hidden">
-              <span className="min-w-0 flex-1">
-                <strong className="block truncate">
-                  {ground.locationName} · {ground.name}
-                </strong>
-                <small className="text-white/45">
-                  Hunting {ground.requiredHuntingLevel} ·{" "}
-                  {ground.creatures.length} animals ·{" "}
-                  {Math.round(ground.accidentChance * 100)}% accident chance
-                </small>
-              </span>
-              <span
-                className={
-                  ground.enabled
-                    ? "text-xs text-emerald-300"
-                    : "text-xs text-white/35"
-                }
-              >
-                {ground.enabled ? "Enabled" : "Disabled"}
-              </span>
-            </summary>
-            <div className="space-y-5 border-t border-white/10 p-4">
-              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-                <label className={labelClass}>
-                  <span>World location</span>
-                  <select
-                    className={inputClass}
-                    value={ground.locationId}
-                    onChange={(event) => {
-                      const locationId = Number(event.target.value);
-                      update(ground.id, {
-                        locationId,
-                        locationName:
-                          props.locations.find((row) => row.id === locationId)
-                            ?.name ?? ground.locationName,
-                      });
-                    }}
-                  >
-                    {props.locations.map((location) => (
-                      <option value={location.id} key={location.id}>
-                        {location.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className={labelClass}>
-                  <span>Ground name</span>
-                  <input
-                    className={inputClass}
-                    value={ground.name}
-                    onChange={(event) =>
-                      update(ground.id, { name: event.target.value })
-                    }
-                  />
-                </label>
-                <label className={labelClass}>
-                  <span>Hidden until project</span>
-                  <SearchSelect
-                    options={props.stages}
-                    value={ground.requiredStageId}
-                    noneLabel="Always visible"
-                    onChange={(requiredStageId) => update(ground.id, { requiredStageId })}
-                  />
-                </label>
-                <NumberField
-                  label="Required Hunting level"
-                  value={ground.requiredHuntingLevel}
-                  min={1}
-                  onChange={(value) =>
-                    update(ground.id, { requiredHuntingLevel: value })
-                  }
-                />
-                <label className={labelClass}>
-                  <span>Status</span>
-                  <select
-                    className={inputClass}
-                    value={ground.enabled ? "yes" : "no"}
-                    onChange={(event) =>
-                      update(ground.id, {
-                        enabled: event.target.value === "yes",
-                      })
-                    }
-                  >
-                    <option value="yes">Enabled</option>
-                    <option value="no">Disabled</option>
-                  </select>
-                </label>
-                <NumberField
-                  label="Accident chance (0–1)"
-                  value={ground.accidentChance}
-                  min={0}
-                  max={1}
-                  step={0.005}
-                  onChange={(value) =>
-                    update(ground.id, { accidentChance: value })
-                  }
-                />
-                <NumberField
-                  label="Accident damage min"
-                  value={ground.accidentDamageMin}
-                  min={0}
-                  onChange={(value) =>
-                    update(ground.id, { accidentDamageMin: value })
-                  }
-                />
-                <NumberField
-                  label="Accident damage max"
-                  value={ground.accidentDamageMax}
-                  min={0}
-                  onChange={(value) =>
-                    update(ground.id, { accidentDamageMax: value })
-                  }
-                />
-                <NumberField
-                  label="Sort order"
-                  value={ground.sortOrder}
-                  onChange={(value) => update(ground.id, { sortOrder: value })}
-                />
-                <label className={`${labelClass} md:col-span-2 lg:col-span-4`}>
-                  <span>Description</span>
-                  <input
-                    className={inputClass}
-                    value={ground.description ?? ""}
-                    onChange={(event) =>
-                      update(ground.id, {
-                        description: event.target.value || null,
-                      })
-                    }
-                  />
-                </label>
-              </div>
-              <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-white/45">
-                  Available animals and encounter weights
-                </p>
-                <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                  {props.creatures.map((creature) => {
-                    const row = assignment(ground, creature.id);
-                    return (
-                      <div
-                        className="flex items-center gap-3 rounded-lg border border-white/10 p-2"
-                        key={creature.id}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={Boolean(row)}
-                          onChange={(event) =>
-                            toggle(ground, creature.id, event.target.checked)
-                          }
-                        />
-                        <Image
-                          src={creature.asset}
-                          alt=""
-                          width={36}
-                          height={36}
-                          className="h-9 w-9 rounded-md bg-black/25 object-contain"
-                        />
-                        <span className="min-w-0 flex-1 truncate text-sm">
-                          {creature.name}
-                        </span>
-                        <input
-                          aria-label={`${creature.name} encounter weight`}
-                          className="w-20 rounded border border-white/10 bg-black/25 px-2 py-1 text-sm"
-                          type="number"
-                          min={0.001}
-                          step={0.1}
-                          disabled={!row}
-                          value={row?.encounterWeight ?? 1}
-                          onChange={(event) =>
-                            weight(
-                              ground,
-                              creature.id,
-                              Number(event.target.value),
-                            )
-                          }
+      </Card>
+
+      <Card
+        title="Accidents"
+        description="A mishap such as a fall or a thorn, rolled per encounter regardless of the animal."
+      >
+        <div className="flex flex-wrap gap-3">
+          <Labeled label="Chance per encounter" className="w-36">
+            <Percent
+              label="Accident chance"
+              value={ground.accidentChance}
+              step={0.5}
+              onChange={(accidentChance) => update({ accidentChance })}
+            />
+          </Labeled>
+          <Labeled label="Damage" className="w-44">
+            <RangeInputs
+              label="Accident damage"
+              min={ground.accidentDamageMin}
+              max={ground.accidentDamageMax}
+              onChange={({ min, max }) =>
+                update({
+                  accidentDamageMin: min ?? ground.accidentDamageMin,
+                  accidentDamageMax: max ?? ground.accidentDamageMax,
+                })
+              }
+            />
+          </Labeled>
+        </div>
+      </Card>
+
+      <Card
+        title="Animals"
+        description="Weights are relative: weight 2 is met twice as often as weight 1. The share column shows the resulting odds."
+        className="overflow-x-auto"
+      >
+        <table className="w-full min-w-[620px] text-sm">
+          <thead className={theadClass}>
+            <tr>
+              <th>Animal</th>
+              <th className="w-24">Weight</th>
+              <th className="w-40">Encounter share</th>
+              <th className="w-12">On</th>
+              <th className="w-10" />
+            </tr>
+          </thead>
+          <tbody>
+            {ground.creatures.map((row) => {
+              const animal = animalById.get(row.creatureId);
+              const share = shares.get(row.creatureId) ?? 0;
+              return (
+                <tr
+                  key={row.creatureId}
+                  className={cn(
+                    rowClass,
+                    !shares.has(row.creatureId) && "text-white/40",
+                  )}
+                >
+                  <td>
+                    <div className="flex items-center gap-2">
+                      <Art src={animal?.asset ?? ""} size={32} />
+                      <div className="min-w-0">
+                        <button
+                          type="button"
+                          className="truncate font-medium hover:underline disabled:no-underline"
+                          disabled={!props.onOpenAnimal}
+                          onClick={() => props.onOpenAnimal?.(row.creatureId)}
+                        >
+                          {animal?.name ?? `Animal #${row.creatureId}`}
+                        </button>
+                        <div className="text-[11px] text-white/40">
+                          {animal
+                            ? `${Math.round(animal.attackChance * 100)}% retaliation · ${animal.drops.length} drops${animal.enabled ? "" : " · animal disabled"}`
+                            : ""}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <Num
+                      label={`${animal?.name} weight`}
+                      value={row.encounterWeight}
+                      min={0.001}
+                      step={0.5}
+                      onChange={(encounterWeight) =>
+                        updateAssignment(row.creatureId, { encounterWeight })
+                      }
+                    />
+                  </td>
+                  <td>
+                    <div className="flex items-center gap-2">
+                      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/[0.06]">
+                        <div
+                          className="h-full rounded-full bg-amber-400/70"
+                          style={{ width: `${share * 100}%` }}
                         />
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
-              <div className="flex justify-end">
-                <Button
-                  onClick={() => void save(ground)}
-                  disabled={savingId === ground.id}
+                      <span className="w-12 text-right text-xs tabular-nums text-white/60">
+                        {(share * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                  </td>
+                  <td>
+                    <Toggle
+                      label={`${animal?.name} on this ground`}
+                      checked={row.enabled}
+                      onChange={(enabled) =>
+                        updateAssignment(row.creatureId, { enabled })
+                      }
+                    />
+                  </td>
+                  <td>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 w-8 p-0"
+                      aria-label={`Remove ${animal?.name}`}
+                      onClick={() =>
+                        update({
+                          creatures: ground.creatures.filter(
+                            (entry) => entry.creatureId !== row.creatureId,
+                          ),
+                        })
+                      }
+                    >
+                      <X className="h-4 w-4 text-red-300" />
+                    </Button>
+                  </td>
+                </tr>
+              );
+            })}
+            {ground.creatures.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={5}
+                  className="px-3 py-6 text-center text-sm text-white/45"
                 >
-                  <Save className="mr-2 h-4 w-4" />
-                  {savingId === ground.id ? "Saving…" : "Save ground"}
-                </Button>
-              </div>
-            </div>
-          </details>
-        ))}
+                  No animals live here yet. Add one below.
+                </td>
+              </tr>
+            ) : null}
+          </tbody>
+        </table>
+        <SearchSelect
+          className="max-w-xs"
+          placeholder="+ Add an animal…"
+          options={props.animals
+            .filter((animal) => !assigned.has(animal.id))
+            .map((animal) => ({
+              id: animal.id,
+              name: animal.name,
+              image: animal.asset,
+              detail: `${Math.round(animal.attackChance * 100)}%`,
+            }))}
+          value={null}
+          onChange={(creatureId) => {
+            if (creatureId === null) return;
+            update({
+              creatures: [
+                ...ground.creatures,
+                { creatureId, enabled: true, encounterWeight: 1 },
+              ],
+            });
+          }}
+        />
+      </Card>
+    </div>
+  );
+}
+
+function SafetyView(props: {
+  config: Config;
+  update: (patch: Partial<Config>) => void;
+}) {
+  const { config, update } = props;
+  const percent = (
+    key: keyof Omit<Config, "damageEnabled">,
+    label: string,
+    hint: string,
+  ) => (
+    <Labeled label={label} hint={hint}>
+      <Num
+        label={label}
+        value={config[key]}
+        min={0}
+        max={100}
+        suffix="%"
+        onChange={(value) => update({ [key]: value })}
+      />
+    </Labeled>
+  );
+  return (
+    <Card
+      title="Global danger guardrails"
+      description="Hard limits above every animal, ground and duration. Lowering them protects hunts already underway; raising them only affects new departures."
+    >
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Labeled
+          label="Hunting damage"
+          hint="Off means no hunt can hurt a character."
+        >
+          <label className="flex h-8 items-center gap-2 text-sm text-white/70">
+            <Toggle
+              label="Hunting damage"
+              checked={config.damageEnabled}
+              onChange={(damageEnabled) => update({ damageEnabled })}
+            />
+            {config.damageEnabled
+              ? "Animals and accidents can hurt"
+              : "Disabled"}
+          </label>
+        </Labeled>
+        <Labeled
+          label="Global danger ×"
+          hint="Multiplies all hunting damage. 1 = as configured."
+        >
+          <Num
+            label="Global danger multiplier"
+            value={config.globalDangerMultiplier}
+            min={0}
+            max={10}
+            step={0.05}
+            onChange={(globalDangerMultiplier) =>
+              update({ globalDangerMultiplier })
+            }
+          />
+        </Labeled>
+        {percent(
+          "maxHealthLossPercent",
+          "Max health lost per hunt",
+          "Of maximum health, over the whole expedition.",
+        )}
+        {percent(
+          "minimumRemainingHealthPercent",
+          "Health floor",
+          "A hunt never takes a character below this.",
+        )}
+        {percent(
+          "minimumHealthToStartPercent",
+          "Health needed to depart",
+          "Must be at least the health floor.",
+        )}
       </div>
-    </section>
+    </Card>
   );
 }
 
 function HuntingSimulator(props: {
   config: Config;
   durations: Duration[];
-  creatures: AdminCreature[];
+  animals: AdminCreature[];
   grounds: Ground[];
   locations: LocationOption[];
   combatConfig: CombatConfig;
 }) {
-  const [groundId, setGroundId] = useState(props.grounds[0]?.id ?? 0);
-  const [durationId, setDurationId] = useState(props.durations[0]?.id ?? 0);
-  const [skillLevel, setSkillLevel] = useState(25);
-  const [luck, setLuck] = useState(10);
-  const [efficiency, setEfficiency] = useState(10);
-  const [armor, setArmor] = useState(20);
-  const [evasion, setEvasion] = useState(10);
-  const [block, setBlock] = useState(5);
-  const [resist, setResist] = useState(0);
+  const [groundId, setGroundId] = useSelection(
+    props.grounds.map((row) => row.id),
+  );
+  const [durationId, setDurationId] = useSelection(
+    props.durations.map((row) => row.id),
+  );
+  const [player, setPlayer] = useState({
+    skillLevel: 25,
+    luck: 10,
+    efficiency: 10,
+    armor: 20,
+    evasion: 10,
+    block: 5,
+    resist: 0,
+  });
   const [result, setResult] = useState<ReturnType<
     typeof runHuntingSimulation
   > | null>(null);
-  const creatureById = useMemo(
-    () => new Map(props.creatures.map((creature) => [creature.id, creature])),
-    [props.creatures],
-  );
-  useEffect(() => {
-    if (!props.grounds.some((ground) => ground.id === groundId)) {
-      setGroundId(props.grounds[0]?.id ?? 0);
-    }
-  }, [groundId, props.grounds]);
-  useEffect(() => {
-    if (!props.durations.some((duration) => duration.id === durationId)) {
-      setDurationId(props.durations[0]?.id ?? 0);
-    }
-  }, [durationId, props.durations]);
+
   const run = () => {
     const ground = props.grounds.find((row) => row.id === groundId);
     const duration = props.durations.find((row) => row.id === durationId);
     if (!ground || !duration) return;
+    const animalById = new Map(
+      props.animals.map((animal) => [animal.id, animal]),
+    );
     const pool = ground.creatures.flatMap((assignment) => {
-      const creature = creatureById.get(assignment.creatureId);
+      const creature = animalById.get(assignment.creatureId);
       if (!creature || !assignment.enabled || !creature.enabled) return [];
       const drops = creature.drops
-        .filter((drop) => drop.enabled && drop.requiredLevel <= skillLevel)
+        .filter(
+          (drop) => drop.enabled && drop.requiredLevel <= player.skillLevel,
+        )
         .map((drop) => ({
           dropId: drop.id ?? 0,
           itemId: drop.itemId,
@@ -739,9 +551,9 @@ function HuntingSimulator(props: {
         accidentChance: ground.accidentChance,
         accidentDamageMin: ground.accidentDamageMin,
         accidentDamageMax: ground.accidentDamageMax,
-        skillLevel,
-        luck,
-        huntingEfficiency: efficiency,
+        skillLevel: player.skillLevel,
+        luck: player.luck,
+        huntingEfficiency: player.efficiency,
         // Armor against the ground's location level, as on a real departure.
         rules: strikeRulesFor(
           props.locations.find((row) => row.id === ground.locationId)
@@ -749,16 +561,16 @@ function HuntingSimulator(props: {
           props.combatConfig,
         ),
         defenses: {
-          armor,
-          magicResist: resist,
-          evasionMelee: evasion,
-          evasionRanged: evasion,
-          evasionMagic: evasion,
-          blockChance: block,
-          fireResist: resist,
-          coldResist: resist,
-          lightningResist: resist,
-          poisonResist: resist,
+          armor: player.armor,
+          magicResist: player.resist,
+          evasionMelee: player.evasion,
+          evasionRanged: player.evasion,
+          evasionMagic: player.evasion,
+          blockChance: player.block,
+          fireResist: player.resist,
+          coldResist: player.resist,
+          lightningResist: player.resist,
+          poisonResist: player.resist,
           movementSpeed: 100,
           maxHealth: 100,
         },
@@ -766,24 +578,32 @@ function HuntingSimulator(props: {
       }),
     );
   };
+
+  const playerFields: Array<{
+    key: keyof typeof player;
+    label: string;
+    min?: number;
+    max?: number;
+  }> = [
+    { key: "skillLevel", label: "Hunting level", min: 1 },
+    { key: "luck", label: "Luck" },
+    { key: "efficiency", label: "Efficiency", min: 0 },
+    { key: "armor", label: "Armor", min: 0 },
+    { key: "evasion", label: "Evasion %", min: 0, max: 75 },
+    { key: "block", label: "Block %", min: 0, max: 75 },
+    { key: "resist", label: "Resist %", min: -100, max: 75 },
+  ];
+
   return (
-    <section className="rounded-xl border border-white/10 bg-gray-950/45 p-5">
-      <div>
-        <h2 className="flex items-center gap-2 font-semibold">
-          <FlaskConical className="h-4 w-4 text-amber-300" /> Live rules
-          simulator
-        </h2>
-        <p className="mt-1 text-sm text-white/55">
-          Runs 2,000 expeditions through the same resolver used when players
-          claim.
-        </p>
-      </div>
-      <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5 xl:grid-cols-9">
-        <label className={labelClass}>
-          <span>Ground</span>
+    <Card
+      title="Rules simulator"
+      description="Runs 2,000 expeditions through the resolver used when players claim, using your current edits, saved or not. The character has 100 health."
+    >
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Labeled label="Ground" className="sm:col-span-2">
           <select
-            className={inputClass}
-            value={groundId}
+            className={editorInput}
+            value={groundId ?? ""}
             onChange={(event) => setGroundId(Number(event.target.value))}
           >
             {props.grounds.map((ground) => (
@@ -792,12 +612,11 @@ function HuntingSimulator(props: {
               </option>
             ))}
           </select>
-        </label>
-        <label className={labelClass}>
-          <span>Duration</span>
+        </Labeled>
+        <Labeled label="Duration" className="sm:col-span-2">
           <select
-            className={inputClass}
-            value={durationId}
+            className={editorInput}
+            value={durationId ?? ""}
             onChange={(event) => setDurationId(Number(event.target.value))}
           >
             {props.durations.map((duration) => (
@@ -806,64 +625,46 @@ function HuntingSimulator(props: {
               </option>
             ))}
           </select>
-        </label>
-        <NumberField
-          label="Skill"
-          value={skillLevel}
-          min={1}
-          onChange={setSkillLevel}
-        />
-        <NumberField label="Luck" value={luck} onChange={setLuck} />
-        <NumberField
-          label="Efficiency"
-          value={efficiency}
-          min={0}
-          onChange={setEfficiency}
-        />
-        <NumberField label="Armor" value={armor} min={0} onChange={setArmor} />
-        <NumberField
-          label="Evasion"
-          value={evasion}
-          min={0}
-          max={75}
-          onChange={setEvasion}
-        />
-        <NumberField
-          label="Block"
-          value={block}
-          min={0}
-          max={75}
-          onChange={setBlock}
-        />
-        <NumberField
-          label="Magic & elemental resist %"
-          value={resist}
-          min={-100}
-          max={75}
-          onChange={setResist}
-        />
+        </Labeled>
+        {playerFields.map((field) => (
+          <Labeled key={field.key} label={field.label}>
+            <Num
+              label={field.label}
+              value={player[field.key]}
+              min={field.min}
+              max={field.max}
+              onChange={(value) =>
+                setPlayer((current) => ({ ...current, [field.key]: value }))
+              }
+            />
+          </Labeled>
+        ))}
       </div>
-      <div className="mt-4 flex flex-wrap items-center gap-4">
-        <Button onClick={run}>
-          <Activity className="mr-2 h-4 w-4" />
-          Run simulation
-        </Button>
-        {result ? (
-          <div className="flex flex-wrap gap-3 text-sm">
-            <span className="rounded-md bg-white/5 px-3 py-2">
-              Avg items <strong>{result.averageItems.toFixed(2)}</strong>
-            </span>
-            <span className="rounded-md bg-white/5 px-3 py-2">
-              Injury rate{" "}
-              <strong>{(result.injuryRate * 100).toFixed(1)}%</strong>
-            </span>
-            <span className="rounded-md bg-white/5 px-3 py-2">
-              Avg damage <strong>{result.averageDamage.toFixed(2)}</strong>
-            </span>
-          </div>
-        ) : null}
-      </div>
-    </section>
+      <Button
+        type="button"
+        size="sm"
+        onClick={run}
+        disabled={!groundId || !durationId}
+      >
+        <Activity className="h-4 w-4" />
+        Run simulation
+      </Button>
+      {result ? (
+        <StatTiles
+          stats={[
+            { label: "Items per hunt", value: result.averageItems.toFixed(2) },
+            {
+              label: "Hunts with an injury",
+              value: `${(result.injuryRate * 100).toFixed(1)}%`,
+            },
+            {
+              label: "Damage per hunt",
+              value: result.averageDamage.toFixed(2),
+            },
+          ]}
+        />
+      ) : null}
+    </Card>
   );
 }
 
@@ -878,44 +679,235 @@ export function HuntingAdminClient(props: {
   stages: SearchOption[];
   /** Set on a region page: only that region's grounds, no global settings. */
   locationId?: number;
+  initialTab?: string;
 }) {
-  const [config, setConfig] = useState(props.config);
-  const [durations, setDurations] = useState(props.durations);
-  const [creatures, setCreatures] = useState(props.creatures);
-  const [grounds, setGrounds] = useState(props.grounds);
-  useEffect(() => setConfig(props.config), [props.config]);
-  useEffect(() => setDurations(props.durations), [props.durations]);
-  useEffect(() => setCreatures(props.creatures), [props.creatures]);
-  useEffect(() => setGrounds(props.grounds), [props.grounds]);
-  const groundEditor = (
-    <GroundEditor
-      initial={grounds}
-      creatures={creatures}
-      locations={props.locations}
-      stages={props.stages}
-      locationId={props.locationId}
-      onChange={setGrounds}
-    />
+  const run = useServerAction();
+  const [configRows] = useState(() => [{ id: 1, ...props.config }]);
+  const config = useDraft(configRows, saveConfig);
+  const durations = useDraft(props.durations, saveDuration);
+  const animals = useDraft(props.creatures, saveCreature);
+  const grounds = useDraft(props.grounds, saveGround);
+  const [tab, selectTab] = useUrlTab(TABS, props.initialTab);
+  const [groundId, setGroundId] = useSelection(
+    grounds.rows.map((row) => row.id),
   );
-  if (props.locationId) return groundEditor;
-  return (
-    <div className="space-y-8">
-      <SafetySettings initial={config} onChange={setConfig} />
-      <HuntingSimulator
-        config={config}
-        durations={durations}
-        creatures={creatures}
-        grounds={grounds}
-        locations={props.locations}
-        combatConfig={props.combatConfig}
+  const [animalId, setAnimalId] = useSelection(
+    animals.rows.map((row) => row.id),
+  );
+  const settings = config.rows[0]!;
+
+  const problems = [
+    ...grounds.rows
+      .filter((ground) => ground.accidentDamageMax < ground.accidentDamageMin)
+      .map((ground) => `${ground.name}: accident damage max below min`),
+    ...grounds.rows
+      .filter((ground) => !ground.name.trim())
+      .map(() => "A hunting ground needs a name"),
+    ...creatureProblems(animals.rows),
+    ...(settings.minimumRemainingHealthPercent >
+    settings.minimumHealthToStartPercent
+      ? ["Health needed to depart must be at least the health floor"]
+      : []),
+  ];
+
+  const createGround = async () => {
+    const location =
+      props.locations.find(
+        (row) =>
+          row.id ===
+          (props.locationId ??
+            grounds.rows.find((ground) => ground.id === groundId)?.locationId),
+      ) ?? props.locations[0];
+    if (!location) return;
+    const result = await run(
+      () =>
+        adminRequest("/api/admin/hunting/grounds", "POST", {
+          locationId: location.id,
+          name: `New Hunting Ground ${grounds.rows.length + 1}`,
+          description: null,
+          requiredHuntingLevel: 1,
+          enabled: false,
+          sortOrder: 100,
+          accidentChance: 0.03,
+          accidentDamageMin: 1,
+          accidentDamageMax: 3,
+          creatures: [],
+        }),
+      `Hunting ground created in ${location.name} (hidden)`,
+    );
+    const created = result?.ground as { id?: number } | undefined;
+    if (created?.id) setGroundId(created.id);
+  };
+
+  const ground = grounds.rows.find((row) => row.id === groundId);
+  const groundsPane = (
+    <div className={masterDetailClass}>
+      <PickList
+        placeholder="Find a ground…"
+        selectedId={groundId}
+        onSelect={setGroundId}
+        items={grounds.rows.map((row) => ({
+          id: row.id,
+          name: row.name,
+          detail: props.locationId
+            ? `lv ${row.requiredHuntingLevel}`
+            : `${row.locationName} · lv ${row.requiredHuntingLevel}`,
+          muted: !row.enabled,
+        }))}
+        footer={
+          <ListAction onClick={() => void createGround()}>
+            New hunting ground
+          </ListAction>
+        }
       />
-      <DurationEditor initial={durations} onChange={setDurations} />
-      {groundEditor}
-      <CreatureEditor
-        kind="ANIMAL"
-        initial={creatures}
-        items={props.items}
-        onChange={setCreatures}
+      {ground ? (
+        <GroundView
+          key={ground.id}
+          ground={ground}
+          animals={animals.rows}
+          locations={props.locations}
+          stages={props.stages}
+          update={(patch) => grounds.update(ground.id, patch)}
+          onOpenAnimal={
+            props.locationId
+              ? undefined
+              : (id) => {
+                  setAnimalId(id);
+                  selectTab("animals");
+                }
+          }
+        />
+      ) : (
+        <p className="text-sm text-white/55">
+          No hunting grounds yet. Create one to get started.
+        </p>
+      )}
+    </div>
+  );
+
+  if (props.locationId) {
+    return (
+      <div className="space-y-4">
+        {groundsPane}
+        <SaveBar drafts={[grounds]} problems={problems} />
+      </div>
+    );
+  }
+
+  const groundNames = (animal: AdminCreature) =>
+    grounds.rows
+      .filter((row) =>
+        row.creatures.some((entry) => entry.creatureId === animal.id),
+      )
+      .map((row) => row.name);
+
+  return (
+    <div className="space-y-4">
+      <EditorTabs
+        tabs={[
+          {
+            key: "grounds",
+            label: "Hunting grounds",
+            count: grounds.rows.length,
+          },
+          { key: "animals", label: "Animals", count: animals.rows.length },
+          { key: "durations", label: "Durations" },
+          { key: "safety", label: "Safety rules" },
+          { key: "simulator", label: "Simulator" },
+        ]}
+        active={tab}
+        onSelect={selectTab}
+      />
+
+      {tab === "grounds" ? groundsPane : null}
+
+      {tab === "animals" ? (
+        <CreatureEditor
+          kind="ANIMAL"
+          draft={animals}
+          items={props.items}
+          selectedId={animalId}
+          onSelect={setAnimalId}
+          usage={(animal) => {
+            const names = groundNames(animal);
+            return names.length
+              ? `Lives in ${names.join(", ")}`
+              : "Not placed in any hunting ground yet";
+          }}
+        />
+      ) : null}
+
+      {tab === "durations" ? (
+        <DurationTable
+          draft={durations}
+          endpoint="/api/admin/hunting/durations"
+          description="Each encounter is a chance at materials and a chance of getting hurt; the danger multiplier scales the second."
+          columns={[
+            {
+              key: "encounterRolls",
+              label: "Encounters",
+              min: 1,
+              max: 100,
+              integer: true,
+            },
+            {
+              key: "quantityMultiplier",
+              label: "Quantity ×",
+              min: 0.1,
+              max: 20,
+              step: 0.05,
+            },
+            {
+              key: "dangerMultiplier",
+              label: "Danger ×",
+              min: 0,
+              max: 10,
+              step: 0.05,
+            },
+            { key: "xpReward", label: "XP", min: 0, integer: true },
+            {
+              key: "requiredHuntingLevel",
+              label: "Req. level",
+              min: 1,
+              max: 10_000,
+              integer: true,
+            },
+          ]}
+          newRow={(last) => ({
+            label: `New hunt ${durations.rows.length + 1}`,
+            durationSeconds: (last?.durationSeconds ?? 0) + 3_600,
+            encounterRolls: Math.min(100, (last?.encounterRolls ?? 0) + 2),
+            quantityMultiplier: last?.quantityMultiplier ?? 1,
+            dangerMultiplier: last?.dangerMultiplier ?? 1,
+            xpReward: last?.xpReward ?? 20,
+            requiredHuntingLevel: last?.requiredHuntingLevel ?? 1,
+            enabled: false,
+            sortOrder: (last?.sortOrder ?? 0) + 10,
+          })}
+        />
+      ) : null}
+
+      {tab === "safety" ? (
+        <SafetyView
+          config={settings}
+          update={(patch) => config.update(1, patch)}
+        />
+      ) : null}
+
+      {tab === "simulator" ? (
+        <HuntingSimulator
+          config={settings}
+          durations={durations.rows}
+          animals={animals.rows}
+          grounds={grounds.rows}
+          locations={props.locations}
+          combatConfig={props.combatConfig}
+        />
+      ) : null}
+
+      <SaveBar
+        drafts={[config, durations, animals, grounds]}
+        problems={problems}
       />
     </div>
   );

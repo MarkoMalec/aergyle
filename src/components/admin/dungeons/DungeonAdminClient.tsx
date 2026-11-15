@@ -6,9 +6,12 @@ import { CirclePlus, Save, Skull } from "lucide-react";
 import toast from "react-hot-toast";
 import {
   CreatureEditor,
+  creatureProblems,
+  saveCreature,
   type AdminCreature,
   type AdminItemOption,
 } from "~/components/admin/creatures/CreatureEditor";
+import { SaveBar, useDraft, useSelection } from "~/components/admin/editor";
 import {
   TestCharacterPanel,
   testCharacterForLevel,
@@ -131,14 +134,17 @@ export function DungeonAdminClient(props: {
 }) {
   const router = useRouter();
   const [config, setConfig] = useState(props.config);
-  const [monsters, setMonsters] = useState(props.monsters);
+  const monsters = useDraft(props.monsters, saveCreature);
+  const [monsterId, setMonsterId] = useSelection(
+    monsters.rows.map((row) => row.id),
+  );
   const [character, setCharacter] = useState(() =>
     testCharacterForLevel(1, props.statGrowth),
   );
   const [createdId, setCreatedId] = useState<number | null>(null);
   const monstersById = useMemo(
-    () => new Map(monsters.map((monster) => [monster.id, monster])),
-    [monsters],
+    () => new Map(monsters.rows.map((monster) => [monster.id, monster])),
+    [monsters.rows],
   );
   const rules = useMemo(
     () => ({
@@ -210,7 +216,7 @@ export function DungeonAdminClient(props: {
               // refreshing after create/delete keeps other unsaved drafts.
               key={`${dungeon.id}:${updatedAt}`}
               dungeon={dungeon}
-              monsters={monsters}
+              monsters={monsters.rows}
               monstersById={monstersById}
               locations={props.locations}
               stages={props.stages}
@@ -224,12 +230,27 @@ export function DungeonAdminClient(props: {
       </Panel>
 
       {props.locationId ? null : (
-        <CreatureEditor
-          kind="MONSTER"
-          initial={props.monsters}
-          items={props.items}
-          onChange={setMonsters}
-        />
+        <Panel
+          title={
+            <>
+              <Skull className="h-4 w-4 text-red-300" />
+              Monster bestiary
+            </>
+          }
+          description="Edits to a monster update every dungeon preview above as you type. Save all stores them."
+        >
+          <CreatureEditor
+            kind="MONSTER"
+            draft={monsters}
+            items={props.items}
+            selectedId={monsterId}
+            onSelect={setMonsterId}
+          />
+          <SaveBar
+            drafts={[monsters]}
+            problems={creatureProblems(monsters.rows)}
+          />
+        </Panel>
       )}
     </div>
   );

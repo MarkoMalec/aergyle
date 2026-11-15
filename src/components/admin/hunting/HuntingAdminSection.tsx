@@ -8,8 +8,10 @@ import { getCombatConfig } from "~/server/combat/config";
 /** Hunting editor for the whole game, or only one region's grounds when locationId is set. */
 export async function HuntingAdminSection({
   locationId,
+  tab,
 }: {
   locationId?: number;
+  tab?: string;
 }) {
   const [
     config,
@@ -127,6 +129,7 @@ export async function HuntingAdminSection({
         combatConfig={combatConfig}
         stages={stages}
         locationId={locationId}
+        initialTab={tab}
       />
     </>
   );
